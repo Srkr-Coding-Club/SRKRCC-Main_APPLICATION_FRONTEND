@@ -9,16 +9,16 @@ install:
 dev: run
 
 run:
-	npm run dev
+	pnpm run dev
 
 build:
-	npm run build
+	pnpm run build
 
 start:
-	npm start
+	pnpm start
 
 lint:
-	npm run lint
+	pnpm run lint
 
 clean:
 	rm -rf .next node_modules out

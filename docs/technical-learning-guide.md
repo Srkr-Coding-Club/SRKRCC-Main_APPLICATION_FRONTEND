@@ -23,9 +23,22 @@ src/app/
 ├── career/
 │   └── page.tsx    <-- Career Opportunities Page
 ├── blogs/
-│   └── page.tsx    <-- Blogs Listing Page
+│   └── page.tsx    <-- Technical Blogs & Member Stories
+├── forms/
+│   ├── page.tsx    <-- Forms Center Directory
+│   └── [slug]/
+│       └── page.tsx <-- Dynamic Form Submission Engine
 └── admin/
-    └── page.tsx    <-- Admin Control Room (Feature Flags Status)
+    └── page.tsx    <-- Modular Admin Control Room (8 Unified Tabs)
+        ├── AdminHeader.tsx         <-- Admin Header & Brand
+        ├── DashboardTab.tsx       <-- Metrics & Analytics Charts
+        ├── UsersTab.tsx           <-- RBAC & User Control Table
+        ├── FormBuilderTab.tsx     <-- MS Drag & Drop Form Builder
+        ├── ManageFormsTab.tsx     <-- Forms Control & Offline Overrides
+        ├── EventsHackathonsTab.tsx<-- Workshops & Flagship Engine
+        ├── ContentHubTab.tsx      <-- Technical Articles & Placement Drives
+        ├── FlagsTab.tsx           <-- Feature Flag Controls
+        └── AuditLogsTab.tsx       <-- Security Mutation Trail Logs
 ```
 
 ### Server Components vs. Client Components Execution Flow

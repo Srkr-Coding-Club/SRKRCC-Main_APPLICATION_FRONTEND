@@ -1,41 +1,142 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #090d16;
-  --foreground: #f8fafc;
-  --card: #111827;
-  --card-border: #1e293b;
-  --primary: #38bdf8;
-  --primary-hover: #0284c7;
-  --accent: #818cf8;
+  --background: #FAFAFC;
+  --foreground: #1A1A2E;
+  --card-bg: #FFFFFF;
+  --card-hover-bg: #F8F9FC;
+  --border-color: #E2E8F0;
+  
+  /* Brand Specific CSS Variables */
+  --brand-orange: #FF7A00;
+  --brand-burgundy: #8B2E3B;
+  --brand-navy: #1A1A2E;
+  --brand-gold: #FFA500;
+  --brand-purple: #6B3B84;
+  --brand-light-orange: #FFE5CC;
+  --brand-dark-gray: #2D2D3D;
+  --brand-medium-gray: #6F6F7F;
+  --brand-light-gray: #F5F5F5;
+  
+  --font-poppins: 'Poppins', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+.dark {
+  --background: #0D0E15;
+  --foreground: #F5F5F5;
+  --card-bg: #151722;
+  --card-hover-bg: #1B1E2C;
+  --border-color: rgba(255, 255, 255, 0.08);
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--background);
+  font-family: var(--font-inter);
   min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Glassmorphism utilities */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-poppins);
+}
+
+/* Custom Glassmorphism & UI Card Utilities */
 .glass-panel {
-  background: rgba(17, 24, 39, 0.7);
+  background: var(--card-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
 }
 
-.gradient-text {
-  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+.dark .glass-panel {
+  background: rgba(21, 23, 34, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Gradient Text Utilities */
+.gradient-text-orange {
+  background: linear-gradient(135deg, #FF7A00 0%, #FFA500 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.gradient-border {
-  position: relative;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2));
-  border-radius: 0.75rem;
-  padding: 1px;
+.gradient-text-burgundy {
+  background: linear-gradient(135deg, #8B2E3B 0%, #FF7A00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
+
+/* Brain Rays Animations */
+@keyframes pulseRay {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes floatCard {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-pulse-ray {
+  animation: pulseRay 3s ease-in-out infinite;
+}
+
+.animate-float-1 {
+  animation: floatCard 4s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: floatCard 5s ease-in-out infinite 1s;
+}
+
+.animate-float-3 {
+  animation: floatCard 4.5s ease-in-out infinite 2s;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 20s linear infinite;
+}
+
+/* Focus Visible for Accessibility */
+*:focus-visible {
+  outline: 2px solid var(--brand-orange);
+  outline-offset: 2px;
+}
+
+/* Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
