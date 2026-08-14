@@ -25,6 +25,13 @@
   --font-poppins: 'Poppins', sans-serif;
   --font-inter: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* Theme-aware glow tokens — darker/muted orange in light mode so ambient
+     glows read as a subtle warm tint instead of a garish wash; vivid in dark */
+  --glow-rgb: 154, 52, 18;
+  --glow-strong: rgba(154, 52, 18, 0.20);
+  --glow-mid: rgba(154, 52, 18, 0.10);
+  --glow-soft: rgba(154, 52, 18, 0.05);
 }
 
 .dark {
@@ -33,6 +40,11 @@
   --card-bg: #151722;
   --card-hover-bg: #1B1E2C;
   --border-color: rgba(255, 255, 255, 0.08);
+
+  --glow-rgb: 255, 122, 0;
+  --glow-strong: rgba(255, 122, 0, 0.45);
+  --glow-mid: rgba(255, 122, 0, 0.16);
+  --glow-soft: rgba(255, 122, 0, 0.10);
 }
 
 body {
@@ -46,6 +58,35 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-poppins);
+}
+
+/* Themed Scrollbar */
+html {
+  scrollbar-color: #FF7A00 var(--background);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #FFA500, #FF7A00 55%, #8B2E3B);
+  border-radius: 999px;
+  border: 2px solid var(--background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FF7A00, #8B2E3B);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--background);
 }
 
 /* Custom Glassmorphism & UI Card Utilities */
@@ -122,6 +163,116 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-spin-slow {
   animation: spinSlow 20s linear infinite;
+}
+
+/* Dot-Grid Background — About section's own texture, distinct from the hero's line grid */
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(26, 26, 46, 0.14) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.dark .bg-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+/* Blueprint Line-Grid Background */
+.bg-blueprint-grid {
+  background-image:
+    linear-gradient(to right, rgba(26, 26, 46, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(26, 26, 46, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: gridPan 60s linear infinite;
+}
+
+.dark .bg-blueprint-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+@keyframes gridPan {
+  from { background-position: 0 0; }
+  to { background-position: 48px 48px; }
+}
+
+/* Shimmering Chrome / Ember Display Typography */
+@keyframes shimmerSweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.chrome-text {
+  background-image: linear-gradient(110deg, #4b4b63 20%, #1A1A2E 35%, #ffffff 50%, #1A1A2E 65%, #4b4b63 80%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmerSweep 6s linear infinite;
+}
+
+.dark .chrome-text {
+  background-image: linear-gradient(110deg, #94a3b8 20%, #ffffff 35%, #fff8f0 50%, #ffffff 65%, #94a3b8 80%);
+}
+
+.ember-text {
+  background-image: linear-gradient(110deg, #8B2E3B 12%, #9A3412 35%, #FFE3B0 50%, #C2410C 65%, #FFA500 88%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmerSweep 6s linear infinite;
+  filter: drop-shadow(0 0 20px var(--glow-soft));
+}
+
+.dark .ember-text {
+  background-image: linear-gradient(110deg, #8B2E3B 12%, #FF7A00 35%, #FFE3B0 50%, #FF7A00 65%, #FFA500 88%);
+  filter: drop-shadow(0 0 34px var(--glow-mid));
+}
+
+/* Twinkling sparkle glints */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.sparkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+/* Scanline Sweep */
+@keyframes scanSweep {
+  0% { transform: translateY(-10%); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+.scanline {
+  animation: scanSweep 9s ease-in-out infinite;
+}
+
+@keyframes spinSlower {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slower {
+  animation: spinSlower 50s linear infinite;
+}
+
+.animate-spin-reverse-slow {
+  animation: spinSlow 34s linear infinite reverse;
+}
+
+/* Blinking Terminal Cursor */
+@keyframes blinkCursor {
+  0%, 45% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.blinking-cursor {
+  animation: blinkCursor 1s step-end infinite;
 }
 
 /* Focus Visible for Accessibility */
