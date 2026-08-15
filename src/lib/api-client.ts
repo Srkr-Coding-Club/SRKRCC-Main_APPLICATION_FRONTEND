@@ -2,17 +2,21 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  
+
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
   };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2500);
 
   try {
     const response = await fetch(url, {
       ...options,
       headers,
       cache: 'no-store',
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -21,12 +25,16 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
 
     return await response.json();
   } catch (error: any) {
-    if (error?.code === 'ECONNREFUSED' || error?.cause?.code === 'ECONNREFUSED') {
+    if (error?.name === 'AbortError') {
+      console.warn(`[Backend Timeout] ${url} took too long to respond. Using fallback data.`);
+    } else if (error?.code === 'ECONNREFUSED' || error?.cause?.code === 'ECONNREFUSED') {
       console.warn(`[Backend Offline] Unable to connect to ${url}. Using fallback data.`);
     } else {
       console.error(`[API Error] Request to ${url} failed:`, error?.message || error);
     }
     throw error;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

@@ -186,7 +186,7 @@ function CenterBadge() {
     <motion.div
       initial={{ opacity: 0, scale: 0.5, rotate: -25 }}
       animate={{ opacity: 1, scale: 1, rotate: 0 }}
-      transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
       className="relative flex-shrink-0 flex items-center justify-center w-[226px] h-[226px] sm:w-[180px] sm:h-[180px] lg:w-[240px] lg:h-[240px] rounded-full p-[2px]"
       style={{
         background: 'linear-gradient(135deg, #FFA500, #FF7A00 40%, #8B2E3B 70%, #FFA500)',
@@ -340,7 +340,7 @@ export default function HeroSection() {
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.85 }}
+          transition={{ duration: 0.6, delay: 0.45 }}
           className="mt-9 sm:mt-11 text-center"
         >
           <span className="block text-xs sm:text-sm uppercase tracking-[0.35em] text-[#1A1A2E]/55 dark:text-white/50">
@@ -360,7 +360,7 @@ export default function HeroSection() {
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.0 }}
+          transition={{ duration: 0.6, delay: 0.55 }}
           className="mt-9 sm:mt-11 flex flex-wrap items-center justify-center gap-4"
         >
           <PillButton href="/events" variant="solid" icon="arrow">
