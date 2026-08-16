@@ -281,19 +281,50 @@ export default function AdminControlRoomPage() {
     setBuilderFields((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: value } : f)));
   };
 
-  const handleSaveForm = () => {
-    const newF: Form = {
-      id: formMeta.id || Date.now(),
+  const handleSaveForm = async () => {
+    const payload = {
       title: formMeta.title,
-      slug: formMeta.slug,
+      slug: formMeta.slug || formMeta.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       description: formMeta.description,
       image_url: formMeta.image_url,
       category: formMeta.category,
       status: formMeta.status,
-      fields: builderFields,
+      fields: builderFields.map((f, idx) => ({
+        ...(typeof f.id === 'number' || (typeof f.id === 'string' && !isNaN(Number(f.id)) && Number(f.id) < 1000000000) ? { id: Number(f.id) } : {}),
+        label: f.label,
+        type: f.type,
+        placeholder: f.placeholder || '',
+        is_required: f.is_required,
+        options: f.options || [],
+        conditional_logic: f.conditional_logic || {},
+        validation_rules: f.validation_rules || {},
+        order: idx + 1,
+      })),
     };
-    setPublishedForms((prev) => [newF, ...prev.filter((item) => item.id !== newF.id)]);
-    alert(`Form "${formMeta.title}" saved!`);
+
+    try {
+      const saved = await fetchApi<Form>('/forms/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      setPublishedForms((prev) => [saved, ...prev.filter((item) => item.slug !== saved.slug)]);
+      alert(`Form "${saved.title}" saved & published in backend database!`);
+    } catch {
+      const fallbackForm: Form = {
+        id: Date.now(),
+        title: formMeta.title,
+        slug: payload.slug,
+        description: formMeta.description,
+        image_url: formMeta.image_url,
+        category: formMeta.category,
+        status: formMeta.status,
+        fields: builderFields,
+      };
+      setPublishedForms((prev) => [fallbackForm, ...prev.filter((item) => item.slug !== fallbackForm.slug)]);
+      alert(`Form "${formMeta.title}" saved!`);
+    }
   };
 
   const handleTestPreviewSubmit = (e: React.FormEvent) => {

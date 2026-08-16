@@ -97,11 +97,12 @@ export interface BlogPost {
 export interface FormField {
   id: number | string;
   label: string;
-  type: 'TEXT' | 'PARAGRAPH' | 'EMAIL' | 'NUMBER' | 'DROPDOWN' | 'RADIO' | 'CHECKBOX' | 'FILE' | 'DATE' | 'TIME' | 'SECTION';
+  type: 'TEXT' | 'PARAGRAPH' | 'EMAIL' | 'NUMBER' | 'DROPDOWN' | 'RADIO' | 'CHECKBOX' | 'FILE' | 'MULTI_FILE' | 'DATE' | 'TIME' | 'SECTION';
   placeholder?: string;
   is_required: boolean;
   options?: string[];
-  conditional_logic?: string;
+  conditional_logic?: any;
+  validation_rules?: any;
   order: number;
 }
 
@@ -113,6 +114,9 @@ export interface Form {
   image_url?: string;
   category?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'CLOSED';
+  version?: number;
+  allow_multiple_responses?: boolean;
+  allow_edits_until?: string;
   open_at?: string;
   close_at?: string;
   fields?: FormField[];

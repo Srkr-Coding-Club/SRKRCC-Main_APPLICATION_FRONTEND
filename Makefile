@@ -4,7 +4,7 @@ setup: install
 
 install:
 	@echo "Installing frontend dependencies..."
-	npm install
+	pnpm install
 
 dev: run
 

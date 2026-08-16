@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Form, FormField } from '@/lib/types';
+import { fetchApi } from '@/lib/api-client';
 import {
   FileText,
   CheckCircle2,
@@ -84,8 +85,18 @@ export default function FormDetailSubmissionPage() {
   };
 
   useEffect(() => {
-    if (slug) {
-      // Find matching form from sample fallback map or backend
+    async function loadForm() {
+      if (!slug) return;
+      try {
+        const fetched = await fetchApi<Form>(`/forms/${slug}/`);
+        if (fetched && fetched.title) {
+          setForm(fetched);
+          return;
+        }
+      } catch {
+        // keep sample fallback
+      }
+
       const matched = sampleFormsMap[slug] || {
         id: 999,
         title: slug.replace(/-/g, ' ').toUpperCase(),
@@ -100,10 +111,29 @@ export default function FormDetailSubmissionPage() {
       };
       setForm(matched);
     }
+    loadForm();
+  }, [slug]);
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    if (slug) {
+      try {
+        const savedDraft = localStorage.getItem(`srkrcc_form_draft_${slug}`);
+        if (savedDraft) {
+          setFormData(JSON.parse(savedDraft));
+        }
+      } catch {}
+    }
   }, [slug]);
 
   const handleInputChange = (fieldId: number | string, value: any) => {
-    setFormData((prev) => ({ ...prev, [fieldId]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [fieldId]: value };
+      try {
+        if (slug) localStorage.setItem(`srkrcc_form_draft_${slug}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
     if (errors[fieldId]) {
       setErrors((prev) => {
         const next = { ...prev };
