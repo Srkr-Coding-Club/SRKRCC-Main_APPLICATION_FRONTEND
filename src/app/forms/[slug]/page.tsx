@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Form, FormField } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
+import { getConstraintHint, validateFieldValue } from '@/lib/formValidation';
 import {
   FileText,
   CheckCircle2,
@@ -147,12 +148,11 @@ export default function FormDetailSubmissionPage() {
     e.preventDefault();
     if (!form || !form.fields) return;
 
-    // Validate required fields
     const newErrors: Record<string, string> = {};
     form.fields.forEach((field) => {
-      if (field.is_required && !formData[field.id]) {
-        newErrors[field.id] = `${field.label} is required.`;
-      }
+      if (field.type === 'SECTION') return;
+      const error = validateFieldValue(field, formData[field.id]);
+      if (error) newErrors[field.id] = error;
     });
 
     if (Object.keys(newErrors).length > 0) {
@@ -234,12 +234,25 @@ export default function FormDetailSubmissionPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {form.fields?.map((field) => {
                 const isErr = !!errors[field.id];
+                const hint = getConstraintHint(field);
+
+                if (field.type === 'SECTION') {
+                  return (
+                    <div key={field.id} className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                      <h3 className="text-lg font-bold text-[#FF7A00]">{field.label}</h3>
+                      {field.description && <p className="text-xs text-slate-400 mt-0.5">{field.description}</p>}
+                    </div>
+                  );
+                }
 
                 return (
                   <div key={field.id} className="space-y-2">
                     <label className="block text-sm font-bold text-[#1A1A2E] dark:text-white">
                       {field.label} {field.is_required && <span className="text-[#8B2E3B] dark:text-rose-400">*</span>}
                     </label>
+                    {field.description && (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 -mt-1">{field.description}</p>
+                    )}
 
                     {/* TEXT Field */}
                     {field.type === 'TEXT' && (
@@ -247,6 +260,7 @@ export default function FormDetailSubmissionPage() {
                         type="text"
                         placeholder={field.placeholder || 'Enter response...'}
                         value={formData[field.id] || ''}
+                        maxLength={field.validation_rules?.maxLength}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
                         className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
                           isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
@@ -273,6 +287,7 @@ export default function FormDetailSubmissionPage() {
                         rows={4}
                         placeholder={field.placeholder || 'Type details here...'}
                         value={formData[field.id] || ''}
+                        maxLength={field.validation_rules?.maxLength}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
                         className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
                           isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
@@ -321,6 +336,8 @@ export default function FormDetailSubmissionPage() {
                         type="number"
                         placeholder={field.placeholder || 'Enter number...'}
                         value={formData[field.id] || ''}
+                        min={field.validation_rules?.minValue}
+                        max={field.validation_rules?.maxValue}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
                         className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
                           isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
@@ -355,6 +372,8 @@ export default function FormDetailSubmissionPage() {
                       <input
                         type="date"
                         value={formData[field.id] || ''}
+                        min={field.validation_rules?.minDate}
+                        max={field.validation_rules?.maxDate}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
                         className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
                           isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
@@ -362,17 +381,50 @@ export default function FormDetailSubmissionPage() {
                       />
                     )}
 
-                    {/* FILE Field */}
-                    {field.type === 'FILE' && (
+                    {/* TIME Field */}
+                    {field.type === 'TIME' && (
+                      <input
+                        type="time"
+                        value={formData[field.id] || ''}
+                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
+                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
+                        }`}
+                      />
+                    )}
+
+                    {/* FILE / MULTI_FILE Field */}
+                    {(field.type === 'FILE' || field.type === 'MULTI_FILE') && (
                       <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-center bg-[#FAFAFC] dark:bg-[#0D0E15]">
                         <Upload className="w-8 h-8 text-[#FF7A00] mx-auto mb-2" />
-                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Drag & drop PDF / File or click to select</p>
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          Drag & drop {field.type === 'MULTI_FILE' ? 'files' : 'a file'} or click to select
+                        </p>
                         <input
                           type="file"
-                          onChange={(e) => handleInputChange(field.id, e.target.files?.[0]?.name || 'Uploaded File')}
+                          multiple={field.type === 'MULTI_FILE'}
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []).map((f) => ({ name: f.name, size: f.size }));
+                            handleInputChange(field.id, field.type === 'MULTI_FILE' ? files : files[0]);
+                          }}
                           className="mt-2 text-xs text-slate-500"
                         />
+                        {Array.isArray(formData[field.id]) && formData[field.id].length > 0 && (
+                          <p className="text-[11px] text-slate-400 mt-2">{formData[field.id].map((f: any) => f.name).join(', ')}</p>
+                        )}
+                        {formData[field.id] && !Array.isArray(formData[field.id]) && (
+                          <p className="text-[11px] text-slate-400 mt-2">{formData[field.id].name}</p>
+                        )}
                       </div>
+                    )}
+
+                    {/* Character counter / constraint hint */}
+                    {(field.type === 'TEXT' || field.type === 'PARAGRAPH') && field.validation_rules?.maxLength ? (
+                      <p className="text-[11px] text-slate-400 text-right">
+                        {formData[field.id]?.length || 0}/{field.validation_rules.maxLength}
+                      </p>
+                    ) : (
+                      hint && <p className="text-[11px] text-slate-400">{hint}</p>
                     )}
 
                     {/* Error message */}

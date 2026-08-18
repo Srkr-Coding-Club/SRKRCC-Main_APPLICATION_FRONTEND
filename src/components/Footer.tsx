@@ -46,7 +46,7 @@ export default function Footer() {
           <span
             className="font-poppins font-extrabold leading-none whitespace-nowrap text-[16vw] sm:text-[11vw] translate-y-[28%] text-[#1A1A2E]/[0.04] dark:text-white/[0.045]"
           >
-             CODING CLUB
+            CODING CLUB
           </span>
         </div>
 

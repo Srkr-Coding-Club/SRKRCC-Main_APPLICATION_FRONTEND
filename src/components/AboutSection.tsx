@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import BrainLogo from './BrainLogo';
 
 /* ------------------------------------------------------------------ */
 /* Word-by-word masked reveal for display headings — a single viewport  */
@@ -207,15 +208,28 @@ export default function AboutSection() {
                   borderRadius: '2.4rem',
                 }}
               >
-                <img
-                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80"
-                  alt="SRKR Coding Club members collaborating"
-                  className="w-full h-[340px] sm:h-[420px] lg:h-[480px] object-cover"
+                <div
+                  aria-hidden="true"
+                  className="relative w-full h-[340px] sm:h-[420px] lg:h-[480px] flex items-center justify-center bg-blueprint-grid"
                   style={{
                     maskImage: 'linear-gradient(120deg, transparent 0%, black 20%)',
                     WebkitMaskImage: 'linear-gradient(120deg, transparent 0%, black 20%)',
                   }}
-                />
+                >
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'radial-gradient(circle at 30% 40%, var(--glow-mid), transparent 65%)' }}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.85, rotate: -8 }}
+                    whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+                    viewport={{ once: true, margin: '-80px' }}
+                    transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                    className="relative"
+                  >
+                    <BrainLogo size={140} showRays={true} animated={true} />
+                  </motion.div>
+                </div>
                 {/* subtle grain */}
                 <div
                   className="absolute inset-0 opacity-[0.06] mix-blend-overlay pointer-events-none"

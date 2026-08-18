@@ -95,7 +95,9 @@ function Sparkle({ style, delay, size = 3 }: { style: React.CSSProperties; delay
 
 /* ------------------------------------------------------------------ */
 /* Concentric ring system with orbiting particles — the "circulating   */
-/* objects" behind the wordmark                                        */
+/* objects" behind the wordmark. Desktop/tablet only — rendered inside */
+/* LogoWithBackdrop so it's always centered exactly on the logo,       */
+/* regardless of how much content sits above/below it in the layout.  */
 /* ------------------------------------------------------------------ */
 function RingsBackdrop() {
   const spinSlowRef = useRef<HTMLDivElement>(null);
@@ -113,7 +115,7 @@ function RingsBackdrop() {
   }, []);
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+    <div className="hidden sm:flex absolute inset-0 items-center justify-center pointer-events-none" aria-hidden="true">
       {/* ambient core glow */}
       <div
         className="absolute w-[460px] h-[460px] sm:w-[720px] sm:h-[720px] rounded-full blur-3xl"
@@ -160,6 +162,39 @@ function RingsBackdrop() {
       <Sparkle style={{ top: '72%', left: '76%' }} delay={1.6} size={2.5} />
       <Sparkle style={{ top: '48%', left: '10%' }} delay={2.1} size={2} />
       <Sparkle style={{ top: '46%', left: '90%' }} delay={0.9} size={2} />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile backdrop — orbiting rings/particles read as clutter at small */
+/* sizes, so mobile gets a quieter glow + a couple of still rings      */
+/* instead, sized to suit the logo rather than the full composition.  */
+/* ------------------------------------------------------------------ */
+function MobileGlowBackdrop() {
+  return (
+    <div className="flex sm:hidden absolute inset-0 items-center justify-center pointer-events-none" aria-hidden="true">
+      <div
+        className="absolute w-[300px] h-[300px] rounded-full blur-3xl"
+        style={{ background: 'radial-gradient(circle, var(--glow-mid), transparent 70%)' }}
+      />
+      <div className="absolute w-[250px] h-[250px] rounded-full border border-[#1A1A2E]/[0.07] dark:border-white/[0.08]" />
+      <div className="absolute w-[200px] h-[200px] rounded-full border border-dashed border-[#FF7A00]/15" />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Logo + its backdrop, always sharing one center — used at both call  */
+/* sites (mobile stack, desktop flanking layout) so the rings/glow     */
+/* never drift from the logo regardless of surrounding content height. */
+/* ------------------------------------------------------------------ */
+function LogoWithBackdrop() {
+  return (
+    <div className="relative flex items-center justify-center">
+      <MobileGlowBackdrop />
+      <RingsBackdrop />
+      <CenterBadge />
     </div>
   );
 }
@@ -256,17 +291,6 @@ function DisplayRow({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Decorative typed code fragment                                      */
-/* ------------------------------------------------------------------ */
-const SNIPPET = `// SRKR Coding Club
-function innovate() {
-  ideas.build();
-  ideas.learn();
-  ideas.collaborate();
-  return impact;
-}`;
-
 
 
 
@@ -279,13 +303,12 @@ export default function HeroSection() {
       className="relative min-h-screen overflow-hidden bg-[var(--background)] transition-colors duration-300 flex flex-col"
     >
       <FloorGrid />
-      <RingsBackdrop />
       <div className="absolute inset-0 bg-blueprint-grid opacity-40 [mask-image:radial-gradient(ellipse_60%_55%_at_50%_35%,#000_15%,transparent_100%)] pointer-events-none" />
 
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-16 sm:py-20">
         {/* Mobile: logo on top, SRKR below, CODING CLUB below that */}
         <div className="flex sm:hidden flex-col items-center gap-3 w-full">
-          <CenterBadge />
+          <LogoWithBackdrop />
           <DisplayRow
             delay={0.15}
             variant="ember"
@@ -307,7 +330,7 @@ export default function HeroSection() {
           <DisplayRow
             delay={0.15}
             variant="ember"
-            className="text-[clamp(1.9rem,8vw,9rem)] font-extrabold font-poppins tracking-[0.04em]"
+              className="text-[clamp(1.9rem,8vw,9rem)] font-extrabold font-poppins tracking-[0.04em]"
           >
             SRKR
           </DisplayRow>
@@ -323,7 +346,7 @@ export default function HeroSection() {
               </DisplayRow>
             </div>
 
-            <CenterBadge />
+            <LogoWithBackdrop />
 
             <div className="absolute left-1/2 ml-[76px] lg:ml-[98px]">
               <DisplayRow
@@ -352,7 +375,7 @@ export default function HeroSection() {
             <span>&middot;</span>
             <span className="text-[#8B2E3B] dark:text-[#E05263] font-semibold">Learn</span>
             <span>&middot;</span>
-            <span className="text-[#E06B00] dark:text-[#FFA500] font-semibold">Collaborate</span>
+            <span className="text-[#E06B00] dark:text-[#FFA500] font-semibold">Innovate</span>
             <span className="text-[#FF7A00]">&lt;/&gt;</span>
           </span>
         </motion.div>
