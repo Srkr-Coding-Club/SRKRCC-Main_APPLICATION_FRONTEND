@@ -1,54 +1,93 @@
-import { Sparkles, Trophy, Star, Users, Flame } from 'lucide-react';
+import React from 'react';
+import { fetchApi } from '@/lib/api-client';
+import { IconCodersChallenge, IconCodersHallOfFameEntry } from '@/lib/types';
+import { Sparkles, Trophy } from 'lucide-react';
+import { isModuleEnabled } from '@/lib/moduleFlags';
+import PageHero from '@/components/PageHero';
+import SectionHeading from '@/components/SectionHeading';
+import IconCodersEditionCard from '@/components/IconCodersEditionCard';
+import IconCodersHallOfFameCard from '@/components/IconCodersHallOfFameCard';
+import ModuleUnavailable from '@/components/ModuleUnavailable';
 
-export default function IconCodersPage() {
-  const hallOfFame = [
-    { year: '2025', team: 'Team Synergy', project: 'AI Medical Assistant', members: ['Ashok B.', 'Rohan K.', 'Sneha P.'] },
-    { year: '2024', team: 'CyberKnights', project: 'Decentralized Identity Vault', members: ['Vikram S.', 'Ananya R.', 'Karthik N.'] },
-    { year: '2023', team: 'CodeCrafters', project: 'Smart Agri Monitor', members: ['Praveen M.', 'Divya T.'] },
+export const dynamic = 'force-dynamic';
+
+async function getCurrentChallenge(): Promise<IconCodersChallenge> {
+  try {
+    const fetched = await fetchApi<IconCodersChallenge>('/iconcoders/current/');
+    if (fetched) return fetched;
+  } catch (error) {
+    // Fallback to curated current edition
+  }
+
+  return {
+    id: 1,
+    title: 'IconCoders 2026 Flagship Challenge',
+    slug: 'iconcoders-2026',
+    edition: '2026 Edition',
+    theme: 'Advanced Data Structures & Algorithmic Problem Solving',
+    description: 'SRKR Coding Club’s annual flagship individual DSA competition. Solve a curated set of algorithmic problems solo, climb the live leaderboard, and win recognition plus prizes.',
+    format: 'INDIVIDUAL',
+    difficulty_tier: 'Advanced DSA',
+    start_date: '2026-02-10',
+    end_date: '2026-02-10',
+    image_url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80',
+    form_slug: 'iconcoders-hackathon-2025',
+  };
+}
+
+async function getHallOfFame(): Promise<IconCodersHallOfFameEntry[]> {
+  try {
+    const fetched = await fetchApi<IconCodersHallOfFameEntry[]>('/iconcoders/hall-of-fame/');
+    if (fetched && fetched.length > 0) return fetched;
+  } catch (error) {
+    // Fallback to curated archive
+  }
+
+  return [
+    { year: '2025', participantName: 'Chaitu B.', project: 'AI Medical Assistant' },
+    { year: '2024', participantName: 'Vikram S.', project: 'Decentralized Identity Vault' },
+    { year: '2023', participantName: 'Praveen M.', project: 'Smart Agri Monitor' },
   ];
+}
+
+export default async function IconCodersPage() {
+  const enabled = await isModuleEnabled('iconcoders');
+  if (!enabled) {
+    return (
+      <ModuleUnavailable
+        moduleName="IconCoders Flagship"
+        icon={Sparkles}
+        description="The IconCoders flagship challenge is paused between editions. Check back once the next edition opens for registration."
+      />
+    );
+  }
+
+  const [challenge, hallOfFame] = await Promise.all([getCurrentChallenge(), getHallOfFame()]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      {/* Hero */}
-      <div className="text-center py-12 px-6 rounded-3xl glass-panel relative overflow-hidden border border-purple-500/20 mb-16">
-        <div className="absolute -top-24 -left-24 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
-        <Sparkles className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-pulse" />
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
-          IconCoders <span className="text-purple-400">Flagship</span>
-        </h1>
-        <p className="max-w-2xl mx-auto text-slate-300 text-lg leading-relaxed">
-          SRKR Coding Club’s annual flagship hackathon—where top innovators compete for glory and recognition.
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <PageHero
+          icon={Sparkles}
+          eyebrow="SRKR CODING CLUB ICONCODERS FLAGSHIP"
+          title="IconCoders Flagship"
+          description="SRKR Coding Club's annual flagship hackathon — where top individual problem-solvers compete for glory and recognition."
+        />
 
-      {/* Hall of Fame */}
-      <div>
-        <div className="flex items-center space-x-2 mb-6">
-          <Trophy className="w-6 h-6 text-amber-400" />
-          <h2 className="text-2xl font-bold text-white">Hall of Fame</h2>
+        <div className="space-y-6">
+          <SectionHeading icon={Sparkles} eyebrow="Current Edition" title="Current Challenge" />
+          <div className="max-w-2xl">
+            <IconCodersEditionCard challenge={challenge} />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {hallOfFame.map((item) => (
-            <div key={item.year} className="glass-panel p-6 rounded-2xl border border-slate-800 relative overflow-hidden">
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-4 inline-block">
-                Edition {item.year}
-              </span>
-              <h3 className="text-xl font-extrabold text-white mb-1">{item.team}</h3>
-              <p className="text-sky-400 text-sm font-semibold mb-4">{item.project}</p>
-              
-              <div className="border-t border-slate-800 pt-4">
-                <span className="text-xs text-slate-500 font-medium block mb-2">Winning Members</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {item.members.map((m) => (
-                    <span key={m} className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                      {m}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="space-y-6">
+          <SectionHeading icon={Trophy} title="Hall of Fame" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {hallOfFame.map((entry) => (
+              <IconCodersHallOfFameCard key={entry.year} entry={entry} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

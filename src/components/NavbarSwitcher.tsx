@@ -4,9 +4,13 @@ import { usePathname } from 'next/navigation';
 import Navbar from './Navbar';
 import AdminNavbar from './admin/AdminNavbar';
 
-export default function NavbarSwitcher() {
+interface NavbarSwitcherProps {
+  moduleFlags?: Record<string, boolean>;
+}
+
+export default function NavbarSwitcher({ moduleFlags }: NavbarSwitcherProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith('/admin');
 
-  return isAdminRoute ? <AdminNavbar /> : <Navbar />;
+  return isAdminRoute ? <AdminNavbar /> : <Navbar moduleFlags={moduleFlags} />;
 }

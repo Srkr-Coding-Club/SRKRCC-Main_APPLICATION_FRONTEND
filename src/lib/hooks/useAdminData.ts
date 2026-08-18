@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { FeatureFlag, Form, FormField } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
+import { buildAuthFetchOptions } from '@/lib/dataManagement';
 
 interface UserRecord {
   id: number;
@@ -37,12 +38,13 @@ interface AuditLogRecord {
 }
 
 export function useAdminData() {
-  // Flags State
+  // Flags State — keys match the backend's canonical seed (scripts/seed_flags.py)
+  // and src/lib/platformModules.ts's MODULE_KEYS. Events is intentionally not
+  // gateable here; it's always-on per the club's own event-visibility rules.
   const [flags, setFlags] = useState<FeatureFlag[]>([
-    { id: 1, name: 'Hackathons Platform', key: 'module_hackathons', is_enabled: true, description: 'Enables registration & submission engine for hackathons.', updated_at: new Date().toISOString() },
-    { id: 2, name: 'Codequest Daily Engine', key: 'module_codequest', is_enabled: true, description: 'Enables daily coding problem streak challenges.', updated_at: new Date().toISOString() },
-    { id: 3, name: 'Events Showcase', key: 'module_events', is_enabled: true, description: 'Public workshops and seminar schedules.', updated_at: new Date().toISOString() },
-    { id: 4, name: 'Forms Center Engine', key: 'module_forms', is_enabled: true, description: 'Dynamic form builder and registration collector.', updated_at: new Date().toISOString() },
+    { id: 1, name: 'Hackathons Engine', key: 'hackathons', is_enabled: true, description: 'Enable general hackathons engine and registration.', updated_at: new Date().toISOString() },
+    { id: 2, name: 'IconCoders Flagship', key: 'iconcoders', is_enabled: true, description: 'Enable IconCoders annual flagship hackathon landing and Hall of Fame.', updated_at: new Date().toISOString() },
+    { id: 3, name: 'Codequest Daily Problems', key: 'codequest', is_enabled: true, description: 'Enable daily problem of the day, streak tracking, and leaderboards.', updated_at: new Date().toISOString() },
   ]);
 
   // Users State
@@ -343,7 +345,17 @@ export function useAdminData() {
   };
 
   const handleToggleFlag = (id: number) => {
-    setFlags((prev) => prev.map((f) => (f.id === id ? { ...f, is_enabled: !f.is_enabled } : f)));
+    const flag = flags.find((f) => f.id === id);
+    if (!flag) return;
+    const nextEnabled = !flag.is_enabled;
+
+    // Optimistic — flip immediately for instant toggle feedback, then best-effort
+    // persist. The backend's FeatureFlagViewSet looks flags up by `key`, not `id`.
+    setFlags((prev) => prev.map((f) => (f.id === id ? { ...f, is_enabled: nextEnabled } : f)));
+    fetchApi(`/feature-flags/${flag.key}/`, buildAuthFetchOptions('PATCH', { is_enabled: nextEnabled })).catch(() => {
+      // Offline/unauthenticated backend — keep the optimistic local toggle,
+      // same tolerance as the rest of this hook's mock-backed handlers.
+    });
   };
 
   const filteredUsers = usersList.filter((u) => u.name.toLowerCase().includes(userSearch.toLowerCase()));

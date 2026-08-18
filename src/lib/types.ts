@@ -51,6 +51,30 @@ export interface Hackathon {
   team_size?: string;
 }
 
+/** IconCoders is an individual DSA-challenge competition — its own entity,
+ * not a flagship Hackathon row (they're structurally different: individual
+ * vs. team-based). */
+export interface IconCodersChallenge {
+  id: number;
+  title: string;
+  slug: string;
+  edition: string;
+  theme: string;
+  description: string;
+  format: 'INDIVIDUAL';
+  difficulty_tier?: string;
+  start_date: string;
+  end_date: string;
+  image_url?: string;
+  form_slug?: string;
+}
+
+export interface IconCodersHallOfFameEntry {
+  year: string;
+  participantName: string;
+  project: string;
+}
+
 export interface Problem {
   id: number;
   title: string;
@@ -62,6 +86,9 @@ export interface Problem {
   solved_count?: number;
   tags?: string[];
   constraints?: string;
+  /** Where to actually solve it — a LeetCode/GFG/etc. problem page. No in-house judge exists. */
+  external_url?: string;
+  external_platform?: string;
 }
 
 export interface JobListing {

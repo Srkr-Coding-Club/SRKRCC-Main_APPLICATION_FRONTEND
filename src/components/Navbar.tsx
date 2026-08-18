@@ -48,8 +48,31 @@ const navItems: NavItem[] = [
   { label: 'Blogs', href: '/blogs' },
 ];
 
-export default function Navbar() {
+// Routes gated by an admin-toggleable module flag — Events itself and its
+// "Upcoming Workshops" child stay unconditional per the club's own rules.
+const GATED_ROUTES: Record<string, string> = {
+  '/hackathons': 'hackathons',
+  '/iconcoders': 'iconcoders',
+  '/codequest': 'codequest',
+};
+
+interface NavbarProps {
+  moduleFlags?: Record<string, boolean>;
+}
+
+export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const pathname = usePathname();
+  const visibleNavItems: NavItem[] = navItems.map((item) =>
+    item.children
+      ? {
+          ...item,
+          children: item.children.filter((child) => {
+            const key = GATED_ROUTES[child.href];
+            return !key || (moduleFlags[key] ?? true);
+          }),
+        }
+      : item
+  );
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -122,7 +145,7 @@ export default function Navbar() {
             className="hidden md:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
             onMouseLeave={() => setHovered(null)}
           >
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive = pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false);
               const isHovered = hovered === item.label;
 
@@ -285,7 +308,7 @@ export default function Navbar() {
             className="md:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col justify-between p-6 pt-24 overflow-y-auto"
           >
             <div className="flex flex-col gap-1">
-              {navItems.map((item, i) => (
+              {visibleNavItems.map((item, i) => (
                 <motion.div
                   key={item.label}
                   initial={{ opacity: 0, x: -16 }}
