@@ -128,6 +128,8 @@ export default function AdminControlRoomPage() {
     status: Form['status'];
     open_at: string;
     close_at: string;
+    allow_multiple_responses?: boolean;
+    allow_edits_until?: string;
   }>({
     title: 'IconCoders 2026 Registration Form',
     slug: 'iconcoders-2026-registration',
@@ -137,6 +139,8 @@ export default function AdminControlRoomPage() {
     status: 'PUBLISHED',
     open_at: '2025-06-01',
     close_at: '2025-07-01',
+    allow_multiple_responses: false,
+    allow_edits_until: '',
   });
 
   const [builderFields, setBuilderFields] = useState<FormField[]>([
@@ -472,6 +476,7 @@ export default function AdminControlRoomPage() {
             formMeta={formMeta}
             setFormMeta={setFormMeta}
             builderFields={builderFields}
+            setBuilderFields={setBuilderFields}
             onAddFieldFromPalette={handleAddFieldFromPalette}
             onRemoveField={handleRemoveField}
             onFieldChange={handleFieldChange}
