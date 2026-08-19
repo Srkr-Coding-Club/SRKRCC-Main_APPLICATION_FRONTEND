@@ -16,8 +16,16 @@ export default async function RootLayout({
   const moduleFlags = await getModuleFlags();
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col antialiased">
+        {/* Blocking, runs before first paint — sets the `dark` class synchronously
+            so there's no flash of the light theme while React hydrates. Dark is
+            the default; a stored 'light' choice from a previous visit wins. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t?t==='dark':true);}catch(e){document.documentElement.classList.add('dark');}`,
+          }}
+        />
         <NavbarSwitcher moduleFlags={moduleFlags} />
         <main className="flex-grow">{children}</main>
         <Footer />

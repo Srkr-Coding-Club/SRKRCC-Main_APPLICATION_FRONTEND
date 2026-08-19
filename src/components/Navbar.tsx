@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Moon,
-  Sun,
   User,
   ChevronDown,
   Sparkles,
@@ -16,6 +14,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
+import ThemeToggle from './ThemeToggle';
 
 interface NavChild {
   label: string;
@@ -73,21 +72,10 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
         }
       : item
   );
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isDark =
-        document.documentElement.classList.contains('dark') ||
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(isDark);
-      document.documentElement.classList.toggle('dark', isDark);
-    }
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -102,14 +90,6 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
       document.body.style.overflow = '';
     };
   }, [mobileMenuOpen]);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => {
-      const next = !prev;
-      document.documentElement.classList.toggle('dark', next);
-      return next;
-    });
-  };
 
   return (
     <>
@@ -249,34 +229,12 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               Join the Club
             </PillButton>
 
-            <button
-              onClick={toggleDarkMode}
-              className="relative w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
-              aria-label="Toggle theme"
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={isDarkMode ? 'sun' : 'moon'}
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-                </motion.span>
-              </AnimatePresence>
-            </button>
+            <ThemeToggle />
           </div>
 
           {/* Mobile trigger */}
           <div className="flex md:hidden items-center gap-2">
-            <button
-              onClick={toggleDarkMode}
-              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-[#1A1A2E]/70 dark:text-white/60"
-              aria-label="Toggle theme"
-            >
-              {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-            </button>
+            <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
               className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5"

@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import gsap from 'gsap';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 
@@ -24,7 +23,12 @@ function FloorGrid() {
 }
 
 /* ------------------------------------------------------------------ */
-/* A single glowing node orbiting the composition                      */
+/* A single glowing node orbiting the composition. Pure CSS animation  */
+/* (reuses the shared `spinSlow` keyframe from globals.css) instead of */
+/* a JS-driven GSAP tween — the browser suspends CSS animations on     */
+/* elements hidden via `display:none`, so the copy of this component   */
+/* rendered for the inactive mobile/desktop breakpoint costs nothing,  */
+/* unlike a GSAP rAF loop which keeps ticking regardless of visibility.*/
 /* ------------------------------------------------------------------ */
 function OrbitParticle({
   radius,
@@ -41,24 +45,15 @@ function OrbitParticle({
   reverse?: boolean;
   startAngle?: number;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    gsap.set(ref.current, { rotate: startAngle });
-    const tween = gsap.to(ref.current, {
-      rotate: reverse ? `-=360` : `+=360`,
-      duration,
-      repeat: -1,
-      ease: 'none',
-    });
-    return () => {
-      tween.kill();
-    };
-  }, [duration, reverse, startAngle]);
+  // Negative animation-delay jumps straight to that point in the cycle,
+  // giving each particle a distinct start angle without a bespoke keyframe.
+  const negativeDelay = -((startAngle / 360) * duration);
 
   return (
-    <div ref={ref} className="absolute inset-0">
+    <div
+      className="absolute inset-0"
+      style={{ animation: `spinSlow ${duration}s linear infinite${reverse ? ' reverse' : ''}`, animationDelay: `${negativeDelay}s` }}
+    >
       <div
         className="absolute rounded-full"
         style={{
@@ -98,32 +93,20 @@ function Sparkle({ style, delay, size = 3 }: { style: React.CSSProperties; delay
 /* objects" behind the wordmark. Desktop/tablet only — rendered inside */
 /* LogoWithBackdrop so it's always centered exactly on the logo,       */
 /* regardless of how much content sits above/below it in the layout.  */
+/* Trimmed to 3 static rings / 3 orbit particles / 3 sparkles (down    */
+/* from 5/6/6) — a visibly lighter composition, not just a faster one. */
 /* ------------------------------------------------------------------ */
 function RingsBackdrop() {
-  const spinSlowRef = useRef<HTMLDivElement>(null);
-  const spinRevRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const tweens: gsap.core.Tween[] = [];
-    if (spinSlowRef.current) {
-      tweens.push(gsap.to(spinSlowRef.current, { rotate: 360, duration: 90, repeat: -1, ease: 'none' }));
-    }
-    if (spinRevRef.current) {
-      tweens.push(gsap.to(spinRevRef.current, { rotate: -360, duration: 55, repeat: -1, ease: 'none' }));
-    }
-    return () => tweens.forEach((t) => t.kill());
-  }, []);
-
   return (
     <div className="hidden sm:flex absolute inset-0 items-center justify-center pointer-events-none" aria-hidden="true">
       {/* ambient core glow */}
       <div
-        className="absolute w-[460px] h-[460px] sm:w-[720px] sm:h-[720px] rounded-full blur-3xl"
+        className="absolute w-[420px] h-[420px] sm:w-[640px] sm:h-[640px] rounded-full blur-3xl"
         style={{ background: 'radial-gradient(circle, var(--glow-mid), transparent 68%)' }}
       />
 
       {/* static concentric rings */}
-      {[680, 560, 460, 370, 290].map((size) => (
+      {[560, 460, 370].map((size) => (
         <div
           key={size}
           className="absolute rounded-full border border-[#1A1A2E]/[0.07] dark:border-white/[0.08]"
@@ -131,37 +114,29 @@ function RingsBackdrop() {
         />
       ))}
 
-      {/* rotating dashed rings */}
+      {/* rotating dashed rings — CSS animation, not GSAP */}
       <div
-        ref={spinSlowRef}
         className="absolute w-[520px] h-[520px] sm:w-[640px] sm:h-[640px] rounded-full border border-dashed border-[#FF7A00]/20"
+        style={{ animation: 'spinSlow 90s linear infinite' }}
       />
       <div
-        ref={spinRevRef}
         className="absolute w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] rounded-full border border-dotted border-[#8B2E3B]/25 dark:border-[#FFA500]/20"
+        style={{ animation: 'spinSlow 55s linear infinite reverse' }}
       />
 
       {/* faint crosshair spokes */}
       <div className="absolute w-px h-[75%] bg-gradient-to-b from-transparent via-[#1A1A2E]/10 dark:via-white/10 to-transparent" />
       <div className="absolute h-px w-[75%] bg-gradient-to-r from-transparent via-[#1A1A2E]/10 dark:via-white/10 to-transparent" />
-      <div className="absolute w-px h-[60%] bg-gradient-to-b from-transparent via-[#FF7A00]/10 to-transparent rotate-45" />
-      <div className="absolute w-px h-[60%] bg-gradient-to-b from-transparent via-[#FF7A00]/10 to-transparent -rotate-45" />
 
       {/* orbiting glowing particles — the "circulating objects" */}
-      <OrbitParticle radius={370} duration={26} size={4} color="#FF7A00" startAngle={20} />
-      <OrbitParticle radius={370} duration={32} size={3} color="#FFA500" reverse startAngle={190} />
-      <OrbitParticle radius={280} duration={20} size={3} color="#8B2E3B" startAngle={90} />
-      <OrbitParticle radius={280} duration={24} size={2.5} color="#FFFFFF" reverse startAngle={260} />
-      <OrbitParticle radius={210} duration={16} size={3.5} color="#FFA500" startAngle={150} />
-      <OrbitParticle radius={210} duration={19} size={2} color="#FF7A00" reverse startAngle={0} />
+      <OrbitParticle radius={330} duration={26} size={4} color="#FF7A00" startAngle={20} />
+      <OrbitParticle radius={250} duration={20} size={3} color="#8B2E3B" startAngle={150} reverse />
+      <OrbitParticle radius={190} duration={16} size={3} color="#FFA500" startAngle={260} />
 
       {/* twinkling sparkle glints */}
-      <Sparkle style={{ top: '18%', left: '30%' }} delay={0.2} size={3} />
-      <Sparkle style={{ top: '68%', left: '22%' }} delay={1.1} size={2.5} />
-      <Sparkle style={{ top: '25%', left: '72%' }} delay={0.6} size={3.5} />
-      <Sparkle style={{ top: '72%', left: '76%' }} delay={1.6} size={2.5} />
-      <Sparkle style={{ top: '48%', left: '10%' }} delay={2.1} size={2} />
-      <Sparkle style={{ top: '46%', left: '90%' }} delay={0.9} size={2} />
+      <Sparkle style={{ top: '20%', left: '28%' }} delay={0.2} size={3} />
+      <Sparkle style={{ top: '68%', left: '24%' }} delay={1.1} size={2.5} />
+      <Sparkle style={{ top: '26%', left: '74%' }} delay={0.6} size={3} />
     </div>
   );
 }
@@ -201,22 +176,9 @@ function LogoWithBackdrop() {
 
 /* ------------------------------------------------------------------ */
 /* Central emblem — the club mark, worn like a seal at the seam        */
-/* of the wordmark                                                     */
+/* of the wordmark. Arc rotation is CSS (`spinSlow`), not GSAP.        */
 /* ------------------------------------------------------------------ */
 function CenterBadge() {
-  const arcRef = useRef<SVGCircleElement>(null);
-  const arc2Ref = useRef<SVGCircleElement>(null);
-
-  useEffect(() => {
-    if (!arcRef.current || !arc2Ref.current) return;
-    const t1 = gsap.to(arcRef.current, { rotation: 360, transformOrigin: '50% 50%', duration: 14, repeat: -1, ease: 'none' });
-    const t2 = gsap.to(arc2Ref.current, { rotation: -360, transformOrigin: '50% 50%', duration: 20, repeat: -1, ease: 'none' });
-    return () => {
-      t1.kill();
-      t2.kill();
-    };
-  }, []);
-
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.5, rotate: -25 }}
@@ -231,7 +193,6 @@ function CenterBadge() {
       <div className="relative flex items-center justify-center w-full h-full rounded-full bg-[var(--background)]">
         <svg className="absolute inset-0" width="100%" height="100%" viewBox="0 0 150 150">
           <circle
-            ref={arcRef}
             cx="75"
             cy="75"
             r="71"
@@ -241,9 +202,9 @@ function CenterBadge() {
             strokeDasharray="38 408"
             strokeLinecap="round"
             opacity="0.9"
+            style={{ animation: 'spinSlow 14s linear infinite', transformOrigin: '75px 75px' }}
           />
           <circle
-            ref={arc2Ref}
             cx="75"
             cy="75"
             r="63"
@@ -253,6 +214,7 @@ function CenterBadge() {
             strokeDasharray="20 375"
             strokeLinecap="round"
             opacity="0.6"
+            style={{ animation: 'spinSlow 20s linear infinite reverse', transformOrigin: '75px 75px' }}
           />
         </svg>
         <BrainLogo size={176} showRays={true} animated={true} className="sm:hidden" />
@@ -291,17 +253,9 @@ function DisplayRow({
   );
 }
 
-
-
-
 export default function HeroSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-
   return (
-    <section
-      ref={sectionRef}
-      className="relative min-h-screen overflow-hidden bg-[var(--background)] transition-colors duration-300 flex flex-col"
-    >
+    <section className="relative min-h-screen overflow-hidden bg-[var(--background)] transition-colors duration-300 flex flex-col">
       <FloorGrid />
       <div className="absolute inset-0 bg-blueprint-grid opacity-40 [mask-image:radial-gradient(ellipse_60%_55%_at_50%_35%,#000_15%,transparent_100%)] pointer-events-none" />
 

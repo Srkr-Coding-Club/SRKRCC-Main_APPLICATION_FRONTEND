@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Moon,
-  Sun,
   ArrowLeft,
   ChevronDown,
   BarChart3,
@@ -24,6 +22,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
+import ThemeToggle from '../ThemeToggle';
 
 interface NavChild {
   label: string;
@@ -46,18 +45,36 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', shortLabel: 'Dashboard', href: '/admin', icon: BarChart3 },
   { label: 'User Control', shortLabel: 'Users', href: '/admin/users', icon: Users },
   {
-    label: 'Modules',
-    shortLabel: 'Modules',
+    label: 'Data Center',
+    shortLabel: 'Data Center ',
+    href: '/admin/responses',
+    icon: LayoutGrid,
+    hasDropdown: true,
+    children: [
+      { label: 'Responses', shortLabel: 'Responses', href: '/admin/responses', desc: 'View & export submissions', icon: Inbox },
+      { label: 'Import Data', shortLabel: 'Import', href: '/admin/csv-ingestion', desc: 'Bulk CSV / Excel ingestion', icon: UploadCloud },
+      { label: 'Data Health', shortLabel: 'Health', href: '/admin/data-health', desc: 'Stats, warnings & activity', icon: Activity },
+      ],
+  },
+  {
+    label: 'Forms',
+    shortLabel: 'Forms',
     href: '/admin/builder',
     icon: LayoutGrid,
     hasDropdown: true,
     children: [
       { label: 'Forms Builder', shortLabel: 'Builder', href: '/admin/builder', desc: 'Drag & drop form canvas', icon: Plus },
       { label: 'Forms Registry', shortLabel: 'Forms', href: '/admin/forms', desc: 'Manage, close & bulk actions', icon: FileText },
-      { label: 'Responses', shortLabel: 'Responses', href: '/admin/responses', desc: 'View & export submissions', icon: Inbox },
+      ],
+  },
+  {
+    label: 'Modules',
+    shortLabel: 'Modules',
+    href: '/admin/members',
+    icon: LayoutGrid,
+    hasDropdown: true,
+    children: [
       { label: 'Members', shortLabel: 'Members', href: '/admin/members', desc: 'Club member directory', icon: UserCheck },
-      { label: 'Import Data', shortLabel: 'Import', href: '/admin/csv-ingestion', desc: 'Bulk CSV / Excel ingestion', icon: UploadCloud },
-      { label: 'Data Health', shortLabel: 'Health', href: '/admin/data-health', desc: 'Stats, warnings & activity', icon: Activity },
       { label: 'Events & Hackathons', shortLabel: 'Events', href: '/admin/events', desc: 'Workshops & hackathon engine', icon: Trophy },
       { label: 'Content Hub', shortLabel: 'Content', href: '/admin/content', desc: 'Blogs & career postings', icon: BookOpen },
       { label: 'Module Flags', shortLabel: 'Flags', href: '/admin/flags', desc: 'Feature toggles & windows', icon: Sliders },
@@ -68,21 +85,10 @@ const navItems: NavItem[] = [
 
 export default function AdminNavbar() {
   const pathname = usePathname();
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isDark =
-        document.documentElement.classList.contains('dark') ||
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(isDark);
-      document.documentElement.classList.toggle('dark', isDark);
-    }
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -97,14 +103,6 @@ export default function AdminNavbar() {
       document.body.style.overflow = '';
     };
   }, [mobileMenuOpen]);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => {
-      const next = !prev;
-      document.documentElement.classList.toggle('dark', next);
-      return next;
-    });
-  };
 
   return (
     <>
@@ -235,34 +233,12 @@ export default function AdminNavbar() {
               Main Site
             </Link>
 
-            <button
-              onClick={toggleDarkMode}
-              className="relative w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
-              aria-label="Toggle theme"
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={isDarkMode ? 'sun' : 'moon'}
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-                </motion.span>
-              </AnimatePresence>
-            </button>
+            <ThemeToggle />
           </div>
 
           {/* Mobile trigger */}
           <div className="flex lg:hidden items-center gap-2">
-            <button
-              onClick={toggleDarkMode}
-              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-[#1A1A2E]/70 dark:text-white/60"
-              aria-label="Toggle theme"
-            >
-              {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-            </button>
+            <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
               className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5"
