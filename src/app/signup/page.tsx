@@ -7,9 +7,11 @@ import BrainLogo from '@/components/BrainLogo';
 
 import { useRouter } from 'next/navigation';
 import { registerUser, loginUser } from '@/lib/auth';
+import { useToast } from '@/context/ToastContext';
 
 export default function SignupPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -22,7 +24,6 @@ export default function SignupPage() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   const handleChange = (field: string, value: string) => {
@@ -32,14 +33,13 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
+      toast.warning('Passwords Don’t Match', 'Please make sure both password fields are identical.');
       return;
     }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      toast.warning('Password Too Short', 'Password must be at least 6 characters long.');
       return;
     }
-    setError('');
     setIsLoading(true);
 
     try {
@@ -64,6 +64,7 @@ export default function SignupPage() {
       // 2. Auto Login
       await loginUser(formData.email, formData.password);
       setSuccess(true);
+      toast.success('Account Created', `Welcome to SRKR Coding Club, ${firstName || formData.fullName}!`);
 
       setTimeout(() => {
         if (formData.role === 'ADMIN' || formData.role === 'CLUB_LEAD') {
@@ -73,7 +74,7 @@ export default function SignupPage() {
         }
       }, 500);
     } catch (err: any) {
-      setError(err?.message || 'Registration failed. Please check your inputs.');
+      toast.error('Registration Failed', err?.message || 'Please check your inputs and try again.');
       setIsLoading(false);
     }
   };
@@ -107,12 +108,6 @@ export default function SignupPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs font-semibold text-rose-600 dark:text-rose-400">
-                {error}
-              </div>
-            )}
-
             {/* Grid Row 1: Full Name & Email */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">

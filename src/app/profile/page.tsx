@@ -369,20 +369,7 @@ function ProfileContent() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-[#1A1A2E] to-[#8B2E3B] p-6 rounded-xl text-white shadow-md space-y-3">
-              <h3 className="text-lg font-extrabold">Need Help or Support?</h3>
-              <p className="text-xs text-slate-200 leading-relaxed">
-                Connect with SRKR Coding Club executive leads or visit the Admin Control Room.
-              </p>
-              {(user.role === 'ADMIN' || user.role === 'CLUB_LEAD') && (
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center space-x-1 text-xs font-bold text-[#FF7A00] hover:underline pt-1"
-                >
-                  <span>Admin Room (/admin) →</span>
-                </Link>
-              )}
-            </div>
+            
           </div>
 
         </div>

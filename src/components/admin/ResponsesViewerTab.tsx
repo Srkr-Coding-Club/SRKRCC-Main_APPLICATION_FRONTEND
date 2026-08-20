@@ -19,6 +19,7 @@ import {
 import { Form, FormField, ResponseDetail, PaginatedResponse } from '@/lib/types';
 import { starsDisplay, downloadCSV, groupByDay } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
+import { useToast } from '@/context/ToastContext';
 import { DetailDrawer } from './DetailDrawer';
 import { ChartSkeleton } from '@/components/ui/LoadingSkeleton';
 
@@ -48,7 +49,7 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
       <img
         src={String(value)}
         alt="Signature"
-        className="w-16 h-8 object-contain rounded border border-slate-700 bg-white"
+        className="w-16 h-8 object-contain rounded border border-slate-300 dark:border-slate-700 bg-white"
       />
     );
   }
@@ -95,8 +96,8 @@ function ResponseDrawerContent({ response, form }: { response: ResponseDetail; f
         {response.user && (
           <div>
             <p className="text-xs text-slate-500">Respondent</p>
-            <p className="text-sm font-bold text-white">{response.user.name}</p>
-            <p className="text-xs text-slate-400">{response.user.email}</p>
+            <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{response.user.name}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{response.user.email}</p>
           </div>
         )}
         <div className="grid grid-cols-2 gap-3 pt-2">
@@ -107,7 +108,7 @@ function ResponseDrawerContent({ response, form }: { response: ResponseDetail; f
           ].map(({ label, value }) => (
             <div key={label} className="bg-slate-800/50 rounded-lg p-3">
               <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
-              <div className="text-xs font-semibold text-white mt-1">{value}</div>
+              <div className="text-xs font-semibold text-[#1A1A2E] dark:text-white mt-1">{value}</div>
             </div>
           ))}
         </div>
@@ -116,9 +117,9 @@ function ResponseDrawerContent({ response, form }: { response: ResponseDetail; f
       <div className="space-y-3">
         <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Answers</p>
         {response.answers.map((ans) => (
-          <div key={ans.field_id} className="border-b border-slate-800/60 pb-3 last:border-0">
+          <div key={ans.field_id} className="border-b border-slate-200 dark:border-slate-800/60 pb-3 last:border-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-semibold text-slate-300">{ans.field_label}</span>
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{ans.field_label}</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-500 font-mono">
                 {ans.field_type}
               </span>
@@ -132,6 +133,7 @@ function ResponseDrawerContent({ response, form }: { response: ResponseDetail; f
 }
 
 export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTabProps) {
+  const { toast } = useToast();
   const [selectedSlug, setSelectedSlug] = useState<string>(initialFormSlug || '');
   const [data, setData] = useState<PaginatedResponse<ResponseDetail> | null>(null);
   const [loading, setLoading] = useState(false);
@@ -166,11 +168,12 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         `/forms/${selectedSlug}/responses/?${params}`
       );
       setData(result);
-    } catch {
+    } catch (err: any) {
       setData(null);
+      toast.error('Failed to Load Responses', err?.message || 'Is the backend running?');
     }
     setLoading(false);
-  }, [selectedSlug, page, search, dateFrom, dateTo, manualOnly]);
+  }, [selectedSlug, page, search, dateFrom, dateTo, manualOnly, toast]);
 
   useEffect(() => { loadResponses(); }, [loadResponses]);
   useEffect(() => { setPage(1); }, [selectedSlug, search, dateFrom, dateTo, manualOnly]);
@@ -229,12 +232,12 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
     return (
       <div className="py-24 flex flex-col items-center gap-4 text-center">
         <Inbox className="w-12 h-12 text-slate-700" />
-        <h3 className="text-base font-bold text-white">Select a form to view responses</h3>
-        <p className="text-sm text-slate-400">Choose a form from the dropdown above.</p>
+        <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Select a form to view responses</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Choose a form from the dropdown above.</p>
         <select
           value={selectedSlug}
           onChange={(e) => setSelectedSlug(e.target.value)}
-          className="mt-2 px-4 py-2 bg-[#151722] border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-orange-500/60"
+          className="mt-2 px-4 py-2 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
         >
           <option value="">Select a form…</option>
           {forms.map((f) => (
@@ -253,7 +256,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
           <select
             value={selectedSlug}
             onChange={(e) => { setSelectedSlug(e.target.value); setSelectedIds(new Set()); }}
-            className="flex-1 min-w-[200px] px-3 py-2 bg-[#151722] border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-orange-500/60"
+            className="flex-1 min-w-[200px] px-3 py-2 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
           >
             <option value="">Select a form…</option>
             {forms.map((f) => (
@@ -269,18 +272,18 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
               placeholder="Search…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm bg-[#151722] border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/60 w-48"
+              className="pl-9 pr-4 py-2 text-sm bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/60 w-48"
             />
           </div>
 
           {/* Date range */}
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-            className="py-2 px-3 text-sm bg-[#151722] border border-slate-700 rounded-xl text-slate-300 focus:outline-none focus:border-orange-500/60" />
+            className="py-2 px-3 text-sm bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 focus:outline-none focus:border-orange-500/60" />
           <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-            className="py-2 px-3 text-sm bg-[#151722] border border-slate-700 rounded-xl text-slate-300 focus:outline-none focus:border-orange-500/60" />
+            className="py-2 px-3 text-sm bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 focus:outline-none focus:border-orange-500/60" />
 
           {/* Toggles */}
-          <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+          <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 cursor-pointer">
             <input type="checkbox" checked={manualOnly} onChange={(e) => setManualOnly(e.target.checked)}
               className="rounded border-slate-600 text-orange-500 focus:ring-orange-500" />
             Manual Only
@@ -288,7 +291,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
 
           <button
             onClick={() => setShowChart(!showChart)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${showChart ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-700 text-slate-400 hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${showChart ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white'}`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
             Timeline
@@ -297,8 +300,8 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
 
         {/* Stats bar */}
         {data && (
-          <div className="flex items-center gap-4 px-4 py-2.5 rounded-xl bg-[#151722] border border-slate-800 text-xs text-slate-400">
-            <span><span className="text-white font-bold">{data.count}</span> responses</span>
+          <div className="flex items-center gap-4 px-4 py-2.5 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+            <span><span className="text-[#1A1A2E] dark:text-white font-bold">{data.count}</span> responses</span>
           </div>
         )}
 
@@ -306,7 +309,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
             <span className="text-xs font-bold text-orange-400">{selectedIds.size} selected</span>
-            <button onClick={handleBulkExport} className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white">
+            <button onClick={handleBulkExport} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white">
               <Download className="w-3 h-3" /> Export
             </button>
             <button className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300">
@@ -315,13 +318,13 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             <button className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300">
               <Trash2 className="w-3 h-3" /> Delete
             </button>
-            <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-slate-500 hover:text-slate-300">Clear</button>
+            <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-slate-500 hover:text-slate-600 dark:text-slate-300">Clear</button>
           </div>
         )}
 
         {/* Timeline chart */}
         {showChart && (
-          <div className="bg-[#151722] rounded-xl border border-slate-800 p-5">
+          <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 p-5">
             <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-4">Submissions Per Day — Last 30 Days</p>
             <ResponseTimelineChart data={timelineData} />
           </div>
@@ -331,21 +334,21 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         {loading ? (
           <div className="py-16 flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-slate-400">Loading responses…</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading responses…</p>
           </div>
         ) : !data || data.count === 0 ? (
           <div className="py-20 flex flex-col items-center gap-4 text-center">
             <Inbox className="w-10 h-10 text-slate-700" />
-            <h3 className="text-base font-bold text-white">No responses yet</h3>
-            <p className="text-sm text-slate-400 max-w-xs">Share the form link with club members to start collecting.</p>
+            <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">No responses yet</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">Share the form link with club members to start collecting.</p>
           </div>
         ) : (
-          <div className="bg-[#151722] rounded-xl border border-slate-800 overflow-hidden">
+          <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-[#0f0f1a] border-b border-slate-800 text-slate-500 uppercase">
+              <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+                <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase">
                   <tr>
-                    <th className="sticky left-0 z-20 bg-[#0f0f1a] px-4 py-3 w-10">
+                    <th className="sticky left-0 z-20 bg-[#FAFAFC] dark:bg-[#0f0f1a] px-4 py-3 w-10">
                       <button
                         onClick={() => {
                           const allIds = data.results.map((r) => r.id);
@@ -359,7 +362,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                           : <Square className="w-4 h-4" />}
                       </button>
                     </th>
-                    <th className="sticky left-10 z-20 bg-[#0f0f1a] px-4 py-3 font-bold min-w-[160px] border-r border-slate-800">
+                    <th className="sticky left-10 z-20 bg-[#FAFAFC] dark:bg-[#0f0f1a] px-4 py-3 font-bold min-w-[160px] border-r border-slate-200 dark:border-slate-800">
                       Respondent
                     </th>
                     <th className="px-4 py-3 font-bold whitespace-nowrap">Submitted</th>
@@ -371,7 +374,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                   {data.results.map((resp) => {
                     const gap = hasGap(resp);
                     const isSelected = selectedIds.has(resp.id);
@@ -386,18 +389,18 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                         className={`${rowBg} ${gap ? 'bg-rose-500/5' : ''} hover:bg-slate-800/20 transition cursor-pointer`}
                         onClick={() => setDrawerResponse(resp)}
                       >
-                        <td className="sticky left-0 z-10 bg-[#151722] px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <td className="sticky left-0 z-10 bg-white dark:bg-[#151722] px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => toggleRow(resp.id)} className="text-slate-500 hover:text-orange-400">
                             {isSelected ? <CheckSquare className="w-4 h-4 text-orange-500" /> : <Square className="w-4 h-4" />}
                           </button>
                         </td>
-                        <td className="sticky left-10 z-10 bg-[#151722] px-4 py-3 border-r border-slate-800/60 font-semibold">
+                        <td className="sticky left-10 z-10 bg-white dark:bg-[#151722] px-4 py-3 border-r border-slate-200 dark:border-slate-800/60 font-semibold">
                           <div className="flex items-center gap-1.5">
                             {gap && <AlertCircle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />}
                             <span>{resp.user?.email ?? (resp.is_manual_entry ? 'Admin Entry' : 'Anonymous')}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                           {new Date(resp.submitted_at).toLocaleString('en-IN', {
                             dateStyle: 'medium',
                             timeStyle: 'short',
@@ -426,18 +429,18 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white disabled:opacity-30 transition"
+              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs text-slate-400">
-              Page <span className="font-bold text-white">{page}</span> of{' '}
-              <span className="font-bold text-white">{totalPages}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Page <span className="font-bold text-[#1A1A2E] dark:text-white">{page}</span> of{' '}
+              <span className="font-bold text-[#1A1A2E] dark:text-white">{totalPages}</span>
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white disabled:opacity-30 transition"
+              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

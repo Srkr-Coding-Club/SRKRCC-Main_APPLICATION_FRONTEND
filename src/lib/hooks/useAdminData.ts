@@ -253,21 +253,8 @@ export function useAdminData() {
       setUsersList((prev) => [userToAdd, ...prev]);
       setShowCreateUserModal(false);
       toast.success('Account Created', `Account for ${userToAdd.name} created & saved in backend database!`);
-    } catch {
-      const userToAdd: UserRecord = {
-        id: Date.now(),
-        name: newUser.name,
-        email: newUser.email,
-        rollNumber: newUser.rollNumber,
-        branch: newUser.branch,
-        year: newUser.year,
-        role: newUser.role,
-        isActive: true,
-        joinedDate: new Date().toISOString().split('T')[0],
-      };
-      setUsersList((prev) => [userToAdd, ...prev]);
-      setShowCreateUserModal(false);
-      toast.success('Account Created', `Account for ${userToAdd.name} created!`);
+    } catch (err: any) {
+      toast.error('Account Not Created', err?.message || `Could not create an account for ${newUser.name}. Nothing was saved.`);
     }
   };
 
@@ -503,8 +490,11 @@ export function useAdminData() {
       setPublishedForms((prev) => prev.map((f) => (f.slug === formSlug ? { ...f, ...updated } : f)));
       toast.success('Status Updated', `Form status transitioned to ${action.toUpperCase()}`);
       return updated;
-    } catch {
-      // Local fallback status mapping
+    } catch (err: any) {
+      // Optimistic local-only fallback (offline/unreachable backend) — the
+      // toast is the only thing telling the admin this never actually
+      // persisted, so it must never be silent.
+      toast.error('Not Saved to Server', err?.message || `Could not ${action} this form — showing an unsaved local preview only.`);
       const nextStatusMap: Record<string, Form['status']> = {
         publish: 'PUBLISHED',
         unpublish: 'DRAFT',
@@ -549,18 +539,20 @@ export function useAdminData() {
       };
     });
 
+    let persisted = false;
     try {
       await fetchApi(`/forms/${selectedClosedForm.slug}/manual-entry/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: answersPayload }),
       });
+      persisted = true;
       // Increment response count
       setPublishedForms((prev) =>
         prev.map((f) => (f.id === selectedClosedForm.id ? { ...f, response_count: (f.response_count || 0) + 1 } : f))
       );
-    } catch {
-      // Fallback
+    } catch (err: any) {
+      toast.error('Not Saved to Server', err?.message || `Could not record this entry for "${selectedClosedForm.title}" — showing an unsaved local preview only.`);
     }
 
     const newSub: FormSubmissionRecord = {
@@ -575,7 +567,9 @@ export function useAdminData() {
     setFormSubmissions((prev) => [newSub, ...prev]);
     setShowManualEntryModal(false);
     setManualEntryAnswers({});
-    toast.success('Offline Entry Recorded', `Special entry recorded for "${selectedClosedForm.title}"!`);
+    if (persisted) {
+      toast.success('Manual Entry Recorded', `Entry saved for "${selectedClosedForm.title}"!`);
+    }
   };
 
   const handleToggleFlag = (id: number) => {
@@ -590,9 +584,16 @@ export function useAdminData() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_enabled: nextEnabled }),
-    }).catch(() => {
-      // Offline fallback
-    });
+    })
+      .then(() => {
+        toast.success(nextEnabled ? 'Module Enabled' : 'Module Disabled', `"${flag.name}" is now ${nextEnabled ? 'live' : 'hidden'} for all visitors.`);
+      })
+      .catch((err: any) => {
+        // Roll the optimistic flip back — the toggle above never actually
+        // persisted, so the UI must not keep claiming it did.
+        setFlags((prev) => prev.map((f) => (f.id === id ? { ...f, is_enabled: !nextEnabled } : f)));
+        toast.error('Not Saved to Server', err?.message || `Could not update "${flag.name}". Reverted.`);
+      });
   };
 
   const filteredUsers = usersList.filter((u) => u.name.toLowerCase().includes(userSearch.toLowerCase()));

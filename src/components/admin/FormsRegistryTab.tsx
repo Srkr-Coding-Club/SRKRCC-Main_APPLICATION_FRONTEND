@@ -121,8 +121,8 @@ export function FormsRegistryTab({
           body: JSON.stringify(extraData || {}),
         });
       }
-    } catch {
-      // Fallback
+    } catch (err: any) {
+      toast.error('Action Failed', err?.message || `Could not ${action} "${selectedForm.title}".`);
     } finally {
       setActionLoading(false);
     }
@@ -135,8 +135,8 @@ export function FormsRegistryTab({
         await fetchApi(`/forms/${selectedForm.slug}/`, { method: 'DELETE' });
         toast.success('Form Removed', `Form "${selectedForm.title}" deleted.`);
         window.location.reload();
-      } catch {
-        toast.info('Form Removed', 'Form removed from registry.');
+      } catch (err: any) {
+        toast.error('Delete Failed', err?.message || `Could not delete "${selectedForm.title}".`);
       }
     }
   };
@@ -153,7 +153,7 @@ export function FormsRegistryTab({
                 <Clock className="w-5 h-5" />
                 <h3>Schedule Launch Window</h3>
               </div>
-              <button onClick={() => setShowScheduleModal(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setShowScheduleModal(false)} className="text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white">
                 ✕
               </button>
             </div>
@@ -164,21 +164,21 @@ export function FormsRegistryTab({
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Open Date (Start Submissions)</label>
+                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Open Date (Start Submissions)</label>
                 <input
                   type="datetime-local"
                   value={schedOpenAt || selectedForm.open_at || ''}
                   onChange={(e) => setSchedOpenAt(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Close Date (Auto Lock)</label>
+                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Close Date (Auto Lock)</label>
                 <input
                   type="datetime-local"
                   value={schedCloseAt || selectedForm.close_at || ''}
                   onChange={(e) => setSchedCloseAt(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
             </div>
@@ -187,7 +187,7 @@ export function FormsRegistryTab({
               <button
                 type="button"
                 onClick={() => setShowScheduleModal(false)}
-                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-400"
+                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400"
               >
                 Cancel
               </button>
@@ -259,7 +259,7 @@ export function FormsRegistryTab({
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap ${
                     statusFilter === s
                       ? 'bg-orange-500 text-white'
-                      : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-white hover:bg-white/5'
+                      : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white hover:bg-white/5'
                   }`}
                 >
                   {s}
@@ -273,7 +273,7 @@ export function FormsRegistryTab({
             {filteredForms.length === 0 ? (
               <div className="py-12 text-center bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2">
                 <FileText className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-xs font-bold text-slate-400">No forms found matching filters</p>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">No forms found matching filters</p>
                 <button
                   onClick={() => { setSearch(''); setStatusFilter('ALL'); }}
                   className="text-xs text-orange-400 underline"
@@ -302,10 +302,10 @@ export function FormsRegistryTab({
                           {f.title}
                         </h4>
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          <span className="text-[10px] font-mono text-slate-400 truncate max-w-[140px]">
+                          <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
                             /{f.slug}
                           </span>
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-500 dark:text-slate-400">
                             {f.category || 'General'}
                           </span>
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-500">
@@ -314,13 +314,13 @@ export function FormsRegistryTab({
                         </div>
                       </div>
 
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider flex-shrink-0 ${STATUS_BADGE[f.status] || 'bg-slate-700 text-slate-400'}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider flex-shrink-0 ${STATUS_BADGE[f.status] || 'bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
                         {f.status}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500">
-                      <div className="flex items-center gap-1 font-semibold text-slate-400">
+                      <div className="flex items-center gap-1 font-semibold text-slate-500 dark:text-slate-400">
                         <Inbox className="w-3.5 h-3.5 text-orange-400" />
                         <span>{f.response_count ?? 0} responses</span>
                       </div>
@@ -345,13 +345,13 @@ export function FormsRegistryTab({
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${STATUS_BADGE[selectedForm.status] || 'bg-slate-700 text-slate-400'}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${STATUS_BADGE[selectedForm.status] || 'bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
                         {selectedForm.status}
                       </span>
                       <span className="px-2 py-0.5 rounded text-xs font-bold bg-orange-500/10 text-orange-400">
                         {selectedForm.category || 'General'}
                       </span>
-                      <span className="px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-slate-400">
+                      <span className="px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-slate-500 dark:text-slate-400">
                         v{selectedForm.version || 1}
                       </span>
                     </div>
@@ -362,10 +362,10 @@ export function FormsRegistryTab({
 
                   {/* Slug copy pill */}
                   <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/60 flex-shrink-0">
-                    <span className="text-xs font-mono text-slate-400 max-w-[150px] truncate">{selectedForm.slug}</span>
+                    <span className="text-xs font-mono text-slate-500 dark:text-slate-400 max-w-[150px] truncate">{selectedForm.slug}</span>
                     <button
                       onClick={() => copySlug(selectedForm.slug)}
-                      className="p-1 text-slate-400 hover:text-orange-400 transition"
+                      className="p-1 text-slate-500 dark:text-slate-400 hover:text-orange-400 transition"
                       title="Copy Slug"
                     >
                       <Copy className="w-3.5 h-3.5" />
@@ -385,7 +385,7 @@ export function FormsRegistryTab({
               {/* Active Management Controls Toolbar */}
               {/* ============================================================ */}
               <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Form Management &amp; Lifecycle Controls
                 </p>
 
@@ -508,7 +508,7 @@ export function FormsRegistryTab({
                       <button
                         onClick={() => handleAction('reopen', { status: 'DRAFT' })}
                         disabled={actionLoading}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold border border-slate-700 transition"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold border border-slate-300 dark:border-slate-700 transition"
                       >
                         <Undo2 className="w-3.5 h-3.5" />
                         <span>Re-open as Draft</span>
@@ -519,7 +519,7 @@ export function FormsRegistryTab({
                   {/* View Responses Button */}
                   <button
                     onClick={() => onSwitchSubtab('responses', selectedForm.slug)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 transition"
                   >
                     <Inbox className="w-3.5 h-3.5 text-blue-400" />
                     <span>View Responses</span>
@@ -562,25 +562,25 @@ export function FormsRegistryTab({
 
                   {/* Metrics Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-[#151722] p-3 rounded-xl border border-slate-800">
+                    <div className="bg-white dark:bg-[#151722] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Responses</span>
-                      <div className="text-xl font-black text-white mt-1">{selectedForm.response_count ?? 0}</div>
+                      <div className="text-xl font-black text-[#1A1A2E] dark:text-white mt-1">{selectedForm.response_count ?? 0}</div>
                     </div>
-                    <div className="bg-[#151722] p-3 rounded-xl border border-slate-800">
+                    <div className="bg-white dark:bg-[#151722] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Schema Fields</span>
                       <div className="text-xl font-black text-orange-400 mt-1">
                         {selectedForm.fields?.filter((f) => f.type !== 'SECTION' && !f.is_deleted).length || 0}
                       </div>
                     </div>
-                    <div className="bg-[#151722] p-3 rounded-xl border border-slate-800">
+                    <div className="bg-white dark:bg-[#151722] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Opens</span>
-                      <div className="text-xs font-bold text-slate-300 mt-1.5 truncate">
+                      <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-1.5 truncate">
                         {selectedForm.open_at ? new Date(selectedForm.open_at).toLocaleDateString('en-IN') : 'Always Open'}
                       </div>
                     </div>
-                    <div className="bg-[#151722] p-3 rounded-xl border border-slate-800">
+                    <div className="bg-white dark:bg-[#151722] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Deadline</span>
-                      <div className="text-xs font-bold text-slate-300 mt-1.5 truncate">
+                      <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-1.5 truncate">
                         {selectedForm.close_at ? new Date(selectedForm.close_at).toLocaleDateString('en-IN') : 'No Deadline'}
                       </div>
                     </div>
@@ -593,7 +593,7 @@ export function FormsRegistryTab({
                     <Clock className="w-4 h-4" />
                     <span>Scheduled for Automatic Launch</span>
                   </div>
-                  <p className="text-xs text-slate-300">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
                     This form will automatically open on{' '}
                     <strong>{selectedForm.open_at ? new Date(selectedForm.open_at).toLocaleString('en-IN') : 'TBD'}</strong>
                     {selectedForm.close_at && (
@@ -617,7 +617,7 @@ export function FormsRegistryTab({
                       Publish Live Now
                     </button>
                   </div>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {selectedForm.status === 'DRAFT'
                       ? 'This form is saved as a draft. Public students cannot access or submit until you hit Publish Live.'
                       : 'This form has closed. Public students cannot submit, but you can still record offline responses via Manual Entry.'}
@@ -628,7 +628,7 @@ export function FormsRegistryTab({
               {/* Form Fields Summary preview */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Configured Fields ({selectedForm.fields?.filter((f) => !f.is_deleted).length || 0})
                   </p>
                 </div>
@@ -645,7 +645,7 @@ export function FormsRegistryTab({
                         {field.is_required && <span className="text-rose-500 font-bold">*</span>}
                       </div>
 
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px] flex-shrink-0">
+                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-500 dark:text-slate-400 font-mono text-[10px] flex-shrink-0">
                         {field.type}
                       </span>
                     </div>
@@ -691,8 +691,8 @@ export function FormsRegistryTab({
           ) : (
             <div className="py-24 text-center bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
               <FileText className="w-12 h-12 text-slate-700 mx-auto" />
-              <h3 className="text-base font-bold text-white">Select a form from the directory</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Select a form from the directory</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                 Click any form on the left to inspect its live status, manage publication states, record manual data, or jump to responses.
               </p>
             </div>

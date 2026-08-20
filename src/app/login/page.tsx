@@ -6,32 +6,33 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Loader2, CheckCircle2 } from 'lucide-react';
 import BrainLogo from '@/components/BrainLogo';
 import { loginUser } from '@/lib/auth';
+import { useToast } from '@/context/ToastContext';
 
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get('next');
+  const { toast } = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError('Please enter your email and password.');
+      toast.warning('Missing Details', 'Please enter your email and password.');
       return;
     }
-    setError('');
     setIsLoading(true);
 
     try {
       const { user } = await loginUser(email, password);
       setSuccess(true);
+      toast.success('Signed In', `Welcome back, ${user.first_name || user.email}!`);
 
       setTimeout(() => {
         if (nextUrl) {
@@ -43,7 +44,7 @@ function LoginFormContent() {
         }
       }, 500);
     } catch (err: any) {
-      setError(err?.message || 'Login failed. Please check your credentials.');
+      toast.error('Sign In Failed', err?.message || 'Login failed. Please check your credentials.');
       setIsLoading(false);
     }
   };
@@ -81,19 +82,6 @@ function LoginFormContent() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs font-semibold text-rose-600 dark:text-rose-400">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Authentication successful! Redirecting...</span>
-            </div>
-          )}
-
           {/* Email Field */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1A1A2E] dark:text-white">

@@ -20,12 +20,12 @@ export function TestDataModal({ isOpen, onClose, submittedTestData }: TestDataMo
             <CheckCircle2 className="w-5 h-5" />
             <h3 className="text-base font-bold">Preview Test Submission Payload</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <pre className="p-4 rounded bg-[#0D0E15] text-amber-400 font-mono text-xs overflow-x-auto border border-slate-800">
+        <pre className="p-4 rounded bg-[#FAFAFC] dark:bg-[#0D0E15] text-amber-400 font-mono text-xs overflow-x-auto border border-slate-200 dark:border-slate-800">
           {JSON.stringify(submittedTestData, null, 2)}
         </pre>
 

@@ -19,6 +19,7 @@ import { Form, FormField, BulkIngestResult, IngestError, DuplicateRecord } from 
 import { formatFileSize, downloadCSV, generateIdempotencyKey, buildAuthFetchOptions } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
 import { API_BASE } from '@/lib/constants';
+import { useToast } from '@/context/ToastContext';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -265,7 +266,7 @@ function UploadStep({
             ? 'border-orange-500 bg-orange-500/5 scale-[1.01]'
             : parsed
             ? 'border-emerald-500/50 bg-emerald-500/5'
-            : 'border-slate-700 hover:border-slate-500 bg-[#151722]'
+            : 'border-slate-300 dark:border-slate-700 hover:border-slate-500 bg-white dark:bg-[#151722]'
         }`}
       >
         <input
@@ -281,20 +282,20 @@ function UploadStep({
         {parsing ? (
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-10 h-10 text-orange-400 animate-spin" />
-            <p className="text-sm text-slate-400">Parsing file…</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Parsing file…</p>
           </div>
         ) : parsed ? (
           <div className="flex flex-col items-center gap-3">
             <FileText className="w-10 h-10 text-emerald-400" />
             <div>
-              <p className="text-base font-bold text-white">{file?.name}</p>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-base font-bold text-[#1A1A2E] dark:text-white">{file?.name}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 {formatFileSize(file?.size ?? 0)} · {parsed.rowCount} rows · {parsed.headers.length} columns
               </p>
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); setParsed(null); setFile(null); }}
-              className="text-xs text-slate-500 hover:text-slate-300 underline"
+              className="text-xs text-slate-500 hover:text-slate-600 dark:text-slate-300 underline"
             >
               Choose different file
             </button>
@@ -305,8 +306,8 @@ function UploadStep({
               <Upload className="w-8 h-8 text-orange-400" />
             </div>
             <div>
-              <p className="text-base font-bold text-white">Drop your CSV or Excel file here</p>
-              <p className="text-sm text-slate-400 mt-1">or click to browse · .csv, .xlsx, .xls · max 10 MB</p>
+              <p className="text-base font-bold text-[#1A1A2E] dark:text-white">Drop your CSV or Excel file here</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">or click to browse · .csv, .xlsx, .xls · max 10 MB</p>
             </div>
           </div>
         )}
@@ -329,15 +330,15 @@ function UploadStep({
 
       {/* Preview table */}
       {parsed && parsed.rows.length > 0 && (
-        <div className="bg-[#151722] rounded-xl border border-slate-800 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-800">
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Preview (first 5 rows)
             </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-slate-300">
-              <thead className="bg-[#0f0f1a] border-b border-slate-800">
+            <table className="w-full text-xs text-slate-600 dark:text-slate-300">
+              <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   {parsed.headers.map((h) => (
                     <th key={h} className="px-4 py-2 text-left font-bold text-slate-500 uppercase whitespace-nowrap">
@@ -346,7 +347,7 @@ function UploadStep({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                 {parsed.rows.slice(0, 5).map((row, i) => (
                   <tr key={i}>
                     {parsed.headers.map((h) => (
@@ -365,13 +366,13 @@ function UploadStep({
       {/* Form selector */}
       {parsed && (
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Which form is this data for?
           </label>
           <select
             value={selectedFormId}
             onChange={(e) => setSelectedFormId(e.target.value)}
-            className="w-full px-4 py-3 bg-[#151722] border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-orange-500/60"
+            className="w-full px-4 py-3 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
           >
             <option value="">Select a form…</option>
             {availableForms.map((f) => (
@@ -475,12 +476,12 @@ function MapColumnsStep({
         </div>
       )}
 
-      <div className="bg-[#151722] rounded-xl border border-slate-800 overflow-hidden">
-        <div className="grid grid-cols-2 gap-0 border-b border-slate-800 px-4 py-3 bg-[#0f0f1a]">
+      <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="grid grid-cols-2 gap-0 border-b border-slate-200 dark:border-slate-800 px-4 py-3 bg-[#FAFAFC] dark:bg-[#0f0f1a]">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">CSV Column</p>
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Form Field</p>
         </div>
-        <div className="divide-y divide-slate-800/60">
+        <div className="divide-y divide-slate-200 dark:divide-slate-800/60">
           {mappings.map((mapping) => {
             const field = fields.find((f) => String(f.id) === mapping.fieldId);
             const isRequiredUnmapped = mapping.fieldId === '' && requiredFieldIds.size > 0;
@@ -492,7 +493,7 @@ function MapColumnsStep({
                 }`}
               >
                 <div>
-                  <p className="text-sm font-semibold text-white">{mapping.csvHeader}</p>
+                  <p className="text-sm font-semibold text-[#1A1A2E] dark:text-white">{mapping.csvHeader}</p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     {parsed.rows[0]?.[mapping.csvHeader] ?? ''}
                   </p>
@@ -501,8 +502,8 @@ function MapColumnsStep({
                   <select
                     value={mapping.fieldId}
                     onChange={(e) => setMapping(mapping.csvHeader, e.target.value)}
-                    className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:border-orange-500/60 bg-[#0f0f1a] text-white ${
-                      isRequiredUnmapped ? 'border-amber-500/40' : 'border-slate-700'
+                    className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:border-orange-500/60 bg-[#FAFAFC] dark:bg-[#0f0f1a] text-[#1A1A2E] dark:text-white ${
+                      isRequiredUnmapped ? 'border-amber-500/40' : 'border-slate-300 dark:border-slate-700'
                     }`}
                   >
                     <option value="">— Not Mapped —</option>
@@ -514,7 +515,7 @@ function MapColumnsStep({
                     ))}
                   </select>
                   {field && (
-                    <span className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded ${FIELD_TYPE_BADGE[field.type] ?? 'bg-slate-700 text-slate-400'}`}>
+                    <span className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded ${FIELD_TYPE_BADGE[field.type] ?? 'bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
                       {field.type}
                     </span>
                   )}
@@ -526,7 +527,7 @@ function MapColumnsStep({
       </div>
 
       {/* Summary */}
-      <div className="flex items-center gap-4 text-xs text-slate-400 px-1">
+      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 px-1">
         <span className="text-emerald-400">✓ {mappedCount} mapped</span>
         {unmappedRequired.length > 0 && (
           <span className="text-amber-400">⚠ {unmappedRequired.length} required unmapped</span>
@@ -539,7 +540,7 @@ function MapColumnsStep({
       <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-700 text-slate-300 hover:text-white text-sm font-bold transition"
+          className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition"
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
@@ -572,6 +573,7 @@ function ValidateStep({
   onBack: () => void;
   onComplete: (validRows: Record<string, string>[], skipErrors: boolean, validationResult: ValidationResult) => void;
 }) {
+  const { toast } = useToast();
   const [validating, setValidating] = useState(true);
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [skipErrors, setSkipErrors] = useState(true);
@@ -649,7 +651,7 @@ function ValidateStep({
           );
           dupRecords = res.duplicates ?? [];
         } catch {
-          // Non-fatal — proceed without duplicate info
+          toast.warning('Duplicate Check Skipped', 'Could not reach the server to check for duplicate emails — review this import carefully.');
         }
       }
 
@@ -696,7 +698,7 @@ function ValidateStep({
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <Loader2 className="w-10 h-10 text-orange-400 animate-spin" />
-        <p className="text-sm text-slate-400">Validating {parsed.rowCount} rows…</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Validating {parsed.rowCount} rows…</p>
       </div>
     );
   }
@@ -714,9 +716,9 @@ function ValidateStep({
       )}
 
       {/* Summary bar */}
-      <div className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-xl bg-[#151722] border border-slate-800 text-xs">
-        <span className="text-slate-400">
-          <span className="text-white font-bold">{parsed.rowCount}</span> total rows
+      <div className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 text-xs">
+        <span className="text-slate-500 dark:text-slate-400">
+          <span className="text-[#1A1A2E] dark:text-white font-bold">{parsed.rowCount}</span> total rows
         </span>
         {result.errors.length > 0 && (
           <span className="text-rose-400 font-bold">{result.errors.length} errors</span>
@@ -743,7 +745,7 @@ function ValidateStep({
 
       {/* Errors table */}
       {result.errors.length > 0 && (
-        <div className="bg-[#151722] rounded-xl border border-rose-500/20 overflow-hidden">
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-rose-500/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-rose-500/20 flex items-center gap-2">
             <XCircle className="w-4 h-4 text-rose-400" />
             <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">
@@ -751,8 +753,8 @@ function ValidateStep({
             </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-slate-300">
-              <thead className="bg-[#0f0f1a] border-b border-slate-800 text-slate-500 uppercase">
+            <table className="w-full text-xs text-slate-600 dark:text-slate-300">
+              <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-2 text-left">Row</th>
                   <th className="px-4 py-2 text-left">Column</th>
@@ -760,7 +762,7 @@ function ValidateStep({
                   <th className="px-4 py-2 text-left">Error</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                 {result.errors.slice(0, 20).map((e, i) => (
                   <tr key={i}>
                     <td className="px-4 py-2 font-mono text-rose-400">{e.row}</td>
@@ -777,7 +779,7 @@ function ValidateStep({
 
       {/* Warnings table */}
       {result.warnings.length > 0 && (
-        <div className="bg-[#151722] rounded-xl border border-amber-500/20 overflow-hidden">
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-amber-500/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-amber-500/20 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
             <p className="text-xs font-bold text-amber-400 uppercase tracking-wider">
@@ -785,15 +787,15 @@ function ValidateStep({
             </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-slate-300">
-              <thead className="bg-[#0f0f1a] border-b border-slate-800 text-slate-500 uppercase">
+            <table className="w-full text-xs text-slate-600 dark:text-slate-300">
+              <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-2 text-left">Row</th>
                   <th className="px-4 py-2 text-left">Column</th>
                   <th className="px-4 py-2 text-left">Issue</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                 {result.warnings.slice(0, 10).map((w, i) => (
                   <tr key={i}>
                     <td className="px-4 py-2 font-mono text-amber-400">{w.row}</td>
@@ -809,7 +811,7 @@ function ValidateStep({
 
       {/* Duplicates table */}
       {result.duplicates.length > 0 && (
-        <div className="bg-[#151722] rounded-xl border border-purple-500/20 overflow-hidden">
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-purple-500/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-purple-500/20 flex items-center gap-2">
             <Copy className="w-4 h-4 text-purple-400" />
             <p className="text-xs font-bold text-purple-400 uppercase tracking-wider">
@@ -817,14 +819,14 @@ function ValidateStep({
             </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-slate-300">
-              <thead className="bg-[#0f0f1a] border-b border-slate-800 text-slate-500 uppercase">
+            <table className="w-full text-xs text-slate-600 dark:text-slate-300">
+              <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-2 text-left">Email</th>
                   <th className="px-4 py-2 text-left">Existing Response</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                 {result.duplicates.map((d, i) => (
                   <tr key={i}>
                     <td className="px-4 py-2">{d.email}</td>
@@ -841,7 +843,7 @@ function ValidateStep({
 
       {/* Action selection */}
       {result.errors.length > 0 && (
-        <div className="space-y-3 p-4 bg-[#151722] rounded-xl border border-slate-800">
+        <div className="space-y-3 p-4 bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Choose action for errors</p>
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -851,7 +853,7 @@ function ValidateStep({
               className="mt-0.5 text-orange-500 focus:ring-orange-500"
             />
             <div>
-              <p className="text-sm font-semibold text-white">
+              <p className="text-sm font-semibold text-[#1A1A2E] dark:text-white">
                 Skip error rows, import {result.cleanCount} clean rows
               </p>
               <p className="text-xs text-slate-500 mt-0.5">Error rows will be skipped and logged.</p>
@@ -865,7 +867,7 @@ function ValidateStep({
               className="mt-0.5 text-orange-500 focus:ring-orange-500"
             />
             <div>
-              <p className="text-sm font-semibold text-white">Fix errors and re-upload</p>
+              <p className="text-sm font-semibold text-[#1A1A2E] dark:text-white">Fix errors and re-upload</p>
               <p className="text-xs text-slate-500 mt-0.5">Go back to step 1 and fix the file.</p>
             </div>
           </label>
@@ -875,7 +877,7 @@ function ValidateStep({
       <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-700 text-slate-300 hover:text-white text-sm font-bold transition"
+          className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition"
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
@@ -1009,11 +1011,11 @@ function IngestStep({
         <>
           <div className="p-6 rounded-2xl border border-orange-500/20 bg-orange-500/5 text-center space-y-3">
             <Upload className="w-10 h-10 text-orange-400 mx-auto" />
-            <h3 className="text-base font-bold text-white">
+            <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">
               Ready to import {validRows.length} response{validRows.length !== 1 ? 's' : ''}
             </h3>
-            <p className="text-sm text-slate-400">
-              into &quot;<span className="font-semibold text-white">{form.title}</span>&quot;.
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              into &quot;<span className="font-semibold text-[#1A1A2E] dark:text-white">{form.title}</span>&quot;.
               This action will be logged.
             </p>
             {validRows.length > CHUNK_SIZE && (
@@ -1036,7 +1038,7 @@ function IngestStep({
         <div className="space-y-6 py-8 text-center">
           <Loader2 className="w-12 h-12 text-orange-400 animate-spin mx-auto" />
           <div>
-            <p className="text-base font-bold text-white">
+            <p className="text-base font-bold text-[#1A1A2E] dark:text-white">
               Importing… {Math.round((progress / 100) * validRows.length)} / {validRows.length} rows ({progress}%)
             </p>
           </div>
@@ -1064,7 +1066,7 @@ function IngestStep({
           >
             <RefreshCw className="w-4 h-4" /> Retry from failed chunk
           </button>
-          <button onClick={onReset} className="w-full py-3 rounded-xl border border-slate-700 text-slate-400 hover:text-white text-sm font-bold transition">
+          <button onClick={onReset} className="w-full py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition">
             Start Over
           </button>
         </div>
@@ -1074,8 +1076,8 @@ function IngestStep({
         <div className="space-y-6">
           <div className="p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-center space-y-3">
             <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto" />
-            <h3 className="text-xl font-black text-white">Import Complete</h3>
-            <div className="text-sm text-slate-300 space-y-1">
+            <h3 className="text-xl font-black text-[#1A1A2E] dark:text-white">Import Complete</h3>
+            <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
               <p>
                 <span className="font-bold text-emerald-400">{result.imported}</span> responses imported successfully
               </p>
@@ -1092,7 +1094,7 @@ function IngestStep({
             {result.errors.length > 0 && (
               <button
                 onClick={downloadErrorReport}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white text-sm font-bold transition"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition"
               >
                 <Download className="w-4 h-4" /> Download Error Report
               </button>
@@ -1105,7 +1107,7 @@ function IngestStep({
             </button>
             <button
               onClick={onReset}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white text-sm font-bold transition"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition"
             >
               <RefreshCw className="w-4 h-4" /> Import Another File
             </button>

@@ -1,3 +1,5 @@
+// The stylesheet is processed by Next.js; TypeScript may not resolve its side-effect import.
+// @ts-ignore -- CSS is handled by the framework at build time.
 import './globals.css';
 import NavbarSwitcher from '@/components/NavbarSwitcher';
 import Footer from '@/components/Footer';

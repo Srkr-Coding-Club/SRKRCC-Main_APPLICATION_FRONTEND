@@ -65,18 +65,18 @@ export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerP
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'tween', duration: 0.25 }}
-        className="fixed right-0 top-0 z-50 h-full w-full max-w-[480px] bg-[#0f0f1a] border-l border-slate-800 shadow-2xl flex flex-col"
+        className="fixed right-0 top-0 z-50 h-full w-full max-w-[480px] bg-[#FAFAFC] dark:bg-[#0f0f1a] border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
           {title && (
-            <h2 className="text-sm font-bold text-white truncate pr-4">{title}</h2>
+            <h2 className="text-sm font-bold text-[#1A1A2E] dark:text-white truncate pr-4">{title}</h2>
           )}
           <button
             onClick={onClose}
-            className="ml-auto p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="ml-auto p-1.5 rounded-lg text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white hover:bg-white/10 transition-colors"
             aria-label="Close drawer"
           >
             <X className="w-4 h-4" />
