@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Instagram, Linkedin, Github, Youtube, ArrowUp } from 'lucide-react';
 import BrainLogo from './BrainLogo';
@@ -28,7 +29,12 @@ const RESOURCES = [
 ];
 
 export default function Footer() {
+  const pathname = usePathname();
   const currentYear = new Date().getFullYear();
+
+  // The login screen is a full-bleed auth layout with its own branding —
+  // no footer belongs below it.
+  if (pathname === '/login') return null;
 
   return (
     <footer className="relative bg-[var(--background)] transition-colors duration-300 overflow-hidden">
