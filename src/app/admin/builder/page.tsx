@@ -1,12 +1,19 @@
 'use client';
 
+import React, { useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { FormBuilderTab } from '@/components/admin/FormBuilderTab';
 import { TestDataModal } from '@/components/admin/TestDataModal';
 import { useAdminData } from '@/lib/hooks/useAdminData';
+import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-export default function AdminBuilderPage() {
+function BuilderContent() {
+  const searchParams = useSearchParams();
+  const formSlug = searchParams.get('slug');
+  const isNew = searchParams.get('new');
+
   const {
     isPreviewMode,
     setIsPreviewMode,
@@ -20,6 +27,8 @@ export default function AdminBuilderPage() {
     handleDuplicateField,
     handleReorderFields,
     handleSaveForm,
+    loadFormBySlug,
+    resetNewForm,
     previewAnswers,
     setPreviewAnswers,
     handleTestPreviewSubmit,
@@ -27,6 +36,14 @@ export default function AdminBuilderPage() {
     setShowTestDataModal,
     submittedTestData,
   } = useAdminData();
+
+  useEffect(() => {
+    if (formSlug) {
+      loadFormBySlug(formSlug);
+    } else if (isNew === 'true') {
+      resetNewForm();
+    }
+  }, [formSlug, isNew]);
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">
@@ -56,5 +73,22 @@ export default function AdminBuilderPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function AdminBuilderPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#FAFAFC] dark:bg-[#0D0E15]">
+          <div className="flex items-center space-x-3 text-slate-500">
+            <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+            <span className="text-sm font-medium">Loading Form Canvas...</span>
+          </div>
+        </div>
+      }
+    >
+      <BuilderContent />
+    </Suspense>
   );
 }

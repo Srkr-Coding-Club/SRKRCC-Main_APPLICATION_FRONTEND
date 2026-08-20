@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { Problem } from '@/lib/types';
 import { Terminal, Flame, Code2 } from 'lucide-react';
@@ -10,6 +11,12 @@ import ProblemCard from '@/components/ProblemCard';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'CodeQuest Daily Problem & Streak Leaderboard',
+  description:
+    'Solve daily competitive programming problems, build coding streaks, and level up your data structures & algorithms problem-solving skills.',
+};
 
 async function getProblems(): Promise<Problem[]> {
   try {

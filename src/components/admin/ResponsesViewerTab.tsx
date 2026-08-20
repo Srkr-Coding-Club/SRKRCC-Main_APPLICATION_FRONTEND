@@ -20,10 +20,11 @@ import { Form, FormField, ResponseDetail, PaginatedResponse } from '@/lib/types'
 import { starsDisplay, downloadCSV, groupByDay } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
 import { DetailDrawer } from './DetailDrawer';
+import { ChartSkeleton } from '@/components/ui/LoadingSkeleton';
 
 const ResponseTimelineChart = dynamic(
   () => import('./ResponseTimelineChart'),
-  { ssr: false, loading: () => <div className="h-44 animate-pulse bg-slate-800/50 rounded-xl" /> }
+  { ssr: false, loading: () => <ChartSkeleton /> }
 );
 
 interface ResponsesViewerTabProps {

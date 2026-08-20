@@ -102,6 +102,8 @@ export function useAdminData() {
     status: Form['status'];
     open_at: string;
     close_at: string;
+    allow_multiple_responses?: boolean;
+    allow_edits_until?: string;
   }>({
     title: 'IconCoders 2026 Registration Form',
     slug: 'iconcoders-2026-registration',
@@ -139,11 +141,12 @@ export function useAdminData() {
   useEffect(() => {
     async function loadBackendData() {
       try {
-        const [fetchedUsers, fetchedFlags, fetchedForms, fetchedAudit] = await Promise.all([
+        const [fetchedUsers, fetchedFlags, fetchedForms, fetchedAudit, fetchedSubmissions] = await Promise.all([
           fetchApi<any[]>('/auth/users/').catch(() => []),
           fetchApi<FeatureFlag[]>('/feature-flags/').catch(() => []),
           fetchApi<Form[]>('/forms/').catch(() => []),
           fetchApi<any[]>('/audit/').catch(() => []),
+          fetchApi<any>('/forms/submissions/').catch(() => []),
         ]);
 
         if (fetchedUsers && fetchedUsers.length > 0) {
@@ -172,12 +175,39 @@ export function useAdminData() {
           setAuditLogs(
             fetchedAudit.map((a: any) => ({
               id: a.id || Date.now(),
-              timestamp: a.created_at || new Date().toISOString(),
-              actor: a.actor_email || 'Admin User',
+              timestamp: a.timestamp || a.created_at?.replace('T', ' ').substring(0, 19) || new Date().toISOString().substring(0, 19),
+              actor: a.actor_name || a.actor_email || 'System',
               action: a.action || 'System Mutation',
-              target: a.target_model || 'System',
-              details: JSON.stringify(a.details || {}),
+              target: a.target || a.target_model || 'System',
+              details: typeof a.details === 'object' ? JSON.stringify(a.details) : String(a.details || ''),
             }))
+          );
+        }
+
+        const rawSubs = Array.isArray(fetchedSubmissions)
+          ? fetchedSubmissions
+          : fetchedSubmissions?.results || [];
+
+        if (rawSubs.length > 0) {
+          setFormSubmissions(
+            rawSubs.map((s: any) => {
+              const ansMap: Record<string, any> = {};
+              if (s.answers && Array.isArray(s.answers)) {
+                s.answers.forEach((ans: any) => {
+                  const key = ans.field_label || `Field ${ans.field}`;
+                  ansMap[key] = ans.value;
+                });
+              }
+              return {
+                id: s.id,
+                formTitle: s.form_title || 'Form Submission',
+                submitterName: s.user_name || s.user_email || 'Student',
+                submitterEmail: s.user_email || 'student@srkr.ac.in',
+                submittedAt: s.submitted_at ? s.submitted_at.replace('T', ' ').substring(0, 16) : new Date().toISOString().substring(0, 16),
+                answers: ansMap,
+                isManualAdminEntry: s.is_manual_entry ?? false,
+              };
+            })
           );
         }
       } catch (err) {
@@ -275,49 +305,195 @@ export function useAdminData() {
     setBuilderFields(fields.map((f, i) => ({ ...f, order: i + 1 })));
   };
 
-  const handleSaveForm = async () => {
+  const resetNewForm = () => {
+    setFormMeta({
+      id: undefined,
+      title: 'Untitled Registration Form',
+      slug: '',
+      description: '',
+      image_url: '',
+      category: 'General',
+      status: 'DRAFT',
+      open_at: '',
+      close_at: '',
+      allow_multiple_responses: false,
+      allow_edits_until: '',
+    });
+    setBuilderFields([
+      { id: 'f1', label: 'Full Name', type: 'TEXT', placeholder: 'e.g. Ramesh Varma', is_required: true, order: 1 },
+      { id: 'f2', label: 'Email Address', type: 'EMAIL', placeholder: 'student@srkr.ac.in', is_required: true, order: 2 },
+    ]);
+  };
+
+  const loadFormBySlug = async (slug: string) => {
+    try {
+      const form = await fetchApi<Form>(`/forms/${slug}/`);
+      if (form) {
+        handleEditFormInBuilder(form);
+        return form;
+      }
+    } catch (e) {
+      console.warn('Unable to load form by slug:', slug);
+    }
+  };
+
+  const handleEditFormInBuilder = (form: Form) => {
+    setFormMeta({
+      id: form.id,
+      title: form.title,
+      slug: form.slug,
+      description: form.description || '',
+      image_url: form.image_url || '',
+      category: form.category || 'General',
+      status: form.status || 'DRAFT',
+      open_at: form.open_at || '',
+      close_at: form.close_at || '',
+      allow_multiple_responses: form.allow_multiple_responses ?? false,
+      allow_edits_until: form.allow_edits_until || '',
+    });
+    if (form.fields && form.fields.length > 0) {
+      setBuilderFields(form.fields.map((f, i) => ({ ...f, order: f.order ?? i + 1 })));
+    } else {
+      setBuilderFields([
+        { id: 'f1', label: 'Full Name', type: 'TEXT', placeholder: 'e.g. Ramesh Varma', is_required: true, order: 1 },
+      ]);
+    }
+  };
+
+  const handleSaveForm = async (
+    targetStatus?: Form['status'],
+    scheduleOptions?: { open_at?: string; close_at?: string }
+  ) => {
+    const finalStatus = targetStatus || formMeta.status || 'DRAFT';
+    const slug = formMeta.slug || formMeta.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
     const payload = {
       title: formMeta.title,
-      slug: formMeta.slug || formMeta.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      slug: slug,
       description: formMeta.description,
       image_url: formMeta.image_url,
       category: formMeta.category,
-      status: formMeta.status,
+      status: finalStatus,
+      open_at: scheduleOptions?.open_at || formMeta.open_at || null,
+      close_at: scheduleOptions?.close_at || formMeta.close_at || null,
+      allow_multiple_responses: formMeta.allow_multiple_responses ?? false,
+      allow_edits_until: formMeta.allow_edits_until || null,
       fields: builderFields.map((f, idx) => ({
         ...(typeof f.id === 'number' || (typeof f.id === 'string' && !isNaN(Number(f.id)) && Number(f.id) < 1000000000) ? { id: Number(f.id) } : {}),
         label: f.label,
         type: f.type,
         placeholder: f.placeholder || '',
+        description: f.description || '',
         is_required: f.is_required,
         options: f.options || [],
+        rows: f.rows || [],
+        min_value: f.min_value ?? null,
+        max_value: f.max_value ?? null,
         conditional_logic: f.conditional_logic || {},
         validation_rules: f.validation_rules || {},
         order: idx + 1,
       })),
     };
 
-    try {
-      const saved = await fetchApi<Form>('/forms/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+    const isExisting = formMeta.id || publishedForms.some((f) => f.slug === slug || (formMeta.id && f.id === formMeta.id));
+    const targetSlug = formMeta.slug || slug;
 
-      setPublishedForms((prev) => [saved, ...prev.filter((item) => item.slug !== saved.slug)]);
-      alert(`Form "${saved.title}" saved & published in backend database!`);
-    } catch {
+    try {
+      let saved: Form;
+      if (isExisting) {
+        saved = await fetchApi<Form>(`/forms/${targetSlug}/`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        saved = await fetchApi<Form>('/forms/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      setFormMeta((prev) => ({
+        ...prev,
+        id: saved.id,
+        slug: saved.slug,
+        status: saved.status,
+        open_at: saved.open_at || '',
+        close_at: saved.close_at || '',
+      }));
+
+      setPublishedForms((prev) => [
+        saved,
+        ...prev.filter((item) => item.slug !== saved.slug && item.id !== saved.id),
+      ]);
+
+      const statusMsg =
+        finalStatus === 'PUBLISHED'
+          ? 'published live for responses'
+          : finalStatus === 'SCHEDULED'
+          ? 'scheduled for automatic launch'
+          : 'saved as draft';
+      alert(`Form "${saved.title}" successfully ${statusMsg}!`);
+      return saved;
+    } catch (err: any) {
       const fallbackForm: Form = {
-        id: Date.now(),
+        id: formMeta.id || Date.now(),
         title: formMeta.title,
         slug: payload.slug,
         description: formMeta.description,
         image_url: formMeta.image_url,
         category: formMeta.category,
-        status: formMeta.status,
+        status: finalStatus,
+        open_at: payload.open_at || undefined,
+        close_at: payload.close_at || undefined,
         fields: builderFields,
+        response_count: 0,
       };
-      setPublishedForms((prev) => [fallbackForm, ...prev.filter((item) => item.slug !== fallbackForm.slug)]);
-      alert(`Form "${formMeta.title}" saved!`);
+      setPublishedForms((prev) => [
+        fallbackForm,
+        ...prev.filter((item) => item.slug !== fallbackForm.slug && item.id !== fallbackForm.id),
+      ]);
+      alert(`Form "${formMeta.title}" saved locally (${finalStatus})!`);
+      return fallbackForm;
+    }
+  };
+
+  const handleFormStatusTransition = async (
+    formSlug: string,
+    action: 'publish' | 'unpublish' | 'close' | 'schedule' | 'reopen',
+    extraData?: any
+  ) => {
+    try {
+      const updated = await fetchApi<Form>(`/forms/${formSlug}/${action}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(extraData || {}),
+      });
+      setPublishedForms((prev) => prev.map((f) => (f.slug === formSlug ? { ...f, ...updated } : f)));
+      return updated;
+    } catch {
+      // Local fallback status mapping
+      const nextStatusMap: Record<string, Form['status']> = {
+        publish: 'PUBLISHED',
+        unpublish: 'DRAFT',
+        close: 'CLOSED',
+        schedule: 'SCHEDULED',
+        reopen: 'DRAFT',
+      };
+      const nextStatus = nextStatusMap[action] || 'DRAFT';
+      setPublishedForms((prev) =>
+        prev.map((f) =>
+          f.slug === formSlug
+            ? {
+                ...f,
+                status: nextStatus,
+                ...(extraData?.open_at ? { open_at: extraData.open_at } : {}),
+                ...(extraData?.close_at ? { close_at: extraData.close_at } : {}),
+              }
+            : f
+        )
+      );
     }
   };
 
@@ -327,21 +503,48 @@ export function useAdminData() {
     setShowTestDataModal(true);
   };
 
-  const handleAdminManualEntrySubmit = (e: React.FormEvent) => {
+  const handleAdminManualEntrySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClosedForm) return;
+
+    const answersPayload = Object.entries(manualEntryAnswers).map(([key, value]) => {
+      const numFieldId = Number(key);
+      const fieldId = !isNaN(numFieldId)
+        ? numFieldId
+        : selectedClosedForm.fields?.find((f) => f.label.toLowerCase() === key.toLowerCase())?.id || 1;
+      return {
+        field: Number(fieldId),
+        value: value,
+      };
+    });
+
+    try {
+      await fetchApi(`/forms/${selectedClosedForm.slug}/manual-entry/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: answersPayload }),
+      });
+      // Increment response count
+      setPublishedForms((prev) =>
+        prev.map((f) => (f.id === selectedClosedForm.id ? { ...f, response_count: (f.response_count || 0) + 1 } : f))
+      );
+    } catch {
+      // Fallback
+    }
+
     const newSub: FormSubmissionRecord = {
       id: Date.now(),
       formTitle: selectedClosedForm.title,
-      submitterName: (manualEntryAnswers['Name'] || 'Offline Candidate') + ' (Admin Override)',
-      submitterEmail: manualEntryAnswers['Email'] || 'offline@srkr.ac.in',
+      submitterName: (manualEntryAnswers['Name'] || manualEntryAnswers['Full Name'] || 'Offline Candidate') + ' (Admin Override)',
+      submitterEmail: manualEntryAnswers['Email'] || manualEntryAnswers['College Email'] || 'offline@srkr.ac.in',
       submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       answers: manualEntryAnswers,
       isManualAdminEntry: true,
     };
     setFormSubmissions((prev) => [newSub, ...prev]);
     setShowManualEntryModal(false);
-    alert('Offline entry recorded for closed form!');
+    setManualEntryAnswers({});
+    alert(`Offline special entry recorded for "${selectedClosedForm.title}"!`);
   };
 
   const handleToggleFlag = (id: number) => {
@@ -352,9 +555,12 @@ export function useAdminData() {
     // Optimistic — flip immediately for instant toggle feedback, then best-effort
     // persist. The backend's FeatureFlagViewSet looks flags up by `key`, not `id`.
     setFlags((prev) => prev.map((f) => (f.id === id ? { ...f, is_enabled: nextEnabled } : f)));
-    fetchApi(`/feature-flags/${flag.key}/`, buildAuthFetchOptions('PATCH', { is_enabled: nextEnabled })).catch(() => {
-      // Offline/unauthenticated backend — keep the optimistic local toggle,
-      // same tolerance as the rest of this hook's mock-backed handlers.
+    fetchApi(`/feature-flags/${flag.key}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_enabled: nextEnabled }),
+    }).catch(() => {
+      // Offline fallback
     });
   };
 
@@ -376,9 +582,11 @@ export function useAdminData() {
     handleRoleChange,
 
     publishedForms,
+    setPublishedForms,
     formMeta,
     setFormMeta,
     builderFields,
+    setBuilderFields,
     handleAddFieldFromPalette,
     handleAddFieldAtIndex,
     handleRemoveField,
@@ -386,6 +594,10 @@ export function useAdminData() {
     handleDuplicateField,
     handleReorderFields,
     handleSaveForm,
+    handleFormStatusTransition,
+    handleEditFormInBuilder,
+    loadFormBySlug,
+    resetNewForm,
     isPreviewMode,
     setIsPreviewMode,
     previewAnswers,

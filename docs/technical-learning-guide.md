@@ -1,6 +1,6 @@
 # Under the Hood: Frontend Technical Learning Guide
 
-This guide explains **how Next.js 15 App Router, React Server Components (RSC), Client Components, Tailwind CSS glassmorphism, and API client fetching work under the hood** in the SRKR Coding Club Frontend.
+This guide explains **how Next.js 15 App Router, React Server Components (RSC), Client Components, HttpOnly Cookie Security, Edge Middleware, and Tailwind CSS glassmorphism work under the hood** in the SRKR Coding Club Frontend.
 
 ---
 
@@ -10,77 +10,86 @@ The App Router (`src/app`) uses a file-system based routing mechanism powered by
 
 ```
 src/app/
-├── layout.tsx      <-- Persistent Root Shell (Navbar + Footer)
-├── page.tsx        <-- Home Page Dashboard (Server Component)
-├── events/
-│   └── page.tsx    <-- Events Module Page (Server Component)
-├── hackathons/
-│   └── page.tsx    <-- Hackathons Module Page
-├── iconcoders/
-│   └── page.tsx    <-- IconCoders Flagship Landing & Hall of Fame
-├── codequest/
-│   └── page.tsx    <-- Codequest Daily Problem
-├── career/
-│   └── page.tsx    <-- Career Opportunities Page
-├── blogs/
-│   └── page.tsx    <-- Technical Blogs & Member Stories
+├── layout.tsx              <-- Persistent Root Shell (Navbar + Footer + Global Theme)
+├── loading.tsx             <-- Root Suspense & Route Transition Loader
+├── not-found.tsx           <-- Custom 404 Not Found Page
+├── forbidden.tsx / 403/    <-- Custom 403 Access Restriction Gate
+├── error.tsx               <-- Global Error Boundary
+├── page.tsx                <-- Home Page Dashboard (Server Component)
+├── events/                 <-- Workshops & Hackathons Event Hub
+├── hackathons/             <-- 48-Hour Build Sprint Hub
+├── iconcoders/             <-- Premier Championship Arena
+├── codequest/              <-- Daily Algorithmic Problem Solving Streak
+├── profile/                <-- Real Database-Driven Member Profile
 ├── forms/
-│   ├── page.tsx    <-- Forms Center Directory
-│   └── [slug]/
-│       └── page.tsx <-- Dynamic Form Submission Engine
-└── admin/
-    └── page.tsx    <-- Modular Admin Control Room (8 Unified Tabs)
-        ├── AdminHeader.tsx         <-- Admin Header & Brand
-        ├── DashboardTab.tsx       <-- Metrics & Analytics Charts
-        ├── UsersTab.tsx           <-- RBAC & User Control Table
-        ├── FormBuilderTab.tsx     <-- MS Drag & Drop Form Builder
-        ├── ManageFormsTab.tsx     <-- Forms Control & Offline Overrides
-        ├── EventsHackathonsTab.tsx<-- Workshops & Flagship Engine
-        ├── ContentHubTab.tsx      <-- Technical Articles & Placement Drives
-        ├── FlagsTab.tsx           <-- Feature Flag Controls
-        └── AuditLogsTab.tsx       <-- Security Mutation Trail Logs
+│   ├── page.tsx            <-- Live Forms Center Directory
+│   └── [slug]/page.tsx     <-- Dynamic Form Submission Engine
+└── admin/                  <-- Admin Control Room (Subtab Routed)
+    ├── loading.tsx         <-- Admin Transition Loader
+    ├── forms/page.tsx      <-- Forms Registry & Lifecycle Management
+    ├── builder/page.tsx    <-- Dynamic Form Builder Canvas
+    ├── users/page.tsx      <-- User Accounts & RBAC Management
+    ├── flags/page.tsx      <-- Feature Flag Controls
+    ├── audit-logs/page.tsx <-- Security & Mutation Trail Logs
+    ├── data-health/page.tsx<-- Platform Data Integrity & Warnings
+    └── csv-ingestion/page.tsx <-- Bulk Responses CSV Importer
 ```
 
 ### Server Components vs. Client Components Execution Flow
 
 1. **React Server Components (RSC)**:
    - Pages without `'use client'` run **exclusively on the server**.
-   - They fetch data directly from the Django backend (`http://localhost:8000/api`) during server rendering.
+   - They query the backend (`http://localhost:8000/api`) during server-side rendering.
    - Zero JavaScript bundle weight for fetching logic is sent to the browser, maximizing initial page load speed and SEO performance.
 2. **Client Components (`'use client'`)**:
-   - Components needing interactivity (e.g. `Navbar.tsx` for route tracking via `usePathname()`) are marked `'use client'`.
+   - Components requiring interactive state (`useState`, `useEffect`, event listeners) are marked with `'use client'`.
    - Next.js pre-renders HTML on the server and hydrates interactive event listeners in the browser.
 
 ---
 
-## 2. Dynamic Data Fetching & Revalidation Under the Hood
+## 2. HttpOnly Cookie Authentication & Edge Middleware Under the Hood
+
+### Backend-For-Frontend (BFF) Route Handlers
+Raw JWT tokens are never stored in browser `localStorage`. Instead, Next.js API route handlers act as a security proxy:
+- **`POST /api/auth/login`**: Receives user credentials, calls Django's `/api/auth/token/`, and sets `HttpOnly` session cookies (`srkrcc_access_token` and `srkrcc_refresh_token`).
+- **`POST /api/auth/refresh`**: Reads the `HttpOnly` refresh cookie server-side, requests renewed tokens from Django, and updates the access cookie.
+- **`POST /api/auth/logout`**: Expire and clear session cookies.
+- **`GET /api/auth/me`**: Reads the access cookie server-side and forwards it in the `Authorization: Bearer` header to Django.
+
+### Next.js Edge Middleware ([src/middleware.ts](file:///c:/Users/chall/OneDrive/Desktop/SRKRCC-Main_APPLICATION_FRONTEND/src/middleware.ts))
+Runs at the network edge before requests reach the App Router:
+1. Intercepts all `/admin/*` paths.
+2. Reads `request.cookies.get('srkrcc_access_token')`.
+3. If unauthenticated $\rightarrow$ Redirects to `/login?next=${pathname}`.
+4. If role is not `ADMIN` or `CLUB_LEAD` $\rightarrow$ Redirects to `/profile?error=admin_access_required`.
+
+---
+
+## 3. Dynamic Data Fetching & Revalidation Under the Hood
 
 * **`export const dynamic = 'force-dynamic'`**:
-  - Instructs Next.js that the route relies on live backend data (`http://localhost:8000/api`), preventing build-time static prerendering failures when backend server is offline or dynamic.
+  - Instructs Next.js that the route relies on live backend data (`http://localhost:8000/api`), preventing build-time static prerendering failures when the database updates dynamically.
 * **`fetchApi` Helper (`src/lib/api-client.ts`)**:
-  - Wraps standard `fetch` with `cache: 'no-store'` so fresh feature flags, events, and problems are fetched on every request.
+  - Sets `credentials: 'include'` so `HttpOnly` cookies are automatically sent with requests.
+  - Implements connection timeouts with `AbortController` and graceful offline fallbacks.
 
 ---
 
-## 3. Styling Engine & Glassmorphism Design Tokens
+## 4. HTTP Security Headers Under the Hood
 
-* **Tailwind CSS + CSS Custom Properties**:
-  - Dark mode palette (`bg-slate-950`, `text-slate-100`).
-  - Glassmorphism backdrop blur filters (`glass-panel` class):
-    ```css
-    .glass-panel {
-      background: rgba(17, 24, 39, 0.7);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    ```
-  - Vibrant gradient accents (`gradient-text`) for hero titles and flagship highlights.
+Configured in [next.config.ts](file:///c:/Users/chall/OneDrive/Desktop/SRKRCC-Main_APPLICATION_FRONTEND/next.config.ts):
+- **`X-Frame-Options: SAMEORIGIN`**: Prevents clickjacking by blocking iframe embedding on untrusted domains.
+- **`X-Content-Type-Options: nosniff`**: Prevents browser MIME-type sniffing.
+- **`Referrer-Policy: strict-origin-when-cross-origin`**: Controls referrer leakage across origins.
+- **`Permissions-Policy: camera=(), microphone=(), geolocation=()`**: Restricts unnecessary device APIs.
 
 ---
 
-## 4. Maintenance & Gap Update Protocol
+## 5. UI Design System & Tailwind CSS Glassmorphism
 
-Whenever you update frontend code:
-1. Ensure TypeScript interfaces in `src/lib/types.ts` match Django REST Framework serializers.
-2. Run `npm run build` or `make build` to verify type checking and page compilation.
-3. Update relevant documentation if new pages or UI modules are introduced.
+The application adheres to a dark-mode glassmorphism theme using CSS variables and Tailwind utilities:
+- **`glass-panel`**: `bg-[#151722]/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800`
+- **`gradient-text`**: `bg-gradient-to-r from-[#FF7A00] via-[#FF9E00] to-[#8B2E3B] bg-clip-text text-transparent`
+- **Accent Primary**: `#FF7A00` (SRKRCC Vibrant Orange)
+- **Accent Maroon**: `#8B2E3B` (SRKR Institutional Maroon)
+- **Background Dark**: `#0D0E15` (Deep Slate)

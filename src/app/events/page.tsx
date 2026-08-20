@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { Event } from '@/lib/types';
 import { Calendar } from 'lucide-react';
@@ -6,6 +7,12 @@ import PageHero from '@/components/PageHero';
 import EventCard from '@/components/EventCard';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Events & Workshops',
+  description:
+    'Join hands-on developer workshops, bootcamps, and technical tech-talks organized by the SRKR Coding Club.',
+};
 
 async function getEvents(): Promise<Event[]> {
   try {
@@ -28,7 +35,7 @@ async function getEvents(): Promise<Event[]> {
       end_time: '2025-05-20T16:30:00Z',
       image_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
       speaker: 'Rahul Sharma (Senior Lead)',
-      form_slug: 'web-dev-workshop-rsvp',
+      form_slug: 'hands-on-nextjs-workshop-2025',
       tags: ['React', 'Next.js 15', 'Tailwind CSS'],
     },
     {
@@ -57,7 +64,7 @@ async function getEvents(): Promise<Event[]> {
       end_time: '2025-06-01T12:30:00Z',
       image_url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
       speaker: 'SRKRCC Executive Board',
-      form_slug: 'iconcoders-hackathon-2025',
+      form_slug: 'iconcoders-2025-registration',
       tags: ['Hackathon', 'IconCoders', 'Flagship'],
     },
   ];

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api-client';
 import { JobListing } from '@/lib/types';
@@ -13,6 +14,12 @@ import {
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Career Hub & Tech Opportunities',
+  description:
+    'Discover campus placements, off-campus tech internships, and full-time hiring drives curated for SRKR Engineering College students.',
+};
 
 async function getJobs(): Promise<JobListing[]> {
   try {

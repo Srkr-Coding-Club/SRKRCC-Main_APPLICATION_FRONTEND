@@ -32,6 +32,7 @@ import {
   Asterisk,
   Move,
   MousePointerClick,
+  Undo2,
 } from 'lucide-react';
 import { Form, FormField, ValidationRules } from '@/lib/types';
 import { hasConstraintOptions, hasActiveValidation, getConstraintHint } from '@/lib/formValidation';
@@ -98,7 +99,7 @@ interface FormBuilderTabProps {
   onReorderFields: (fields: FormField[]) => void;
   onRemoveField: (id: number | string) => void;
   onFieldChange: (id: number | string, key: keyof FormField, value: any) => void;
-  onSaveForm: () => void;
+  onSaveForm: (status?: Form['status'], scheduleOptions?: { open_at?: string; close_at?: string }) => void;
   previewAnswers: Record<string, any>;
   setPreviewAnswers: (val: any) => void;
   onTestPreviewSubmit: (e: React.FormEvent) => void;
@@ -128,6 +129,9 @@ export function FormBuilderTab({
   const [conditionalOpenId, setConditionalOpenId] = useState<number | string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleOpenAt, setScheduleOpenAt] = useState(formMeta.open_at || '');
+  const [scheduleCloseAt, setScheduleCloseAt] = useState(formMeta.close_at || '');
   const prevIdsRef = useRef<Set<number | string>>(new Set(builderFields.map((f) => f.id)));
   const paletteDragType = useRef<FormField['type'] | null>(null);
 
@@ -193,19 +197,35 @@ export function FormBuilderTab({
 
   const totalRequired = builderFields.filter((f) => f.is_required).length;
   const totalConditional = builderFields.filter((f) => f.conditional_logic?.if).length;
+  const isCurrentlyPublished = formMeta.status === 'PUBLISHED';
 
   return (
     <div className="space-y-6">
       {/* Top Controls Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white dark:bg-[#151722] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between bg-white dark:bg-[#151722] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] text-white shadow-[0_4px_14px_rgba(255,122,0,0.35)] flex-shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-[#1A1A2E] dark:text-white uppercase tracking-wider">
-              Dynamic Form Builder
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-extrabold text-[#1A1A2E] dark:text-white uppercase tracking-wider">
+                Dynamic Form Builder
+              </h3>
+              <span
+                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                  formMeta.status === 'PUBLISHED'
+                    ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                    : formMeta.status === 'SCHEDULED'
+                    ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                    : formMeta.status === 'CLOSED'
+                    ? 'bg-slate-700 text-slate-300'
+                    : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                }`}
+              >
+                {formMeta.status || 'DRAFT'}
+              </span>
+            </div>
             <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
               <StatPill icon={ListChecks} label={`${builderFields.length} Fields`} tone="slate" />
               <StatPill icon={Asterisk} label={`${totalRequired} Required`} tone="orange" />
@@ -215,7 +235,7 @@ export function FormBuilderTab({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center flex-wrap gap-2">
           {isPreviewMode && (
             <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-md">
               <button
@@ -235,22 +255,118 @@ export function FormBuilderTab({
 
           <button
             onClick={() => setIsPreviewMode(!isPreviewMode)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 ${
-              isPreviewMode ? 'bg-purple-600 text-white shadow' : 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200'
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+              isPreviewMode ? 'bg-purple-600 text-white shadow' : 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/40'
             }`}
           >
-            <Eye className="w-4 h-4" />
-            <span>{isPreviewMode ? 'Exit Preview' : 'Live Preview Mode'}</span>
+            <Eye className="w-3.5 h-3.5" />
+            <span>{isPreviewMode ? 'Exit Preview' : 'Live Preview'}</span>
           </button>
 
+          {/* Save Draft */}
           <button
-            onClick={onSaveForm}
-            className="px-5 py-2 rounded-lg bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white font-extrabold text-xs shadow-[0_4px_14px_rgba(255,122,0,0.35)] transition"
+            onClick={() => onSaveForm('DRAFT')}
+            className="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-300 dark:border-slate-700 transition"
           >
-            Save & Publish
+            Save Draft
+          </button>
+
+          {/* Schedule */}
+          <button
+            onClick={() => setShowScheduleModal(true)}
+            className="px-3.5 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-600 dark:text-blue-400 font-bold text-xs border border-blue-200 dark:border-blue-800/40 transition flex items-center gap-1.5"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>{formMeta.status === 'SCHEDULED' ? 'Reschedule' : 'Schedule'}</span>
+          </button>
+
+          {/* Undo Publish if live */}
+          {isCurrentlyPublished && (
+            <button
+              onClick={() => onSaveForm('DRAFT')}
+              className="px-3.5 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-600 dark:text-amber-400 font-bold text-xs border border-amber-200 dark:border-amber-800/40 transition flex items-center gap-1.5"
+              title="Revert published form back to draft mode so submissions stop"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              <span>Undo Publish</span>
+            </button>
+          )}
+
+          {/* Publish / Re-publish */}
+          <button
+            onClick={() => onSaveForm('PUBLISHED')}
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white font-extrabold text-xs shadow-[0_4px_14px_rgba(255,122,0,0.35)] transition flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{isCurrentlyPublished ? 'Re-Publish' : 'Publish Live'}</span>
           </button>
         </div>
       </div>
+
+      {/* Scheduling Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-[#151722] rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-blue-500 font-bold text-base">
+                <Clock className="w-5 h-5" />
+                <h3>Schedule Form Publication Window</h3>
+              </div>
+              <button onClick={() => setShowScheduleModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Set automated open and close datetime deadlines for <strong>{formMeta.title}</strong>:
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Open At (Start Receiving Submissions)</label>
+                <input
+                  type="datetime-local"
+                  value={scheduleOpenAt}
+                  onChange={(e) => setScheduleOpenAt(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Close At (Auto Lock Form)</label>
+                <input
+                  type="datetime-local"
+                  value={scheduleCloseAt}
+                  onChange={(e) => setScheduleCloseAt(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowScheduleModal(false)}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  onSaveForm('SCHEDULED', {
+                    open_at: scheduleOpenAt,
+                    close_at: scheduleCloseAt,
+                  });
+                }}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition"
+              >
+                Save Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isPreviewMode ? (
         <LivePreview

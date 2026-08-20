@@ -1,10 +1,19 @@
 'use client';
 
-import { CSVIngestionTab } from '@/components/admin/CSVIngestionTab';
+import nextDynamic from 'next/dynamic';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 import { useAdminSubtabNav } from '@/lib/hooks/useAdminSubtabNav';
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 
 export const dynamic = 'force-dynamic';
+
+const CSVIngestionTab = nextDynamic(
+  () => import('@/components/admin/CSVIngestionTab').then((m) => m.CSVIngestionTab),
+  {
+    loading: () => <LoadingSkeleton rows={6} />,
+    ssr: false,
+  }
+);
 
 export default function AdminCsvIngestionPage() {
   const { publishedForms } = useAdminData();

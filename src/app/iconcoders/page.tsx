@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { IconCodersChallenge, IconCodersHallOfFameEntry } from '@/lib/types';
 import { Sparkles, Trophy } from 'lucide-react';
@@ -10,6 +11,12 @@ import IconCodersHallOfFameCard from '@/components/IconCodersHallOfFameCard';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'IconCoders Flagship Hackathon & Hall of Fame',
+  description:
+    'The premier annual hackathon of SRKR Engineering College. Explore active challenges, past winning projects, and the Hall of Fame.',
+};
 
 async function getCurrentChallenge(): Promise<IconCodersChallenge> {
   try {

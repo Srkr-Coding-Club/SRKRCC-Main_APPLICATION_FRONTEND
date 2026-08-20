@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
+import { getStoredUser, isAuthenticated, AuthUser } from '@/lib/auth';
 
 interface NavChild {
   label: string;
@@ -61,6 +62,14 @@ interface NavbarProps {
 
 export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuth, setIsAuth] = useState(false);
+
+  useEffect(() => {
+    setIsAuth(isAuthenticated());
+    setCurrentUser(getStoredUser());
+  }, [pathname]);
+
   const visibleNavItems: NavItem[] = navItems.map((item) =>
     item.children
       ? {
@@ -210,24 +219,40 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
 
           {/* Right cluster */}
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/profile"
-              className="p-2 rounded-full text-[#1A1A2E]/55 dark:text-white/50 hover:text-[#FF7A00] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-              aria-label="User Profile"
-            >
-              <User className="w-[18px] h-[18px]" />
-            </Link>
+            {isAuth ? (
+              <>
+                {(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD') && (
+                  <Link
+                    href="/admin"
+                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border border-orange-500/30 transition"
+                  >
+                    Admin Room
+                  </Link>
+                )}
 
-            <Link
-              href="/login"
-              className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition-colors"
-            >
-              Login
-            </Link>
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[#1A1A2E] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] transition"
+                  aria-label="User Profile"
+                >
+                  <User className="w-3.5 h-3.5 text-[#FF7A00]" />
+                  <span>{currentUser?.first_name || currentUser?.username || 'Profile'}</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition-colors"
+                >
+                  Login
+                </Link>
 
-            <PillButton href="/signup" variant="solid" size="sm">
-              Join the Club
-            </PillButton>
+                <PillButton href="/signup" variant="solid" size="sm">
+                  Join the Club
+                </PillButton>
+              </>
+            )}
 
             <ThemeToggle />
           </div>

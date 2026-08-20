@@ -5,7 +5,11 @@ import Link from 'next/link';
 import { User, Mail, Hash, BookOpen, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import BrainLogo from '@/components/BrainLogo';
 
+import { useRouter } from 'next/navigation';
+import { registerUser, loginUser } from '@/lib/auth';
+
 export default function SignupPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -19,25 +23,59 @@ export default function SignupPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
     setError('');
     setIsLoading(true);
 
-    // Simulate registration API response
-    setTimeout(() => {
+    try {
+      const nameParts = formData.fullName.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      const yearNumber = parseInt(formData.year) || 1;
+
+      // 1. Register User in Backend
+      await registerUser({
+        username: formData.email.split('@')[0],
+        email: formData.email,
+        password: formData.password,
+        first_name: firstName,
+        last_name: lastName,
+        roll_number: formData.rollNumber,
+        branch: formData.branch,
+        year: yearNumber,
+        role: formData.role,
+      });
+
+      // 2. Auto Login
+      await loginUser(formData.email, formData.password);
+      setSuccess(true);
+
+      setTimeout(() => {
+        if (formData.role === 'ADMIN' || formData.role === 'CLUB_LEAD') {
+          router.push('/admin');
+        } else {
+          router.push('/profile');
+        }
+      }, 500);
+    } catch (err: any) {
+      setError(err?.message || 'Registration failed. Please check your inputs.');
       setIsLoading(false);
-      window.location.href = '/profile';
-    }, 1000);
+    }
   };
 
   return (

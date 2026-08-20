@@ -3,9 +3,73 @@ import NavbarSwitcher from '@/components/NavbarSwitcher';
 import Footer from '@/components/Footer';
 import { getModuleFlags } from '@/lib/moduleFlags';
 
-export const metadata = {
-  title: 'SRKR Coding Club Platform',
-  description: 'Unified platform for SRKR Coding Club events, hackathons, IconCoders, codequest daily problems, and career drives.',
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://srkrcc.com'),
+  title: {
+    default: 'SRKR Coding Club — Innovate, Code, Excel',
+    template: '%s | SRKR Coding Club',
+  },
+  description:
+    'The premier technical hub of SRKR Engineering College. Discover flagship hackathons like IconCoders, daily CodeQuest challenges, hands-on developer workshops, tech blogs, and dynamic registrations.',
+  keywords: [
+    'SRKR',
+    'SRKR Engineering College',
+    'SRKR Coding Club',
+    'SRKRCC',
+    'IconCoders',
+    'CodeQuest',
+    'Hackathons',
+    'Coding Contests',
+    'Web Development',
+    'AI/ML',
+    'Competitive Programming',
+    'Student Developer Community',
+  ],
+  authors: [{ name: 'SRKR Coding Club Tech Wing', url: 'https://srkrcc.com' }],
+  creator: 'SRKR Coding Club',
+  publisher: 'SRKR Engineering College',
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://srkrcc.com',
+    siteName: 'SRKR Coding Club',
+    title: 'SRKR Coding Club — Official Platform',
+    description:
+      'Participate in annual hackathons, solve daily CodeQuest challenges, attend tech workshops, and join the developer community.',
+    images: [
+      {
+        url: '/icon.png',
+        width: 1200,
+        height: 630,
+        alt: 'SRKR Coding Club Platform',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SRKR Coding Club Platform',
+    description:
+      'The unified portal for SRKR Engineering College student developers, flagship hackathons, CodeQuest, and workshops.',
+    images: ['/icon.png'],
+    creator: '@srkrcc',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
 };
 
 export default async function RootLayout({

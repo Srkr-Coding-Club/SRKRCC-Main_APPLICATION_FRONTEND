@@ -2,387 +2,701 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { AnimatePresence } from 'framer-motion';
 import {
   FileText,
   Search,
-  MoreVertical,
   ExternalLink,
   Eye,
   Trash2,
   XCircle,
   Copy,
-  CheckSquare,
-  Square,
+  Plus,
+  Clock,
+  Sparkles,
+  Undo2,
+  Calendar,
+  Layers,
   ChevronDown,
   AlertTriangle,
+  UserPlus,
+  CheckCircle2,
+  Share2,
+  Edit3,
+  Inbox,
+  Lock,
 } from 'lucide-react';
-import { Form } from '@/lib/types';
+import { Form, FormField } from '@/lib/types';
 import { relativeTime } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
-import { DetailDrawer } from './DetailDrawer';
 
 interface FormsRegistryTabProps {
   forms: Form[];
   onSwitchSubtab: (tab: string, formSlug?: string) => void;
   onOpenManualModal: (form: Form) => void;
+  onStatusTransition?: (formSlug: string, action: 'publish' | 'unpublish' | 'close' | 'schedule' | 'reopen', data?: any) => Promise<any>;
+  onEditInBuilder?: (form: Form) => void;
 }
 
-type StatusFilter = 'ALL' | 'DRAFT' | 'PUBLISHED' | 'CLOSED';
+type StatusFilter = 'ALL' | 'PUBLISHED' | 'DRAFT' | 'SCHEDULED' | 'CLOSED';
 
 const STATUS_BORDER: Record<string, string> = {
   PUBLISHED: 'border-l-emerald-500',
-  CLOSED: 'border-l-slate-500',
+  CLOSED: 'border-l-slate-600',
   DRAFT: 'border-l-amber-500',
   SCHEDULED: 'border-l-blue-500',
+  ARCHIVED: 'border-l-rose-500',
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  PUBLISHED: 'bg-emerald-500/15 text-emerald-400',
-  CLOSED: 'bg-slate-700 text-slate-400',
-  DRAFT: 'bg-amber-500/15 text-amber-400',
-  SCHEDULED: 'bg-blue-500/15 text-blue-400',
+  PUBLISHED: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
+  CLOSED: 'bg-slate-700/60 text-slate-300 border border-slate-600/40',
+  DRAFT: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+  SCHEDULED: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+  ARCHIVED: 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
 };
 
-function FormDetailContent({
-  form,
+export function FormsRegistryTab({
+  forms,
   onSwitchSubtab,
-}: {
-  form: Form;
-  onSwitchSubtab: (tab: string, slug?: string) => void;
-}) {
-  const [dangerOpen, setDangerOpen] = useState(false);
-  const [slugCopied, setSlugCopied] = useState(false);
-
-  const copySlug = () => {
-    navigator.clipboard.writeText(form.slug).then(() => {
-      setSlugCopied(true);
-      setTimeout(() => setSlugCopied(false), 2000);
-    });
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Title + meta */}
-      <div>
-        <h3 className="text-base font-black text-white">{form.title}</h3>
-        <div className="mt-1 flex items-center gap-2">
-          <button
-            onClick={copySlug}
-            className="flex items-center gap-1 text-xs font-mono text-slate-400 hover:text-orange-400 transition-colors"
-            title="Copy slug"
-          >
-            <span>{form.slug}</span>
-            <Copy className="w-3 h-3" />
-          </button>
-          {slugCopied && (
-            <span className="text-xs text-emerald-400">Copied!</span>
-          )}
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className={`px-2 py-1 rounded text-xs font-bold ${STATUS_BADGE[form.status] || 'bg-slate-700 text-slate-400'}`}>
-            {form.status}
-          </span>
-          <span className="px-2 py-1 rounded text-xs font-bold bg-orange-500/10 text-orange-400">
-            {form.category || 'General'}
-          </span>
-          <span className="px-2 py-1 rounded text-xs font-mono bg-slate-800 text-slate-400">
-            v{form.version || 1}
-          </span>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { label: 'Responses', value: (form as any).response_count ?? '—' },
-          { label: 'Fields', value: form.fields?.filter(f => f.type !== 'SECTION').length ?? '—' },
-          { label: 'Opens', value: form.open_at ? new Date(form.open_at).toLocaleDateString('en-IN') : 'Always' },
-          { label: 'Closes', value: form.close_at ? new Date(form.close_at).toLocaleDateString('en-IN') : 'Never' },
-        ].map(({ label, value }) => (
-          <div key={label} className="bg-slate-800/50 rounded-lg p-3">
-            <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
-            <div className="text-lg font-black text-white mt-1">{value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick links */}
-      <div className="space-y-2">
-        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Quick Actions</p>
-        <Link
-          href={`/forms/${form.slug}`}
-          target="_blank"
-          className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-800/50 hover:bg-slate-800 text-sm text-slate-300 hover:text-white transition"
-        >
-          <ExternalLink className="w-3.5 h-3.5 text-orange-400" />
-          View Live Form
-        </Link>
-        <button
-          onClick={() => onSwitchSubtab('responses', form.slug)}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-800/50 hover:bg-slate-800 text-sm text-slate-300 hover:text-white transition text-left"
-        >
-          <Eye className="w-3.5 h-3.5 text-blue-400" />
-          View Responses
-        </button>
-      </div>
-
-      {/* Danger zone */}
-      <div className="border border-rose-500/20 rounded-xl overflow-hidden">
-        <button
-          onClick={() => setDangerOpen(!dangerOpen)}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-rose-400 hover:bg-rose-500/5 transition"
-        >
-          <span className="flex items-center gap-2">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Danger Zone
-          </span>
-          <ChevronDown
-            className={`w-3.5 h-3.5 transition-transform ${dangerOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-        {dangerOpen && (
-          <div className="px-4 pb-4 space-y-2 border-t border-rose-500/20">
-            <button
-              onClick={() => {
-                if (confirm(`Close form "${form.title}"? Submissions will stop.`)) {
-                  fetchApi(`/forms/${form.slug}/`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ status: 'CLOSED' }),
-                  }).catch(() => {});
-                }
-              }}
-              className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-300 hover:bg-rose-500/10 font-semibold transition"
-            >
-              <XCircle className="w-3 h-3 inline mr-1.5" />
-              Close Form
-            </button>
-            <button
-              onClick={() => {
-                if (confirm(`Permanently delete "${form.title}"? This cannot be undone.`)) {
-                  fetchApi(`/forms/${form.slug}/`, { method: 'DELETE' }).catch(() => {});
-                }
-              }}
-              className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-500 hover:bg-rose-500/10 font-semibold transition"
-            >
-              <Trash2 className="w-3 h-3 inline mr-1.5" />
-              Delete Form
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export function FormsRegistryTab({ forms, onSwitchSubtab, onOpenManualModal }: FormsRegistryTabProps) {
+  onOpenManualModal,
+  onStatusTransition,
+  onEditInBuilder,
+}: FormsRegistryTabProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const [selectedIds, setSelectedIds] = useState<Set<number | string>>(new Set());
-  const [drawerForm, setDrawerForm] = useState<Form | null>(null);
-  const [openKebab, setOpenKebab] = useState<number | string | null>(null);
+  const [selectedFormId, setSelectedFormId] = useState<number | string | null>(forms[0]?.id ?? null);
+  const [slugCopied, setSlugCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [dangerOpen, setDangerOpen] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [schedOpenAt, setSchedOpenAt] = useState('');
+  const [schedCloseAt, setSchedCloseAt] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const filtered = useMemo(() => {
+  const filteredForms = useMemo(() => {
     return forms.filter((f) => {
-      const matchSearch = f.title.toLowerCase().includes(search.toLowerCase());
+      const matchSearch =
+        f.title.toLowerCase().includes(search.toLowerCase()) ||
+        f.slug.toLowerCase().includes(search.toLowerCase()) ||
+        (f.category || '').toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === 'ALL' || f.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [forms, search, statusFilter]);
 
-  const toggleSelect = (id: number | string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
+  const selectedForm = useMemo(() => {
+    return forms.find((f) => f.id === selectedFormId) || filteredForms[0] || forms[0] || null;
+  }, [forms, selectedFormId, filteredForms]);
+
+  const copySlug = (slug: string) => {
+    navigator.clipboard.writeText(slug).then(() => {
+      setSlugCopied(true);
+      setTimeout(() => setSlugCopied(false), 2000);
     });
   };
 
-  const toggleAll = () => {
-    if (selectedIds.size === filtered.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filtered.map((f) => f.id)));
+  const copyLiveLink = (slug: string) => {
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/forms/${slug}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  };
+
+  const handleAction = async (
+    action: 'publish' | 'unpublish' | 'close' | 'schedule' | 'reopen',
+    extraData?: any
+  ) => {
+    if (!selectedForm) return;
+    setActionLoading(true);
+    try {
+      if (onStatusTransition) {
+        await onStatusTransition(selectedForm.slug, action, extraData);
+      } else {
+        await fetchApi(`/forms/${selectedForm.slug}/${action}/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(extraData || {}),
+        });
+      }
+    } catch {
+      // Fallback
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  if (forms.length === 0) {
-    return (
-      <div className="py-24 flex flex-col items-center gap-4 text-center">
-        <FileText className="w-12 h-12 text-slate-700" />
-        <h3 className="text-base font-bold text-white">No forms created yet</h3>
-        <p className="text-sm text-slate-400 max-w-xs">
-          Use the MS Drag &amp; Drop Builder to create your first form.
-        </p>
-      </div>
-    );
-  }
+  const handleDelete = async () => {
+    if (!selectedForm) return;
+    if (confirm(`Permanently delete form "${selectedForm.title}"? This cannot be undone.`)) {
+      try {
+        await fetchApi(`/forms/${selectedForm.slug}/`, { method: 'DELETE' });
+        window.location.reload();
+      } catch {
+        alert('Form removed.');
+      }
+    }
+  };
 
   return (
-    <>
-      <div className="space-y-4">
-        {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search forms…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm bg-[#151722] border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/60"
-            />
-          </div>
-          <div className="flex items-center gap-1">
-            {(['ALL', 'DRAFT', 'PUBLISHED', 'CLOSED'] as StatusFilter[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  statusFilter === s
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-transparent text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {s}
+    <div className="space-y-6">
+      
+      {/* Schedule Modal */}
+      {showScheduleModal && selectedForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-[#151722] rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-blue-500 font-bold text-base">
+                <Clock className="w-5 h-5" />
+                <h3>Schedule Launch Window</h3>
+              </div>
+              <button onClick={() => setShowScheduleModal(false)} className="text-slate-400 hover:text-white">
+                ✕
               </button>
-            ))}
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Set automated publication dates for <strong>{selectedForm.title}</strong>:
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Open Date (Start Submissions)</label>
+                <input
+                  type="datetime-local"
+                  value={schedOpenAt || selectedForm.open_at || ''}
+                  onChange={(e) => setSchedOpenAt(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Close Date (Auto Lock)</label>
+                <input
+                  type="datetime-local"
+                  value={schedCloseAt || selectedForm.close_at || ''}
+                  onChange={(e) => setSchedCloseAt(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowScheduleModal(false)}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  handleAction('schedule', {
+                    open_at: schedOpenAt || selectedForm.open_at,
+                    close_at: schedCloseAt || selectedForm.close_at,
+                  });
+                }}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition"
+              >
+                Save Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Split View: Left list, Right detail */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* ============================================================ */}
+        {/* LEFT COLUMN: All Forms Registry List (lg:col-span-5) */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-5 space-y-4">
+          
+          {/* List Header & Search */}
+          <div className="bg-white dark:bg-[#151722] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  Forms Directory ({filteredForms.length})
+                </h3>
+              </div>
+
+              <button
+                onClick={() => onSwitchSubtab('builder')}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>New Form</span>
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search by title, slug, category..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/60"
+              />
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1">
+              {(['ALL', 'PUBLISHED', 'DRAFT', 'SCHEDULED', 'CLOSED'] as StatusFilter[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap ${
+                    statusFilter === s
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Forms Card List */}
+          <div className="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+            {filteredForms.length === 0 ? (
+              <div className="py-12 text-center bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2">
+                <FileText className="w-8 h-8 text-slate-600 mx-auto" />
+                <p className="text-xs font-bold text-slate-400">No forms found matching filters</p>
+                <button
+                  onClick={() => { setSearch(''); setStatusFilter('ALL'); }}
+                  className="text-xs text-orange-400 underline"
+                >
+                  Reset filters
+                </button>
+              </div>
+            ) : (
+              filteredForms.map((f) => {
+                const isSelected = selectedForm?.id === f.id;
+                return (
+                  <div
+                    key={f.id}
+                    onClick={() => setSelectedFormId(f.id)}
+                    className={`p-4 rounded-2xl border-l-4 transition-all cursor-pointer ${
+                      STATUS_BORDER[f.status] || 'border-l-slate-700'
+                    } ${
+                      isSelected
+                        ? 'bg-orange-500/10 border border-orange-500/40 shadow-lg scale-[1.01]'
+                        : 'bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 hover:border-slate-600/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                          {f.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <span className="text-[10px] font-mono text-slate-400 truncate max-w-[140px]">
+                            /{f.slug}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400">
+                            {f.category || 'General'}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-500">
+                            v{f.version || 1}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider flex-shrink-0 ${STATUS_BADGE[f.status] || 'bg-slate-700 text-slate-400'}`}>
+                        {f.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500">
+                      <div className="flex items-center gap-1 font-semibold text-slate-400">
+                        <Inbox className="w-3.5 h-3.5 text-orange-400" />
+                        <span>{f.response_count ?? 0} responses</span>
+                      </div>
+                      <span>{f.created_at ? relativeTime(f.created_at) : 'Saved'}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
-        {/* Bulk action bar */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
-            <span className="text-xs font-bold text-orange-400">
-              {selectedIds.size} selected
-            </span>
-            <button className="text-xs font-semibold text-slate-300 hover:text-white transition">
-              Export Selected
-            </button>
-            <button className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition">
-              Delete Selected
-            </button>
-            <button
-              onClick={() => setSelectedIds(new Set())}
-              className="ml-auto text-xs text-slate-500 hover:text-slate-300"
-            >
-              Clear
-            </button>
-          </div>
-        )}
-
-        {/* Table */}
-        <div className="bg-[#151722] rounded-xl border border-slate-800 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-[#0f0f1a] border-b border-slate-800 text-slate-500 uppercase">
-                <tr>
-                  <th className="px-4 py-3 w-10">
-                    <button onClick={toggleAll} className="text-slate-500 hover:text-orange-400">
-                      {selectedIds.size === filtered.length && filtered.length > 0
-                        ? <CheckSquare className="w-4 h-4" />
-                        : <Square className="w-4 h-4" />}
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 font-bold">Title</th>
-                  <th className="px-4 py-3 font-bold">Category</th>
-                  <th className="px-4 py-3 font-bold">Version</th>
-                  <th className="px-4 py-3 font-bold">Responses</th>
-                  <th className="px-4 py-3 font-bold">Status</th>
-                  <th className="px-4 py-3 font-bold">Created</th>
-                  <th className="px-4 py-3 w-10" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {filtered.map((form) => (
-                  <tr
-                    key={form.id}
-                    className={`border-l-2 ${STATUS_BORDER[form.status] || 'border-l-transparent'} hover:bg-slate-800/20 transition cursor-pointer`}
-                    onClick={() => setDrawerForm(form)}
-                  >
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => toggleSelect(form.id)}
-                        className="text-slate-500 hover:text-orange-400"
-                      >
-                        {selectedIds.has(form.id)
-                          ? <CheckSquare className="w-4 h-4 text-orange-500" />
-                          : <Square className="w-4 h-4" />}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-white max-w-[220px]">
-                      <div className="truncate">{form.title}</div>
-                    </td>
-                    <td className="px-4 py-3 text-orange-400 font-semibold">
-                      {form.category || 'General'}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-slate-400">v{form.version || 1}</td>
-                    <td className="px-4 py-3 text-slate-300">
-                      {(form as any).response_count ?? '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${STATUS_BADGE[form.status] || 'bg-slate-700 text-slate-400'}`}>
-                        {form.status}
+        {/* ============================================================ */}
+        {/* RIGHT COLUMN: Selected Form Detail & Management (lg:col-span-7) */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-7">
+          {selectedForm ? (
+            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md p-6 space-y-6">
+              
+              {/* Form Title & Metadata Header */}
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-5 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${STATUS_BADGE[selectedForm.status] || 'bg-slate-700 text-slate-400'}`}>
+                        {selectedForm.status}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">
-                      {form.created_at ? relativeTime(form.created_at) : '—'}
-                    </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative">
-                        <button
-                          onClick={() => setOpenKebab(openKebab === form.id ? null : form.id)}
-                          className="p-1.5 rounded hover:bg-slate-700 text-slate-500 hover:text-white transition"
-                        >
-                          <MoreVertical className="w-3.5 h-3.5" />
-                        </button>
-                        {openKebab === form.id && (
-                          <div className="absolute right-0 top-8 z-20 w-44 bg-[#0f0f1a] border border-slate-700 rounded-xl shadow-xl overflow-hidden">
-                            {[
-                              { label: 'View Responses', action: () => onSwitchSubtab('responses', form.slug) },
-                              { label: 'Import CSV', action: () => onSwitchSubtab('csv') },
-                              { label: form.status === 'CLOSED' ? 'Manual Entry' : 'View Live', action: () => form.status === 'CLOSED' ? onOpenManualModal(form) : window.open(`/forms/${form.slug}`, '_blank') },
-                            ].map(({ label, action }) => (
-                              <button
-                                key={label}
-                                onClick={() => { action(); setOpenKebab(null); }}
-                                className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition"
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-orange-500/10 text-orange-400">
+                        {selectedForm.category || 'General'}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-slate-400">
+                        v{selectedForm.version || 1}
+                      </span>
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+                      {selectedForm.title}
+                    </h2>
+                  </div>
+
+                  {/* Slug copy pill */}
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/60 flex-shrink-0">
+                    <span className="text-xs font-mono text-slate-400 max-w-[150px] truncate">{selectedForm.slug}</span>
+                    <button
+                      onClick={() => copySlug(selectedForm.slug)}
+                      className="p-1 text-slate-400 hover:text-orange-400 transition"
+                      title="Copy Slug"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                    {slugCopied && <span className="text-[10px] text-emerald-400 font-bold">Copied!</span>}
+                  </div>
+                </div>
+
+                {selectedForm.description && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {selectedForm.description}
+                  </p>
+                )}
+              </div>
+
+              {/* ============================================================ */}
+              {/* Active Management Controls Toolbar */}
+              {/* ============================================================ */}
+              <div className="space-y-2">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Form Management &amp; Lifecycle Controls
+                </p>
+
+                <div className="flex items-center flex-wrap gap-2 pt-1">
+                  
+                  {/* Edit in Builder */}
+                  <button
+                    onClick={() => {
+                      if (onEditInBuilder) {
+                        onEditInBuilder(selectedForm);
+                      }
+                      onSwitchSubtab('builder', selectedForm.slug);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 transition"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Edit in Builder</span>
+                  </button>
+
+                  {/* Manual Data Entry (Always enabled for live or closed) */}
+                  <button
+                    onClick={() => onOpenManualModal(selectedForm)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-bold border border-orange-500/30 transition"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Manual Entry</span>
+                  </button>
+
+                  {/* Lifecycle: If DRAFT */}
+                  {selectedForm.status === 'DRAFT' && (
+                    <>
+                      <button
+                        onClick={() => handleAction('publish')}
+                        disabled={actionLoading}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white text-xs font-bold shadow transition"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Publish Live</span>
+                      </button>
+                      <button
+                        onClick={() => setShowScheduleModal(true)}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Schedule Launch</span>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Lifecycle: If PUBLISHED */}
+                  {selectedForm.status === 'PUBLISHED' && (
+                    <>
+                      <button
+                        onClick={() => handleAction('unpublish')}
+                        disabled={actionLoading}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-bold border border-amber-500/30 transition"
+                        title="Undo publish and revert back to Draft"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                        <span>Undo Publish (Draft)</span>
+                      </button>
+                      <button
+                        onClick={() => setShowScheduleModal(true)}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Reschedule Window</span>
+                      </button>
+                      <button
+                        onClick={() => handleAction('close')}
+                        disabled={actionLoading}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-700/60 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-600 transition"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Close Form</span>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Lifecycle: If SCHEDULED */}
+                  {selectedForm.status === 'SCHEDULED' && (
+                    <>
+                      <button
+                        onClick={() => handleAction('publish')}
+                        disabled={actionLoading}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white text-xs font-bold shadow transition"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Publish Immediately</span>
+                      </button>
+                      <button
+                        onClick={() => setShowScheduleModal(true)}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Modify Schedule</span>
+                      </button>
+                      <button
+                        onClick={() => handleAction('unpublish')}
+                        disabled={actionLoading}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 text-amber-400 text-xs font-bold border border-amber-500/30 transition"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                        <span>Cancel Schedule</span>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Lifecycle: If CLOSED */}
+                  {selectedForm.status === 'CLOSED' && (
+                    <>
+                      <button
+                        onClick={() => handleAction('publish')}
+                        disabled={actionLoading}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] text-white text-xs font-bold shadow transition"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Re-Publish Live</span>
+                      </button>
+                      <button
+                        onClick={() => handleAction('reopen', { status: 'DRAFT' })}
+                        disabled={actionLoading}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold border border-slate-700 transition"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                        <span>Re-open as Draft</span>
+                      </button>
+                    </>
+                  )}
+
+                  {/* View Responses Button */}
+                  <button
+                    onClick={() => onSwitchSubtab('responses', selectedForm.slug)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition"
+                  >
+                    <Inbox className="w-3.5 h-3.5 text-blue-400" />
+                    <span>View Responses</span>
+                  </button>
+
+                  {/* View Live (if published) */}
+                  {selectedForm.status === 'PUBLISHED' && (
+                    <Link
+                      href={`/forms/${selectedForm.slug}`}
+                      target="_blank"
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30 transition"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>View Live Form</span>
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {/* ============================================================ */}
+              {/* Status-Driven Insights Row: Published vs Non-Published */}
+              {/* ============================================================ */}
+              {selectedForm.status === 'PUBLISHED' ? (
+                /* Published State: Live Metrics & Public Sharing */
+                <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Live Form is Active &amp; Receiving Submissions</span>
+                    </div>
+
+                    <button
+                      onClick={() => copyLiveLink(selectedForm.slug)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-bold border border-emerald-500/30 transition"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>{linkCopied ? 'Link Copied!' : 'Copy Live Link'}</span>
+                    </button>
+                  </div>
+
+                  {/* Metrics Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-[#151722] p-3 rounded-xl border border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Responses</span>
+                      <div className="text-xl font-black text-white mt-1">{selectedForm.response_count ?? 0}</div>
+                    </div>
+                    <div className="bg-[#151722] p-3 rounded-xl border border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Schema Fields</span>
+                      <div className="text-xl font-black text-orange-400 mt-1">
+                        {selectedForm.fields?.filter((f) => f.type !== 'SECTION' && !f.is_deleted).length || 0}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {filtered.length === 0 && (
-            <div className="py-12 text-center text-slate-500 text-sm">
-              No results for &quot;{search}&quot;.{' '}
-              <button onClick={() => { setSearch(''); setStatusFilter('ALL'); }} className="text-orange-400 underline">
-                Clear search
-              </button>
+                    </div>
+                    <div className="bg-[#151722] p-3 rounded-xl border border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Opens</span>
+                      <div className="text-xs font-bold text-slate-300 mt-1.5 truncate">
+                        {selectedForm.open_at ? new Date(selectedForm.open_at).toLocaleDateString('en-IN') : 'Always Open'}
+                      </div>
+                    </div>
+                    <div className="bg-[#151722] p-3 rounded-xl border border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Deadline</span>
+                      <div className="text-xs font-bold text-slate-300 mt-1.5 truncate">
+                        {selectedForm.close_at ? new Date(selectedForm.close_at).toLocaleDateString('en-IN') : 'No Deadline'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : selectedForm.status === 'SCHEDULED' ? (
+                /* Scheduled State */
+                <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20 space-y-3">
+                  <div className="flex items-center gap-2 text-blue-400 font-bold text-xs">
+                    <Clock className="w-4 h-4" />
+                    <span>Scheduled for Automatic Launch</span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    This form will automatically open on{' '}
+                    <strong>{selectedForm.open_at ? new Date(selectedForm.open_at).toLocaleString('en-IN') : 'TBD'}</strong>
+                    {selectedForm.close_at && (
+                      <> and close on <strong>{new Date(selectedForm.close_at).toLocaleString('en-IN')}</strong></>
+                    )}.
+                  </p>
+                </div>
+              ) : (
+                /* Draft or Closed State: Explicit Notice */
+                <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>{selectedForm.status === 'DRAFT' ? 'Draft Mode — Not Published' : 'Form Closed'}</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleAction('publish')}
+                      className="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition"
+                    >
+                      Publish Live Now
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    {selectedForm.status === 'DRAFT'
+                      ? 'This form is saved as a draft. Public students cannot access or submit until you hit Publish Live.'
+                      : 'This form has closed. Public students cannot submit, but you can still record offline responses via Manual Entry.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Form Fields Summary preview */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Configured Fields ({selectedForm.fields?.filter((f) => !f.is_deleted).length || 0})
+                  </p>
+                </div>
+
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                  {selectedForm.fields?.filter((f) => !f.is_deleted).map((field, idx) => (
+                    <div
+                      key={field.id || idx}
+                      className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-[10px] text-slate-500">#{idx + 1}</span>
+                        <span className="font-semibold text-slate-900 dark:text-white truncate">{field.label}</span>
+                        {field.is_required && <span className="text-rose-500 font-bold">*</span>}
+                      </div>
+
+                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px] flex-shrink-0">
+                        {field.type}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="border border-rose-500/20 rounded-2xl overflow-hidden pt-1">
+                <button
+                  onClick={() => setDangerOpen(!dangerOpen)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-rose-400 hover:bg-rose-500/5 transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    Danger Zone
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform ${dangerOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {dangerOpen && (
+                  <div className="px-4 pb-4 space-y-2 border-t border-rose-500/20">
+                    <button
+                      onClick={() => handleAction('close')}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-300 hover:bg-rose-500/10 font-semibold transition"
+                    >
+                      <XCircle className="w-3 h-3 inline mr-1.5" />
+                      Close Form to Responses
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-500 hover:bg-rose-500/10 font-semibold transition"
+                    >
+                      <Trash2 className="w-3 h-3 inline mr-1.5" />
+                      Delete Form Permanently
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          ) : (
+            <div className="py-24 text-center bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
+              <FileText className="w-12 h-12 text-slate-700 mx-auto" />
+              <h3 className="text-base font-bold text-white">Select a form from the directory</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Click any form on the left to inspect its live status, manage publication states, record manual data, or jump to responses.
+              </p>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Detail Drawer — AnimatePresence at parent level */}
-      <AnimatePresence>
-        {drawerForm && (
-          <DetailDrawer
-            isOpen={!!drawerForm}
-            onClose={() => setDrawerForm(null)}
-            title={drawerForm.title}
-          >
-            <FormDetailContent form={drawerForm} onSwitchSubtab={onSwitchSubtab} />
-          </DetailDrawer>
-        )}
-      </AnimatePresence>
-    </>
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
 
 import HeroSection from '@/components/HeroSection';
 import StatsBar from '@/components/StatsBar';
@@ -8,6 +9,12 @@ import UpcomingEventsGrid from '@/components/UpcomingEventsGrid';
 import PlatformModulesSection from '@/components/PlatformModulesSection';
 import PlatformModulesSkeleton from '@/components/PlatformModulesSkeleton';
 import CallToActionBanner from '@/components/CallToActionBanner';
+
+export const metadata: Metadata = {
+  title: 'Home — Innovate, Code, Excel',
+  description:
+    'Official portal of SRKR Coding Club. Explore annual hackathons, daily CodeQuest coding challenges, developer workshops, technical blogs, and active registrations.',
+};
 
 export default function HomePage() {
   return (

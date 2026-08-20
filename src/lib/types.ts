@@ -174,6 +174,7 @@ export interface FormField {
   conditional_logic?: any;
   validation_rules?: ValidationRules;
   order: number;
+  is_deleted?: boolean;
 }
 
 export interface Form {
@@ -183,7 +184,7 @@ export interface Form {
   description: string;
   image_url?: string;
   category?: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'CLOSED';
+  status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'CLOSED' | 'ARCHIVED';
   version?: number;
   allow_multiple_responses?: boolean;
   allow_edits_until?: string;

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { Hackathon } from '@/lib/types';
 import { Trophy } from 'lucide-react';
@@ -8,6 +9,12 @@ import HackathonCard from '@/components/HackathonCard';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Hackathons & Competitions',
+  description:
+    'Form teams, build cutting-edge software solutions, and compete for prize pools in SRKR Coding Club hackathons.',
+};
 
 async function getHackathons(): Promise<Hackathon[]> {
   try {

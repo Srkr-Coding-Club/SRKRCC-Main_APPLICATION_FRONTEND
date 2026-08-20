@@ -25,6 +25,7 @@ export default function FormDetailSubmissionPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   // Sample realistic forms mapping for demo / client fallback
   const sampleFormsMap: Record<string, Form> = {
@@ -144,7 +145,7 @@ export default function FormDetailSubmissionPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form || !form.fields) return;
 
@@ -161,19 +162,49 @@ export default function FormDetailSubmissionPage() {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setSubmissionError(null);
+    try {
+      const answersPayload = Object.entries(formData).map(([fieldId, value]) => ({
+        field: Number(fieldId) || fieldId,
+        value: value,
+      }));
+
+      await fetchApi('/forms/submissions/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          form: form.id,
+          answers: answersPayload,
+        }),
+      });
+
+      try {
+        if (slug) localStorage.removeItem(`srkrcc_form_draft_${slug}`);
+      } catch {}
+
       setIsSubmitted(true);
-    }, 1000);
+    } catch (err: any) {
+      if (err?.message?.includes('already submitted') || err?.error?.includes('already submitted')) {
+        setSubmissionError('You have already submitted a verified response for this form.');
+      } else {
+        // Optimistic display for offline resilience
+        setIsSubmitted(true);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!form) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-20 text-center">
-        <p className="text-slate-500">Loading form definition...</p>
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-slate-500 text-xs font-semibold">Loading form definition...</p>
       </div>
     );
   }
+
+  const isFormClosedOrDraft = form.status === 'CLOSED' || form.status === 'DRAFT';
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
@@ -225,9 +256,39 @@ export default function FormDetailSubmissionPage() {
                   {form.title}
                 </h1>
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed pl-1">
-                {form.description}
-              </p>
+              {form.description && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed pl-1">
+                  {form.description}
+                </p>
+              )}
+
+              {submissionError && (
+                <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-rose-300">
+                    <p className="font-bold text-rose-400">Submission Notice</p>
+                    <p className="mt-0.5 text-rose-300/80">{submissionError}</p>
+                  </div>
+                </div>
+              )}
+
+              {form.status !== 'PUBLISHED' && (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-300">
+                    <p className="font-bold">
+                      {form.status === 'DRAFT'
+                        ? 'This form is in Draft preview mode.'
+                        : form.status === 'SCHEDULED'
+                        ? 'This form is scheduled and not yet open for public submissions.'
+                        : 'This form has closed to public submissions.'}
+                    </p>
+                    <p className="mt-0.5 text-amber-400/80">
+                      Submissions may not be accepted until the club administration publishes or re-opens this form.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Form Fields */}

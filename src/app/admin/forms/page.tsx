@@ -17,6 +17,8 @@ export default function AdminManageFormsPage() {
     manualEntryAnswers,
     setManualEntryAnswers,
     handleAdminManualEntrySubmit,
+    handleFormStatusTransition,
+    handleEditFormInBuilder,
   } = useAdminData();
   const switchSubtab = useAdminSubtabNav();
 
@@ -26,6 +28,8 @@ export default function AdminManageFormsPage() {
         <FormsRegistryTab
           forms={publishedForms}
           onSwitchSubtab={switchSubtab}
+          onStatusTransition={handleFormStatusTransition}
+          onEditInBuilder={handleEditFormInBuilder}
           onOpenManualModal={(f) => {
             setSelectedClosedForm(f);
             setShowManualEntryModal(true);
@@ -35,7 +39,7 @@ export default function AdminManageFormsPage() {
         <ManualEntryModal
           isOpen={showManualEntryModal}
           onClose={() => setShowManualEntryModal(false)}
-          selectedClosedForm={selectedClosedForm}
+          selectedForm={selectedClosedForm}
           onSubmit={handleAdminManualEntrySubmit}
           manualEntryAnswers={manualEntryAnswers}
           setManualEntryAnswers={setManualEntryAnswers}

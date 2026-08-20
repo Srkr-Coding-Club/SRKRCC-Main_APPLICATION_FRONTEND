@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api-client';
 import { Form } from '@/lib/types';
@@ -14,6 +15,12 @@ import {
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Forms & Registrations Center',
+  description:
+    'Browse active registration forms, RSVP to club workshops, and apply for hackathons and student lead positions.',
+};
 
 async function getPublishedForms(): Promise<Form[]> {
   try {
