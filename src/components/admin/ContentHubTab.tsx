@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api-client';
 import { BlogPost, JobListing } from '@/lib/types';
 import { BookOpen, Briefcase, Plus, Sparkles, Building, MapPin } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 export function ContentHubTab() {
+  const { toast } = useToast();
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export function ContentHubTab() {
           </div>
 
           <button
-            onClick={() => alert('New Blog post modal')}
+            onClick={() => toast.info('Article Management', 'Use Django Admin or API to publish new technical write-ups.')}
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition"
           >
             <Plus className="w-4 h-4" />
@@ -81,7 +83,7 @@ export function ContentHubTab() {
           </div>
 
           <button
-            onClick={() => alert('New Job listing modal')}
+            onClick={() => toast.info('Career Management', 'Use Django Admin or API to post verified placement drives.')}
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-xs shadow-sm transition"
           >
             <Plus className="w-4 h-4" />

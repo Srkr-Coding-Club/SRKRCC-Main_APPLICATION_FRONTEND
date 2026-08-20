@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { FeatureFlag, Form, FormField } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { buildAuthFetchOptions } from '@/lib/dataManagement';
+import { useToast } from '@/context/ToastContext';
 
 interface UserRecord {
   id: number;
@@ -38,6 +39,7 @@ interface AuditLogRecord {
 }
 
 export function useAdminData() {
+  const { toast } = useToast();
   // Flags State — keys match the backend's canonical seed (scripts/seed_flags.py)
   // and src/lib/platformModules.ts's MODULE_KEYS. Events is intentionally not
   // gateable here; it's always-on per the club's own event-visibility rules.
@@ -250,7 +252,7 @@ export function useAdminData() {
       };
       setUsersList((prev) => [userToAdd, ...prev]);
       setShowCreateUserModal(false);
-      alert(`Account for ${userToAdd.name} created & saved in backend database!`);
+      toast.success('Account Created', `Account for ${userToAdd.name} created & saved in backend database!`);
     } catch {
       const userToAdd: UserRecord = {
         id: Date.now(),
@@ -265,7 +267,7 @@ export function useAdminData() {
       };
       setUsersList((prev) => [userToAdd, ...prev]);
       setShowCreateUserModal(false);
-      alert(`Account for ${userToAdd.name} created!`);
+      toast.success('Account Created', `Account for ${userToAdd.name} created!`);
     }
   };
 
@@ -395,8 +397,11 @@ export function useAdminData() {
       })),
     };
 
-    const isExisting = formMeta.id || publishedForms.some((f) => f.slug === slug || (formMeta.id && f.id === formMeta.id));
-    const targetSlug = formMeta.slug || slug;
+    const existingForm = publishedForms.find(
+      (f) => (formMeta.id && f.id === formMeta.id) || (formMeta.slug && f.slug === formMeta.slug) || f.slug === slug
+    );
+    const isExisting = !!(formMeta.id || existingForm);
+    const targetSlug = formMeta.slug || existingForm?.slug || slug;
 
     try {
       let saved: Form;
@@ -407,21 +412,46 @@ export function useAdminData() {
           body: JSON.stringify(payload),
         });
       } else {
-        saved = await fetchApi<Form>('/forms/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+        try {
+          saved = await fetchApi<Form>('/forms/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } catch (postErr: any) {
+          // If slug collision occurs on backend, seamlessly update existing form
+          if (postErr?.message?.includes('slug') || postErr?.error?.includes('slug') || postErr?.status === 400) {
+            saved = await fetchApi<Form>(`/forms/${targetSlug}/`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+          } else {
+            throw postErr;
+          }
+        }
       }
 
       setFormMeta((prev) => ({
         ...prev,
         id: saved.id,
         slug: saved.slug,
+        title: saved.title || prev.title,
+        description: saved.description || '',
+        category: saved.category || 'General',
+        image_url: saved.image_url || '',
         status: saved.status,
         open_at: saved.open_at || '',
         close_at: saved.close_at || '',
       }));
+
+      // Update URL without reload so future saves will maintain the slug
+      if (typeof window !== 'undefined' && window.history) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('slug', saved.slug);
+        url.searchParams.delete('new');
+        window.history.replaceState({}, '', url.toString());
+      }
 
       setPublishedForms((prev) => [
         saved,
@@ -433,8 +463,8 @@ export function useAdminData() {
           ? 'published live for responses'
           : finalStatus === 'SCHEDULED'
           ? 'scheduled for automatic launch'
-          : 'saved as draft';
-      alert(`Form "${saved.title}" successfully ${statusMsg}!`);
+          : 'saved to database as draft';
+      toast.success('Form Saved', `Form "${saved.title}" successfully ${statusMsg}!`);
       return saved;
     } catch (err: any) {
       const fallbackForm: Form = {
@@ -454,7 +484,7 @@ export function useAdminData() {
         fallbackForm,
         ...prev.filter((item) => item.slug !== fallbackForm.slug && item.id !== fallbackForm.id),
       ]);
-      alert(`Form "${formMeta.title}" saved locally (${finalStatus})!`);
+      toast.info('Saved Offline', `Form "${formMeta.title}" saved locally (${finalStatus})`);
       return fallbackForm;
     }
   };
@@ -471,6 +501,7 @@ export function useAdminData() {
         body: JSON.stringify(extraData || {}),
       });
       setPublishedForms((prev) => prev.map((f) => (f.slug === formSlug ? { ...f, ...updated } : f)));
+      toast.success('Status Updated', `Form status transitioned to ${action.toUpperCase()}`);
       return updated;
     } catch {
       // Local fallback status mapping
@@ -544,7 +575,7 @@ export function useAdminData() {
     setFormSubmissions((prev) => [newSub, ...prev]);
     setShowManualEntryModal(false);
     setManualEntryAnswers({});
-    alert(`Offline special entry recorded for "${selectedClosedForm.title}"!`);
+    toast.success('Offline Entry Recorded', `Special entry recorded for "${selectedClosedForm.title}"!`);
   };
 
   const handleToggleFlag = (id: number) => {

@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api-client';
 import { Event, Hackathon } from '@/lib/types';
 import { Trophy, Calendar, MapPin, Award, Users, Flame, Plus } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 export function EventsHackathonsTab() {
+  const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export function EventsHackathonsTab() {
           </div>
 
           <button
-            onClick={() => alert('New Hackathon creation modal')}
+            onClick={() => toast.info('Hackathon Management', 'Use Django Admin or API to provision new Hackathon sprints.')}
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition"
           >
             <Plus className="w-4 h-4" />
@@ -89,7 +91,7 @@ export function EventsHackathonsTab() {
           </div>
 
           <button
-            onClick={() => alert('New Event creation modal')}
+            onClick={() => toast.info('Event Management', 'Use Django Admin or API to schedule new workshop events.')}
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-xs shadow-sm transition"
           >
             <Plus className="w-4 h-4" />

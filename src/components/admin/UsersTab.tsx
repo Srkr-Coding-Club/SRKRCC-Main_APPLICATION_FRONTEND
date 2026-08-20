@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Search, UserPlus } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 interface UserRecord {
   id: number;
@@ -31,6 +32,7 @@ export function UsersTab({
   onOpenCreateModal,
   onRoleChange,
 }: UsersTabProps) {
+  const { toast } = useToast();
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -113,7 +115,7 @@ export function UsersTab({
 
                   <td className="px-6 py-4 text-right">
                     <button
-                      onClick={() => alert(`Scoped role editor opened for ${user.name}`)}
+                      onClick={() => toast.info('Scoped Role Assignment', `Scoped role editor opened for ${user.name}`)}
                       className="text-xs font-bold px-3 py-1 rounded bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 transition"
                     >
                       + Scoped Role

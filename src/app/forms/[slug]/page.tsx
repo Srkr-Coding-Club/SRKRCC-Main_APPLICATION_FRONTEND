@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { Form, FormField } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { getConstraintHint, validateFieldValue } from '@/lib/formValidation';
+import { useToast } from '@/context/ToastContext';
 import {
   FileText,
   CheckCircle2,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 
 export default function FormDetailSubmissionPage() {
+  const { toast } = useToast();
   const params = useParams();
   const slug = params?.slug as string;
 
@@ -169,12 +171,18 @@ export default function FormDetailSubmissionPage() {
         value: value,
       }));
 
+      const idempotencyKey = `sub_${form.id}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
       await fetchApi('/forms/submissions/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
         body: JSON.stringify({
           form: form.id,
           answers: answersPayload,
+          idempotency_key: idempotencyKey,
         }),
       });
 
@@ -182,10 +190,12 @@ export default function FormDetailSubmissionPage() {
         if (slug) localStorage.removeItem(`srkrcc_form_draft_${slug}`);
       } catch {}
 
+      toast.success('Registration Received!', `Your response for ${form.title} was successfully submitted.`);
       setIsSubmitted(true);
     } catch (err: any) {
       if (err?.message?.includes('already submitted') || err?.error?.includes('already submitted')) {
         setSubmissionError('You have already submitted a verified response for this form.');
+        toast.warning('Duplicate Submission', 'You have already registered for this form.');
       } else {
         // Optimistic display for offline resilience
         setIsSubmitted(true);

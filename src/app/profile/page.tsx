@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useToast } from '@/context/ToastContext';
 import {
   User as UserIcon,
   Mail,
@@ -65,6 +66,7 @@ interface FullUserProfile {
 }
 
 function ProfileContent() {
+  const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const authError = searchParams.get('error');
@@ -194,7 +196,7 @@ function ProfileContent() {
 
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => alert('Profile settings updated.')}
+              onClick={() => toast.info('Profile Settings', 'Profile details are synchronized with SRKR student records.')}
               className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
             >
               <Settings className="w-4 h-4" />

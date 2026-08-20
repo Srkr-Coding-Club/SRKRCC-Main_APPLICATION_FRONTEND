@@ -72,6 +72,9 @@ export const metadata: Metadata = {
   },
 };
 
+import { ToastProvider } from '@/context/ToastContext';
+import { ToastContainer } from '@/components/ui/ToastContainer';
+
 export default async function RootLayout({
   children,
 }: {
@@ -90,9 +93,12 @@ export default async function RootLayout({
             __html: `try{var t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t?t==='dark':true);}catch(e){document.documentElement.classList.add('dark');}`,
           }}
         />
-        <NavbarSwitcher moduleFlags={moduleFlags} />
-        <main className="flex-grow">{children}</main>
-        <Footer />
+        <ToastProvider>
+          <NavbarSwitcher moduleFlags={moduleFlags} />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+          <ToastContainer />
+        </ToastProvider>
       </body>
     </html>
   );

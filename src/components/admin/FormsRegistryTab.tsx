@@ -28,6 +28,7 @@ import {
 import { Form, FormField } from '@/lib/types';
 import { relativeTime } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
+import { useToast } from '@/context/ToastContext';
 
 interface FormsRegistryTabProps {
   forms: Form[];
@@ -67,6 +68,7 @@ export function FormsRegistryTab({
   const [selectedFormId, setSelectedFormId] = useState<number | string | null>(forms[0]?.id ?? null);
   const [slugCopied, setSlugCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const { toast } = useToast();
   const [dangerOpen, setDangerOpen] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [schedOpenAt, setSchedOpenAt] = useState('');
@@ -131,9 +133,10 @@ export function FormsRegistryTab({
     if (confirm(`Permanently delete form "${selectedForm.title}"? This cannot be undone.`)) {
       try {
         await fetchApi(`/forms/${selectedForm.slug}/`, { method: 'DELETE' });
+        toast.success('Form Removed', `Form "${selectedForm.title}" deleted.`);
         window.location.reload();
       } catch {
-        alert('Form removed.');
+        toast.info('Form Removed', 'Form removed from registry.');
       }
     }
   };
