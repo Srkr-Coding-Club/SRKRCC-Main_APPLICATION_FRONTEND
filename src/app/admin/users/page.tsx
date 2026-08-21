@@ -11,6 +11,7 @@ export default function AdminUsersPage() {
     userSearch,
     setUserSearch,
     filteredUsers,
+    isLoadingUsers,
     showCreateUserModal,
     setShowCreateUserModal,
     newUser,
@@ -26,6 +27,7 @@ export default function AdminUsersPage() {
           userSearch={userSearch}
           setUserSearch={setUserSearch}
           filteredUsers={filteredUsers}
+          isLoading={isLoadingUsers}
           onOpenCreateModal={() => setShowCreateUserModal(true)}
           onRoleChange={handleRoleChange}
         />

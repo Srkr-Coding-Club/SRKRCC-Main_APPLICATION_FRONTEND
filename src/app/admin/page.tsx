@@ -7,7 +7,7 @@ import { useAdminData } from '@/lib/hooks/useAdminData';
 export const dynamic = 'force-dynamic';
 
 export default function AdminDashboardPage() {
-  const { usersList, publishedForms, formSubmissions } = useAdminData();
+  const { usersList, publishedForms, formSubmissions, isLoadingForms, isLoadingSubmissions, refetchAll } = useAdminData();
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">
@@ -17,6 +17,8 @@ export default function AdminDashboardPage() {
           userCount={usersList.length}
           publishedForms={publishedForms}
           formSubmissions={formSubmissions}
+          isLoading={isLoadingForms || isLoadingSubmissions}
+          onRefresh={() => refetchAll(false)}
         />
       </div>
     </div>

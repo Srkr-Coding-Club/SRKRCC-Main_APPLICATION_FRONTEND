@@ -24,11 +24,14 @@ import {
   Edit3,
   Inbox,
   Lock,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { Form, FormField } from '@/lib/types';
 import { relativeTime } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
 import { useToast } from '@/context/ToastContext';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 
 interface FormsRegistryTabProps {
   forms: Form[];
@@ -36,6 +39,8 @@ interface FormsRegistryTabProps {
   onOpenManualModal: (form: Form) => void;
   onStatusTransition?: (formSlug: string, action: 'publish' | 'unpublish' | 'close' | 'schedule' | 'reopen', data?: any) => Promise<any>;
   onEditInBuilder?: (form: Form) => void;
+  isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
 type StatusFilter = 'ALL' | 'PUBLISHED' | 'DRAFT' | 'SCHEDULED' | 'CLOSED';
@@ -56,16 +61,36 @@ const STATUS_BADGE: Record<string, string> = {
   ARCHIVED: 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
 };
 
+function formatForDateTimeLocal(isoString?: string | null): string {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  } catch {
+    return '';
+  }
+}
+
 export function FormsRegistryTab({
   forms,
   onSwitchSubtab,
   onOpenManualModal,
   onStatusTransition,
   onEditInBuilder,
+  isLoading = false,
+  onRefresh,
 }: FormsRegistryTabProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [selectedFormId, setSelectedFormId] = useState<number | string | null>(forms[0]?.id ?? null);
+  const [localFormOverrides, setLocalFormOverrides] = useState<Record<string, Partial<Form>>>({});
   const [slugCopied, setSlugCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const { toast } = useToast();
@@ -76,7 +101,7 @@ export function FormsRegistryTab({
   const [actionLoading, setActionLoading] = useState(false);
 
   const filteredForms = useMemo(() => {
-    return forms.filter((f) => {
+    return forms.map((f) => ({ ...f, ...(localFormOverrides[f.slug] || {}) })).filter((f) => {
       const matchSearch =
         f.title.toLowerCase().includes(search.toLowerCase()) ||
         f.slug.toLowerCase().includes(search.toLowerCase()) ||
@@ -84,11 +109,20 @@ export function FormsRegistryTab({
       const matchStatus = statusFilter === 'ALL' || f.status === statusFilter;
       return matchSearch && matchStatus;
     });
-  }, [forms, search, statusFilter]);
+  }, [forms, search, statusFilter, localFormOverrides]);
 
-  const selectedForm = useMemo(() => {
-    return forms.find((f) => f.id === selectedFormId) || filteredForms[0] || forms[0] || null;
-  }, [forms, selectedFormId, filteredForms]);
+  const selectedFormRaw = forms.find((f) => f.id === selectedFormId) || forms[0];
+  const selectedForm = selectedFormRaw
+    ? { ...selectedFormRaw, ...(localFormOverrides[selectedFormRaw.slug] || {}) }
+    : null;
+
+  const openScheduleModal = (formToSchedule?: Form | null) => {
+    const target = formToSchedule || selectedForm;
+    if (!target) return;
+    setSchedOpenAt(formatForDateTimeLocal(target.open_at));
+    setSchedCloseAt(formatForDateTimeLocal(target.close_at));
+    setShowScheduleModal(true);
+  };
 
   const copySlug = (slug: string) => {
     navigator.clipboard.writeText(slug).then(() => {
@@ -158,8 +192,8 @@ export function FormsRegistryTab({
               </button>
             </div>
 
-            <p className="text-xs text-slate-500">
-              Set automated publication dates for <strong>{selectedForm.title}</strong>:
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Set automated publication start and close dates for <strong>{selectedForm.title}</strong>:
             </p>
 
             <div className="space-y-3">
@@ -167,7 +201,7 @@ export function FormsRegistryTab({
                 <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Open Date (Start Submissions)</label>
                 <input
                   type="datetime-local"
-                  value={schedOpenAt || selectedForm.open_at || ''}
+                  value={schedOpenAt}
                   onChange={(e) => setSchedOpenAt(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
                 />
@@ -176,34 +210,56 @@ export function FormsRegistryTab({
                 <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Close Date (Auto Lock)</label>
                 <input
                   type="datetime-local"
-                  value={schedCloseAt || selectedForm.close_at || ''}
+                  value={schedCloseAt}
                   onChange={(e) => setSchedCloseAt(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowScheduleModal(false)}
-                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400"
-              >
-                Cancel
-              </button>
+            <div className="pt-2 flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={() => {
-                  setShowScheduleModal(false);
-                  handleAction('schedule', {
-                    open_at: schedOpenAt || selectedForm.open_at,
-                    close_at: schedCloseAt || selectedForm.close_at,
-                  });
+                  setSchedOpenAt('');
+                  setSchedCloseAt('');
                 }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition"
+                className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-500 hover:text-rose-400 transition"
               >
-                Save Schedule
+                Clear Dates
               </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowScheduleModal(false)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => {
+                    if (!schedOpenAt && !schedCloseAt) {
+                      toast.warning('Schedule Required', 'Please set at least an Open Date or Close Date.');
+                      return;
+                    }
+                    if (schedOpenAt && schedCloseAt && new Date(schedOpenAt) > new Date(schedCloseAt)) {
+                      toast.error('Invalid Range', 'Open Date cannot be later than Close Date.');
+                      return;
+                    }
+                    setShowScheduleModal(false);
+                    handleAction('schedule', {
+                      open_at: schedOpenAt ? new Date(schedOpenAt).toISOString() : null,
+                      close_at: schedCloseAt ? new Date(schedCloseAt).toISOString() : null,
+                    });
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition"
+                >
+                  Save Schedule
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -225,17 +281,29 @@ export function FormsRegistryTab({
                   <FileText className="w-4 h-4" />
                 </div>
                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                  Forms Directory ({filteredForms.length})
+                  Forms Directory ({isLoading ? '...' : filteredForms.length})
                 </h3>
               </div>
 
-              <button
-                onClick={() => onSwitchSubtab('builder')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow transition"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>New Form</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {onRefresh && (
+                  <button
+                    onClick={onRefresh}
+                    disabled={isLoading}
+                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+                    title="Refresh Forms"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-orange-500' : ''}`} />
+                  </button>
+                )}
+                <button
+                  onClick={() => onSwitchSubtab('builder')}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Form</span>
+                </button>
+              </div>
             </div>
 
             {/* Search Input */}
@@ -270,7 +338,31 @@ export function FormsRegistryTab({
 
           {/* Forms Card List */}
           <div className="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
-            {filteredForms.length === 0 ? (
+            {isLoading ? (
+              /* Skeleton Loader Cards */
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((n) => (
+                  <div
+                    key={n}
+                    className="p-4 rounded-2xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 space-y-3 animate-pulse"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-3/5" />
+                      <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-16" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-16" />
+                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-10" />
+                    </div>
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-24" />
+                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-14" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredForms.length === 0 ? (
               <div className="py-12 text-center bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2">
                 <FileText className="w-8 h-8 text-slate-600 mx-auto" />
                 <p className="text-xs font-bold text-slate-500 dark:text-slate-400">No forms found matching filters</p>
@@ -337,7 +429,30 @@ export function FormsRegistryTab({
         {/* RIGHT COLUMN: Selected Form Detail & Management (lg:col-span-7) */}
         {/* ============================================================ */}
         <div className="lg:col-span-7">
-          {selectedForm ? (
+          {isLoading ? (
+            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-6 animate-pulse">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-full w-24" />
+                  <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                </div>
+                <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded-md w-3/4" />
+                <div className="space-y-2 pt-2">
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-full" />
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-5/6" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800/50 rounded-xl" />
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <div className="h-9 bg-slate-200 dark:bg-slate-800 rounded-xl w-32" />
+                <div className="h-9 bg-slate-200 dark:bg-slate-800 rounded-xl w-28" />
+              </div>
+            </div>
+          ) : selectedForm ? (
             <div className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md p-6 space-y-6">
               
               {/* Form Title & Metadata Header */}
@@ -375,9 +490,9 @@ export function FormsRegistryTab({
                 </div>
 
                 {selectedForm.description && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    {selectedForm.description}
-                  </p>
+                  <div className="pt-1">
+                    <MarkdownRenderer content={selectedForm.description} className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed" />
+                  </div>
                 )}
               </div>
 
@@ -426,7 +541,7 @@ export function FormsRegistryTab({
                         <span>Publish Live</span>
                       </button>
                       <button
-                        onClick={() => setShowScheduleModal(true)}
+                        onClick={() => openScheduleModal(selectedForm)}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
                       >
                         <Clock className="w-3.5 h-3.5" />
@@ -448,7 +563,7 @@ export function FormsRegistryTab({
                         <span>Undo Publish (Draft)</span>
                       </button>
                       <button
-                        onClick={() => setShowScheduleModal(true)}
+                        onClick={() => openScheduleModal(selectedForm)}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
                       >
                         <Clock className="w-3.5 h-3.5" />
@@ -477,7 +592,7 @@ export function FormsRegistryTab({
                         <span>Publish Immediately</span>
                       </button>
                       <button
-                        onClick={() => setShowScheduleModal(true)}
+                        onClick={() => openScheduleModal(selectedForm)}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
                       >
                         <Clock className="w-3.5 h-3.5" />
@@ -504,6 +619,13 @@ export function FormsRegistryTab({
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Re-Publish Live</span>
+                      </button>
+                      <button
+                        onClick={() => openScheduleModal(selectedForm)}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Schedule Re-open</span>
                       </button>
                       <button
                         onClick={() => handleAction('reopen', { status: 'DRAFT' })}
@@ -624,6 +746,186 @@ export function FormsRegistryTab({
                   </p>
                 </div>
               )}
+
+              {/* Submission Policy & Edit Window Control Card */}
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                      Student Submission &amp; Edit Controls
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Configure submission frequency limits and response editing permissions per student.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* Submission Limit Control */}
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Submission Limit</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                        selectedForm.allow_multiple_responses
+                          ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                      }`}>
+                        {selectedForm.allow_multiple_responses ? 'Multiple Allowed' : '1 per Student'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                      {selectedForm.allow_multiple_responses
+                        ? 'Students can fill and submit this form multiple times.'
+                        : 'Students can only submit once. If filled, they enter response edit mode.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!selectedForm) return;
+                        const target = !selectedForm.allow_multiple_responses;
+                        setLocalFormOverrides((prev) => ({
+                          ...prev,
+                          [selectedForm.slug]: { ...prev[selectedForm.slug], allow_multiple_responses: target },
+                        }));
+                        try {
+                          await fetchApi(`/forms/${selectedForm.slug}/`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ allow_multiple_responses: target }),
+                          });
+                          toast.success(
+                            'Policy Updated',
+                            target
+                              ? 'Multiple responses per student allowed.'
+                              : 'Form restricted to 1 response per student.'
+                          );
+                          if (onRefresh) onRefresh();
+                        } catch (err: any) {
+                          setLocalFormOverrides((prev) => ({
+                            ...prev,
+                            [selectedForm.slug]: { ...prev[selectedForm.slug], allow_multiple_responses: !target },
+                          }));
+                          toast.error('Update Failed', err?.message || 'Unable to update policy.');
+                        }
+                      }}
+                      className="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition text-center"
+                    >
+                      {selectedForm.allow_multiple_responses ? 'Switch to Single (1 Limit)' : 'Allow Multiple Responses'}
+                    </button>
+                  </div>
+
+                  {/* Response Editing Control */}
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Response Editing</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                        selectedForm.allow_response_editing !== false
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                      }`}>
+                        {selectedForm.allow_response_editing !== false ? 'Edits Allowed' : 'Edits Locked'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                      {selectedForm.allow_response_editing !== false
+                        ? 'Students who submitted can return anytime to view and edit answers.'
+                        : 'Responses cannot be edited by students once submitted.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!selectedForm) return;
+                        const target = selectedForm.allow_response_editing === false;
+                        setLocalFormOverrides((prev) => ({
+                          ...prev,
+                          [selectedForm.slug]: { ...prev[selectedForm.slug], allow_response_editing: target },
+                        }));
+                        try {
+                          await fetchApi(`/forms/${selectedForm.slug}/`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ allow_response_editing: target }),
+                          });
+                          toast.success(
+                            'Policy Updated',
+                            target
+                              ? 'Students can now edit their submitted response.'
+                              : 'Student response editing disabled.'
+                          );
+                          if (onRefresh) onRefresh();
+                        } catch (err: any) {
+                          setLocalFormOverrides((prev) => ({
+                            ...prev,
+                            [selectedForm.slug]: { ...prev[selectedForm.slug], allow_response_editing: !target },
+                          }));
+                          toast.error('Update Failed', err?.message || 'Unable to update policy.');
+                        }
+                      }}
+                      className="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition text-center"
+                    >
+                      {selectedForm.allow_response_editing !== false ? 'Lock Submissions (No Edits)' : 'Enable Response Editing'}
+                    </button>
+                  </div>
+
+                  {/* Auto-fill Profile Details Control */}
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 space-y-2 sm:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-[#FF7A00]" />
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">Auto-fill Student Profile</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                        selectedForm.enable_prefill !== false && !selectedForm.allow_multiple_responses
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-slate-700/60 text-slate-400 border border-slate-600/40'
+                      }`}>
+                        {selectedForm.enable_prefill !== false && !selectedForm.allow_multiple_responses
+                          ? 'Active (Limit: 1)'
+                          : selectedForm.allow_multiple_responses
+                          ? 'Inactive (Multiple Allowed)'
+                          : 'Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                      Automatically matches and pre-fills verified student name, email, phone number, roll number, branch, and year when the submission limit is 1.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!selectedForm) return;
+                        const target = selectedForm.enable_prefill === false;
+                        setLocalFormOverrides((prev) => ({
+                          ...prev,
+                          [selectedForm.slug]: { ...prev[selectedForm.slug], enable_prefill: target },
+                        }));
+                        try {
+                          await fetchApi(`/forms/${selectedForm.slug}/`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ enable_prefill: target }),
+                          });
+                          toast.success(
+                            'Policy Updated',
+                            target
+                              ? 'Student profile auto-fill enabled for single-submission forms.'
+                              : 'Student profile auto-fill disabled.'
+                          );
+                          if (onRefresh) onRefresh();
+                        } catch (err: any) {
+                          setLocalFormOverrides((prev) => ({
+                            ...prev,
+                            [selectedForm.slug]: { ...prev[selectedForm.slug], enable_prefill: !target },
+                          }));
+                          toast.error('Update Failed', err?.message || 'Unable to update policy.');
+                        }
+                      }}
+                      className="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition text-center"
+                    >
+                      {selectedForm.enable_prefill !== false ? 'Disable Profile Auto-fill' : 'Enable Profile Auto-fill'}
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {/* Form Fields Summary preview */}
               <div className="space-y-3 pt-2">

@@ -118,33 +118,23 @@ export function generateIdempotencyKey(): string {
 }
 
 // ---------------------------------------------------------------------------
-// Auth token helper
+// Auth token helper (BFF cookie-based)
 // ---------------------------------------------------------------------------
 
-/** Read the JWT access token from localStorage. Key is 'access_token'. */
-export function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('access_token');
-}
-
 /**
- * Build fetch options with Authorization header and no timeout abort.
+ * Build fetch options for BFF proxy endpoints with credentials include and no timeout abort.
  * Use this for long-running requests (e.g., bulk ingest) instead of fetchApi.
  */
 export function buildAuthFetchOptions(
   method: string,
   body?: object
 ): RequestInit {
-  const token = getAuthToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
   return {
     method,
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
     cache: 'no-store',
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   };

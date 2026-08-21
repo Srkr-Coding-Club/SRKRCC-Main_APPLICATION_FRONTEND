@@ -93,3 +93,35 @@ The application adheres to a dark-mode glassmorphism theme using CSS variables a
 - **Accent Primary**: `#FF7A00` (SRKRCC Vibrant Orange)
 - **Accent Maroon**: `#8B2E3B` (SRKR Institutional Maroon)
 - **Background Dark**: `#0D0E15` (Deep Slate)
+
+---
+
+## 6. Student Profile Auto-Matching & Prefill Engine
+
+When students open registration forms, the application automatically matches and pre-fills their verified credentials:
+
+1. **Activation Heuristic**:
+   - Auto-filling activates only when `form.enable_prefill !== false && !form.allow_multiple_responses` (single submission limit).
+2. **Field Matching Engine (`matchUserDetailToField`)**:
+   - Inspects `field.label`, `field.placeholder`, and `field.type` to map student details:
+     - **Full Name**: `user.first_name` + `user.last_name` / `user.username`.
+     - **Email Address**: `user.email`.
+     - **Phone Number**: `user.phone_number` / `user.phone`.
+     - **Roll / Registration Number**: `user.roll_number`.
+     - **Branch & Department**: Matches option tokens (e.g. `CSE`, `ECE`, `IT`, `CSD`, `AIDS`) with `user.branch`.
+     - **Year of Study**: Matches ordinal and numeric tokens (`1st / 1`, `2nd / 2`, `3rd / 3`, `4th / 4`) with `user.year`.
+     - **Portfolio Links**: Maps GitHub and LinkedIn profile URLs.
+3. **Session Freshness**:
+   - The form page calls `/api/auth/me` on mount to fetch the latest student profile from PostgreSQL, merging it into `localStorage` and form state.
+
+---
+
+## 7. Server Component (RSC) vs Client Component Rendering Rules
+
+1. **No Event Handlers in Server Components**:
+   - Server Components (`src/app/forms/page.tsx`, `src/app/events/page.tsx`, etc.) run during SSR without a browser JS runtime.
+   - JSX elements in Server Components MUST NOT pass function props (e.g., `onError`, `onClick`, `onChange`).
+2. **Safe Image URL Handling**:
+   - Cover images support both external URLs (`https://...`) and Base64-encoded Data URLs (`data:image/...`).
+   - Image URLs are sanitized to avoid duplicate protocol prefixes (`https://data:` $\rightarrow$ `data:`).
+

@@ -187,6 +187,9 @@ export interface Form {
   status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'CLOSED' | 'ARCHIVED';
   version?: number;
   allow_multiple_responses?: boolean;
+  allow_response_editing?: boolean;
+  enable_prefill?: boolean;
+  max_responses_per_user?: number;
   allow_edits_until?: string;
   open_at?: string;
   close_at?: string;
@@ -273,11 +276,16 @@ export interface ResponseUser {
 /** Full response detail with user + enriched answers */
 export interface ResponseDetail {
   id: number;
+  form_id?: number;
+  form_title?: string;
+  form_slug?: string;
   submitted_at: string;
   is_manual_entry: boolean;
   is_test_submission: boolean;
   form_version: number;
   user: ResponseUser | null;
+  user_name?: string;
+  user_email?: string;
   answers: AnswerDetail[];
 }
 

@@ -1,18 +1,19 @@
 import { refreshAccessToken } from './auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
 export async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {},
   isRetry: boolean = false
 ): Promise<T> {
-  // If requesting current user profile from client, route through BFF endpoint for HttpOnly cookie transport
   const isClient = typeof window !== 'undefined';
-  const url =
-    isClient && endpoint.includes('/auth/me')
-      ? '/api/auth/me'
-      : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+
+  // On client, route through BFF Proxy so HttpOnly cookies are automatically sent and forwarded
+  const url = isClient
+    ? `/api/proxy/${cleanEndpoint}`
+    : `${API_BASE_URL}/${cleanEndpoint}`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -41,7 +42,27 @@ export async function fetchApi<T>(
     }
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+      let errMsg = `API error: ${response.status} ${response.statusText}`;
+      try {
+        const errJson = await response.json();
+        if (errJson) {
+          if (typeof errJson === 'string') {
+            errMsg = errJson;
+          } else if (errJson.detail) {
+            errMsg = errJson.detail;
+          } else if (errJson.error) {
+            errMsg = errJson.error;
+          } else {
+            const fieldErrors = Object.entries(errJson)
+              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+              .join(' | ');
+            if (fieldErrors) errMsg = fieldErrors;
+          }
+        }
+      } catch {
+        // use default errMsg
+      }
+      throw new Error(errMsg);
     }
 
     return await response.json();

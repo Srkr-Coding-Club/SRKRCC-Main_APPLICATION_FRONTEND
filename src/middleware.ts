@@ -9,10 +9,11 @@ export function middleware(request: NextRequest) {
   // Intercept all /admin routes
   if (pathname.startsWith('/admin')) {
     const token = request.cookies.get('srkrcc_access_token')?.value;
+    const refreshToken = request.cookies.get('srkrcc_refresh_token')?.value;
     const role = request.cookies.get('srkrcc_user_role')?.value;
 
-    // 1. Unauthenticated -> redirect to /login with return URL
-    if (!token) {
+    // 1. Unauthenticated (neither access token nor refresh token exists) -> redirect to /login
+    if (!token && !refreshToken) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('next', pathname);
       return NextResponse.redirect(loginUrl);

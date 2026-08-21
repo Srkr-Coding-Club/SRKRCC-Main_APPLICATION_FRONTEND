@@ -40,22 +40,12 @@ interface AuditLogRecord {
 
 export function useAdminData() {
   const { toast } = useToast();
-  // Flags State — keys match the backend's canonical seed (scripts/seed_flags.py)
-  // and src/lib/platformModules.ts's MODULE_KEYS. Events is intentionally not
-  // gateable here; it's always-on per the club's own event-visibility rules.
-  const [flags, setFlags] = useState<FeatureFlag[]>([
-    { id: 1, name: 'Hackathons Engine', key: 'hackathons', is_enabled: true, description: 'Enable general hackathons engine and registration.', updated_at: new Date().toISOString() },
-    { id: 2, name: 'IconCoders Flagship', key: 'iconcoders', is_enabled: true, description: 'Enable IconCoders annual flagship hackathon landing and Hall of Fame.', updated_at: new Date().toISOString() },
-    { id: 3, name: 'Codequest Daily Problems', key: 'codequest', is_enabled: true, description: 'Enable daily problem of the day, streak tracking, and leaderboards.', updated_at: new Date().toISOString() },
-  ]);
 
-  // Users State
-  const [usersList, setUsersList] = useState<UserRecord[]>([
-    { id: 1, name: 'Rahul Sharma', email: 'rahul.sharma@srkr.ac.in', rollNumber: '21B91A0501', branch: 'CSE', year: '3rd Year', role: 'CLUB_LEAD', scopedAssignments: [{ type: 'HACKATHON', targetTitle: 'IconCoders 2025', role: 'Lead Admin' }], isActive: true, joinedDate: '2023-08-15' },
-    { id: 2, name: 'Ananya Verma', email: 'ananya.v@srkr.ac.in', rollNumber: '22B91A1204', branch: 'IT', year: '2nd Year', role: 'ADMIN', isActive: true, joinedDate: '2023-09-01' },
-    { id: 3, name: 'Priya Rao', email: 'priya.rao@srkr.ac.in', rollNumber: '23B91A0412', branch: 'ECE', year: '1st Year', role: 'VOLUNTEER', isActive: true, joinedDate: '2024-01-10' },
-  ]);
+  // Dynamic Flags State — fetched live from backend
+  const [flags, setFlags] = useState<FeatureFlag[]>([]);
 
+  // Users State — fetched live from backend
+  const [usersList, setUsersList] = useState<UserRecord[]>([]);
   const [userSearch, setUserSearch] = useState('');
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -68,59 +58,51 @@ export function useAdminData() {
     password: '',
   });
 
-  // Forms State
-  const [publishedForms, setPublishedForms] = useState<Form[]>([
-    {
-      id: 101,
-      title: 'IconCoders Flagship Hackathon 2025 Registration',
-      slug: 'iconcoders-hackathon-2025',
-      description: 'Official registration form for SRKR Coding Club annual flagship hackathon.',
-      image_url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
-      category: 'Hackathon',
-      status: 'PUBLISHED',
-      open_at: '2025-05-01',
-      close_at: '2025-06-15',
-    },
-    {
-      id: 102,
-      title: 'Web Development Workshop RSVP & Tool Kit',
-      slug: 'web-dev-workshop-rsvp',
-      description: 'Reserve your physical seat for the hands-on React & Next.js workshop.',
-      image_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
-      category: 'Workshop',
-      status: 'CLOSED',
-      open_at: '2025-05-10',
-      close_at: '2025-05-24',
-    },
-  ]);
+  // Forms State — fetched live from backend
+  const [publishedForms, setPublishedForms] = useState<Form[]>([]);
 
   const [formMeta, setFormMeta] = useState<{
     id?: number | string;
+    originalSlug?: string;
     title: string;
     slug: string;
     description: string;
     image_url: string;
     category: string;
     status: Form['status'];
+    version?: number;
     open_at: string;
     close_at: string;
     allow_multiple_responses?: boolean;
+    allow_response_editing?: boolean;
+    enable_prefill?: boolean;
+    max_responses_per_user?: number;
     allow_edits_until?: string;
   }>({
-    title: 'IconCoders 2026 Registration Form',
-    slug: 'iconcoders-2026-registration',
-    description: 'Register your team for SRKR Coding Club flagship hackathon.',
-    image_url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=800&q=80',
-    category: 'Hackathon',
-    status: 'PUBLISHED',
-    open_at: '2025-06-01',
-    close_at: '2025-07-01',
+    title: '',
+    slug: '',
+    description: '',
+    image_url: '',
+    category: 'General',
+    status: 'DRAFT',
+    open_at: '',
+    close_at: '',
+    allow_multiple_responses: false,
+    allow_response_editing: true,
+    enable_prefill: true,
+    allow_edits_until: '',
   });
 
   const [builderFields, setBuilderFields] = useState<FormField[]>([
-    { id: 'f1', label: 'Team Leader Full Name', type: 'TEXT', placeholder: 'e.g. Ramesh Varma', is_required: true, order: 1 },
+    { id: 'f1', label: 'Full Name', type: 'TEXT', placeholder: 'e.g. Ramesh Varma', is_required: true, order: 1 },
     { id: 'f2', label: 'College Email Address', type: 'EMAIL', placeholder: 'student@srkr.ac.in', is_required: true, order: 2 },
   ]);
+
+  // Checkpoint for reverting form changes back to last saved state
+  const [savedCheckpoint, setSavedCheckpoint] = useState<{
+    formMeta: any;
+    builderFields: FormField[];
+  } | null>(null);
 
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [previewAnswers, setPreviewAnswers] = useState<Record<string, any>>({});
@@ -131,92 +113,156 @@ export function useAdminData() {
   const [selectedClosedForm, setSelectedClosedForm] = useState<Form | null>(null);
   const [manualEntryAnswers, setManualEntryAnswers] = useState<Record<string, any>>({});
 
-  const [formSubmissions, setFormSubmissions] = useState<FormSubmissionRecord[]>([
-    { id: 1, formTitle: 'IconCoders Flagship Hackathon 2025', submitterName: 'Rahul Sharma', submitterEmail: 'rahul.sharma@srkr.ac.in', submittedAt: '2025-05-20 14:30', answers: { 'Team Leader Name': 'Rahul Sharma' } },
-  ]);
+  // Submissions & Audit Logs State — fetched live from backend
+  const [formSubmissions, setFormSubmissions] = useState<FormSubmissionRecord[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
 
-  const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([
-    { id: 1, timestamp: '2025-05-24 10:15:00', actor: 'Ananya Verma (Admin)', action: 'Toggled Feature Flag', target: 'module_hackathons', details: 'Status: ENABLED' },
-  ]);
+  // Loading States
+  const [isLoadingForms, setIsLoadingForms] = useState(true);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(true);
+  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(true);
+  const [isLoadingFlags, setIsLoadingFlags] = useState(true);
+  const [isLoadingBuilder, setIsLoadingBuilder] = useState(false);
 
-  // Fetch Live Backend Mock Data from REST API
-  useEffect(() => {
-    async function loadBackendData() {
-      try {
-        const [fetchedUsers, fetchedFlags, fetchedForms, fetchedAudit, fetchedSubmissions] = await Promise.all([
-          fetchApi<any[]>('/auth/users/').catch(() => []),
-          fetchApi<FeatureFlag[]>('/feature-flags/').catch(() => []),
-          fetchApi<Form[]>('/forms/').catch(() => []),
-          fetchApi<any[]>('/audit/').catch(() => []),
-          fetchApi<any>('/forms/submissions/').catch(() => []),
-        ]);
-
-        if (fetchedUsers && fetchedUsers.length > 0) {
-          setUsersList(
-            fetchedUsers.map((u: any) => ({
-              id: u.id,
-              name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email,
-              email: u.email,
-              rollNumber: u.roll_number || 'N/A',
-              branch: u.branch || 'CSE',
-              year: u.year ? `${u.year}th Year` : '1st Year',
-              role: u.role || 'MEMBER',
-              isActive: u.is_active !== false,
-              joinedDate: u.date_joined ? u.date_joined.split('T')[0] : '2025-01-01',
-            }))
-          );
-        }
-
-        if (fetchedFlags && fetchedFlags.length > 0) {
-          setFlags(fetchedFlags);
-        }
-        if (fetchedForms && fetchedForms.length > 0) {
-          setPublishedForms(fetchedForms);
-        }
-        if (fetchedAudit && fetchedAudit.length > 0) {
-          setAuditLogs(
-            fetchedAudit.map((a: any) => ({
-              id: a.id || Date.now(),
-              timestamp: a.timestamp || a.created_at?.replace('T', ' ').substring(0, 19) || new Date().toISOString().substring(0, 19),
-              actor: a.actor_name || a.actor_email || 'System',
-              action: a.action || 'System Mutation',
-              target: a.target || a.target_model || 'System',
-              details: typeof a.details === 'object' ? JSON.stringify(a.details) : String(a.details || ''),
-            }))
-          );
-        }
-
-        const rawSubs = Array.isArray(fetchedSubmissions)
-          ? fetchedSubmissions
-          : fetchedSubmissions?.results || [];
-
-        if (rawSubs.length > 0) {
-          setFormSubmissions(
-            rawSubs.map((s: any) => {
-              const ansMap: Record<string, any> = {};
-              if (s.answers && Array.isArray(s.answers)) {
-                s.answers.forEach((ans: any) => {
-                  const key = ans.field_label || `Field ${ans.field}`;
-                  ansMap[key] = ans.value;
-                });
-              }
-              return {
-                id: s.id,
-                formTitle: s.form_title || 'Form Submission',
-                submitterName: s.user_name || s.user_email || 'Student',
-                submitterEmail: s.user_email || 'student@srkr.ac.in',
-                submittedAt: s.submitted_at ? s.submitted_at.replace('T', ' ').substring(0, 16) : new Date().toISOString().substring(0, 16),
-                answers: ansMap,
-                isManualAdminEntry: s.is_manual_entry ?? false,
-              };
-            })
-          );
-        }
-      } catch (err) {
-        // Fallback to initial seed states
-      }
+  const refetchForms = async () => {
+    setIsLoadingForms(true);
+    try {
+      const fetchedForms = await fetchApi<any>('/forms/').catch(() => []);
+      const formsArray = Array.isArray(fetchedForms)
+        ? fetchedForms
+        : (fetchedForms as any)?.results || [];
+      setPublishedForms(formsArray);
+    } finally {
+      setIsLoadingForms(false);
     }
-    loadBackendData();
+  };
+
+  const refetchAll = async (silent = false) => {
+    if (!silent) {
+      setIsLoadingForms(true);
+      setIsLoadingUsers(true);
+      setIsLoadingFlags(true);
+      setIsLoadingAuditLogs(true);
+      setIsLoadingSubmissions(true);
+    }
+
+    try {
+      const [fetchedUsers, fetchedFlags, fetchedForms, fetchedAudit, fetchedSubmissions] = await Promise.all([
+        fetchApi<any[]>('/auth/users/').catch(() => []),
+        fetchApi<FeatureFlag[]>('/feature-flags/').catch(() => []),
+        fetchApi<any>('/forms/').catch(() => []),
+        fetchApi<any[]>('/audit/').catch(() => []),
+        fetchApi<any>('/forms/submissions/').catch(() => []),
+      ]);
+
+      const usersArray = Array.isArray(fetchedUsers)
+        ? fetchedUsers
+        : (fetchedUsers as any)?.results || [];
+      if (usersArray.length > 0) {
+        setUsersList(
+          usersArray.map((u: any) => ({
+            id: u.id,
+            name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email,
+            email: u.email,
+            rollNumber: u.roll_number || 'N/A',
+            branch: u.branch || 'CSE',
+            year: u.year ? `${u.year}th Year` : '1st Year',
+            role: u.role || 'MEMBER',
+            isActive: u.is_active !== false,
+            joinedDate: u.date_joined ? u.date_joined.split('T')[0] : '2025-01-01',
+          }))
+        );
+      }
+
+      const flagsArray = Array.isArray(fetchedFlags)
+        ? fetchedFlags
+        : (fetchedFlags as any)?.results || [];
+      if (flagsArray.length > 0) {
+        setFlags(flagsArray);
+      }
+
+      const formsArray = Array.isArray(fetchedForms)
+        ? fetchedForms
+        : (fetchedForms as any)?.results || [];
+      setPublishedForms(formsArray);
+
+      const auditArray = Array.isArray(fetchedAudit)
+        ? fetchedAudit
+        : (fetchedAudit as any)?.results || [];
+      if (auditArray.length > 0) {
+        setAuditLogs(
+          auditArray.map((a: any) => ({
+            id: a.id || Date.now(),
+            timestamp: a.timestamp || a.created_at?.replace('T', ' ').substring(0, 19) || new Date().toISOString().substring(0, 19),
+            actor: a.actor_name || a.actor_email || 'System',
+            action: a.action || 'System Mutation',
+            target: a.target || a.target_model || 'System',
+            details: typeof a.details === 'object' ? JSON.stringify(a.details) : String(a.details || ''),
+          }))
+        );
+      }
+
+      const rawSubs = Array.isArray(fetchedSubmissions)
+        ? fetchedSubmissions
+        : (fetchedSubmissions as any)?.results || [];
+
+      if (rawSubs.length > 0) {
+        setFormSubmissions(
+          rawSubs.map((s: any) => {
+            const ansMap: Record<string, any> = {};
+            if (s.answers && Array.isArray(s.answers)) {
+              s.answers.forEach((ans: any) => {
+                const key = ans.field_label || `Field ${ans.field}`;
+                ansMap[key] = ans.value;
+              });
+            }
+            return {
+              id: s.id,
+              formTitle: s.form_title || 'Form Submission',
+              submitterName: s.user?.name || s.user_name || s.user_email || 'Student',
+              submitterEmail: s.user?.email || s.user_email || 'student@srkr.ac.in',
+              submittedAt: s.submitted_at ? s.submitted_at.replace('T', ' ').substring(0, 16) : new Date().toISOString().substring(0, 16),
+              answers: ansMap,
+              isManualAdminEntry: s.is_manual_entry ?? false,
+            };
+          })
+        );
+      }
+    } catch (err) {
+      console.error('[Admin Data Fetch Error]:', err);
+    } finally {
+      setIsLoadingForms(false);
+      setIsLoadingUsers(false);
+      setIsLoadingFlags(false);
+      setIsLoadingAuditLogs(false);
+      setIsLoadingSubmissions(false);
+    }
+  };
+
+  // Live background polling and focus revalidation
+  useEffect(() => {
+    refetchAll(false);
+
+    // Poll live data every 8 seconds when window is active
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refetchAll(true);
+      }
+    }, 8000);
+
+    const handleFocus = () => {
+      refetchAll(true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
 
   // Handlers
@@ -295,26 +341,43 @@ export function useAdminData() {
   };
 
   const resetNewForm = () => {
-    setFormMeta({
+    const defaultMeta = {
       id: undefined,
-      title: 'Untitled Registration Form',
+      originalSlug: undefined,
+      title: '',
       slug: '',
       description: '',
       image_url: '',
       category: 'General',
-      status: 'DRAFT',
+      status: 'DRAFT' as Form['status'],
+      version: 1,
       open_at: '',
       close_at: '',
       allow_multiple_responses: false,
       allow_edits_until: '',
-    });
-    setBuilderFields([
+    };
+    const defaultFields: FormField[] = [
       { id: 'f1', label: 'Full Name', type: 'TEXT', placeholder: 'e.g. Ramesh Varma', is_required: true, order: 1 },
       { id: 'f2', label: 'Email Address', type: 'EMAIL', placeholder: 'student@srkr.ac.in', is_required: true, order: 2 },
-    ]);
+    ];
+    setFormMeta(defaultMeta);
+    setBuilderFields(defaultFields);
+    setSavedCheckpoint(null);
+  };
+
+  const handleResetBuilder = () => {
+    if (savedCheckpoint) {
+      setFormMeta(JSON.parse(JSON.stringify(savedCheckpoint.formMeta)));
+      setBuilderFields(JSON.parse(JSON.stringify(savedCheckpoint.builderFields)));
+      toast.info('Form Reset', `Reverted back to last saved checkpoint (${savedCheckpoint.formMeta.title || 'Untitled Form'}).`);
+    } else {
+      resetNewForm();
+      toast.info('Form Reset', 'Blank form template restored.');
+    }
   };
 
   const loadFormBySlug = async (slug: string) => {
+    setIsLoadingBuilder(true);
     try {
       const form = await fetchApi<Form>(`/forms/${slug}/`);
       if (form) {
@@ -323,30 +386,40 @@ export function useAdminData() {
       }
     } catch (e) {
       console.warn('Unable to load form by slug:', slug);
+    } finally {
+      setIsLoadingBuilder(false);
     }
   };
 
   const handleEditFormInBuilder = (form: Form) => {
-    setFormMeta({
+    const meta = {
       id: form.id,
+      originalSlug: form.slug,
       title: form.title,
       slug: form.slug,
       description: form.description || '',
       image_url: form.image_url || '',
       category: form.category || 'General',
       status: form.status || 'DRAFT',
+      version: form.version || 1,
       open_at: form.open_at || '',
       close_at: form.close_at || '',
       allow_multiple_responses: form.allow_multiple_responses ?? false,
       allow_edits_until: form.allow_edits_until || '',
+    };
+    const fields: FormField[] =
+      form.fields && form.fields.length > 0
+        ? form.fields.map((f, i) => ({ ...f, order: f.order ?? i + 1 }))
+        : [
+            { id: 'f1', label: 'Full Name', type: 'TEXT' as const, placeholder: 'e.g. Ramesh Varma', is_required: true, order: 1 },
+          ];
+
+    setFormMeta(meta);
+    setBuilderFields(fields);
+    setSavedCheckpoint({
+      formMeta: JSON.parse(JSON.stringify(meta)),
+      builderFields: JSON.parse(JSON.stringify(fields)),
     });
-    if (form.fields && form.fields.length > 0) {
-      setBuilderFields(form.fields.map((f, i) => ({ ...f, order: f.order ?? i + 1 })));
-    } else {
-      setBuilderFields([
-        { id: 'f1', label: 'Full Name', type: 'TEXT', placeholder: 'e.g. Ramesh Varma', is_required: true, order: 1 },
-      ]);
-    }
   };
 
   const handleSaveForm = async (
@@ -356,62 +429,96 @@ export function useAdminData() {
     const finalStatus = targetStatus || formMeta.status || 'DRAFT';
     const slug = formMeta.slug || formMeta.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+    let cleanImageUrl: string | null = formMeta.image_url?.trim() || null;
+    if (
+      cleanImageUrl &&
+      !cleanImageUrl.startsWith('http://') &&
+      !cleanImageUrl.startsWith('https://') &&
+      !cleanImageUrl.startsWith('data:') &&
+      !cleanImageUrl.startsWith('blob:') &&
+      !cleanImageUrl.startsWith('/')
+    ) {
+      cleanImageUrl = `https://${cleanImageUrl}`;
+    }
+    const cleanOpenAt = scheduleOptions?.open_at || formMeta.open_at || null;
+    const cleanCloseAt = scheduleOptions?.close_at || formMeta.close_at || null;
+    const cleanEditsUntil = formMeta.allow_edits_until || null;
+
     const payload = {
       title: formMeta.title,
       slug: slug,
-      description: formMeta.description,
-      image_url: formMeta.image_url,
-      category: formMeta.category,
+      description: formMeta.description || '',
+      image_url: cleanImageUrl,
+      category: formMeta.category || 'General',
       status: finalStatus,
-      open_at: scheduleOptions?.open_at || formMeta.open_at || null,
-      close_at: scheduleOptions?.close_at || formMeta.close_at || null,
+      open_at: cleanOpenAt ? cleanOpenAt : null,
+      close_at: cleanCloseAt ? cleanCloseAt : null,
       allow_multiple_responses: formMeta.allow_multiple_responses ?? false,
-      allow_edits_until: formMeta.allow_edits_until || null,
-      fields: builderFields.map((f, idx) => ({
-        ...(typeof f.id === 'number' || (typeof f.id === 'string' && !isNaN(Number(f.id)) && Number(f.id) < 1000000000) ? { id: Number(f.id) } : {}),
-        label: f.label,
-        type: f.type,
-        placeholder: f.placeholder || '',
-        description: f.description || '',
-        is_required: f.is_required,
-        options: f.options || [],
-        rows: f.rows || [],
-        min_value: f.min_value ?? null,
-        max_value: f.max_value ?? null,
-        conditional_logic: f.conditional_logic || {},
-        validation_rules: f.validation_rules || {},
-        order: idx + 1,
-      })),
+      allow_response_editing: formMeta.allow_response_editing ?? true,
+      enable_prefill: formMeta.enable_prefill ?? true,
+      allow_edits_until: cleanEditsUntil ? cleanEditsUntil : null,
+      fields: builderFields.map((f, idx) => {
+        const isRealDbId = typeof f.id === 'number' && f.id > 0 && f.id < 2000000000;
+        return {
+          ...(isRealDbId ? { id: f.id } : {}),
+          label: f.label,
+          type: f.type,
+          placeholder: f.placeholder || '',
+          description: f.description || '',
+          is_required: !!f.is_required,
+          options: f.options || [],
+          rows: f.rows || [],
+          min_value: f.min_value ?? null,
+          max_value: f.max_value ?? null,
+          conditional_logic: f.conditional_logic || {},
+          validation_rules: f.validation_rules || {},
+          order: idx + 1,
+        };
+      }),
     };
 
-    const existingForm = publishedForms.find(
-      (f) => (formMeta.id && f.id === formMeta.id) || (formMeta.slug && f.slug === formMeta.slug) || f.slug === slug
-    );
-    const isExisting = !!(formMeta.id || existingForm);
-    const targetSlug = formMeta.slug || existingForm?.slug || slug;
+    const lookupSlug = formMeta.originalSlug || formMeta.slug || slug;
+    const isExistingForm =
+      (typeof formMeta.id === 'number' && formMeta.id > 0) ||
+      !!formMeta.originalSlug ||
+      publishedForms.some((f) => f.slug === lookupSlug && f.id !== undefined);
 
     try {
       let saved: Form;
-      if (isExisting) {
-        saved = await fetchApi<Form>(`/forms/${targetSlug}/`, {
+      if (isExistingForm) {
+        // Form is already registered in backend: perform PUT update directly
+        saved = await fetchApi<Form>(`/forms/${lookupSlug}/`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
+        // Brand new form: ensure slug is unique before POST
+        let uniqueSlug = slug;
+        if (publishedForms.some((f) => f.slug === uniqueSlug)) {
+          uniqueSlug = `${slug}-${Date.now().toString(36).slice(-4)}`;
+        }
+        const createPayload = { ...payload, slug: uniqueSlug };
+
         try {
           saved = await fetchApi<Form>('/forms/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(createPayload),
           });
         } catch (postErr: any) {
-          // If slug collision occurs on backend, seamlessly update existing form
-          if (postErr?.message?.includes('slug') || postErr?.error?.includes('slug') || postErr?.status === 400) {
-            saved = await fetchApi<Form>(`/forms/${targetSlug}/`, {
-              method: 'PUT',
+          const errMsg = String(postErr?.message || '').toLowerCase();
+          if (
+            errMsg.includes('slug') ||
+            errMsg.includes('already exists') ||
+            errMsg.includes('unique')
+          ) {
+            // Slug collision on new form: append random suffix and retry POST
+            const fallbackSlug = `${slug}-${Date.now().toString(36).slice(-4)}`;
+            saved = await fetchApi<Form>('/forms/', {
+              method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
+              body: JSON.stringify({ ...createPayload, slug: fallbackSlug }),
             });
           } else {
             throw postErr;
@@ -419,18 +526,35 @@ export function useAdminData() {
         }
       }
 
-      setFormMeta((prev) => ({
-        ...prev,
+      const updatedMeta = {
         id: saved.id,
+        originalSlug: saved.slug,
         slug: saved.slug,
-        title: saved.title || prev.title,
+        title: saved.title || formMeta.title,
         description: saved.description || '',
         category: saved.category || 'General',
         image_url: saved.image_url || '',
         status: saved.status,
+        version: saved.version || (formMeta.version ? formMeta.version + 1 : 1),
         open_at: saved.open_at || '',
         close_at: saved.close_at || '',
-      }));
+        allow_multiple_responses: saved.allow_multiple_responses ?? false,
+        allow_response_editing: saved.allow_response_editing ?? true,
+        enable_prefill: saved.enable_prefill ?? true,
+        allow_edits_until: saved.allow_edits_until || '',
+      };
+
+      const updatedFields: FormField[] =
+        saved.fields && saved.fields.length > 0
+          ? saved.fields.map((f, i) => ({ ...f, order: f.order ?? i + 1 }))
+          : builderFields;
+
+      setFormMeta(updatedMeta);
+      setBuilderFields(updatedFields);
+      setSavedCheckpoint({
+        formMeta: JSON.parse(JSON.stringify(updatedMeta)),
+        builderFields: JSON.parse(JSON.stringify(updatedFields)),
+      });
 
       // Update URL without reload so future saves will maintain the slug
       if (typeof window !== 'undefined' && window.history) {
@@ -451,9 +575,11 @@ export function useAdminData() {
           : finalStatus === 'SCHEDULED'
           ? 'scheduled for automatic launch'
           : 'saved to database as draft';
-      toast.success('Form Saved', `Form "${saved.title}" successfully ${statusMsg}!`);
+      toast.success('Form Saved', `Form "${saved.title}" (v${saved.version || 1}) ${statusMsg}!`);
       return saved;
     } catch (err: any) {
+      console.error('[Save Form Error]:', err);
+      toast.error('Form Save Failed', err?.message || 'Unable to save form to server. Showing local preview.');
       const fallbackForm: Form = {
         id: formMeta.id || Date.now(),
         title: formMeta.title,
@@ -471,7 +597,6 @@ export function useAdminData() {
         fallbackForm,
         ...prev.filter((item) => item.slug !== fallbackForm.slug && item.id !== fallbackForm.id),
       ]);
-      toast.info('Saved Offline', `Form "${formMeta.title}" saved locally (${finalStatus})`);
       return fallbackForm;
     }
   };
@@ -489,6 +614,7 @@ export function useAdminData() {
       });
       setPublishedForms((prev) => prev.map((f) => (f.slug === formSlug ? { ...f, ...updated } : f)));
       toast.success('Status Updated', `Form status transitioned to ${action.toUpperCase()}`);
+      refetchAll(true);
       return updated;
     } catch (err: any) {
       // Optimistic local-only fallback (offline/unreachable backend) — the
@@ -547,19 +673,27 @@ export function useAdminData() {
         body: JSON.stringify({ answers: answersPayload }),
       });
       persisted = true;
-      // Increment response count
-      setPublishedForms((prev) =>
-        prev.map((f) => (f.id === selectedClosedForm.id ? { ...f, response_count: (f.response_count || 0) + 1 } : f))
-      );
+      refetchAll(true);
     } catch (err: any) {
       toast.error('Not Saved to Server', err?.message || `Could not record this entry for "${selectedClosedForm.title}" — showing an unsaved local preview only.`);
     }
 
+    let foundName = '';
+    let foundEmail = '';
+    selectedClosedForm.fields?.forEach((f) => {
+      const val = manualEntryAnswers[f.id] || manualEntryAnswers[String(f.id)] || manualEntryAnswers[f.label];
+      if (val) {
+        const lbl = f.label.toLowerCase();
+        if (!foundName && (lbl.includes('name') || f.type === 'TEXT')) foundName = String(val);
+        if (!foundEmail && (lbl.includes('email') || f.type === 'EMAIL')) foundEmail = String(val);
+      }
+    });
+
     const newSub: FormSubmissionRecord = {
       id: Date.now(),
       formTitle: selectedClosedForm.title,
-      submitterName: (manualEntryAnswers['Name'] || manualEntryAnswers['Full Name'] || 'Offline Candidate') + ' (Admin Override)',
-      submitterEmail: manualEntryAnswers['Email'] || manualEntryAnswers['College Email'] || 'offline@srkr.ac.in',
+      submitterName: (foundName || manualEntryAnswers['Name'] || manualEntryAnswers['Full Name'] || 'Offline Candidate') + ' (Admin Override)',
+      submitterEmail: foundEmail || manualEntryAnswers['Email'] || manualEntryAnswers['College Email'] || 'offline@srkr.ac.in',
       submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       answers: manualEntryAnswers,
       isManualAdminEntry: true,
@@ -630,6 +764,8 @@ export function useAdminData() {
     handleEditFormInBuilder,
     loadFormBySlug,
     resetNewForm,
+    handleResetBuilder,
+    hasSavedCheckpoint: !!savedCheckpoint,
     isPreviewMode,
     setIsPreviewMode,
     previewAnswers,
@@ -638,6 +774,16 @@ export function useAdminData() {
     setShowTestDataModal,
     submittedTestData,
     handleTestPreviewSubmit,
+
+    // Loading States & Live Sync
+    isLoadingForms,
+    isLoadingUsers,
+    isLoadingSubmissions,
+    isLoadingAuditLogs,
+    isLoadingFlags,
+    isLoadingBuilder,
+    refetchForms,
+    refetchAll,
 
     showManualEntryModal,
     setShowManualEntryModal,

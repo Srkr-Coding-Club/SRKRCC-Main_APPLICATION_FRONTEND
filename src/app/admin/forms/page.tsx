@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic';
 export default function AdminManageFormsPage() {
   const {
     publishedForms,
+    isLoadingForms,
+    refetchForms,
     showManualEntryModal,
     setShowManualEntryModal,
     selectedClosedForm,
@@ -27,6 +29,8 @@ export default function AdminManageFormsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <FormsRegistryTab
           forms={publishedForms}
+          isLoading={isLoadingForms}
+          onRefresh={refetchForms}
           onSwitchSubtab={switchSubtab}
           onStatusTransition={handleFormStatusTransition}
           onEditInBuilder={handleEditFormInBuilder}

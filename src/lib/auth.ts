@@ -10,6 +10,10 @@ export interface AuthUser {
   roll_number?: string;
   branch?: string;
   year?: number | string;
+  phone_number?: string;
+  phone?: string;
+  github_profile?: string;
+  linkedin_profile?: string;
 }
 
 export interface AuthTokens {
@@ -64,11 +68,9 @@ export function isAdminOrLead(): boolean {
   return role === 'ADMIN' || role === 'CLUB_LEAD';
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
-
 /**
  * Log in securely via Next.js BFF Route: POST /api/auth/login
- * Tokens are securely stored in HttpOnly cookies by the server.
+ * Tokens are securely stored exclusively in HttpOnly cookies by the server.
  */
 export async function loginUser(email: string, password: string): Promise<{ user: AuthUser }> {
   const res = await fetch('/api/auth/login', {
@@ -95,10 +97,15 @@ export async function loginUser(email: string, password: string): Promise<{ user
 }
 
 /**
- * Register user via Django backend: POST /api/auth/register/
+ * Register user via BFF proxy: POST /api/proxy/auth/register/
  */
 export async function registerUser(payload: Record<string, any>): Promise<any> {
-  const res = await fetch(`${API_BASE_URL}/auth/register/`, {
+  const isClient = typeof window !== 'undefined';
+  const url = isClient
+    ? '/api/proxy/auth/register/'
+    : `${(process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '')}/auth/register/`;
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -118,17 +125,32 @@ export async function registerUser(payload: Record<string, any>): Promise<any> {
   return await res.json();
 }
 
+let activeRefreshPromise: Promise<boolean> | null = null;
+
 /**
  * Refresh access token securely via Next.js BFF Route: POST /api/auth/refresh
+ * Uses singleton promise to deduplicate concurrent refresh requests across tabs/components.
  */
 export async function refreshAccessToken(): Promise<boolean> {
-  try {
-    const res = await fetch('/api/auth/refresh', {
-      method: 'POST',
-    });
-
-    return res.ok;
-  } catch {
-    return false;
+  if (activeRefreshPromise) {
+    return activeRefreshPromise;
   }
+
+  activeRefreshPromise = (async () => {
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      return res.ok;
+    } catch {
+      return false;
+    } finally {
+      activeRefreshPromise = null;
+    }
+  })();
+
+  return activeRefreshPromise;
 }

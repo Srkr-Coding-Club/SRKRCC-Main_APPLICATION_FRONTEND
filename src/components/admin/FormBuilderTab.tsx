@@ -33,9 +33,13 @@ import {
   Move,
   MousePointerClick,
   Undo2,
+  RotateCcw,
+  Save,
 } from 'lucide-react';
 import { Form, FormField, ValidationRules } from '@/lib/types';
 import { hasConstraintOptions, hasActiveValidation, getConstraintHint } from '@/lib/formValidation';
+import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 
 interface TypeMeta {
   label: string;
@@ -82,14 +86,20 @@ interface FormBuilderTabProps {
   isPreviewMode: boolean;
   setIsPreviewMode: (val: boolean) => void;
   formMeta: {
+    id?: number | string;
     title: string;
     slug: string;
     description: string;
     image_url: string;
     category: string;
     status: Form['status'];
+    version?: number;
     open_at: string;
     close_at: string;
+    allow_multiple_responses?: boolean;
+    allow_response_editing?: boolean;
+    max_responses_per_user?: number;
+    allow_edits_until?: string;
   };
   setFormMeta: React.Dispatch<React.SetStateAction<any>>;
   builderFields: FormField[];
@@ -100,6 +110,8 @@ interface FormBuilderTabProps {
   onRemoveField: (id: number | string) => void;
   onFieldChange: (id: number | string, key: keyof FormField, value: any) => void;
   onSaveForm: (status?: Form['status'], scheduleOptions?: { open_at?: string; close_at?: string }) => void;
+  onResetForm?: () => void;
+  hasSavedCheckpoint?: boolean;
   previewAnswers: Record<string, any>;
   setPreviewAnswers: (val: any) => void;
   onTestPreviewSubmit: (e: React.FormEvent) => void;
@@ -118,6 +130,8 @@ export function FormBuilderTab({
   onRemoveField,
   onFieldChange,
   onSaveForm,
+  onResetForm,
+  hasSavedCheckpoint,
   previewAnswers,
   setPreviewAnswers,
   onTestPreviewSubmit,
@@ -263,110 +277,26 @@ export function FormBuilderTab({
             <span>{isPreviewMode ? 'Exit Preview' : 'Live Preview'}</span>
           </button>
 
-          {/* Save Draft */}
+          {/* Reset Button */}
           <button
-            onClick={() => onSaveForm('DRAFT')}
-            className="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-300 dark:border-slate-700 transition"
+            onClick={onResetForm}
+            className="px-3.5 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 font-bold text-xs border border-rose-200 dark:border-rose-800/40 transition flex items-center gap-1.5"
+            title={formMeta.id ? "Reset form back to last saved checkpoint" : "Reset to blank form"}
           >
-            Save Draft
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset</span>
           </button>
 
-          {/* Schedule */}
+          {/* Save Draft / Save Changes */}
           <button
-            onClick={() => setShowScheduleModal(true)}
-            className="px-3.5 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-600 dark:text-blue-400 font-bold text-xs border border-blue-200 dark:border-blue-800/40 transition flex items-center gap-1.5"
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>{formMeta.status === 'SCHEDULED' ? 'Reschedule' : 'Schedule'}</span>
-          </button>
-
-          {/* Undo Publish if live */}
-          {isCurrentlyPublished && (
-            <button
-              onClick={() => onSaveForm('DRAFT')}
-              className="px-3.5 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-600 dark:text-amber-400 font-bold text-xs border border-amber-200 dark:border-amber-800/40 transition flex items-center gap-1.5"
-              title="Revert published form back to draft mode so submissions stop"
-            >
-              <Undo2 className="w-3.5 h-3.5" />
-              <span>Undo Publish</span>
-            </button>
-          )}
-
-          {/* Publish / Re-publish */}
-          <button
-            onClick={() => onSaveForm('PUBLISHED')}
+            onClick={() => onSaveForm(formMeta.status || 'DRAFT')}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white font-extrabold text-xs shadow-[0_4px_14px_rgba(255,122,0,0.35)] transition flex items-center gap-1.5"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{isCurrentlyPublished ? 'Re-Publish' : 'Publish Live'}</span>
+            <Save className="w-3.5 h-3.5" />
+            <span>{formMeta.id ? 'Save Changes' : 'Save Draft'}</span>
           </button>
         </div>
       </div>
-
-      {/* Scheduling Modal */}
-      {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#151722] rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-blue-500 font-bold text-base">
-                <Clock className="w-5 h-5" />
-                <h3>Schedule Form Publication Window</h3>
-              </div>
-              <button onClick={() => setShowScheduleModal(false)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500">
-              Set automated open and close datetime deadlines for <strong>{formMeta.title}</strong>:
-            </p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Open At (Start Receiving Submissions)</label>
-                <input
-                  type="datetime-local"
-                  value={scheduleOpenAt}
-                  onChange={(e) => setScheduleOpenAt(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Close At (Auto Lock Form)</label>
-                <input
-                  type="datetime-local"
-                  value={scheduleCloseAt}
-                  onChange={(e) => setScheduleCloseAt(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowScheduleModal(false)}
-                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-400"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowScheduleModal(false);
-                  onSaveForm('SCHEDULED', {
-                    open_at: scheduleOpenAt,
-                    close_at: scheduleCloseAt,
-                  });
-                }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition"
-              >
-                Save Schedule
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {isPreviewMode ? (
         <LivePreview
@@ -426,20 +356,21 @@ export function FormBuilderTab({
           {/* Canvas — right side */}
           <div className="lg:col-span-8 space-y-3">
             {/* Title & Description Card */}
-            <div className="bg-white dark:bg-[#151722] rounded-xl border-t-8 border-t-[#FF7A00] border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-3">
+            <div className="bg-white dark:bg-[#151722] rounded-2xl border-t-8 border-t-[#FF7A00] border border-slate-200 dark:border-slate-800 shadow-md p-6 space-y-4">
               <input
                 type="text"
                 value={formMeta.title}
                 onChange={(e) => setFormMeta({ ...formMeta, title: e.target.value })}
-                placeholder="Form title"
-                className="w-full text-2xl font-extrabold bg-transparent border-0 border-b-2 border-transparent focus:border-[#FF7A00] focus:outline-none text-[#1A1A2E] dark:text-white pb-2 transition-colors"
+                placeholder="Form title (e.g. IconCoders Flagship Hackathon 2026)"
+                className="w-full text-2xl sm:text-3xl font-black bg-transparent border-0 border-b-2 border-transparent focus:border-[#FF7A00] focus:outline-none text-[#1A1A2E] dark:text-white pb-2 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-600"
               />
-              <input
-                type="text"
+
+              <MarkdownEditor
+                label="Form Description & Guidelines"
                 value={formMeta.description}
-                onChange={(e) => setFormMeta({ ...formMeta, description: e.target.value })}
-                placeholder="Form description"
-                className="w-full text-sm bg-transparent border-0 border-b border-transparent focus:border-[#FF7A00] focus:outline-none text-slate-500 dark:text-slate-400 pb-2 transition-colors"
+                onChange={(v) => setFormMeta({ ...formMeta, description: v })}
+                placeholder="Write detailed guidelines, eligibility criteria, submission rules, or instructions in Markdown..."
+                minHeight="min-h-[130px]"
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -1079,18 +1010,31 @@ function LivePreview({
         </button>
       </div>
 
-      {formMeta.image_url && (
+      {formMeta.image_url ? (
         <div className="h-44 rounded-lg overflow-hidden bg-slate-900">
-          <img src={formMeta.image_url} alt={formMeta.title} className="w-full h-full object-cover" />
+          <img
+            src={
+              formMeta.image_url.startsWith('https://data:')
+                ? formMeta.image_url.replace('https://', '')
+                : formMeta.image_url
+            }
+            alt={formMeta.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
-      )}
+      ) : null}
 
       <div>
         <span className="text-[11px] font-bold uppercase px-2.5 py-0.5 rounded bg-orange-50 text-[#FF7A00]">
           {formMeta.category}
         </span>
         <h2 className="text-2xl font-extrabold text-[#1A1A2E] dark:text-white mt-2">{formMeta.title}</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{formMeta.description}</p>
+        <div className="mt-2">
+          <MarkdownRenderer content={formMeta.description} />
+        </div>
       </div>
 
       <form onSubmit={onTestPreviewSubmit} className="space-y-6">

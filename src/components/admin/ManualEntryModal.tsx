@@ -90,41 +90,12 @@ export function ManualEntryModal({
 
         {/* Form Fields for Manual Entry */}
         <form onSubmit={handleFormSubmit} className="space-y-4 max-h-[58vh] overflow-y-auto pr-1">
-          
-          {/* Base Candidate Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
-                Candidate Full Name *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="Candidate Full Name"
-                value={manualEntryAnswers['Full Name'] || manualEntryAnswers['Name'] || ''}
-                onChange={(e) => handleInputChange('Full Name', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
-              />
+          {activeFields.length === 0 ? (
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
+              This form has no configured input fields.
             </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
-                Candidate Email *
-              </label>
-              <input
-                type="email"
-                required
-                placeholder="student@srkr.ac.in"
-                value={manualEntryAnswers['College Email'] || manualEntryAnswers['Email'] || ''}
-                onChange={(e) => handleInputChange('College Email', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
-          </div>
-
-          {/* Dynamic Form-specific Fields */}
-          {activeFields.length > 0 && (
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3.5">
+          ) : (
+            <div className="space-y-3.5">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Form Fields ({activeFields.length})
               </p>

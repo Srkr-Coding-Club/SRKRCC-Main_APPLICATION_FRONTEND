@@ -950,7 +950,7 @@ function IngestStep({
           : `${idempotencyKey}-chunk-${ci}`;
 
         const res = await fetch(
-          `${API_BASE}/api/forms/${form.slug}/bulk-ingest/`,
+          `/api/proxy/forms/${form.slug}/bulk-ingest/`,
           buildAuthFetchOptions('POST', {
             rows: chunk,
             idempotency_key: chunkKey,

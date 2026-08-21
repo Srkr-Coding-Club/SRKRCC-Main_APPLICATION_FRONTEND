@@ -93,13 +93,15 @@ function ResponseDrawerContent({ response, form }: { response: ResponseDetail; f
     <div className="space-y-6">
       {/* Meta */}
       <div className="space-y-2">
-        {response.user && (
-          <div>
-            <p className="text-xs text-slate-500">Respondent</p>
-            <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{response.user.name}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{response.user.email}</p>
-          </div>
-        )}
+        <div>
+          <p className="text-xs text-slate-500">Respondent</p>
+          <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">
+            {response.user?.name || response.user_name || (response.is_manual_entry ? 'Admin Entry' : 'Anonymous Student')}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {response.user?.email || response.user_email || 'No email provided'}
+          </p>
+        </div>
         <div className="grid grid-cols-2 gap-3 pt-2">
           {[
             { label: 'Submitted', value: new Date(response.submitted_at).toLocaleString('en-IN') },
@@ -395,9 +397,16 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                           </button>
                         </td>
                         <td className="sticky left-10 z-10 bg-white dark:bg-[#151722] px-4 py-3 border-r border-slate-200 dark:border-slate-800/60 font-semibold">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2">
                             {gap && <AlertCircle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />}
-                            <span>{resp.user?.email ?? (resp.is_manual_entry ? 'Admin Entry' : 'Anonymous')}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-bold text-slate-900 dark:text-white truncate max-w-[180px]">
+                                {resp.user?.name || resp.user_name || (resp.is_manual_entry ? 'Admin Entry' : 'Anonymous Student')}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-normal truncate max-w-[180px]">
+                                {resp.user?.email || resp.user_email || 'No email'}
+                              </span>
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
