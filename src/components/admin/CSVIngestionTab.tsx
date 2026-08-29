@@ -68,7 +68,7 @@ function StepBar({ step }: { step: number }) {
                     ? 'bg-emerald-500 text-white'
                     : isActive
                     ? 'bg-orange-500 text-white shadow-[0_0_12px_rgba(249,115,22,0.5)]'
-                    : 'bg-slate-800 text-slate-500'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-500'
                 }`}
               >
                 {isDone ? <CheckCircle className="w-4 h-4" /> : i + 1}
@@ -84,7 +84,7 @@ function StepBar({ step }: { step: number }) {
             {i < STEPS.length - 1 && (
               <div
                 className={`flex-1 h-px mx-2 transition-all ${
-                  i < step ? 'bg-emerald-500' : 'bg-slate-700'
+                  i < step ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
                 }`}
               />
             )}
@@ -314,7 +314,7 @@ function UploadStep({
       </div>
 
       {parseError && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-300">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-700 dark:text-rose-300">
           <XCircle className="w-4 h-4 flex-shrink-0" />
           {parseError}
         </div>
@@ -322,7 +322,7 @@ function UploadStep({
 
       {/* Parse warnings */}
       {parsed?.warnings.map((w, i) => (
-        <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300">
+        <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-700 dark:text-amber-300">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
           {w}
         </div>
@@ -515,7 +515,7 @@ function MapColumnsStep({
                     ))}
                   </select>
                   {field && (
-                    <span className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded ${FIELD_TYPE_BADGE[field.type] ?? 'bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                    <span className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded ${FIELD_TYPE_BADGE[field.type] ?? 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-400'}`}>
                       {field.type}
                     </span>
                   )}
@@ -709,7 +709,7 @@ function ValidateStep({
     <div className="space-y-6">
       {/* Excel date note */}
       {excelDateNote && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-700 dark:text-blue-300">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
           {excelDateNote}
         </div>
@@ -734,11 +734,11 @@ function ValidateStep({
 
       {/* All duplicates */}
       {result.cleanCount === 0 && result.duplicates.length === parsed.rowCount && (
-        <div className="flex items-start gap-3 px-4 py-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-sm text-purple-300">
+        <div className="flex items-start gap-3 px-4 py-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-sm text-purple-700 dark:text-purple-300">
           <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-bold">All rows already exist in the database.</p>
-            <p className="text-[11px] text-purple-400 mt-1">Bulk update of existing responses is not supported yet. Please remove duplicate rows from your CSV and re-upload.</p>
+            <p className="text-[11px] text-purple-600 dark:text-purple-400 mt-1">Bulk update of existing responses is not supported yet. Please remove duplicate rows from your CSV and re-upload.</p>
           </div>
         </div>
       )}
@@ -1042,7 +1042,7 @@ function IngestStep({
               Importing… {Math.round((progress / 100) * validRows.length)} / {validRows.length} rows ({progress}%)
             </p>
           </div>
-          <div className="w-full bg-slate-800 rounded-full h-2">
+            <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
             <div
               className="h-2 bg-orange-500 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
