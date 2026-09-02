@@ -71,7 +71,7 @@ function WarningCard({
     <div className="flex items-start gap-4 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
       <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-amber-300">{warning.form_title}</p>
+        <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{warning.form_title}</p>
         <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{warning.message}</p>
       </div>
       <button
@@ -128,7 +128,7 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
   if (error || !data) {
     return (
       <div className="py-24 flex flex-col items-center gap-4 text-center">
-        <BarChart2 className="w-12 h-12 text-slate-700" />
+        <BarChart2 className="w-12 h-12 text-slate-400 dark:text-slate-700" />
         <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">No data yet</h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">
           {error || 'Create your first form to start tracking club data.'}
@@ -221,11 +221,11 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
           ) : (
             recent_activity.map((item, i) => (
               <div key={i} className="flex items-start gap-3 px-6 py-3.5">
-                <div className="mt-0.5 w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
+                <div className="mt-0.5 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
                   <ActivityIcon type={item.type} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-200">
+                  <p className="text-xs text-slate-700 dark:text-slate-200">
                     <span className="font-semibold text-[#1A1A2E] dark:text-white">{item.actor}</span>
                     {' '}
                     <span className="text-slate-500 dark:text-slate-400">{item.detail}</span>
