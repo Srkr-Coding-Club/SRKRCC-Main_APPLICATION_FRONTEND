@@ -7,11 +7,15 @@ export interface AuthUser {
   first_name?: string;
   last_name?: string;
   role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  club_id?: string;
+  membership_status?: string;
   roll_number?: string;
   branch?: string;
   year?: number | string;
   phone_number?: string;
   phone?: string;
+  registered_at?: string;
+  referred_by_display?: string;
   github_profile?: string;
   linkedin_profile?: string;
 }

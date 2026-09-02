@@ -245,11 +245,16 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
 
                 <Link
                   href="/profile"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[#1A1A2E] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] transition"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#1A1A2E] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] transition shadow-sm"
                   aria-label="User Profile"
                 >
                   <User className="w-3.5 h-3.5 text-[#FF7A00]" />
                   <span>{currentUser?.first_name || currentUser?.username || 'Profile'}</span>
+                  {currentUser?.club_id && (
+                    <span className="px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-[10px]">
+                      {currentUser.club_id}
+                    </span>
+                  )}
                 </Link>
               </>
             ) : (

@@ -55,9 +55,14 @@ interface FullUserProfile {
   first_name?: string;
   last_name?: string;
   role: string;
+  club_id?: string;
+  membership_status?: string;
   roll_number?: string;
   branch?: string;
   year?: number | string;
+  phone_number?: string;
+  registered_at?: string;
+  referred_by_display?: string;
   streak: number;
   points: number;
   events_count: number;
@@ -74,6 +79,7 @@ function ProfileContent() {
 
   const [profile, setProfile] = useState<FullUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copiedClubId, setCopiedClubId] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -91,9 +97,13 @@ function ProfileContent() {
         first_name: localUser.first_name,
         last_name: localUser.last_name,
         role: localUser.role || 'MEMBER',
+        club_id: localUser.club_id,
+        membership_status: localUser.membership_status || 'ACTIVE',
         roll_number: localUser.roll_number,
         branch: localUser.branch,
         year: localUser.year,
+        registered_at: localUser.registered_at,
+        referred_by_display: localUser.referred_by_display,
         streak: 0,
         points: 50,
         events_count: 0,
@@ -115,9 +125,13 @@ function ProfileContent() {
             first_name: data.first_name,
             last_name: data.last_name,
             role: data.role as any,
+            club_id: data.club_id,
+            membership_status: data.membership_status,
             roll_number: data.roll_number,
             branch: data.branch,
             year: data.year,
+            registered_at: data.registered_at,
+            referred_by_display: data.referred_by_display,
           });
         }
       })
@@ -134,15 +148,26 @@ function ProfileContent() {
     router.push('/login');
   };
 
+  const copyClubId = (clubId: string) => {
+    navigator.clipboard.writeText(clubId);
+    setCopiedClubId(true);
+    toast.success('Club ID Copied', `Copied ${clubId} to clipboard.`);
+    setTimeout(() => setCopiedClubId(false), 2000);
+  };
+
   const user = {
     name: profile
       ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username || profile.email.split('@')[0]
       : 'Developer',
     email: profile?.email || 'student@srkr.ac.in',
+    clubId: profile?.club_id || null,
+    membershipStatus: profile?.membership_status || 'ACTIVE',
     rollNumber: profile?.roll_number || '22B91A0501',
     branch: profile?.branch || 'Computer Science & Engineering',
     year: profile?.year ? `${profile.year}th Year` : '3rd Year',
     role: profile?.role || 'MEMBER',
+    registeredAt: profile?.registered_at ? new Date(profile.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+    referredBy: profile?.referred_by_display || null,
     streak: profile?.streak ?? 0,
     points: profile?.points ?? 50,
     eventsCount: profile?.events_count ?? profile?.registered_events?.length ?? 0,
@@ -157,7 +182,7 @@ function ProfileContent() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8">
         
         {/* Top Profile Header Banner */}
-        <div className="bg-white dark:bg-[#151722] rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="bg-white dark:bg-[#151722] rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] p-1 shadow-lg flex items-center justify-center">
@@ -170,14 +195,40 @@ function ProfileContent() {
               </span>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1A1A2E] dark:text-white">
                   {user.name}
                 </h1>
+                
+                {/* Official Club ID Badge */}
+                {user.clubId ? (
+                  <button
+                    onClick={() => copyClubId(user.clubId!)}
+                    title="Click to copy Club ID"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-xs hover:bg-orange-500/20 transition cursor-pointer shadow-sm"
+                  >
+                    <span>{user.clubId}</span>
+                    <span className="text-[10px] text-orange-400/80 uppercase tracking-wider">{copiedClubId ? '✓ Copied' : 'Copy'}</span>
+                  </button>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                    ID Pending
+                  </span>
+                )}
+
                 <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#8B2E3B] text-white">
                   {user.role}
                 </span>
+
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                  user.membershipStatus === 'ACTIVE'
+                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400'
+                }`}>
+                  {user.membershipStatus}
+                </span>
+
                 {loading && (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-400" />
                 )}
@@ -187,9 +238,15 @@ function ProfileContent() {
                 {user.rollNumber} • {user.branch} ({user.year})
               </p>
 
-              <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">
-                {user.email}
-              </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400 dark:text-slate-500">
+                <span className="font-mono">{user.email}</span>
+                {user.registeredAt && (
+                  <span>• Member since <strong>{user.registeredAt}</strong></span>
+                )}
+                {user.referredBy && (
+                  <span>• Onboarded by <strong>{user.referredBy}</strong></span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -221,6 +278,31 @@ function ProfileContent() {
             </button>
           </div>
         </div>
+
+        {/* Club Membership & Referral Share Banner */}
+        {user.clubId && (
+          <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/5 rounded-2xl p-5 border border-orange-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 font-bold">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#1A1A2E] dark:text-white">
+                  Official SRKR Coding Club ID: <span className="font-mono text-orange-400 font-black">{user.clubId}</span>
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Share your unique Club ID with peers when they register for club events, workshops, and hackathons.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => copyClubId(user.clubId!)}
+              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 transition whitespace-nowrap"
+            >
+              {copiedClubId ? '✓ Copied to Clipboard' : 'Copy Club ID'}
+            </button>
+          </div>
+        )}
 
         {authError === 'admin_access_required' && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3 text-left">

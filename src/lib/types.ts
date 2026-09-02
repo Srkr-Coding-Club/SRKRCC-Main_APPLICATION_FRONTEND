@@ -14,9 +14,17 @@ export interface User {
   first_name: string;
   last_name: string;
   role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  club_id?: string;
+  membership_status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI' | 'PENDING';
   roll_number?: string;
   branch?: string;
   year?: number;
+  phone_number?: string;
+  registered_at?: string;
+  referred_by_display?: string;
+  referred_by_raw?: string;
+  created_from?: string;
+  created_at?: string;
 }
 
 export interface Event {

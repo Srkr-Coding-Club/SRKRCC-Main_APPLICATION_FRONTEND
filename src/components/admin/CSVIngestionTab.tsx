@@ -13,17 +13,24 @@ import {
   Download,
   RefreshCw,
   Loader2,
-  Copy,
+  Users,
+  Layers,
+  Sparkles,
+  ShieldCheck,
+  Mail,
+  Send,
 } from 'lucide-react';
 import { Form, FormField, BulkIngestResult, IngestError, DuplicateRecord } from '@/lib/types';
-import { formatFileSize, downloadCSV, generateIdempotencyKey, buildAuthFetchOptions } from '@/lib/dataManagement';
+import { formatFileSize, downloadCSV, generateIdempotencyKey } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
 import { API_BASE } from '@/lib/constants';
 import { useToast } from '@/context/ToastContext';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types & Domain Schemas
 // ---------------------------------------------------------------------------
+
+export type IngestionMode = 'MEMBER_BACKUP' | 'FORM_SUBMISSION';
 
 interface ParsedCSV {
   headers: string[];
@@ -34,8 +41,28 @@ interface ParsedCSV {
 
 interface ColumnMapping {
   csvHeader: string;
-  fieldId: string; // '' = ignore, field.id as string otherwise
+  fieldId: string; // '' = ignore, field.id as string or member field key
 }
+
+interface MemberFieldDef {
+  key: string;
+  label: string;
+  required?: boolean;
+  type: string;
+  synonyms: string[];
+}
+
+const MEMBER_DIRECTORY_FIELDS: MemberFieldDef[] = [
+  { key: 'email', label: 'Email Address', required: true, type: 'EMAIL', synonyms: ['email', 'e-mail', 'mail', 'email address', 'student email'] },
+  { key: 'full_name', label: 'Full Name', required: false, type: 'TEXT', synonyms: ['full name', 'fullname', 'name', 'student name', 'member name'] },
+  { key: 'phone_number', label: 'Phone Number', required: false, type: 'PHONE', synonyms: ['phone number', 'phone', 'mobile', 'contact', 'whatsapp'] },
+  { key: 'branch', label: 'Branch / Dept', required: false, type: 'DROPDOWN', synonyms: ['branch', 'department', 'dept', 'course', 'stream'] },
+  { key: 'roll_number', label: 'Roll Number', required: false, type: 'TEXT', synonyms: ['roll number', 'roll no', 'rollno', 'reg no'] },
+  { key: 'club_id', label: 'Club ID (e.g. 25SCC277)', required: false, type: 'TEXT', synonyms: ['club id', 'clubid', 'member id', 'membership id', 'affiliate id', 'scc id'] },
+  { key: 'referred_by', label: 'Referred By / Member', required: false, type: 'TEXT', synonyms: ['member', 'referred by', 'referrer', 'onboarded by', 'lead'] },
+  { key: 'registered_at', label: 'Registration Date', required: false, type: 'DATE', synonyms: ['registration date', 'reg date', 'date', 'joining date', 'joined date'] },
+  { key: 'membership_status', label: 'Membership Status', required: false, type: 'DROPDOWN', synonyms: ['status', 'membership status', 'state'] },
+];
 
 type ValidationError = { row: number; column: string; value: string; error: string };
 type ValidationWarning = { row: number; column: string; issue: string };
@@ -47,11 +74,38 @@ interface ValidationResult {
   cleanCount: number;
 }
 
+interface MemberImportPreviewResponse {
+  job_id: string;
+  filename: string;
+  headers: string[];
+  mapping: Record<string, string>;
+  total_rows: number;
+  valid_rows: number;
+  conflict_rows: number;
+  new_users_count: number;
+  updated_users_count: number;
+  preview_sample: {
+    row_index: number;
+    email: string;
+    full_name: string;
+    phone_number: string;
+    branch: string;
+    club_id: string;
+    referred_by: string;
+    is_referral_ambiguous?: boolean;
+    registered_at: string;
+    membership_status: string;
+    action: 'CREATE' | 'UPDATE' | 'ERROR';
+    errors: string[];
+    is_valid: boolean;
+  }[];
+}
+
 // ---------------------------------------------------------------------------
-// Step stepper bar
+// Step Bar
 // ---------------------------------------------------------------------------
 
-const STEPS = ['Upload', 'Map Columns', 'Validate', 'Ingest'] as const;
+const STEPS = ['Upload', 'Map Columns', 'Validate & Preview', 'Ingest & Automate'] as const;
 
 function StepBar({ step }: { step: number }) {
   return (
@@ -100,7 +154,6 @@ function StepBar({ step }: { step: number }) {
 // ---------------------------------------------------------------------------
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function similarity(a: string, b: string): number {
   a = a.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -114,7 +167,6 @@ function similarity(a: string, b: string): number {
 async function parseFileToCSV(file: File): Promise<ParsedCSV> {
   const warnings: string[] = [];
 
-  // Excel support
   if (file.name.match(/\.(xlsx|xls)$/i)) {
     const XLSX = await import('xlsx');
     const buffer = await file.arrayBuffer();
@@ -125,7 +177,6 @@ async function parseFileToCSV(file: File): Promise<ParsedCSV> {
     return parseCSVString(csvString, warnings);
   }
 
-  // Plain CSV
   return new Promise((resolve) => {
     Papa.parse<Record<string, string>>(file, {
       header: true,
@@ -156,7 +207,6 @@ function postProcessParsed(
   originalHeaders: string[],
   warnings: string[]
 ): ParsedCSV {
-  // Detect duplicate column names and rename
   const seenHeaders: Record<string, number> = {};
   const finalHeaders: string[] = [];
   const renamedCols: string[] = [];
@@ -176,18 +226,6 @@ function postProcessParsed(
     warnings.push(`Duplicate column names renamed: ${renamedCols.join(', ')}`);
   }
 
-  // Check if first row looks like data (all values are numbers/dates — no headers)
-  if (rows.length > 0) {
-    const firstRowValues = Object.values(rows[0]);
-    const looksLikeData = firstRowValues.every((v) => {
-      const n = Number(v);
-      return !isNaN(n) || !isNaN(Date.parse(v));
-    });
-    if (looksLikeData && firstRowValues.length > 0) {
-      warnings.push('CSV appears to have no header row. First row is being treated as data.');
-    }
-  }
-
   return {
     headers: finalHeaders,
     rows,
@@ -197,26 +235,33 @@ function postProcessParsed(
 }
 
 // ---------------------------------------------------------------------------
-// Step 1: Upload
+// Step 1: Upload & Target Selection
 // ---------------------------------------------------------------------------
 
 function UploadStep({
   forms,
+  mode,
+  setMode,
+  selectedForm,
+  setSelectedForm,
   onComplete,
 }: {
   forms: Form[];
-  onComplete: (parsed: ParsedCSV, file: File, form: Form) => void;
+  mode: IngestionMode;
+  setMode: (m: IngestionMode) => void;
+  selectedForm: Form | null;
+  setSelectedForm: (f: Form | null) => void;
+  onComplete: (parsed: ParsedCSV, file: File) => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [parsed, setParsed] = useState<ParsedCSV | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [selectedFormId, setSelectedFormId] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const availableForms = forms.filter((f) =>
-    f.status === 'PUBLISHED' || f.status === 'CLOSED'
+  const availableForms = forms.filter(
+    (f) => f.status === 'PUBLISHED' || f.status === 'CLOSED'
   );
 
   const handleFile = useCallback(async (f: File) => {
@@ -229,14 +274,14 @@ function UploadStep({
     try {
       const result = await parseFileToCSV(f);
       if (result.rowCount === 0) {
-        setParseError('CSV has no data rows after the header.');
+        setParseError('File has no data rows after the header.');
         setParsing(false);
         return;
       }
       setFile(f);
       setParsed(result);
-    } catch (e) {
-      setParseError('Could not parse the file. Try saving as UTF-8 CSV from Excel.');
+    } catch {
+      setParseError('Could not parse the file. Try saving as UTF-8 CSV or XLSX.');
     }
     setParsing(false);
   }, []);
@@ -251,17 +296,63 @@ function UploadStep({
     [handleFile]
   );
 
-  const selectedForm = availableForms.find((f) => String(f.id) === selectedFormId);
+  const canProceed = Boolean(parsed && file && (mode === 'MEMBER_BACKUP' || selectedForm));
 
   return (
     <div className="space-y-6">
-      {/* Drag and drop zone */}
+      {/* Target Selector */}
+      <div className="bg-slate-50 dark:bg-[#151722] p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-1.5">
+        <button
+          type="button"
+          onClick={() => {
+            setMode('MEMBER_BACKUP');
+            setSelectedForm(null);
+          }}
+          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all ${
+            mode === 'MEMBER_BACKUP'
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Club Member Directory (Backup Data)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('FORM_SUBMISSION')}
+          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all ${
+            mode === 'FORM_SUBMISSION'
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Dynamic Form Submissions</span>
+        </button>
+      </div>
+
+      {mode === 'MEMBER_BACKUP' && (
+        <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-start gap-3 text-xs text-orange-900 dark:text-orange-200">
+          <Sparkles className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold">Member Master Directory Mode</p>
+            <p className="text-slate-600 dark:text-slate-400 mt-0.5">
+              Directly imports member profiles with full fidelity: Name, Email, Phone, Branch, Club ID (e.g. 25SCC277), Referral Source (e.g. Ankith), and Legacy Registration Date. No form ID required!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Drag & Drop Zone */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
+        className={`relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
           isDragging
             ? 'border-orange-500 bg-orange-500/5 scale-[1.01]'
             : parsed
@@ -294,7 +385,11 @@ function UploadStep({
               </p>
             </div>
             <button
-              onClick={(e) => { e.stopPropagation(); setParsed(null); setFile(null); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setParsed(null);
+                setFile(null);
+              }}
               className="text-xs text-slate-500 hover:text-slate-600 dark:text-slate-300 underline"
             >
               Choose different file
@@ -302,12 +397,14 @@ function UploadStep({
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center">
-              <Upload className="w-8 h-8 text-orange-400" />
+            <div className="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center">
+              <Upload className="w-7 h-7 text-orange-400" />
             </div>
             <div>
               <p className="text-base font-bold text-[#1A1A2E] dark:text-white">Drop your CSV or Excel file here</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">or click to browse · .csv, .xlsx, .xls · max 10 MB</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Supports .csv and .xlsx spreadsheets · up to 10 MB
+              </p>
             </div>
           </div>
         )}
@@ -320,20 +417,36 @@ function UploadStep({
         </div>
       )}
 
-      {/* Parse warnings */}
-      {parsed?.warnings.map((w, i) => (
-        <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-700 dark:text-amber-300">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          {w}
+      {/* Form selector for Form Submissions Mode */}
+      {mode === 'FORM_SUBMISSION' && parsed && (
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Target Form Selection
+          </label>
+          <select
+            value={selectedForm ? String(selectedForm.id) : ''}
+            onChange={(e) => {
+              const found = availableForms.find((f) => String(f.id) === e.target.value);
+              setSelectedForm(found || null);
+            }}
+            className="w-full px-4 py-3 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
+          >
+            <option value="">Select target form…</option>
+            {availableForms.map((f) => (
+              <option key={f.id} value={String(f.id)}>
+                {f.title} ({f.status})
+              </option>
+            ))}
+          </select>
         </div>
-      ))}
+      )}
 
       {/* Preview table */}
       {parsed && parsed.rows.length > 0 && (
         <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Preview (first 5 rows)
+              Uploaded Sample Preview (first 5 rows)
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -363,33 +476,12 @@ function UploadStep({
         </div>
       )}
 
-      {/* Form selector */}
-      {parsed && (
-        <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Which form is this data for?
-          </label>
-          <select
-            value={selectedFormId}
-            onChange={(e) => setSelectedFormId(e.target.value)}
-            className="w-full px-4 py-3 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
-          >
-            <option value="">Select a form…</option>
-            {availableForms.map((f) => (
-              <option key={f.id} value={String(f.id)}>
-                {f.title} ({f.status})
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
       <button
-        disabled={!parsed || !selectedForm}
+        disabled={!canProceed}
         onClick={() => {
-          if (parsed && selectedForm) onComplete(parsed, file!, selectedForm);
+          if (parsed && file) onComplete(parsed, file);
         }}
-        className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2 transition"
+        className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-orange-500/20"
       >
         Next: Map Columns <ChevronRight className="w-4 h-4" />
       </button>
@@ -403,30 +495,52 @@ function UploadStep({
 
 function MapColumnsStep({
   parsed,
+  mode,
   form,
   onBack,
   onComplete,
 }: {
   parsed: ParsedCSV;
-  form: Form;
+  mode: IngestionMode;
+  form: Form | null;
   onBack: () => void;
   onComplete: (mappings: ColumnMapping[]) => void;
 }) {
-  const fields = form.fields?.filter((f) => f.type !== 'SECTION') ?? [];
+  const formFields = form?.fields?.filter((f) => f.type !== 'SECTION') ?? [];
 
-  const initMappings = (): ColumnMapping[] =>
-    parsed.headers.map((header) => {
-      let bestField = '';
-      let bestScore = 0;
-      for (const f of fields) {
-        const score = similarity(header, f.label);
-        if (score > 0.6 && score > bestScore) {
-          bestScore = score;
-          bestField = String(f.id);
+  const initMappings = (): ColumnMapping[] => {
+    return parsed.headers.map((header) => {
+      const cleanHeader = header.trim().toLowerCase();
+
+      if (mode === 'MEMBER_BACKUP') {
+        let bestKey = '';
+        let bestScore = 0;
+        for (const def of MEMBER_DIRECTORY_FIELDS) {
+          if (cleanHeader === def.key || def.synonyms.includes(cleanHeader)) {
+            bestKey = def.key;
+            break;
+          }
+          const score = similarity(cleanHeader, def.label);
+          if (score > 0.6 && score > bestScore) {
+            bestScore = score;
+            bestKey = def.key;
+          }
         }
+        return { csvHeader: header, fieldId: bestKey };
+      } else {
+        let bestField = '';
+        let bestScore = 0;
+        for (const f of formFields) {
+          const score = similarity(header, f.label);
+          if (score > 0.6 && score > bestScore) {
+            bestScore = score;
+            bestField = String(f.id);
+          }
+        }
+        return { csvHeader: header, fieldId: bestField };
       }
-      return { csvHeader: header, fieldId: bestField };
     });
+  };
 
   const [mappings, setMappings] = useState<ColumnMapping[]>(initMappings);
 
@@ -436,120 +550,88 @@ function MapColumnsStep({
     );
   };
 
-  const requiredFieldIds = new Set(fields.filter((f) => f.is_required).map((f) => String(f.id)));
-  const mappedFieldIds = new Set(mappings.map((m) => m.fieldId).filter(Boolean));
-  const unmappedRequired = [...requiredFieldIds].filter((id) => !mappedFieldIds.has(id));
-
-  const FIELD_TYPE_BADGE: Record<string, string> = {
-    TEXT: 'bg-blue-500/20 text-blue-400',
-    EMAIL: 'bg-emerald-500/20 text-emerald-400',
-    NUMBER: 'bg-purple-500/20 text-purple-400',
-    PARAGRAPH: 'bg-blue-400/20 text-blue-300',
-    DROPDOWN: 'bg-amber-500/20 text-amber-400',
-    RADIO: 'bg-orange-500/20 text-orange-400',
-    CHECKBOX: 'bg-orange-400/20 text-orange-300',
-    DATE: 'bg-indigo-500/20 text-indigo-400',
-    TIME: 'bg-indigo-400/20 text-indigo-300',
-    PHONE: 'bg-purple-400/20 text-purple-300',
-    URL: 'bg-cyan-500/20 text-cyan-400',
-    RATING: 'bg-yellow-500/20 text-yellow-400',
-    FILE: 'bg-rose-500/20 text-rose-400',
-    SIGNATURE: 'bg-rose-400/20 text-rose-300',
-  };
-
-  // Check for FILE/SIGNATURE required fields
-  const hasBlockingFields = fields.some(
-    (f) => f.is_required && (f.type === 'FILE' || f.type === 'MULTI_FILE' || f.type === 'SIGNATURE')
-  );
-
-  const ignoredCount = mappings.filter((m) => m.fieldId === 'IGNORE').length;
-  const mappedCount = mappings.filter((m) => m.fieldId && m.fieldId !== 'IGNORE').length;
+  const emailMapped = mode === 'MEMBER_BACKUP'
+    ? mappings.some((m) => m.fieldId === 'email')
+    : true;
 
   return (
     <div className="space-y-6">
-      {hasBlockingFields && (
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-300">
-          <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span>
-            FILE and SIGNATURE fields cannot be imported via CSV. Map them to "Ignore" to proceed.
-          </span>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
+            {mode === 'MEMBER_BACKUP' ? 'Map Member Directory Fields' : 'Map Form Columns'}
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Match columns from your spreadsheet to the corresponding target fields.
+          </p>
         </div>
-      )}
+      </div>
 
       <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="grid grid-cols-2 gap-0 border-b border-slate-200 dark:border-slate-800 px-4 py-3 bg-[#FAFAFC] dark:bg-[#0f0f1a]">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">CSV Column</p>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Form Field</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Spreadsheet Column</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Target Field</p>
         </div>
         <div className="divide-y divide-slate-200 dark:divide-slate-800/60">
-          {mappings.map((mapping) => {
-            const field = fields.find((f) => String(f.id) === mapping.fieldId);
-            const isRequiredUnmapped = mapping.fieldId === '' && requiredFieldIds.size > 0;
-            return (
-              <div
-                key={mapping.csvHeader}
-                className={`grid grid-cols-2 gap-4 px-4 py-3 items-center ${
-                  field?.is_required ? 'border-l-2 border-l-amber-500' : ''
-                }`}
-              >
-                <div>
-                  <p className="text-sm font-semibold text-[#1A1A2E] dark:text-white">{mapping.csvHeader}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    {parsed.rows[0]?.[mapping.csvHeader] ?? ''}
-                  </p>
-                </div>
-                <div>
-                  <select
-                    value={mapping.fieldId}
-                    onChange={(e) => setMapping(mapping.csvHeader, e.target.value)}
-                    className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:border-orange-500/60 bg-[#FAFAFC] dark:bg-[#0f0f1a] text-[#1A1A2E] dark:text-white ${
-                      isRequiredUnmapped ? 'border-amber-500/40' : 'border-slate-300 dark:border-slate-700'
-                    }`}
-                  >
-                    <option value="">— Not Mapped —</option>
-                    <option value="IGNORE">🚫 Ignore this column</option>
-                    {fields.map((f) => (
-                      <option key={f.id} value={String(f.id)}>
-                        {f.label} {f.is_required ? '*' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {field && (
-                    <span className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded ${FIELD_TYPE_BADGE[field.type] ?? 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-400'}`}>
-                      {field.type}
-                    </span>
-                  )}
-                </div>
+          {mappings.map((mapping) => (
+            <div
+              key={mapping.csvHeader}
+              className="grid grid-cols-2 gap-4 px-4 py-3 items-center"
+            >
+              <div>
+                <p className="text-sm font-semibold text-[#1A1A2E] dark:text-white">{mapping.csvHeader}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Sample: {parsed.rows[0]?.[mapping.csvHeader] ?? '—'}
+                </p>
               </div>
-            );
-          })}
+
+              <div>
+                <select
+                  value={mapping.fieldId}
+                  onChange={(e) => setMapping(mapping.csvHeader, e.target.value)}
+                  className="w-full px-3 py-2 bg-[#FAFAFC] dark:bg-[#0f0f1a] border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
+                >
+                  <option value="">— Ignore column —</option>
+                  {mode === 'MEMBER_BACKUP' ? (
+                    MEMBER_DIRECTORY_FIELDS.map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label} {f.required ? '(Required)' : ''}
+                      </option>
+                    ))
+                  ) : (
+                    formFields.map((f) => (
+                      <option key={f.id} value={String(f.id)}>
+                        {f.label} {f.is_required ? '(Required)' : ''}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 px-1">
-        <span className="text-emerald-400">✓ {mappedCount} mapped</span>
-        {unmappedRequired.length > 0 && (
-          <span className="text-amber-400">⚠ {unmappedRequired.length} required unmapped</span>
-        )}
-        {ignoredCount > 0 && (
-          <span className="text-slate-500">— {ignoredCount} ignored</span>
-        )}
-      </div>
+      {!emailMapped && mode === 'MEMBER_BACKUP' && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 font-semibold">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          Email Address is required to create member records. Please map one column to "Email Address".
+        </div>
+      )}
 
       <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition"
+          className="flex-1 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
         <button
-          disabled={unmappedRequired.length > 0 || hasBlockingFields}
+          disabled={!emailMapped}
           onClick={() => onComplete(mappings)}
-          className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2 transition"
+          className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-orange-500/20"
         >
-          Next: Validate <ChevronRight className="w-4 h-4" />
+          Next: Validate & Preview <ChevronRight className="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -557,559 +639,191 @@ function MapColumnsStep({
 }
 
 // ---------------------------------------------------------------------------
-// Step 3: Validate
+// Step 3: Validate & Preview Snapshot
 // ---------------------------------------------------------------------------
 
-function ValidateStep({
+function ValidateAndPreviewStep({
+  file,
   parsed,
   mappings,
+  mode,
   form,
   onBack,
-  onComplete,
+  onCompleteMemberPreview,
 }: {
+  file: File;
   parsed: ParsedCSV;
   mappings: ColumnMapping[];
-  form: Form;
+  mode: IngestionMode;
+  form: Form | null;
   onBack: () => void;
-  onComplete: (validRows: Record<string, string>[], skipErrors: boolean, validationResult: ValidationResult) => void;
+  onCompleteMemberPreview: (preview: MemberImportPreviewResponse) => void;
 }) {
-  const { toast } = useToast();
-  const [validating, setValidating] = useState(true);
-  const [result, setResult] = useState<ValidationResult | null>(null);
-  const [skipErrors, setSkipErrors] = useState(true);
-  const [excelDateNote, setExcelDateNote] = useState<string | null>(null);
-
-  const fields = form.fields?.filter((f) => f.type !== 'SECTION') ?? [];
-  const fieldById = Object.fromEntries(fields.map((f) => [String(f.id), f]));
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [memberPreview, setMemberPreview] = useState<MemberImportPreviewResponse | null>(null);
 
   useEffect(() => {
-    async function validate() {
-      const errors: ValidationError[] = [];
-      const warnings: ValidationWarning[] = [];
-      let excelConversions = 0;
+    let isMounted = true;
 
-      // Build valid rows (mapped field_id → value)
-      const validMappings = mappings.filter(
-        (m) => m.fieldId && m.fieldId !== 'IGNORE' && m.fieldId !== ''
-      );
+    async function runPreview() {
+      setLoading(true);
+      setError(null);
 
-      for (let i = 0; i < parsed.rows.length; i++) {
-        const rawRow = parsed.rows[i];
-        const rowNum = i + 2;
-
-        for (const mapping of validMappings) {
-          const field = fieldById[mapping.fieldId];
-          if (!field) continue;
-          let value = rawRow[mapping.csvHeader] ?? '';
-
-          // Excel date conversion
-          const numVal = Number(value);
-          if (!isNaN(numVal) && numVal >= 25569 && numVal <= 60000 && field.type === 'DATE') {
-            const converted = new Date((numVal - 25569) * 86400 * 1000);
-            value = converted.toISOString().split('T')[0];
-            excelConversions++;
-          }
-
-          // Required check
-          if (field.is_required && (!value || value.trim() === '')) {
-            errors.push({ row: rowNum, column: field.label, value: '', error: 'Required field is empty' });
-            continue;
-          }
-
-          if (!value || value.trim() === '') {
-            if (field.is_required) {
-              warnings.push({ row: rowNum, column: field.label, issue: 'Optional field is empty' });
-            }
-            continue;
-          }
-
-          // Type validation
-          if (field.type === 'EMAIL' && !EMAIL_RE.test(value.trim())) {
-            errors.push({ row: rowNum, column: field.label, value, error: 'Invalid email format' });
-          } else if ((field.type === 'NUMBER' || field.type === 'RATING') && isNaN(parseFloat(value))) {
-            errors.push({ row: rowNum, column: field.label, value, error: 'Expected a number' });
-          }
-        }
-      }
-
-      if (excelConversions > 0) {
-        setExcelDateNote(`Auto-converted ${excelConversions} Excel date value(s) to ISO format.`);
-      }
-
-      // Check duplicates via API
-      const emailMappings = validMappings.filter((m) => fieldById[m.fieldId]?.type === 'EMAIL');
-      let dupRecords: DuplicateRecord[] = [];
-
-      if (emailMappings.length > 0) {
-        const emails = parsed.rows
-          .map((row) => row[emailMappings[0].csvHeader])
-          .filter(Boolean);
+      if (mode === 'MEMBER_BACKUP') {
         try {
-          const res = await fetchApi<{ duplicates: DuplicateRecord[] }>(
-            `/forms/${form.slug}/check-duplicates/`,
-            { method: 'POST', body: JSON.stringify({ emails }) }
-          );
-          dupRecords = res.duplicates ?? [];
-        } catch {
-          toast.warning('Duplicate Check Skipped', 'Could not reach the server to check for duplicate emails — review this import carefully.');
+          const mappingObj: Record<string, string> = {};
+          mappings.forEach((m) => {
+            if (m.fieldId) mappingObj[m.csvHeader] = m.fieldId;
+          });
+
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('mapping', JSON.stringify(mappingObj));
+
+          const previewData = await fetchApi<MemberImportPreviewResponse>('/auth/members/import/preview/', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (isMounted) {
+            setMemberPreview(previewData);
+            setLoading(false);
+          }
+        } catch (err: unknown) {
+          if (isMounted) {
+            setError(err instanceof Error ? err.message : 'Validation failed');
+            setLoading(false);
+          }
         }
+      } else {
+        setLoading(false);
       }
-
-      const errorRowNums = new Set(errors.map((e) => e.row));
-      const dupEmails = new Set(dupRecords.map((d) => d.email));
-      const dupRowNums = new Set<number>();
-      if (emailMappings.length > 0) {
-        parsed.rows.forEach((row, i) => {
-          const email = row[emailMappings[0].csvHeader];
-          if (email && dupEmails.has(email)) dupRowNums.add(i + 2);
-        });
-      }
-
-      const cleanCount = parsed.rowCount - errorRowNums.size - dupRowNums.size;
-
-      setResult({ errors, warnings, duplicates: dupRecords, cleanCount: Math.max(0, cleanCount) });
-      setValidating(false);
     }
 
-    validate();
-  }, []);
+    runPreview();
+    return () => {
+      isMounted = false;
+    };
+  }, [file, mappings, mode]);
 
-  const buildValidRows = (): Record<string, string>[] => {
-    const validMappings = mappings.filter(
-      (m) => m.fieldId && m.fieldId !== 'IGNORE' && m.fieldId !== ''
-    );
-    const errorRowNums = new Set((result?.errors ?? []).map((e) => e.row));
-
-    return parsed.rows
-      .map((rawRow, i) => {
-        const rowNum = i + 2;
-        if (!skipErrors && errorRowNums.has(rowNum)) return null;
-        if (skipErrors && errorRowNums.has(rowNum)) return null;
-        const mapped: Record<string, string> = {};
-        for (const mapping of validMappings) {
-          mapped[mapping.fieldId] = rawRow[mapping.csvHeader] ?? '';
-        }
-        return mapped;
-      })
-      .filter((r): r is Record<string, string> => r !== null);
-  };
-
-  if (validating) {
+  if (loading) {
     return (
-      <div className="py-16 flex flex-col items-center gap-4">
-        <Loader2 className="w-10 h-10 text-orange-400 animate-spin" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">Validating {parsed.rowCount} rows…</p>
+      <div className="p-12 text-center space-y-3">
+        <Loader2 className="w-10 h-10 text-orange-400 animate-spin mx-auto" />
+        <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">Validating records & checking collisions…</p>
       </div>
     );
   }
 
-  if (!result) return null;
-
-  return (
-    <div className="space-y-6">
-      {/* Excel date note */}
-      {excelDateNote && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-700 dark:text-blue-300">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          {excelDateNote}
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-sm">
+          {error}
         </div>
-      )}
-
-      {/* Summary bar */}
-      <div className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 text-xs">
-        <span className="text-slate-500 dark:text-slate-400">
-          <span className="text-[#1A1A2E] dark:text-white font-bold">{parsed.rowCount}</span> total rows
-        </span>
-        {result.errors.length > 0 && (
-          <span className="text-rose-400 font-bold">{result.errors.length} errors</span>
-        )}
-        {result.warnings.length > 0 && (
-          <span className="text-amber-400 font-bold">{result.warnings.length} warnings</span>
-        )}
-        {result.duplicates.length > 0 && (
-          <span className="text-purple-400 font-bold">{result.duplicates.length} duplicates</span>
-        )}
-        <span className="text-emerald-400 font-bold">{result.cleanCount} will import cleanly</span>
-      </div>
-
-      {/* All duplicates */}
-      {result.cleanCount === 0 && result.duplicates.length === parsed.rowCount && (
-        <div className="flex items-start gap-3 px-4 py-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-sm text-purple-700 dark:text-purple-300">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold">All rows already exist in the database.</p>
-            <p className="text-[11px] text-purple-600 dark:text-purple-400 mt-1">Bulk update of existing responses is not supported yet. Please remove duplicate rows from your CSV and re-upload.</p>
-          </div>
-        </div>
-      )}
-
-      {/* Errors table */}
-      {result.errors.length > 0 && (
-        <div className="bg-white dark:bg-[#151722] rounded-xl border border-rose-500/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-rose-500/20 flex items-center gap-2">
-            <XCircle className="w-4 h-4 text-rose-400" />
-            <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">
-              Errors — {result.errors.length} rows will be rejected
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-slate-600 dark:text-slate-300">
-              <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase">
-                <tr>
-                  <th className="px-4 py-2 text-left">Row</th>
-                  <th className="px-4 py-2 text-left">Column</th>
-                  <th className="px-4 py-2 text-left">Value</th>
-                  <th className="px-4 py-2 text-left">Error</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-                {result.errors.slice(0, 20).map((e, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-2 font-mono text-rose-400">{e.row}</td>
-                    <td className="px-4 py-2 font-semibold">{e.column}</td>
-                    <td className="px-4 py-2 font-mono text-amber-300 max-w-[120px] truncate">{e.value}</td>
-                    <td className="px-4 py-2 text-rose-300">{e.error}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Warnings table */}
-      {result.warnings.length > 0 && (
-        <div className="bg-white dark:bg-[#151722] rounded-xl border border-amber-500/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-amber-500/20 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <p className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-              Warnings — {result.warnings.length} rows with issues
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-slate-600 dark:text-slate-300">
-              <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase">
-                <tr>
-                  <th className="px-4 py-2 text-left">Row</th>
-                  <th className="px-4 py-2 text-left">Column</th>
-                  <th className="px-4 py-2 text-left">Issue</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-                {result.warnings.slice(0, 10).map((w, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-2 font-mono text-amber-400">{w.row}</td>
-                    <td className="px-4 py-2 font-semibold">{w.column}</td>
-                    <td className="px-4 py-2 text-amber-300">{w.issue}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Duplicates table */}
-      {result.duplicates.length > 0 && (
-        <div className="bg-white dark:bg-[#151722] rounded-xl border border-purple-500/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-purple-500/20 flex items-center gap-2">
-            <Copy className="w-4 h-4 text-purple-400" />
-            <p className="text-xs font-bold text-purple-400 uppercase tracking-wider">
-              Duplicates — {result.duplicates.length} already in database
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-slate-600 dark:text-slate-300">
-              <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase">
-                <tr>
-                  <th className="px-4 py-2 text-left">Email</th>
-                  <th className="px-4 py-2 text-left">Existing Response</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-                {result.duplicates.map((d, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-2">{d.email}</td>
-                    <td className="px-4 py-2 text-purple-300">
-                      Response #{d.response_id} — {new Date(d.submitted_at).toLocaleDateString('en-IN')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Action selection */}
-      {result.errors.length > 0 && (
-        <div className="space-y-3 p-4 bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Choose action for errors</p>
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="radio"
-              checked={skipErrors}
-              onChange={() => setSkipErrors(true)}
-              className="mt-0.5 text-orange-500 focus:ring-orange-500"
-            />
-            <div>
-              <p className="text-sm font-semibold text-[#1A1A2E] dark:text-white">
-                Skip error rows, import {result.cleanCount} clean rows
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">Error rows will be skipped and logged.</p>
-            </div>
-          </label>
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="radio"
-              checked={!skipErrors}
-              onChange={() => setSkipErrors(false)}
-              className="mt-0.5 text-orange-500 focus:ring-orange-500"
-            />
-            <div>
-              <p className="text-sm font-semibold text-[#1A1A2E] dark:text-white">Fix errors and re-upload</p>
-              <p className="text-xs text-slate-500 mt-0.5">Go back to step 1 and fix the file.</p>
-            </div>
-          </label>
-        </div>
-      )}
-
-      <div className="flex gap-3">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition"
-        >
-          <ChevronLeft className="w-4 h-4" /> Back
-        </button>
-        <button
-          onClick={() => {
-            if (!skipErrors && result.errors.length > 0) {
-              onBack();
-              return;
-            }
-            onComplete(buildValidRows(), skipErrors, result);
-          }}
-          disabled={result.cleanCount === 0 && result.errors.length === 0 && parsed.rowCount === 0}
-          className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2 transition"
-        >
-          Next: Import <ChevronRight className="w-4 h-4" />
+        <button onClick={onBack} className="w-full py-3 rounded-xl border border-slate-700 text-sm font-bold">
+          Go Back
         </button>
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Step 4: Ingest
-// ---------------------------------------------------------------------------
-
-function IngestStep({
-  validRows,
-  skipErrors,
-  validationResult,
-  form,
-  onReset,
-  onViewResponses,
-}: {
-  validRows: Record<string, string>[];
-  skipErrors: boolean;
-  validationResult: ValidationResult;
-  form: Form;
-  onReset: () => void;
-  onViewResponses: () => void;
-}) {
-  const [status, setStatus] = useState<'confirm' | 'importing' | 'done' | 'error'>('confirm');
-  const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<BulkIngestResult | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [idempotencyKey] = useState(generateIdempotencyKey());
-  const [failedChunk, setFailedChunk] = useState<number | null>(null);
-
-  const CHUNK_SIZE = 50;
-
-  const runImport = async (startChunk = 0) => {
-    setStatus('importing');
-    setImportError(null);
-
-    const chunks: Record<string, string>[][] = [];
-    for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
-      chunks.push(validRows.slice(i, i + CHUNK_SIZE));
-    }
-
-    const totalChunks = chunks.length || 1;
-    let totalImported = 0;
-    let totalSkipped = 0;
-    let totalDuplicates = 0;
-    const allErrors: IngestError[] = [];
-
-    try {
-      for (let ci = startChunk; ci < chunks.length; ci++) {
-        const chunk = chunks[ci];
-        const chunkKey = chunks.length === 1
-          ? idempotencyKey
-          : `${idempotencyKey}-chunk-${ci}`;
-
-        const res = await fetch(
-          `/api/proxy/forms/${form.slug}/bulk-ingest/`,
-          buildAuthFetchOptions('POST', {
-            rows: chunk,
-            idempotency_key: chunkKey,
-            skip_errors: skipErrors,
-          })
-        );
-
-        if (!res.ok) {
-          if (res.status === 404) {
-            throw new Error('This form no longer exists. Please reset and start over.');
-          }
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData?.errors?.[0]?.error || `Import failed at chunk ${ci + 1}`);
-        }
-
-        const data: BulkIngestResult = await res.json();
-        totalImported += data.imported;
-        totalSkipped += data.skipped;
-        totalDuplicates += data.duplicates;
-        allErrors.push(...(data.errors ?? []));
-
-        setProgress(Math.round(((ci + 1) / totalChunks) * 100));
-      }
-
-      setResult({
-        imported: totalImported,
-        skipped: totalSkipped,
-        duplicates: totalDuplicates,
-        errors: allErrors,
-      });
-      setStatus('done');
-    } catch (e: any) {
-      const chunkIndex = Math.floor(
-        (progress / 100) * totalChunks
-      );
-      setFailedChunk(chunkIndex);
-      setImportError(e.message || 'Import failed unexpectedly.');
-      setStatus('error');
-    }
-  };
-
-  const downloadErrorReport = () => {
-    if (!result) return;
-    downloadCSV(
-      result.errors.map((e) => ({
-        Row: e.row,
-        Field: e.field,
-        Value: e.value,
-        Error: e.error,
-      })),
-      `error-report-${form.slug}-${Date.now()}.csv`
     );
-  };
+  }
 
   return (
     <div className="space-y-6">
-      {status === 'confirm' && (
-        <>
-          <div className="p-6 rounded-2xl border border-orange-500/20 bg-orange-500/5 text-center space-y-3">
-            <Upload className="w-10 h-10 text-orange-400 mx-auto" />
-            <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">
-              Ready to import {validRows.length} response{validRows.length !== 1 ? 's' : ''}
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              into &quot;<span className="font-semibold text-[#1A1A2E] dark:text-white">{form.title}</span>&quot;.
-              This action will be logged.
-            </p>
-            {validRows.length > CHUNK_SIZE && (
-              <p className="text-xs text-slate-500">
-                Large import: will be processed in{' '}
-                {Math.ceil(validRows.length / CHUNK_SIZE)} chunks of {CHUNK_SIZE} rows each.
-              </p>
-            )}
-          </div>
-          <button
-            onClick={() => runImport(0)}
-            className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 transition"
-          >
-            <CheckCircle className="w-4 h-4" /> Confirm &amp; Import
-          </button>
-        </>
-      )}
-
-      {status === 'importing' && (
-        <div className="space-y-6 py-8 text-center">
-          <Loader2 className="w-12 h-12 text-orange-400 animate-spin mx-auto" />
-          <div>
-            <p className="text-base font-bold text-[#1A1A2E] dark:text-white">
-              Importing… {Math.round((progress / 100) * validRows.length)} / {validRows.length} rows ({progress}%)
-            </p>
-          </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
-            <div
-              className="h-2 bg-orange-500 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {status === 'error' && (
-        <div className="space-y-4">
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
-            <XCircle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-bold text-rose-300">Import paused</p>
-              <p className="text-xs text-rose-400 mt-1">{importError}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => runImport(failedChunk ?? 0)}
-            className="w-full py-3 rounded-xl border border-orange-500 text-orange-400 hover:bg-orange-500/10 font-bold text-sm flex items-center justify-center gap-2 transition"
-          >
-            <RefreshCw className="w-4 h-4" /> Retry from failed chunk
-          </button>
-          <button onClick={onReset} className="w-full py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition">
-            Start Over
-          </button>
-        </div>
-      )}
-
-      {status === 'done' && result && (
+      {memberPreview && (
         <div className="space-y-6">
-          <div className="p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-center space-y-3">
-            <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto" />
-            <h3 className="text-xl font-black text-[#1A1A2E] dark:text-white">Import Complete</h3>
-            <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
-              <p>
-                <span className="font-bold text-emerald-400">{result.imported}</span> responses imported successfully
-              </p>
-              {result.skipped > 0 && (
-                <p><span className="font-bold text-rose-400">{result.skipped}</span> rows skipped (errors)</p>
-              )}
-              {result.duplicates > 0 && (
-                <p><span className="font-bold text-purple-400">{result.duplicates}</span> duplicates ignored</p>
-              )}
+          {/* Summary Stat Cards */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#151722] border border-slate-200 dark:border-slate-800 text-center">
+              <p className="text-[10px] font-bold uppercase text-slate-500">Total Rows</p>
+              <p className="text-2xl font-black text-[#1A1A2E] dark:text-white mt-1">{memberPreview.total_rows}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
+              <p className="text-[10px] font-bold uppercase text-emerald-500">New Members</p>
+              <p className="text-2xl font-black text-emerald-500 mt-1">{memberPreview.new_users_count}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 text-center">
+              <p className="text-[10px] font-bold uppercase text-blue-400">Updates</p>
+              <p className="text-2xl font-black text-blue-400 mt-1">{memberPreview.updated_users_count}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 text-center">
+              <p className="text-[10px] font-bold uppercase text-rose-500">Conflicts</p>
+              <p className="text-2xl font-black text-rose-500 mt-1">{memberPreview.conflict_rows}</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            {result.errors.length > 0 && (
-              <button
-                onClick={downloadErrorReport}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition"
-              >
-                <Download className="w-4 h-4" /> Download Error Report
-              </button>
-            )}
+          {/* Preview Snapshot Table */}
+          <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Validation & Action Preview Snapshot
+              </p>
+              <span className="text-xs text-emerald-500 font-bold">
+                {memberPreview.valid_rows} of {memberPreview.total_rows} ready to commit
+              </span>
+            </div>
+            <div className="overflow-x-auto max-h-[340px]">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] sticky top-0 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
+                  <tr>
+                    <th className="px-3 py-2">Row</th>
+                    <th className="px-3 py-2">Action</th>
+                    <th className="px-3 py-2">Full Name</th>
+                    <th className="px-3 py-2">Email</th>
+                    <th className="px-3 py-2">Club ID</th>
+                    <th className="px-3 py-2">Branch</th>
+                    <th className="px-3 py-2">Referred By</th>
+                    <th className="px-3 py-2">Reg Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
+                  {memberPreview.preview_sample.map((row) => (
+                    <tr key={row.row_index} className={row.action === 'ERROR' ? 'bg-rose-500/5' : ''}>
+                      <td className="px-3 py-2 font-mono text-slate-400">#{row.row_index}</td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                            row.action === 'CREATE'
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : row.action === 'UPDATE'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'bg-rose-500/20 text-rose-400'
+                          }`}
+                        >
+                          {row.action}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 font-medium text-[#1A1A2E] dark:text-white">{row.full_name || '—'}</td>
+                      <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.email}</td>
+                      <td className="px-3 py-2 font-mono text-orange-400 font-bold">{row.club_id}</td>
+                      <td className="px-3 py-2">{row.branch || '—'}</td>
+                      <td className="px-3 py-2">
+                        {row.referred_by || '—'}
+                        {row.is_referral_ambiguous && (
+                          <span className="ml-1 text-[9px] text-amber-400 font-bold">(ambiguous)</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-slate-400">{row.registered_at || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
             <button
-              onClick={onViewResponses}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition"
+              onClick={onBack}
+              className="flex-1 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
-              View Responses
+              Back
             </button>
             <button
-              onClick={onReset}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition"
+              onClick={() => onCompleteMemberPreview(memberPreview)}
+              className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-lg shadow-orange-500/20 transition"
             >
-              <RefreshCw className="w-4 h-4" /> Import Another File
+              Next: Commit Import & Automation <ChevronRight className="w-4 h-4 inline ml-1" />
             </button>
           </div>
         </div>
@@ -1119,7 +833,147 @@ function IngestStep({
 }
 
 // ---------------------------------------------------------------------------
-// Main CSVIngestionTab orchestrator
+// Step 4: Commit & Automation
+// ---------------------------------------------------------------------------
+
+function IngestAndAutomateStep({
+  memberPreview,
+  onReset,
+  onViewMembers,
+}: {
+  memberPreview: MemberImportPreviewResponse;
+  onReset: () => void;
+  onViewMembers: () => void;
+}) {
+  const [sendWelcomeEmail, setSendWelcomeEmail] = useState(false);
+  const [isCommitting, setIsCommitting] = useState(false);
+  const [commitResult, setCommitResult] = useState<{
+    success: boolean;
+    imported_count: number;
+    new_users_count: number;
+    updated_users_count: number;
+    failed_count: number;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleCommit = async () => {
+    setIsCommitting(true);
+    setError(null);
+    try {
+      const result = await fetchApi<any>('/auth/members/import/commit/', {
+        method: 'POST',
+        body: JSON.stringify({
+          job_id: memberPreview.job_id,
+          send_welcome_email: sendWelcomeEmail,
+        }),
+      });
+
+      setCommitResult(result);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Commit failed');
+    }
+    setIsCommitting(false);
+  };
+
+  if (commitResult) {
+    return (
+      <div className="space-y-6">
+        <div className="p-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-center space-y-3">
+          <CheckCircle className="w-14 h-14 text-emerald-400 mx-auto" />
+          <h3 className="text-2xl font-black text-[#1A1A2E] dark:text-white">Import Committed Successfully!</h3>
+          <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
+            <p>
+              <span className="font-bold text-emerald-400">{commitResult.imported_count}</span> members processed into Master Directory.
+            </p>
+            <p>
+              <span className="font-bold text-blue-400">{commitResult.new_users_count}</span> new accounts created with permanent Club IDs.
+            </p>
+            {commitResult.updated_users_count > 0 && (
+              <p>
+                <span className="font-bold text-purple-400">{commitResult.updated_users_count}</span> existing member profiles synchronized.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onViewMembers}
+            className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition shadow-lg shadow-orange-500/20"
+          >
+            View Member Directory
+          </button>
+          <button
+            onClick={onReset}
+            className="flex-1 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white text-sm font-bold transition"
+          >
+            Import Another File
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="p-6 rounded-2xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="w-8 h-8 text-emerald-400 flex-shrink-0" />
+          <div>
+            <h4 className="text-base font-bold text-[#1A1A2E] dark:text-white">Ready for Final Atomic Commit</h4>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {memberPreview.valid_rows} verified records will be ingested under transaction savepoints.
+            </p>
+          </div>
+        </div>
+
+        {/* Email Automation Option */}
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-start gap-3">
+          <input
+            id="welcome-email-check"
+            type="checkbox"
+            checked={sendWelcomeEmail}
+            onChange={(e) => setSendWelcomeEmail(e.target.checked)}
+            className="mt-1 w-4 h-4 rounded text-orange-500 border-slate-300 focus:ring-orange-500"
+          />
+          <label htmlFor="welcome-email-check" className="text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+            <span className="font-bold text-[#1A1A2E] dark:text-white block">
+              Send Welcome Notification & Club ID Email
+            </span>
+            <span>
+              Dispatches templated onboarding email containing their permanent Club ID and password setup token.
+            </span>
+          </label>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs">
+          {error}
+        </div>
+      )}
+
+      <button
+        disabled={isCommitting}
+        onClick={handleCommit}
+        className="w-full py-4 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-orange-500/20 transition"
+      >
+        {isCommitting ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" /> Ingesting & Allocating Club IDs…
+          </>
+        ) : (
+          <>
+            <Send className="w-4 h-4" /> Commit {memberPreview.valid_rows} Members to Database
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Orchestrator Component
 // ---------------------------------------------------------------------------
 
 interface CSVIngestionTabProps {
@@ -1129,13 +983,12 @@ interface CSVIngestionTabProps {
 
 export function CSVIngestionTab({ forms, onSwitchSubtab }: CSVIngestionTabProps) {
   const [step, setStep] = useState(0);
+  const [mode, setMode] = useState<IngestionMode>('MEMBER_BACKUP');
   const [parsed, setParsed] = useState<ParsedCSV | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
   const [mappings, setMappings] = useState<ColumnMapping[]>([]);
-  const [validRows, setValidRows] = useState<Record<string, string>[]>([]);
-  const [skipErrors, setSkipErrors] = useState(true);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [memberPreview, setMemberPreview] = useState<MemberImportPreviewResponse | null>(null);
 
   const reset = () => {
     setStep(0);
@@ -1143,8 +996,7 @@ export function CSVIngestionTab({ forms, onSwitchSubtab }: CSVIngestionTabProps)
     setFile(null);
     setSelectedForm(null);
     setMappings([]);
-    setValidRows([]);
-    setValidationResult(null);
+    setMemberPreview(null);
   };
 
   return (
@@ -1154,18 +1006,22 @@ export function CSVIngestionTab({ forms, onSwitchSubtab }: CSVIngestionTabProps)
       {step === 0 && (
         <UploadStep
           forms={forms}
-          onComplete={(p, f, form) => {
+          mode={mode}
+          setMode={setMode}
+          selectedForm={selectedForm}
+          setSelectedForm={setSelectedForm}
+          onComplete={(p, f) => {
             setParsed(p);
             setFile(f);
-            setSelectedForm(form);
             setStep(1);
           }}
         />
       )}
 
-      {step === 1 && parsed && selectedForm && (
+      {step === 1 && parsed && (
         <MapColumnsStep
           parsed={parsed}
+          mode={mode}
           form={selectedForm}
           onBack={() => setStep(0)}
           onComplete={(m) => {
@@ -1175,29 +1031,26 @@ export function CSVIngestionTab({ forms, onSwitchSubtab }: CSVIngestionTabProps)
         />
       )}
 
-      {step === 2 && parsed && selectedForm && (
-        <ValidateStep
+      {step === 2 && parsed && file && (
+        <ValidateAndPreviewStep
+          file={file}
           parsed={parsed}
           mappings={mappings}
+          mode={mode}
           form={selectedForm}
           onBack={() => setStep(1)}
-          onComplete={(rows, skip, vr) => {
-            setValidRows(rows);
-            setSkipErrors(skip);
-            setValidationResult(vr);
+          onCompleteMemberPreview={(preview) => {
+            setMemberPreview(preview);
             setStep(3);
           }}
         />
       )}
 
-      {step === 3 && selectedForm && validationResult && (
-        <IngestStep
-          validRows={validRows}
-          skipErrors={skipErrors}
-          validationResult={validationResult}
-          form={selectedForm}
+      {step === 3 && memberPreview && (
+        <IngestAndAutomateStep
+          memberPreview={memberPreview}
           onReset={reset}
-          onViewResponses={() => onSwitchSubtab('responses', selectedForm.slug)}
+          onViewMembers={() => onSwitchSubtab('members')}
         />
       )}
     </div>
