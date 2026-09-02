@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   User,
   ChevronDown,
+  X,
   Sparkles,
   Terminal,
   Trophy,
@@ -15,7 +16,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
-import { getStoredUser, isAuthenticated, AuthUser } from '@/lib/auth';
+import LoginCard from '@/app/login/page';
+import { getStoredUser, isAuthenticated, loginUser, AuthUser } from '@/lib/auth';
 
 interface NavChild {
   label: string;
@@ -85,6 +87,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -94,11 +97,21 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+    document.body.style.overflow = mobileMenuOpen || loginModalOpen ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, loginModalOpen]);
+
+  useEffect(() => {
+    if (!loginModalOpen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setLoginModalOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [loginModalOpen]);
 
   return (
     <>
@@ -243,6 +256,12 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               <>
                 <Link
                   href="/login"
+                  onClick={(event) => {
+                    if (pathname === '/') {
+                      event.preventDefault();
+                      setLoginModalOpen(true);
+                    }
+                  }}
                   className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition-colors"
                 >
                   Login
@@ -352,7 +371,13 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 <div className="flex items-center gap-4">
                   <Link
                     href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={(event) => {
+                  setMobileMenuOpen(false);
+                  if (pathname === '/') {
+                    event.preventDefault();
+                    setLoginModalOpen(true);
+                  }
+                }}
                     className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white"
                   >
                     Login
@@ -365,6 +390,41 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 </div>
               )}
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {loginModalOpen && (
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Sign in"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setLoginModalOpen(false);
+            }}
+          >
+            <div className="relative w-full max-w-4xl">
+              <button
+                type="button"
+                onClick={() => setLoginModalOpen(false)}
+                aria-label="Close sign in dialog"
+                className="absolute right-3 top-3 z-10 rounded-full bg-black/10 p-2 text-hero-foreground transition-colors hover:bg-black/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+              >
+                <X className="size-4" />
+              </button>
+              <LoginCard
+                onSubmit={async (values) => {
+                  const result = await loginUser(values.email, values.password);
+                  setCurrentUser(result.user);
+                  setIsAuth(true);
+                }}
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

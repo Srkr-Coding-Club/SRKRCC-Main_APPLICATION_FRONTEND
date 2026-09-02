@@ -75,7 +75,7 @@ export default async function IconCodersPage() {
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <PageHero
-          icon={Sparkles}
+          icon={<Sparkles className="h-4 w-4 text-[#FF7A00]" />}
           eyebrow="SRKR CODING CLUB ICONCODERS FLAGSHIP"
           title="IconCoders Flagship"
           description="SRKR Coding Club's annual flagship hackathon — where top individual problem-solvers compete for glory and recognition."
@@ -83,7 +83,7 @@ export default async function IconCodersPage() {
 
         <div className="space-y-6">
           <SectionHeading icon={Sparkles} eyebrow="Current Edition" title="Current Challenge" />
-          <div className="max-w-2xl">
+          <div className="max-w-sm">
             <IconCodersEditionCard challenge={challenge} />
           </div>
         </div>

@@ -69,11 +69,11 @@ function MemberDetailContent({ member }: { member: MemberRecord }) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
+        <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Submissions</span>
           <div className="text-xl font-bold text-[#1A1A2E] dark:text-white mt-0.5">{member.total_submissions}</div>
         </div>
-        <div className="bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
+        <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Forms Joined</span>
           <div className="text-xl font-bold text-orange-400 mt-0.5">{member.forms_submitted.length}</div>
         </div>
@@ -276,7 +276,7 @@ export function MembersTab({ forms }: MembersTabProps) {
                   {data.results.map((member) => (
                     <tr
                       key={member.user_id}
-                      className="hover:bg-slate-800/20 transition cursor-pointer"
+                      className="hover:bg-slate-100 dark:hover:bg-slate-800/20 transition cursor-pointer"
                       onClick={() => setDrawerMember(member)}
                     >
                       <td className="px-5 py-3.5">
@@ -290,7 +290,7 @@ export function MembersTab({ forms }: MembersTabProps) {
                           {member.forms_submitted.slice(0, 3).map((f, i) => (
                             <span
                               key={i}
-                              className="px-2 py-0.5 rounded bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px] text-slate-600 dark:text-slate-300 truncate max-w-[150px]"
+                              className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px] text-slate-600 dark:text-slate-300 truncate max-w-[150px]"
                               title={f.form_title}
                             >
                               {f.form_title}

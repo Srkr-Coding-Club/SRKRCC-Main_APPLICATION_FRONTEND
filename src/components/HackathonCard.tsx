@@ -1,8 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { Calendar, CheckCircle2, Flame, ArrowRight } from 'lucide-react';
+import { Calendar, Users, Flame, ArrowRight, Layers } from 'lucide-react';
 import { Hackathon } from '@/lib/types';
-import Card from './Card';
 
 interface HackathonCardProps {
   hackathon: Hackathon;
@@ -10,80 +9,122 @@ interface HackathonCardProps {
 }
 
 export default function HackathonCard({ hackathon, accent = '#FF7A00' }: HackathonCardProps) {
+  const fallbackImage =
+    'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&q=70';
+
   return (
-    <Card
-      image={hackathon.image_url}
-      imageAlt={hackathon.title}
-      imageHeightClassName="h-56"
-      topLeftBadge={
-        <>
-          <span
-            className="text-xs font-bold uppercase tracking-wider text-white px-3 py-1 rounded-md shadow"
-            style={{ background: accent }}
-          >
-            Prize: {hackathon.prize_pool}
-          </span>
-          {hackathon.is_flagship && (
-            <span className="text-xs font-bold uppercase tracking-wider text-white bg-[#8B2E3B] px-3 py-1 rounded-md shadow flex items-center space-x-1">
-              <Flame className="w-3.5 h-3.5" />
-              <span>Flagship Edition</span>
+    <div className="group relative isolate h-[330px] w-full [perspective:1400px]">
+      {/* soft orange glow around the card */}
+      <div
+        className="pointer-events-none absolute -inset-1 rounded-[1.75rem] opacity-60 blur-2xl transition-opacity duration-500 group-hover:opacity-100 dark:opacity-35 dark:group-hover:opacity-70"
+        style={{ background: `radial-gradient(circle at 50% 50%, ${accent}30, transparent 70%)` }}
+      />
+
+      <div
+        tabIndex={0}
+        className="relative h-full w-full rounded-2xl outline-none transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)] focus-visible:[transform:rotateY(180deg)]"
+      >
+        {/* ---------- FRONT (image) ---------- */}
+        <div className="absolute inset-0 overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white shadow-[0_14px_40px_-20px_rgba(255,122,0,0.28)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] dark:border-white/10 dark:bg-[#161622]">
+          <img
+            src={hackathon.image_url || fallbackImage}
+            alt={hackathon.title}
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A2E]/90 via-[#1A1A2E]/25 to-transparent" />
+
+          <div className="absolute inset-x-0 top-0 flex flex-wrap gap-1.5 p-4">
+            <span
+              className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-md"
+              style={{ backgroundColor: `${accent}D9` }}
+            >
+              Prize: {hackathon.prize_pool}
             </span>
-          )}
-        </>
-      }
-      footer={
-        <>
-          <span className="text-xs font-semibold text-slate-400">Team Registration</span>
-          <Link
-            href={hackathon.form_slug ? `/forms/${hackathon.form_slug}` : '/forms'}
-            className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-lg text-white font-bold text-sm shadow-sm transition hover:brightness-110"
-            style={{ background: accent }}
-          >
-            <span>Register Team</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </>
-      }
-    >
-      <h3 className="text-2xl font-extrabold text-[#1A1A2E] dark:text-white group-hover:text-[#FF7A00] transition">
-        {hackathon.title}
-      </h3>
-
-      <p className="text-xs font-bold" style={{ color: accent }}>
-        Theme: {hackathon.theme}
-      </p>
-
-      <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">{hackathon.description}</p>
-
-      {hackathon.tracks && (
-        <div className="space-y-2 pt-2">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tracks & Categories</p>
-          <div className="flex flex-wrap gap-2">
-            {hackathon.tracks.map((tr) => (
-              <span
-                key={tr}
-                className="px-2.5 py-1 rounded text-xs font-semibold bg-orange-50 dark:bg-orange-950/30 text-[#FF7A00] border border-orange-200 dark:border-orange-900/40"
-              >
-                {tr}
+            {hackathon.is_flagship && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#8B2E3B]/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-md">
+                <Flame className="h-3 w-3" />
+                Flagship
               </span>
-            ))}
+            )}
+          </div>
+
+          <div className="absolute inset-x-0 bottom-0 p-4">
+            <h3 className="text-base font-bold leading-snug text-white sm:text-lg">
+              {hackathon.title}
+            </h3>
+
+            <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-white/80">
+              <Calendar className="h-3.5 w-3.5" style={{ color: accent }} />
+              {hackathon.start_date} → {hackathon.end_date}
+            </p>
           </div>
         </div>
-      )}
 
-      <div className="pt-4 flex flex-wrap gap-4 text-xs font-medium text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800">
-        <div className="flex items-center space-x-1.5">
-          <Calendar className="w-4 h-4" style={{ color: accent }} />
-          <span>{hackathon.start_date} → {hackathon.end_date}</span>
-        </div>
+        {/* ---------- BACK (details) ---------- */}
+        <div className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white/85 p-5 backdrop-blur-xl [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] dark:border-white/10 dark:bg-[#161622]/85">
+          <div
+            className="absolute inset-x-0 top-0 h-0.5"
+            style={{ background: `linear-gradient(90deg, ${accent}66, ${accent}, ${accent}66)` }}
+          />
 
-        {hackathon.team_size && (
-          <div className="flex items-center space-x-1.5 font-mono text-[#8B2E3B] dark:text-rose-400">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Team: {hackathon.team_size}</span>
+          <h3 className="text-sm font-bold leading-snug tracking-tight text-[#1A1A2E] dark:text-white sm:text-base">
+            {hackathon.title}
+          </h3>
+
+          <p className="mt-1 text-[11px] font-bold" style={{ color: accent }}>
+            Theme: {hackathon.theme}
+          </p>
+
+          <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
+            {hackathon.description}
+          </p>
+
+          {hackathon.tracks && hackathon.tracks.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {hackathon.tracks.slice(0, 3).map((tr) => (
+                <span
+                  key={tr}
+                  className="rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-[#FF7A00] dark:border-orange-900/40 dark:bg-orange-950/30"
+                >
+                  {tr}
+                </span>
+              ))}
+              {hackathon.tracks.length > 3 && (
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-slate-400">
+                  +{hackathon.tracks.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="mt-3 grid gap-1.5 text-[12px] text-[#1A1A2E] dark:text-slate-200">
+            {hackathon.team_size && (
+              <div className="flex items-center gap-2">
+                <Users className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
+                <span className="font-medium">Team size: {hackathon.team_size}</span>
+              </div>
+            )}
+            {hackathon.tracks && (
+              <div className="flex items-center gap-2">
+                <Layers className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
+                <span className="font-medium">{hackathon.tracks.length} tracks</span>
+              </div>
+            )}
           </div>
-        )}
+
+          <div className="mt-auto pt-4">
+            <Link
+              href={hackathon.form_slug ? `/forms/${hackathon.form_slug}` : '/forms'}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5"
+              style={{ backgroundColor: accent }}
+            >
+              Register Team
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }

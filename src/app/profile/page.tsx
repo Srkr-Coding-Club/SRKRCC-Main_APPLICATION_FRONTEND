@@ -161,7 +161,7 @@ function ProfileContent() {
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] p-1 shadow-lg flex items-center justify-center">
-                <div className="w-full h-full rounded-full bg-[#151722] flex items-center justify-center text-white font-extrabold text-3xl">
+                <div className="w-full h-full rounded-full bg-slate-100 dark:bg-[#151722] flex items-center justify-center text-[#1A1A2E] dark:text-white font-extrabold text-3xl">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               </div>
@@ -227,7 +227,7 @@ function ProfileContent() {
             <ShieldAlert className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
             <div className="text-xs">
               <p className="font-bold text-rose-400">Admin Clearance Required</p>
-              <p className="text-rose-300/80 mt-0.5">
+              <p className="text-rose-700/80 dark:text-rose-300/80 mt-0.5">
                 Your account role is <strong>{user.role}</strong>. Access to the Admin Control Room is restricted to users with <strong>ADMIN</strong> or <strong>CLUB_LEAD</strong> permissions.
               </p>
             </div>
@@ -314,7 +314,7 @@ function ProfileContent() {
                       {evt.form_slug && (
                         <Link
                           href={`/forms/${evt.form_slug}`}
-                          className="px-3 py-1.5 rounded-md text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition"
+                          className="px-3 py-1.5 rounded-md text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
                         >
                           View Form
                         </Link>
