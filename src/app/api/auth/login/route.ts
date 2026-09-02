@@ -22,7 +22,10 @@ export async function POST(request: NextRequest) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: data.detail || data.non_field_errors?.[0] || 'Invalid credentials' },
+        { 
+          error: data.detail || data.non_field_errors?.[0] || 'Invalid credentials',
+          code: data.code || null,
+        },
         { status: res.status }
       );
     }

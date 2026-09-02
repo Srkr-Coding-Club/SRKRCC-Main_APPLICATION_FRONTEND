@@ -329,3 +329,103 @@ export interface DuplicateRecord {
   submitted_at: string;
 }
 
+// ---------------------------------------------------------------------------
+// Universal Backup Center & Raw Vault Types
+// ---------------------------------------------------------------------------
+
+export type BackupDomainKey = 'USERS' | 'FORMS' | 'EVENTS' | 'HACKATHONS' | 'UNKNOWN_RAW';
+
+export interface BackupDomainMetadata {
+  key: BackupDomainKey;
+  display_name: string;
+  description: string;
+  required_fields: string[];
+  expected_fields: Record<string, string[]>;
+  is_schemaless: boolean;
+}
+
+export interface BackupJobRecord {
+  id: string;
+  original_filename: string;
+  file_size_bytes: number;
+  file_format: 'CSV' | 'XLSX';
+  file_sha256: string;
+  total_rows: number;
+  headers: string[];
+  suggested_domain: BackupDomainKey | string;
+  suggestion_confidence: string;
+  status: 'PENDING' | 'PARSED' | 'AWAITING_DOMAIN_SELECTION' | 'READY' | 'PARTIALLY_IMPORTED' | 'ARCHIVED_RAW' | 'FAILED' | 'EXPIRED';
+  created_at: string;
+  uploader: string;
+}
+
+export interface ImportAttemptSummary {
+  id: string;
+  target_domain: string;
+  target_form_id?: number | null;
+  required_fields_satisfied: boolean;
+  schema_confidence_percentage: string;
+  total_records: number;
+  valid_records: number;
+  conflict_records: number;
+  status: string;
+  committed_at?: string | null;
+}
+
+export interface UniversalBackupDetail extends BackupJobRecord {
+  attempts: ImportAttemptSummary[];
+  has_raw_archive: boolean;
+  raw_archive_id?: string | null;
+}
+
+export interface UniversalAnalysisResponse {
+  backup_id: string;
+  target_domain: string;
+  domain_display: string;
+  required_fields_satisfied: boolean;
+  schema_confidence_percentage: string;
+  is_eligible_for_structured_import: boolean;
+  suggested_mapping: Record<string, string>;
+  unmapped_headers: string[];
+  headers: string[];
+  expected_fields: Record<string, string[]>;
+  required_fields: string[];
+}
+
+export interface UniversalPreviewRow {
+  source_row_number: number;
+  raw_data: Record<string, any>;
+  normalized_data: Record<string, any>;
+  action: 'CREATE' | 'UPDATE' | 'SKIP' | 'CONFLICT';
+  is_valid: boolean;
+  error_message: string;
+}
+
+export interface UniversalPreviewResponse {
+  attempt_id: string;
+  backup_id: string;
+  target_domain: string;
+  total_records: number;
+  valid_records: number;
+  conflict_records: number;
+  inserted_records: number;
+  updated_records: number;
+  required_fields_satisfied: boolean;
+  schema_confidence_percentage: string;
+  unmapped_columns: string[];
+  rows_sample: UniversalPreviewRow[];
+  status: string;
+}
+
+export interface UniversalCommitResult {
+  success: boolean;
+  imported_count: number;
+  new_users_count?: number;
+  updated_users_count?: number;
+  inserted_count?: number;
+  updated_count?: number;
+  already_committed?: boolean;
+  archive_id?: string;
+  is_raw_vault?: boolean;
+}
+

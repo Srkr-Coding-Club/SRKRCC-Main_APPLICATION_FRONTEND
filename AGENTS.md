@@ -109,13 +109,34 @@ Before considering a change complete:
 * Validate responsive design (mobile, tablet, desktop).
 * Verify API contract alignment with `src/lib/types.ts`.
 
-### 10. Architecture Preservation & Automated Documentation Lifecycle
+### 10. Universal Backup Center Architectural Rules
+
+Whenever modifying or extending the admin backup & ingestion workflows:
+
+1. **Explicit Domain Selection**: The wizard must always prompt the administrator to explicitly select the backup domain (`USERS`, `FORMS`, `EVENTS`, `HACKATHONS`, or `UNKNOWN_RAW`). Auto-detection can only be displayed as an informative suggestion.
+2. **Schema Matching Gauge & 50% Rule**: Show required field status and column matching confidence. Block structured import if required fields fail or match score is below 50%.
+3. **Unmapped Column Visibility**: Always list unmapped columns in a dedicated section with assurance that they are preserved in row-level provenance.
+4. **Schemaless Escape Hatch**: Always provide a prominent "Save as Raw Backup Vault" option whenever structured validation fails or when the admin prefers archival.
+### 11. Password Setup UX & Login Interception Rules
+
+Whenever handling authentication errors or member onboarding:
+
+1. **Strict Contract Matching**:
+   - Always evaluate `error.code === 'PASSWORD_SETUP_REQUIRED'` rather than substring searching error message text.
+2. **Contextual Action Prompt**:
+   - When login fails with `PASSWORD_SETUP_REQUIRED`, immediately offer the user a one-click action to request a setup link using the email already entered in the input, without requiring them to re-enter it on a separate page.
+3. **Token-Only Clean URLs**:
+   - The password setup route (`/account/setup-password?token=...`) must rely strictly on the `token` parameter. Never expose user email in URLs.
+4. **Interactive Strength Validation**:
+   - The password confirmation interface must enforce and visually guide the user through length ($\ge 8$), mixed case, and number/symbol requirements before permitting form submission.
+
+### 12. Architecture Preservation & Automated Documentation Lifecycle
 
 **MANDATORY DOCUMENTATION UPDATE PROTOCOL**:
 Whenever an agent creates a new frontend page, component, or layout:
 1. **Identify Gaps**: Inspect documentation files.
 2. **Update Documentation**: Update frontend docs or changelog to reflect new routes or components.
-3. **Maintain Technical Learning Guides**: Keep the Next.js 15 App Router technical learning guide (`docs/technical-learning-guide.md`) updated explaining how server components, client interactivity, and API fetching work under the hood.
+3. **Maintain Technical Learning Guides**: Keep the Next.js 15 App Router technical learning guide (`docs/technical-learning-guide.md`) and Backup Center guide (`docs/backup-center.md`) updated.
 
 ---
 

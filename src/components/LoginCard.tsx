@@ -42,6 +42,9 @@ export default function LoginCard({
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | null>(null);
+  const [setupRequired, setSetupRequired] = useState(false);
+  const [isSendingSetup, setIsSendingSetup] = useState(false);
+  const [setupSent, setSetupSent] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -65,6 +68,29 @@ export default function LoginCard({
     setLoggedInUser(null);
     setEmail('');
     setPassword('');
+    setSetupRequired(false);
+    setSetupSent(false);
+  };
+
+  const handleRequestSetup = async () => {
+    if (!email) {
+      toast.warning('Email Required', 'Please enter your email address to request a setup link.');
+      return;
+    }
+    setIsSendingSetup(true);
+    try {
+      await fetch('/api/proxy/auth/setup-password/request/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      setSetupSent(true);
+      toast.success('Setup Link Sent', 'If an eligible account exists, a secure password setup link has been sent to your email.');
+    } catch (ex: any) {
+      toast.error('Request Failed', ex?.message || 'Unable to request password setup link.');
+    } finally {
+      setIsSendingSetup(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,7 +122,12 @@ export default function LoginCard({
         }, 500);
       }
     } catch (err: any) {
-      toast.error('Sign In Failed', err?.message || 'Login failed. Please check your credentials.');
+      if (err?.code === 'PASSWORD_SETUP_REQUIRED') {
+        setSetupRequired(true);
+        toast.warning('Password Setup Required', 'Your account was restored from backup. Please set up your password to activate it.');
+      } else {
+        toast.error('Sign In Failed', err?.message || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -169,6 +200,35 @@ export default function LoginCard({
         </div>
       )}
 
+      {/* Password Setup Required Banner (for Backup-Restored / Imported Members) */}
+      {setupRequired && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2.5">
+          <div className="flex items-center gap-2 text-amber-400 font-bold">
+            <Lock className="w-4 h-4" />
+            <span>Password Setup Required</span>
+          </div>
+          <p className="text-slate-600 dark:text-slate-300">
+            Your account was restored from the club member directory. A secure password setup link is required to activate your account.
+          </p>
+          {setupSent ? (
+            <div className="flex items-center gap-1.5 text-emerald-400 font-medium pt-1">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Setup link sent! Check your inbox.</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleRequestSetup}
+              disabled={isSendingSetup}
+              className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-50 shadow-sm"
+            >
+              {isSendingSetup ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+              <span>Send Password Setup Link</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5">
         {nextUrl && !loggedInUser && (
           <div className="p-2.5 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs text-[#FF7A00]">
@@ -195,8 +255,8 @@ export default function LoginCard({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-semibold text-[#1A1A2E] dark:text-white">Password</label>
-            <Link href="#" className="text-xs font-semibold text-[#FF7A00] hover:text-[#E06B00]">
-              Forgot?
+            <Link href="/account/setup-password" className="text-xs font-semibold text-[#FF7A00] hover:text-[#E06B00]">
+              Forgot / Set Up?
             </Link>
           </div>
           <div className="relative">

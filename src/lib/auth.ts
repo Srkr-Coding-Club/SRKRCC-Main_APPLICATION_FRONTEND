@@ -127,7 +127,9 @@ export async function loginUser(email: string, password: string): Promise<{ user
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Invalid email or password.');
+    const err: any = new Error(errorData.error || 'Invalid email or password.');
+    err.code = errorData.code;
+    throw err;
   }
 
   const data = await res.json();

@@ -4,7 +4,10 @@ const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PU
 
 async function handleProxy(request: NextRequest, params: { path: string[] }) {
   try {
-    const subPath = (params.path || []).join('/');
+    let subPath = (params.path || []).join('/');
+    if (subPath.startsWith('api/')) {
+      subPath = subPath.slice(4);
+    }
     const normalizedPath = subPath.endsWith('/') ? subPath : `${subPath}/`;
     const search = request.nextUrl.search || '';
     const targetUrl = `${DJANGO_API_URL}/${normalizedPath}${search}`;
@@ -109,6 +112,10 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     const respContentType = response.headers.get('content-type');
     if (respContentType) {
       responseHeaders['content-type'] = respContentType;
+    }
+    const respContentDisposition = response.headers.get('content-disposition');
+    if (respContentDisposition) {
+      responseHeaders['content-disposition'] = respContentDisposition;
     }
 
     const nextResponse = new NextResponse(responseBody, {

@@ -8,7 +8,10 @@ export async function fetchApi<T>(
   isRetry: boolean = false
 ): Promise<T> {
   const isClient = typeof window !== 'undefined';
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  let cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  if (cleanEndpoint.startsWith('api/')) {
+    cleanEndpoint = cleanEndpoint.slice(4);
+  }
 
   // On client, route through BFF Proxy so HttpOnly cookies are automatically sent and forwarded
   const url = isClient
