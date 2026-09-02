@@ -9,8 +9,37 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     const search = request.nextUrl.search || '';
     const targetUrl = `${DJANGO_API_URL}/${normalizedPath}${search}`;
 
-    // Read HttpOnly access token from request cookies
-    const accessToken = request.cookies.get('srkrcc_access_token')?.value;
+    // Read HttpOnly access token and refresh token from request cookies
+    let accessToken = request.cookies.get('srkrcc_access_token')?.value;
+    const refreshToken = request.cookies.get('srkrcc_refresh_token')?.value;
+
+    let newAccessToken: string | null = null;
+    let newRefreshToken: string | null = null;
+
+    // If access token is missing but refresh token exists, proactively refresh before contacting Django
+    if (!accessToken && refreshToken) {
+      try {
+        const refreshRes = await fetch(`${DJANGO_API_URL}/auth/token/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: refreshToken }),
+        });
+
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          newAccessToken = refreshData.access;
+          accessToken = newAccessToken || undefined;
+          newRefreshToken = refreshData.refresh || null;
+        }
+      } catch {
+        // Continue to attempt normal request
+      }
+    }
+
+    // Short-circuit auth/me if user has neither access nor refresh token
+    if ((subPath === 'auth/me' || subPath === 'auth/me/') && !accessToken && !refreshToken) {
+      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+    }
 
     const headers: Record<string, string> = {};
     
@@ -47,35 +76,30 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
 
     let response = await fetch(targetUrl, init);
 
-    // If 401 and refresh token cookie exists, attempt transparent refresh server-side
-    let newAccessToken: string | null = null;
-    let newRefreshToken: string | null = null;
-    if (response.status === 401) {
-      const refreshToken = request.cookies.get('srkrcc_refresh_token')?.value;
-      if (refreshToken) {
-        try {
-          const refreshRes = await fetch(`${DJANGO_API_URL}/auth/token/refresh/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh: refreshToken }),
-          });
+    // If 401 and refresh token cookie exists and we haven't already refreshed, attempt transparent refresh server-side
+    if (response.status === 401 && !newAccessToken && refreshToken) {
+      try {
+        const refreshRes = await fetch(`${DJANGO_API_URL}/auth/token/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: refreshToken }),
+        });
 
-          if (refreshRes.ok) {
-            const refreshData = await refreshRes.json();
-            newAccessToken = refreshData.access;
-            newRefreshToken = refreshData.refresh || null;
-            if (newAccessToken) {
-              headers['Authorization'] = `Bearer ${newAccessToken}`;
-              // Retry original request with refreshed token
-              response = await fetch(targetUrl, {
-                ...init,
-                headers,
-              });
-            }
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          newAccessToken = refreshData.access;
+          newRefreshToken = refreshData.refresh || null;
+          if (newAccessToken) {
+            headers['Authorization'] = `Bearer ${newAccessToken}`;
+            // Retry original request with refreshed token
+            response = await fetch(targetUrl, {
+              ...init,
+              headers,
+            });
           }
-        } catch {
-          // Fall through with original 401 response
         }
+      } catch {
+        // Fall through with original 401 response
       }
     }
 

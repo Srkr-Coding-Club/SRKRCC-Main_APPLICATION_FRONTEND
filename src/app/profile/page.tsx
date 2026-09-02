@@ -22,9 +22,10 @@ import {
   Loader2,
   ArrowRight,
   Sparkles,
+  LayoutGrid,
 } from 'lucide-react';
 import BrainLogo from '@/components/BrainLogo';
-import { getStoredUser, clearAuthSession, isAuthenticated, AuthUser } from '@/lib/auth';
+import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated, AuthUser } from '@/lib/auth';
 import { fetchApi } from '@/lib/api-client';
 
 export const dynamic = 'force-dynamic';
@@ -107,19 +108,17 @@ function ProfileContent() {
       .then((data) => {
         if (data && data.email) {
           setProfile(data);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('srkrcc_user', JSON.stringify({
-              id: data.id,
-              email: data.email,
-              username: data.username,
-              first_name: data.first_name,
-              last_name: data.last_name,
-              role: data.role,
-              roll_number: data.roll_number,
-              branch: data.branch,
-              year: data.year,
-            }));
-          }
+          setStoredUser({
+            id: data.id,
+            email: data.email,
+            username: data.username,
+            first_name: data.first_name,
+            last_name: data.last_name,
+            role: data.role as any,
+            roll_number: data.roll_number,
+            branch: data.branch,
+            year: data.year,
+          });
         }
       })
       .catch(() => {
@@ -194,7 +193,17 @@ function ProfileContent() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {(user.role === 'ADMIN' || user.role === 'CLUB_LEAD') && (
+              <Link
+                href="/admin"
+                className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span>Admin Control Room</span>
+              </Link>
+            )}
+
             <button
               onClick={() => toast.info('Profile Settings', 'Profile details are synchronized with SRKR student records.')}
               className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"

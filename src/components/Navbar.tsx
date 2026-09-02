@@ -325,19 +325,45 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               ))}
             </div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="pt-6 flex items-center gap-4">
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white"
-              >
-                Login
-              </Link>
-              <div className="flex-1">
-                <PillButton href="/signup" variant="solid" onClick={() => setMobileMenuOpen(false)} className="w-full justify-center">
-                  Join the Club
-                </PillButton>
-              </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="pt-6 flex flex-col gap-3">
+              {isAuth ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href="/profile"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white flex items-center justify-center gap-2"
+                    >
+                      <User className="w-4 h-4 text-[#FF7A00]" />
+                      <span>{currentUser?.first_name || currentUser?.username || 'My Profile'}</span>
+                    </Link>
+                    {(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD') && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex-1 text-center py-3 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md transition"
+                      >
+                        Admin Room
+                      </Link>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white"
+                  >
+                    Login
+                  </Link>
+                  <div className="flex-1">
+                    <PillButton href="/signup" variant="solid" onClick={() => setMobileMenuOpen(false)} className="w-full justify-center">
+                      Join the Club
+                    </PillButton>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

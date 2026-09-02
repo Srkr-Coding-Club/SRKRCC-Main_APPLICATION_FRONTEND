@@ -19,10 +19,12 @@ import {
   UserCheck,
   UploadCloud,
   Activity,
+  Database,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
 import ThemeToggle from '../ThemeToggle';
+import { getStoredUser, AuthUser } from '@/lib/auth';
 
 interface NavChild {
   label: string;
@@ -51,6 +53,7 @@ const navItems: NavItem[] = [
     icon: LayoutGrid,
     hasDropdown: true,
     children: [
+      { label: 'Data Management Center', shortLabel: 'DMC', href: '/admin/data-management', desc: 'Explore & export all platform data', icon: Database },
       { label: 'Responses', shortLabel: 'Responses', href: '/admin/responses', desc: 'View & export submissions', icon: Inbox },
       { label: 'Import Data', shortLabel: 'Import', href: '/admin/csv-ingestion', desc: 'Bulk CSV / Excel ingestion', icon: UploadCloud },
       { label: 'Data Health', shortLabel: 'Health', href: '/admin/data-health', desc: 'Stats, warnings & activity', icon: Activity },
@@ -89,6 +92,12 @@ export default function AdminNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    setCurrentUser(getStoredUser());
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -222,8 +231,16 @@ export default function AdminNavbar() {
           {/* Right cluster */}
           <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
             <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#8B2E3B] text-white whitespace-nowrap">
-              ADMIN
+              {currentUser?.role || 'ADMIN'}
             </span>
+
+            <Link
+              href="/profile"
+              className="text-[12px] font-semibold text-[#1A1A2E]/70 dark:text-white/60 hover:text-[#FF7A00] transition-colors truncate max-w-[140px]"
+              title={currentUser?.email}
+            >
+              {currentUser?.first_name || currentUser?.username || currentUser?.email?.split('@')[0] || 'Profile'}
+            </Link>
 
             <Link
               href="/"

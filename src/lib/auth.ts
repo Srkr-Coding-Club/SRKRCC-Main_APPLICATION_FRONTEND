@@ -44,11 +44,15 @@ export function getStoredUser(): AuthUser | null {
 export function setStoredUser(user: AuthUser) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  if (user.role) {
+    document.cookie = `${ROLE_COOKIE}=${encodeURIComponent(user.role)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+  }
 }
 
 export function clearAuthSession() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(USER_KEY);
+  document.cookie = `${ROLE_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
   
   // Call server BFF route to clear HttpOnly cookies
   fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
@@ -61,11 +65,49 @@ export function isAuthenticated(): boolean {
 
 export function isAdminOrLead(): boolean {
   const user = getStoredUser();
-  if (user) {
+  if (user && user.role) {
     return user.role === 'ADMIN' || user.role === 'CLUB_LEAD';
   }
   const role = getCookie(ROLE_COOKIE);
   return role === 'ADMIN' || role === 'CLUB_LEAD';
+}
+
+/**
+ * Validates session against the server /auth/me/ endpoint and updates stored user and role cookies.
+ */
+export async function fetchAndSyncCurrentUser(): Promise<AuthUser | null> {
+  if (typeof window === 'undefined') return null;
+  if (!isAuthenticated()) return null;
+
+  try {
+    const res = await fetch('/api/proxy/auth/me/', {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.email) {
+      const user: AuthUser = {
+        id: data.id,
+        email: data.email,
+        username: data.username,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        role: data.role,
+        roll_number: data.roll_number,
+        branch: data.branch,
+        year: data.year,
+        phone_number: data.phone_number,
+        github_profile: data.github_profile,
+        linkedin_profile: data.linkedin_profile,
+      };
+      setStoredUser(user);
+      return user;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
