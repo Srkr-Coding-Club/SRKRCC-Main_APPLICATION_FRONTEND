@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
-import LoginCard from '@/app/login/page';
+import LoginCard from '@/components/LoginCard';
 import { getStoredUser, isAuthenticated, loginUser, AuthUser } from '@/lib/auth';
 
 interface NavChild {
