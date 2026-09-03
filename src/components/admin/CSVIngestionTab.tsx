@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Upload,
   FileText,
+  FileSpreadsheet,
   ChevronRight,
   ChevronLeft,
   AlertTriangle,
@@ -383,6 +384,78 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   <span>Zero-Loss Provenance</span>
                   <span>•</span>
                   <span>Preserve-First Invariant</span>
+                </div>
+              </div>
+
+              {/* Mock Datasets & Sample Files Download Box */}
+              <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 backdrop-blur-md space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-white text-xs font-semibold">
+                    <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                    <span>Download Pre-formatted Mock Datasets for Testing</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">CSV & Excel formats ready</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                  {[
+                    {
+                      label: 'Users Directory',
+                      csv: '/sample_backups/01_users_members_directory.csv',
+                      xlsx: '/sample_backups/01_users_members_directory.xlsx',
+                      desc: '10 members with Club IDs',
+                    },
+                    {
+                      label: 'Events Schedule',
+                      csv: '/sample_backups/02_events_schedule.csv',
+                      xlsx: '/sample_backups/02_events_schedule.xlsx',
+                      desc: '5 club workshops & talks',
+                    },
+                    {
+                      label: 'Hackathons Catalog',
+                      csv: '/sample_backups/03_hackathons_catalog.csv',
+                      xlsx: '/sample_backups/03_hackathons_catalog.xlsx',
+                      desc: '3 major hackathons',
+                    },
+                    {
+                      label: 'Form Submissions',
+                      csv: '/sample_backups/04_forms_workshop_registrations.csv',
+                      xlsx: '/sample_backups/04_forms_workshop_registrations.xlsx',
+                      desc: 'Custom dynamic responses',
+                    },
+                    {
+                      label: 'Raw Vault (Inventory)',
+                      csv: '/sample_backups/05_unknown_raw_legacy_inventory.csv',
+                      xlsx: '/sample_backups/05_unknown_raw_legacy_inventory.xlsx',
+                      desc: 'Hardware items (schemaless)',
+                    },
+                  ].map((d) => (
+                    <div
+                      key={d.label}
+                      className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between space-y-2 hover:border-slate-700 transition"
+                    >
+                      <div>
+                        <span className="text-xs font-semibold text-slate-200 block">{d.label}</span>
+                        <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">{d.desc}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <a
+                          href={d.csv}
+                          download
+                          className="flex-1 py-1 px-2 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold text-center transition"
+                        >
+                          .CSV
+                        </a>
+                        <a
+                          href={d.xlsx}
+                          download
+                          className="flex-1 py-1 px-2 rounded-md bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 text-[10px] font-bold text-center border border-indigo-500/30 transition"
+                        >
+                          .XLSX
+                        </a>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
