@@ -238,6 +238,24 @@ html {
   filter: drop-shadow(0 0 34px var(--glow-mid));
 }
 
+/* Hero — one ambient glow drift + a one-shot rise, both transform-only so
+   they never trigger layout/paint. The global prefers-reduced-motion rule
+   further down neutralises the infinite drift automatically. */
+@keyframes heroRise {
+  from { transform: translateY(16px); }
+  to { transform: translateY(0); }
+}
+
+@keyframes heroGlowDrift {
+  from { transform: translate3d(-3%, -2%, 0) scale(1); }
+  to { transform: translate3d(3%, 3%, 0) scale(1.07); }
+}
+
+@keyframes heroBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
 /* Twinkling sparkle glints */
 @keyframes twinkle {
   0%, 100% { opacity: 0.15; transform: scale(0.7); }

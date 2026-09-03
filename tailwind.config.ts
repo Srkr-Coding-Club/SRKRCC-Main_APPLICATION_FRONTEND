@@ -33,6 +33,8 @@ const config: Config = {
         inter: ["var(--font-inter)", "Inter", "sans-serif"],
         mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
+      // Project-wide cap: nothing rounder than 10px (except `rounded-full`
+      // pills / circles). Overrides Tailwind's larger defaults.
       borderRadius: {
         std: "8px",
         card: "8px",
@@ -40,6 +42,9 @@ const config: Config = {
         md: "6px",
         lg: "8px",
         xl: "10px",
+        "2xl": "10px",
+        "3xl": "10px",
+        "4xl": "10px",
       },
       boxShadow: {
         subtle: "0 2px 8px rgba(0, 0, 0, 0.08)",

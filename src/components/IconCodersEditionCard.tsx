@@ -19,7 +19,7 @@ export default function IconCodersEditionCard({
     <div className="group relative isolate h-[330px] w-full [perspective:1400px]">
       {/* soft glow around the card */}
       <div
-        className="pointer-events-none absolute -inset-1 rounded-[1.75rem] opacity-60 blur-2xl transition-opacity duration-500 group-hover:opacity-100 dark:opacity-35 dark:group-hover:opacity-70"
+        className="pointer-events-none absolute -inset-1 rounded-[10px] opacity-60 blur-2xl transition-opacity duration-500 group-hover:opacity-100 dark:opacity-35 dark:group-hover:opacity-70"
         style={{ background: `radial-gradient(circle at 50% 50%, ${accent}30, transparent 70%)` }}
       />
 

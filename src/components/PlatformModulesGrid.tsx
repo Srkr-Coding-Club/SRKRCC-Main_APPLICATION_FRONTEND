@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Trophy, Sparkles, Terminal, Briefcase, BookOpen, ArrowRight, Zap, ChevronDown, LucideIcon } from 'lucide-react';
+import { Calendar, Users, Trophy, Code2, Briefcase, BookOpen, ArrowRight, Zap, ChevronDown, LucideIcon } from 'lucide-react';
 
 interface ModuleItem {
   key: string;
@@ -34,7 +34,7 @@ const MODULES: ModuleItem[] = [
     title: 'Hackathons Engine',
     desc: 'Multi-round hackathons with team formation and judging.',
     href: '/hackathons',
-    icon: Trophy,
+    icon: Users,
     accent: '#FFA500',
     bullets: ['Team formation tools', 'Live leaderboard & judging', 'Sponsor-backed prizes'],
     statValue: '12',
@@ -45,7 +45,7 @@ const MODULES: ModuleItem[] = [
     title: 'IconCoders Flagship',
     desc: 'Flagship annual hackathon landing & Hall of Fame.',
     href: '/iconcoders',
-    icon: Sparkles,
+    icon: Trophy,
     accent: '#8B2E3B',
     bullets: ['Annual flagship event', 'Hall of Fame showcase', 'Industry mentor panels'],
     statValue: '3rd',
@@ -56,7 +56,7 @@ const MODULES: ModuleItem[] = [
     title: 'Codequest Daily',
     desc: 'Daily coding problem of the day and streak tracker.',
     href: '/codequest',
-    icon: Terminal,
+    icon: Code2,
     accent: '#C2410C',
     bullets: ['New problem every day', 'Streak & XP tracking', 'Difficulty-based tiers'],
     statValue: '365',
@@ -97,7 +97,7 @@ function RailColumn({ m, isActive, enabled, onActivate }: { m: ModuleItem; isAct
       className="relative h-[26rem] rounded-3xl overflow-hidden transition-[flex-grow] duration-500 ease-out"
       style={{ flexGrow: isActive ? 5 : 1, flexBasis: 0, minWidth: isActive ? undefined : 88 }}
     >
-      <Link href={enabled ? m.href : '#'} className={`absolute inset-0 ${enabled ? '' : 'pointer-events-none'}`} tabIndex={0}>
+      <div className="absolute inset-0">
         <div
           className="relative h-full p-[1.5px] rounded-3xl transition-opacity duration-300"
           style={
@@ -153,7 +153,7 @@ function RailColumn({ m, isActive, enabled, onActivate }: { m: ModuleItem; isAct
 
             {/* Expanded content */}
             <motion.div
-              className="absolute inset-x-0 top-24 bottom-0 px-7 flex flex-col"
+              className={`absolute inset-x-0 top-24 bottom-0 px-7 flex flex-col ${isActive ? '' : 'pointer-events-none'}`}
               animate={{ opacity: isActive ? 1 : 0, y: isActive ? 0 : 12 }}
               transition={{ duration: 0.3, delay: isActive ? 0.15 : 0 }}
             >
@@ -191,7 +191,16 @@ function RailColumn({ m, isActive, enabled, onActivate }: { m: ModuleItem; isAct
                       <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: m.accent }} />
                       Live
                     </span>
-                    <ArrowRight className="w-4 h-4" style={{ color: m.accent }} />
+                    <Link
+                      href={m.href}
+                      onFocus={onActivate}
+                      aria-label={`Open ${m.title}`}
+                      tabIndex={isActive ? 0 : -1}
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full border transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.06]"
+                      style={{ borderColor: `${m.accent}40`, color: m.accent }}
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
                   </div>
                 ) : (
                   <span className="text-xs text-slate-400 dark:text-slate-500 italic font-mono">Disabled by admin</span>
@@ -200,7 +209,7 @@ function RailColumn({ m, isActive, enabled, onActivate }: { m: ModuleItem; isAct
             </motion.div>
           </div>
         </div>
-      </Link>
+      </div>
     </div>
   );
 }

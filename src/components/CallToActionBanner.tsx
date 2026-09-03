@@ -14,11 +14,11 @@ export default function CallToActionBanner() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.7 }}
-          className="relative rounded-[2rem] p-[1.5px] overflow-hidden"
+          className="relative rounded-[10px] p-[1.5px] overflow-hidden"
           style={{ background: 'linear-gradient(150deg, #8B2E3B70, transparent 45%, transparent 65%, #FF7A0055)' }}
         >
           <div
-            className="relative rounded-[2rem] overflow-hidden p-10 sm:p-16"
+            className="relative rounded-[10px] overflow-hidden p-10 sm:p-16"
             style={{ background: 'linear-gradient(155deg, rgba(139,46,59,0.10), var(--card-bg) 55%)' }}
           >
             <div className="absolute inset-0 bg-dot-grid opacity-30 [mask-image:radial-gradient(ellipse_70%_70%_at_50%_40%,#000_15%,transparent_100%)] pointer-events-none" />

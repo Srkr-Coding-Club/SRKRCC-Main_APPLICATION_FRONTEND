@@ -52,7 +52,7 @@ const STAGES: Stage[] = [
   },
 ];
 
-function StageRow({ stage, index }: { stage: Stage; index: number }) {
+function StageCard({ stage, index }: { stage: Stage; index: number }) {
   const prefersReducedMotion = useReducedMotion();
 
   return (
@@ -60,46 +60,43 @@ function StageRow({ stage, index }: { stage: Stage; index: number }) {
       initial={prefersReducedMotion ? undefined : { opacity: 0, y: 28 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-      className={`relative grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-10 py-10 sm:py-12 ${
-        index > 0 ? 'border-t border-[#1A1A2E]/[0.07] dark:border-white/[0.08]' : ''
-      }`}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.05 * (index % 2) }}
+      className="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-7 sm:p-9 shadow-sm hover:shadow-md transition-shadow"
     >
-      {/* Ghost numeral + reading marker */}
-      <div className="min-w-0 lg:col-span-3 flex lg:flex-col items-baseline lg:items-start gap-4">
-        <span
-          className="font-poppins font-thin leading-none text-[clamp(3.5rem,7vw,5.5rem)] select-none"
-          style={{
-            color: 'transparent',
-            WebkitTextStroke: `1.5px ${stage.accent}55`,
-          }}
-        >
-          {stage.index}
-        </span>
-        <motion.span
-          initial={prefersReducedMotion ? undefined : { scaleX: 0 }}
-          whileInView={{ scaleX: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.25, ease: 'easeOut' }}
-          style={{ background: stage.accent, transformOrigin: 'left' }}
-          className="hidden lg:block h-[3px] w-14 rounded-full"
-        />
-      </div>
+      {/* Ghost numeral — background texture */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-3 right-3 font-poppins font-thin leading-none select-none text-[5.5rem] sm:text-[6.5rem]"
+        style={{ color: 'transparent', WebkitTextStroke: `1.5px ${stage.accent}33` }}
+      >
+        {stage.index}
+      </span>
 
-      {/* Content */}
-      <div className="min-w-0 lg:col-span-9">
+      <div className="relative">
         <span
-          className="inline-block font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.3em] mb-3"
+          className="inline-block font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.3em]"
           style={{ color: stage.accent }}
         >
           {stage.title}
         </span>
-        <h3 className="font-poppins font-extrabold text-2xl sm:text-3xl lg:text-4xl tracking-tight text-[#1A1A2E] dark:text-white leading-[1.15] max-w-xl">
+
+        <motion.span
+          initial={prefersReducedMotion ? undefined : { scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+          style={{ background: stage.accent, transformOrigin: 'left' }}
+          className="mt-3 block h-[3px] w-12 rounded-full"
+        />
+
+        <h3 className="mt-5 font-poppins font-extrabold text-xl sm:text-2xl lg:text-[1.7rem] tracking-tight text-[#1A1A2E] dark:text-white leading-[1.2]">
           {stage.headline}
         </h3>
-        <p className="mt-4 text-sm sm:text-base text-[#1A1A2E]/60 dark:text-white/50 leading-relaxed max-w-lg">
+
+        <p className="mt-3 text-sm sm:text-base text-[#1A1A2E]/60 dark:text-white/50 leading-relaxed max-w-md">
           {stage.desc}
         </p>
+
         <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-xs text-[#1A1A2E]/45 dark:text-white/35">
           {stage.verbs.map((verb, i) => (
             <React.Fragment key={verb}>
@@ -118,32 +115,32 @@ export default function WhatWeDoSection() {
 
   return (
     <section className="relative py-20 sm:py-28 overflow-hidden bg-[var(--background)] transition-colors duration-300">
-      {/* one quiet ambient glow, no per-stage effects */}
-      <div
-        aria-hidden="true"
-        className="absolute -top-40 right-0 w-[520px] h-[520px] rounded-full blur-3xl opacity-40 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, var(--glow-mid), transparent 70%)' }}
-      />
+      {/* Backdrop — dot-grid, matches the About / Events sections */}
+      <div className="absolute inset-0 bg-dot-grid opacity-30 [mask-image:radial-gradient(ellipse_75%_70%_at_50%_35%,#000_15%,transparent_100%)] pointer-events-none" />
 
-      <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header — same container + type scale as the About section */}
         <motion.div
           initial={prefersReducedMotion ? undefined : { opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-4 sm:mb-6"
+          className="mb-12 sm:mb-16 max-w-2xl"
         >
-          <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-[#1A1A2E]/45 dark:text-white/35">
+          <span className="block text-xs font-bold tracking-[0.3em] text-[#FF7A00] uppercase mb-3">
             What We Do
           </span>
-          <h2 className="mt-3 font-poppins font-extrabold text-3xl sm:text-4xl tracking-tight text-[#1A1A2E] dark:text-white">
+          <h2 className="font-poppins font-extrabold text-3xl sm:text-4xl tracking-tight text-[#1A1A2E] dark:text-white">
             What We <span className="ember-text">Build</span>
           </h2>
+          <p className="mt-4 text-slate-600 dark:text-slate-300 text-base leading-relaxed">
+            Four stages every member moves through — from first steps to shipping ideas that matter.
+          </p>
         </motion.div>
 
-        <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-6">
           {STAGES.map((stage, i) => (
-            <StageRow key={stage.id} stage={stage} index={i} />
+            <StageCard key={stage.id} stage={stage} index={i} />
           ))}
         </div>
       </div>

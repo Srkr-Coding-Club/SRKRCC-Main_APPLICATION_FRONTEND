@@ -16,6 +16,7 @@ const SOCIALS = [
 
 const QUICK_LINKS = [
   { label: 'Home', href: '/' },
+  { label: 'About Us', href: '/about' },
   { label: 'Events', href: '/events' },
   { label: 'Career', href: '/career' },
   { label: 'Blogs', href: '/blogs' },
@@ -62,7 +63,7 @@ export default function Footer() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-black/[0.06] dark:border-white/[0.08]"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12"
           >
             {/* Brand */}
             <div className="lg:col-span-5 space-y-4">

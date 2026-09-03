@@ -113,6 +113,14 @@ export default function AdminNavbar() {
     };
   }, [mobileMenuOpen]);
 
+  const activeNavItem = navItems.find(
+    (item) => pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false),
+  );
+  // The sliding pill sits under the hovered tab, or the active tab when nothing
+  // is hovered — so ONLY that tab gets white text. Previously the active tab
+  // stayed white after the pill slid away to a hovered sibling.
+  const pillLabel = hovered ?? activeNavItem?.label ?? null;
+
   return (
     <>
     <header
@@ -148,8 +156,8 @@ export default function AdminNavbar() {
             onMouseLeave={() => setHovered(null)}
           >
             {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false);
               const isHovered = hovered === item.label;
+              const hasPill = item.label === pillLabel;
               const Icon = item.icon;
 
               return (
@@ -164,7 +172,7 @@ export default function AdminNavbar() {
                   <Link
                     href={item.href}
                     className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors duration-200 ${
-                      isActive || isHovered
+                      hasPill
                         ? 'text-white'
                         : 'text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white'
                     }`}
@@ -176,7 +184,7 @@ export default function AdminNavbar() {
                     )}
                   </Link>
 
-                  {(isActive || isHovered) && (
+                  {hasPill && (
                     <motion.div
                       layoutId="admin-nav-pill"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}

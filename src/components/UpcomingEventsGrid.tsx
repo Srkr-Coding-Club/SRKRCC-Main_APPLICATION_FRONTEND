@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { Calendar, Clock, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PillButton from './PillButton';
@@ -21,7 +20,7 @@ const EVENTS: EventItem[] = [
   {
     id: 'web-dev-workshop',
     title: 'Web Development Workshop',
-    poster: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80',
+    poster: 'https://images.unsplash.com/photo-1631350397792-8e0c2de5b637?auto=format&fit=crop&w=1200&q=80',
     badge: 'WEB DEV WORKSHOP',
     date: '24 May, 2025',
     time: '10:00 AM',
@@ -31,7 +30,7 @@ const EVENTS: EventItem[] = [
   {
     id: 'code-challenge-2025',
     title: 'Code Challenge 2025',
-    poster: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80',
+    poster: 'https://images.unsplash.com/photo-1637073849667-91120a924221?auto=format&fit=crop&w=1200&q=80',
     badge: 'CODE CHALLENGE',
     date: '07 Jun, 2025',
     time: '09:30 AM',
@@ -41,7 +40,7 @@ const EVENTS: EventItem[] = [
   {
     id: 'aiml-seminar',
     title: 'AI/ML Seminar',
-    poster: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    poster: 'https://images.unsplash.com/photo-1695144244472-a4543101ef35?auto=format&fit=crop&w=1200&q=80',
     badge: 'AI/ML SEMINAR',
     date: '21 Jun, 2025',
     time: '11:00 AM',
@@ -119,19 +118,23 @@ export default function UpcomingEventsGrid() {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          <div className="relative rounded-3xl overflow-hidden bg-[var(--card-bg)]">
-            <AnimatePresence mode="wait" custom={direction} initial={false}>
+          {/* Fixed-height frame — keeps the card from collapsing during a slide  */}
+          {/* swap, which is what made the Register button appear to flicker in   */}
+          {/* and out. Both slides are absolutely stacked so the new one can      */}
+          {/* enter while the old one leaves (no empty gap).                      */}
+          <div className="relative rounded-3xl overflow-hidden bg-[var(--card-bg)] min-h-[34rem] sm:min-h-[30rem] lg:min-h-[27rem]">
+            <AnimatePresence custom={direction} initial={false}>
               <motion.div
                 key={evt.id}
                 custom={direction}
                 initial={{ opacity: 0, x: direction * 40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: direction * -40 }}
+                exit={{ opacity: 0, x: direction * -40, pointerEvents: 'none' }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="grid grid-cols-1 lg:grid-cols-2"
+                className="absolute inset-0 grid grid-cols-1 lg:grid-cols-2"
               >
                 {/* Image */}
-                <div className="relative h-64 sm:h-80 lg:h-[26rem] overflow-hidden bg-slate-900">
+                <div className="relative h-56 sm:h-64 lg:h-full overflow-hidden bg-slate-900">
                   <img src={evt.poster} alt={evt.title} className="w-full h-full object-cover opacity-90" draggable={false} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-[var(--card-bg)]/20" />
                   <span
@@ -143,7 +146,7 @@ export default function UpcomingEventsGrid() {
                 </div>
 
                 {/* Details */}
-                <div className="p-8 sm:p-10 lg:p-12 flex flex-col justify-center">
+                <div className="p-6 sm:p-9 lg:p-12 flex flex-col justify-center">
                   <span className="font-mono text-xs uppercase tracking-[0.25em]" style={{ color: evt.accent }}>
                     Event {String(index + 1).padStart(2, '0')} / {String(EVENTS.length).padStart(2, '0')}
                   </span>
@@ -151,8 +154,8 @@ export default function UpcomingEventsGrid() {
                     {evt.title}
                   </h3>
 
-                  <div className="mt-6 space-y-3 text-sm text-slate-500 dark:text-slate-400 font-medium">
-                    <div className="flex items-center gap-2">
+                  <div className="mt-5 space-y-3 text-sm text-slate-500 dark:text-slate-400 font-medium">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: evt.accent }} />
                       <span>{evt.date}</span>
                       <span className="text-slate-300 dark:text-slate-700">|</span>
@@ -165,7 +168,7 @@ export default function UpcomingEventsGrid() {
                     </div>
                   </div>
 
-                  <div className="mt-8">
+                  <div className="mt-7">
                     <PillButton href={`/events#${evt.id}`} variant="solid">
                       Register Now
                     </PillButton>
@@ -176,15 +179,21 @@ export default function UpcomingEventsGrid() {
 
             {/* Arrows */}
             <button
-              onClick={prev}
-              className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/60 transition-colors z-10"
+              onClick={(e) => {
+                prev();
+                e.currentTarget.blur();
+              }}
+              className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/60 transition-colors z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
               aria-label="Previous event"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
-              onClick={next}
-              className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/60 transition-colors z-10"
+              onClick={(e) => {
+                next();
+                e.currentTarget.blur();
+              }}
+              className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/60 transition-colors z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
               aria-label="Next event"
             >
               <ChevronRight className="w-4 h-4" />
@@ -197,8 +206,11 @@ export default function UpcomingEventsGrid() {
           {EVENTS.map((s, i) => (
             <button
               key={s.id}
-              onClick={() => goTo(i)}
-              className="relative h-1.5 rounded-full overflow-hidden transition-all duration-400"
+              onClick={(e) => {
+                goTo(i);
+                e.currentTarget.blur();
+              }}
+              className="relative h-1.5 rounded-full overflow-hidden transition-all duration-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
               style={{ width: i === index ? 36 : 8, background: 'rgba(128,128,128,0.25)' }}
               aria-label={`Go to ${s.title}`}
             >

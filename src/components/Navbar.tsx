@@ -113,6 +113,15 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [loginModalOpen]);
 
+  const activeNavItem = visibleNavItems.find(
+    (item) => pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false),
+  );
+  // The sliding pill sits under the hovered tab, or the active tab when nothing
+  // is hovered — so ONLY that tab gets white text. Previously the active tab
+  // stayed white after the pill slid away to a hovered sibling, making its
+  // label read as invisible on the light bar.
+  const pillLabel = hovered ?? activeNavItem?.label ?? null;
+
   return (
     <>
     <header
@@ -148,8 +157,8 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             onMouseLeave={() => setHovered(null)}
           >
             {visibleNavItems.map((item) => {
-              const isActive = pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false);
               const isHovered = hovered === item.label;
+              const hasPill = item.label === pillLabel;
 
               return (
                 <div
@@ -163,7 +172,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                   <Link
                     href={item.href}
                     className={`relative z-10 flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold transition-colors duration-200 ${
-                      isActive || isHovered
+                      hasPill
                         ? 'text-white'
                         : 'text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white'
                     }`}
@@ -174,7 +183,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                     )}
                   </Link>
 
-                  {(isActive || isHovered) && (
+                  {hasPill && (
                     <motion.div
                       layoutId="nav-pill"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
