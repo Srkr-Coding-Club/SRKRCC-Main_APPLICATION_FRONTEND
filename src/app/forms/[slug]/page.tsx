@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Form, FormField } from '@/lib/types';
@@ -22,12 +22,153 @@ import {
   Edit3,
   RefreshCw,
   Sparkles,
+  Check,
+  ChevronDown,
 } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import {
+  SpotlightInput,
+  SpotlightTextarea,
+  SpotlightSelect,
+  FieldLabel,
+  BottomGradient,
+} from '@/components/ui/InputField';
 
 /**
  * Intelligent matcher that matches FormField definitions to authenticated student profile fields.
  */
+const mockFormCatalog: Record<string, Form> = {
+  'hackathon-registration-2026': {
+    id: 101,
+    title: 'Hackathon Registration 2026',
+    slug: 'hackathon-registration-2026',
+    description:
+      'Join our flagship annual hackathon for a fast-paced innovation sprint with coding, design, and product challenges.',
+    image_url:
+      'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80',
+    category: 'Hackathon',
+    status: 'PUBLISHED',
+    open_at: '2026-08-29T10:00:00Z',
+    close_at: '2026-09-12T23:59:00Z',
+    allow_multiple_responses: false,
+    enable_prefill: true,
+    fields: [
+      { id: 1, label: 'Full Name', type: 'TEXT', placeholder: 'Your full name', is_required: true, order: 1 },
+      { id: 2, label: 'Email Address', type: 'EMAIL', placeholder: 'you@example.com', is_required: true, order: 2 },
+      { id: 3, label: 'Phone Number', type: 'PHONE', placeholder: '+91 9876543210', is_required: true, order: 3 },
+      { id: 4, label: 'College / University', type: 'TEXT', placeholder: 'Your college name', is_required: true, order: 4 },
+      { id: 5, label: 'Branch', type: 'DROPDOWN', placeholder: 'Select your branch', is_required: true, options: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'Other'], order: 5 },
+      { id: 6, label: 'Current Year', type: 'RADIO', is_required: true, options: ['1st Year', '2nd Year', '3rd Year', '4th Year'], order: 6 },
+      { id: 7, label: 'Team Size', type: 'NUMBER', placeholder: 'e.g. 3', is_required: true, validation_rules: { minValue: 1, maxValue: 5 }, order: 7 },
+      { id: 8, label: 'What excites you about this hackathon?', type: 'PARAGRAPH', placeholder: 'Tell us your motivation...', is_required: true, order: 8 },
+      { id: 9, label: 'Track Preference', type: 'CHECKBOX', is_required: false, options: ['Web', 'AI/ML', 'Mobile', 'Cybersecurity', 'IoT'], order: 9 },
+    ],
+  },
+  'react-ui-design-workshop': {
+    id: 102,
+    title: 'Workshop RSVP: React & UI Design',
+    slug: 'react-ui-design-workshop',
+    description:
+      'Attend our live workshop on React patterns, component thinking, and polished UI design workflows.',
+    category: 'Workshop',
+    status: 'SCHEDULED',
+    open_at: '2026-09-03T09:00:00Z',
+    close_at: '2026-09-09T18:00:00Z',
+    allow_multiple_responses: false,
+    enable_prefill: true,
+    fields: [
+      { id: 1, label: 'Full Name', type: 'TEXT', placeholder: 'Your name', is_required: true, order: 1 },
+      { id: 2, label: 'Email Address', type: 'EMAIL', placeholder: 'you@example.com', is_required: true, order: 2 },
+      { id: 3, label: 'Year of Study', type: 'DROPDOWN', is_required: true, options: ['1st Year', '2nd Year', '3rd Year', '4th Year'], order: 3 },
+      { id: 4, label: 'Skill Level', type: 'RADIO', is_required: true, options: ['Beginner', 'Intermediate', 'Advanced'], order: 4 },
+      { id: 5, label: 'What do you want to learn?', type: 'PARAGRAPH', placeholder: 'Share your goals...', is_required: false, order: 5 },
+    ],
+  },
+  'core-team-recruitment-2026': {
+    id: 103,
+    title: 'Core Team Recruitment 2026',
+    slug: 'core-team-recruitment-2026',
+    description:
+      'Apply to be part of the club leadership team for events, design, content, outreach, and technical initiatives.',
+    category: 'Recruitment',
+    status: 'PUBLISHED',
+    open_at: '2026-08-20T08:00:00Z',
+    close_at: '2026-09-06T20:00:00Z',
+    allow_multiple_responses: false,
+    enable_prefill: true,
+    fields: [
+      { id: 1, label: 'Full Name', type: 'TEXT', placeholder: 'Your name', is_required: true, order: 1 },
+      { id: 2, label: 'Student Email', type: 'EMAIL', placeholder: 'yourcollegeid@college.edu', is_required: true, order: 2 },
+      { id: 3, label: 'Phone Number', type: 'PHONE', placeholder: '+91 9876543210', is_required: true, order: 3 },
+      { id: 4, label: 'Department', type: 'DROPDOWN', is_required: true, options: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'MBA', 'Other'], order: 4 },
+      { id: 5, label: 'Preferred Role', type: 'RADIO', is_required: true, options: ['Technical', 'Design', 'Content', 'Outreach', 'Operations'], order: 5 },
+      { id: 6, label: 'Why do you want to join?', type: 'PARAGRAPH', placeholder: 'Share your motivation...', is_required: true, order: 6 },
+    ],
+  },
+  'student-feedback-survey': {
+    id: 104,
+    title: 'Student Feedback Survey',
+    slug: 'student-feedback-survey',
+    description:
+      'Let us know what you liked, what needs improvement, and what events you would like to see next.',
+    category: 'Feedback',
+    status: 'PUBLISHED',
+    open_at: '2026-08-25T00:00:00Z',
+    close_at: '2026-09-20T23:59:00Z',
+    allow_multiple_responses: true,
+    enable_prefill: true,
+    fields: [
+      { id: 1, label: 'Name', type: 'TEXT', placeholder: 'Your name', is_required: false, order: 1 },
+      { id: 2, label: 'Email', type: 'EMAIL', placeholder: 'you@example.com', is_required: false, order: 2 },
+      { id: 3, label: 'How satisfied are you with the club events?', type: 'RADIO', is_required: true, options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied'], order: 3 },
+      { id: 4, label: 'What should we improve?', type: 'PARAGRAPH', placeholder: 'Your feedback matters...', is_required: true, order: 4 },
+    ],
+  },
+};
+
+const mockFormAliases: Record<string, string> = {
+  'hackoverflow-2026-registration': 'hackathon-registration-2026',
+  'coding-club-core-team': 'core-team-recruitment-2026',
+  'modern-web-development': 'react-ui-design-workshop',
+};
+
+const mockFormTitles: Record<string, string> = {
+  'ai-ml-bootcamp': 'AI & Machine Learning Bootcamp',
+  'open-source-drive': 'Open Source Contribution Drive',
+  'competitive-programming': 'Competitive Programming Challenge',
+  'cloud-computing-workshop': 'Cloud Computing Workshop',
+  'cybersecurity-program': 'Cybersecurity Awareness Program',
+};
+
+function getFallbackForm(slug: string): Form | null {
+  const normalizedSlug = decodeURIComponent(slug);
+  const aliasedForm = mockFormCatalog[mockFormAliases[normalizedSlug] || normalizedSlug];
+  if (aliasedForm) {
+    return { ...aliasedForm, slug: normalizedSlug };
+  }
+
+  const title = mockFormTitles[normalizedSlug];
+  if (!title) return null;
+
+  return {
+    id: `mock-${normalizedSlug}`,
+    title,
+    slug: normalizedSlug,
+    description: `Participate in this SRKR Coding Club program and share your details with the organizing team.`,
+    category: 'Program',
+    status: 'PUBLISHED',
+    open_at: '2026-09-01T09:00:00.000Z',
+    close_at: '2026-12-31T23:59:00.000Z',
+    allow_multiple_responses: false,
+    enable_prefill: true,
+    fields: [
+      { id: 1, label: 'Full Name', type: 'TEXT', placeholder: 'Your full name', is_required: true, order: 1 },
+      { id: 2, label: 'Email Address', type: 'EMAIL', placeholder: 'you@example.com', is_required: true, order: 2 },
+      { id: 3, label: 'What would you like to learn or contribute?', type: 'PARAGRAPH', placeholder: 'Share your interests...', is_required: true, order: 3 },
+    ],
+  };
+}
+
 function matchUserDetailToField(field: FormField, user: AuthUser | null): any {
   if (!user || !field) return undefined;
   const label = (field.label || '').toLowerCase().trim();
@@ -203,14 +344,28 @@ export default function FormDetailSubmissionPage() {
       setLoading(true);
       try {
         const fetched = await fetchApi<Form>(`/forms/${slug}/`);
-        if (fetched && fetched.title) {
+        if (fetched && fetched.title && fetched.fields) {
           setForm(fetched);
+          setNotFound(false);
+          return;
+        }
+
+        const fallback = getFallbackForm(slug);
+        if (fallback) {
+          setForm(fallback);
+          setNotFound(false);
+          return;
+        }
+
+        setNotFound(true);
+      } catch {
+        const fallback = getFallbackForm(slug);
+        if (fallback) {
+          setForm(fallback);
           setNotFound(false);
         } else {
           setNotFound(true);
         }
-      } catch {
-        setNotFound(true);
       } finally {
         setLoading(false);
       }
@@ -427,9 +582,192 @@ export default function FormDetailSubmissionPage() {
 
   const isFormClosedOrDraft = form.status === 'CLOSED' || form.status === 'DRAFT';
 
+  interface ModernSelectProps {
+  id: string;
+  value: string;
+  options: string[];
+  placeholder?: string;
+  onChange: (value: string) => void;
+  hasError?: boolean;
+}
+
+function ModernSelect({
+  id,
+  value,
+  options,
+  placeholder = "Select an option",
+  onChange,
+  hasError = false,
+}: ModernSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find((option) => option === value);
+
+  // Close when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        selectRef.current &&
+        !selectRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleSelect = (option: string) => {
+    onChange(option);
+    setIsOpen(false);
+  };
+
+  return (
+    <div
+      ref={selectRef}
+      id={id}
+      className="relative w-full"
+    >
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`
+          group flex w-full items-center justify-between
+          rounded-xl
+          border
+          bg-white dark:bg-[#101117]
+          px-4 py-3.5
+          text-left
+          shadow-[0_1px_2px_rgba(0,0,0,0.03)]
+          outline-none
+          transition-all duration-200
+          ${
+            isOpen
+              ? "border-[#FF7A00] ring-4 ring-[#FF7A00]/10"
+              : hasError
+                ? "border-rose-400 dark:border-rose-500/60"
+                : "border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50"
+          }
+        `}
+      >
+        <span
+          className={`
+            truncate text-sm
+            ${
+              selectedOption
+                ? "font-medium text-slate-800 dark:text-slate-100"
+                : "font-medium text-slate-400 dark:text-slate-500"
+            }
+          `}
+        >
+          {selectedOption || placeholder}
+        </span>
+
+        <ChevronDown
+          className={`
+            ml-3 h-4 w-4 shrink-0
+            text-slate-400
+            transition-transform duration-200
+            ${isOpen ? "rotate-180 text-[#FF7A00]" : ""}
+          `}
+        />
+      </button>
+
+      {/* Dropdown */}
+      {isOpen && (
+        <div
+          className="
+            absolute left-0 right-0 top-[calc(100%+8px)]
+            z-50
+            overflow-hidden
+            rounded-xl
+            border border-slate-200
+            dark:border-slate-800
+            bg-white
+            dark:bg-[#151722]
+            p-1.5
+            shadow-[0_12px_35px_rgba(0,0,0,0.12)]
+            dark:shadow-[0_15px_40px_rgba(0,0,0,0.4)]
+            animate-in fade-in-0 zoom-in-95 slide-in-from-top-1
+            duration-150
+          "
+          role="listbox"
+        >
+          {/* Placeholder */}
+          <button
+            type="button"
+            onClick={() => handleSelect("")}
+            className={`
+              flex w-full items-center justify-between
+              rounded-lg
+              px-3 py-2.5
+              text-left text-sm
+              transition-colors duration-150
+              ${
+                !value
+                  ? "bg-[#FF7A00]/10 text-[#D85F00] dark:text-[#FF9A4A]"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04]"
+              }
+            `}
+            role="option"
+            aria-selected={!value}
+          >
+            <span>{placeholder}</span>
+
+            {!value && (
+              <Check className="h-4 w-4 text-[#FF7A00]" />
+            )}
+          </button>
+
+          {/* Options */}
+          {options.map((option) => {
+            const selected = value === option;
+
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => handleSelect(option)}
+                className={`
+                  flex w-full items-center justify-between
+                  rounded-lg
+                  px-3 py-2.5
+                  text-left text-sm
+                  transition-all duration-150
+                  ${
+                    selected
+                      ? "bg-[#FF7A00]/10 font-semibold text-[#D85F00] dark:text-[#FF9A4A]"
+                      : "font-medium text-slate-700 dark:text-slate-300 hover:bg-[#FF7A00]/[0.06] hover:text-[#D85F00] dark:hover:text-[#FF9A4A]"
+                  }
+                `}
+                role="option"
+                aria-selected={selected}
+              >
+                <span className="truncate">{option}</span>
+
+                {selected && (
+                  <Check className="ml-3 h-4 w-4 shrink-0 text-[#FF7A00]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
-      
+
       {/* Login Required Modal Dialog */}
       {showLoginModal && !currentUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
@@ -448,12 +786,13 @@ export default function FormDetailSubmissionPage() {
             <div className="pt-2 space-y-2.5">
               <Link
                 href={`/login?redirect=/forms/${slug}`}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#FF7A00] hover:bg-[#E06B00] text-white font-extrabold text-sm shadow-md transition"
+                className="group/btn relative w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition"
               >
                 <span>Click Here to Sign In</span>
                 <ArrowRight className="w-4 h-4" />
+                <BottomGradient />
               </Link>
-              
+
               <Link
                 href={`/signup?redirect=/forms/${slug}`}
                 className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition"
@@ -474,7 +813,7 @@ export default function FormDetailSubmissionPage() {
       )}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-8">
-        
+
         {/* Back Link */}
         <div>
           <Link
@@ -508,9 +847,9 @@ export default function FormDetailSubmissionPage() {
             </div>
           </div>
         ) : (
-          /* Form Content Card */
-          <div className="bg-white dark:bg-[#151722] rounded-xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-md space-y-8">
-            
+          /* Form Content Card — shadow-input styling to match Aceternity's signup-form card */
+          <div className="bg-white dark:bg-black rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] dark:bg-[#151722] space-y-8">
+
             {/* Header */}
             <div className="border-b border-slate-100 dark:border-slate-800 pb-6 space-y-4">
               <div className="flex items-center space-x-3">
@@ -692,11 +1031,11 @@ export default function FormDetailSubmissionPage() {
                 );
 
                 return (
-                  <div key={field.id} className="space-y-2">
+                  <div key={field.id} className="flex w-full flex-col space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <label className="block text-sm font-bold text-[#1A1A2E] dark:text-white">
-                        {field.label} {field.is_required && <span className="text-[#8B2E3B] dark:text-rose-400">*</span>}
-                      </label>
+                      <FieldLabel htmlFor={`field-${field.id}`} required={field.is_required}>
+                        {field.label}
+                      </FieldLabel>
                       {isAutoMatched && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
                           <Sparkles className="w-2.5 h-2.5" />
@@ -710,172 +1049,285 @@ export default function FormDetailSubmissionPage() {
 
                     {/* TEXT Field */}
                     {field.type === 'TEXT' && (
-                      <input
+                      <SpotlightInput
+                        id={`field-${field.id}`}
                         type="text"
                         placeholder={field.placeholder || 'Enter response...'}
                         value={fieldVal}
                         maxLength={field.validation_rules?.maxLength}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
-                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
-                        }`}
+                        hasError={isErr}
                       />
                     )}
 
                     {/* EMAIL Field */}
                     {field.type === 'EMAIL' && (
-                      <input
+                      <SpotlightInput
+                        id={`field-${field.id}`}
                         type="email"
                         placeholder={field.placeholder || 'email@example.com'}
                         value={fieldVal}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
-                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
-                        }`}
+                        hasError={isErr}
                       />
                     )}
 
                     {/* PHONE Field */}
                     {field.type === 'PHONE' && (
-                      <input
+                      <SpotlightInput
+                        id={`field-${field.id}`}
                         type="tel"
                         placeholder={field.placeholder || '+91 9876543210'}
                         value={fieldVal}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
-                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
-                        }`}
+                        hasError={isErr}
                       />
                     )}
 
                     {/* URL Field */}
                     {field.type === 'URL' && (
-                      <input
+                      <SpotlightInput
+                        id={`field-${field.id}`}
                         type="url"
                         placeholder={field.placeholder || 'https://...'}
                         value={fieldVal}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
-                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
-                        }`}
+                        hasError={isErr}
                       />
                     )}
 
                     {/* PARAGRAPH Field */}
                     {field.type === 'PARAGRAPH' && (
-                      <textarea
+                      <SpotlightTextarea
+                        id={`field-${field.id}`}
                         rows={4}
                         placeholder={field.placeholder || 'Type details here...'}
                         value={fieldVal}
                         maxLength={field.validation_rules?.maxLength}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
-                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
-                        }`}
+                        hasError={isErr}
                       />
                     )}
 
                     {/* DROPDOWN Field */}
-                    {field.type === 'DROPDOWN' && (
-                      <select
+                    {field.type === "DROPDOWN" && (
+                      <ModernSelect
+                        id={`field-${field.id}`}
                         value={fieldVal}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
-                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
-                        }`}
-                      >
-                        <option value="">Select option...</option>
-                        {field.options?.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                        options={field.options || []}
+                        placeholder="Select an option"
+                        hasError={isErr}
+                        onChange={(value) => handleInputChange(field.id, value)}
+                      />
                     )}
 
                     {/* RADIO Field */}
                     {field.type === 'RADIO' && (
-                      <div className="space-y-2 pt-1">
-                        {field.options?.map((opt) => (
-                          <label key={opt} className="flex items-center space-x-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`field-${field.id}`}
-                              value={opt}
-                              checked={fieldVal === opt}
-                              onChange={(e) => handleInputChange(field.id, e.target.value)}
-                              className="w-4 h-4 text-[#FF7A00] focus:ring-[#FF7A00]"
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
+                      <div className="grid gap-2.5 pt-1">
+                        {field.options?.map((opt) => {
+                          const selected = fieldVal === opt;
+
+                          return (
+                            <label
+                              key={opt}
+                              className={`
+                                group relative flex items-center gap-3.5
+                                rounded-xl border
+                                px-4 py-3.5
+                                cursor-pointer
+                                transition-all duration-200
+                                select-none
+                                ${
+                                  selected
+                                    ? 'border-[#FF7A00] bg-[#FF7A00]/[0.07] shadow-[0_0_0_3px_rgba(255,122,0,0.08)]'
+                                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#101117] hover:border-[#FF7A00]/40 hover:bg-[#FF7A00]/[0.025]'
+                                }
+                              `}
+                            >
+                              <input
+                                type="radio"
+                                name={`field-${field.id}`}
+                                value={opt}
+                                checked={selected}
+                                onChange={(e) => handleInputChange(field.id, e.target.value)}
+                                className="sr-only"
+                              />
+
+                              {/* Custom Radio */}
+                              <span
+                                className={`
+                                  flex h-5 w-5 shrink-0 items-center justify-center
+                                  rounded-full border-2
+                                  transition-all duration-200
+                                  ${
+                                    selected
+                                      ? 'border-[#FF7A00] bg-[#FF7A00]'
+                                      : 'border-slate-300 dark:border-slate-600 group-hover:border-[#FF7A00]/60'
+                                  }
+                                `}
+                              >
+                                {selected && (
+                                  <span className="h-2 w-2 rounded-full bg-white" />
+                                )}
+                              </span>
+
+                              <span
+                                className={`
+                                  text-sm leading-5 transition-colors
+                                  ${
+                                    selected
+                                      ? 'font-semibold text-[#D85F00] dark:text-[#FF9A4A]'
+                                      : 'font-medium text-slate-700 dark:text-slate-300'
+                                  }
+                                `}
+                              >
+                                {opt}
+                              </span>
+
+                              {/* Selected check indicator */}
+                              {selected && (
+                                <span className="ml-auto text-[#FF7A00]">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
                       </div>
                     )}
 
                     {/* NUMBER Field */}
                     {field.type === 'NUMBER' && (
-                      <input
+                      <SpotlightInput
+                        id={`field-${field.id}`}
                         type="number"
                         placeholder={field.placeholder || 'Enter number...'}
                         value={fieldVal}
                         min={field.validation_rules?.minValue}
                         max={field.validation_rules?.maxValue}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
-                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
-                        }`}
+                        hasError={isErr}
                       />
                     )}
 
                     {/* CHECKBOX Field */}
                     {field.type === 'CHECKBOX' && (
-                      <div className="space-y-2 pt-1">
-                        {field.options?.map((opt) => (
-                          <label key={opt} className="flex items-center space-x-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              value={opt}
-                              checked={Array.isArray(formData[field.id]) && formData[field.id].includes(opt)}
-                              onChange={(e) => {
-                                const curr = Array.isArray(formData[field.id]) ? formData[field.id] : [];
-                                const next = e.target.checked ? [...curr, opt] : curr.filter((i: string) => i !== opt);
-                                handleInputChange(field.id, next);
-                              }}
-                              className="w-4 h-4 text-[#FF7A00] rounded focus:ring-[#FF7A00]"
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
+                      <div className="grid gap-2.5 pt-1">
+                        {field.options?.map((opt) => {
+                          const selected =
+                            Array.isArray(formData[field.id]) &&
+                            formData[field.id].includes(opt);
+
+                          return (
+                            <label
+                              key={opt}
+                              className={`
+                                group flex items-center gap-3.5
+                                rounded-xl border
+                                px-4 py-3.5
+                                cursor-pointer
+                                select-none
+                                transition-all duration-200
+                                ${
+                                  selected
+                                    ? 'border-[#FF7A00] bg-[#FF7A00]/[0.07] shadow-[0_0_0_3px_rgba(255,122,0,0.08)]'
+                                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#101117] hover:border-[#FF7A00]/40 hover:bg-[#FF7A00]/[0.025]'
+                                }
+                              `}
+                            >
+                              <input
+                                type="checkbox"
+                                value={opt}
+                                checked={selected}
+                                onChange={(e) => {
+                                  const curr = Array.isArray(formData[field.id])
+                                    ? formData[field.id]
+                                    : [];
+
+                                  const next = e.target.checked
+                                    ? [...curr, opt]
+                                    : curr.filter((i: string) => i !== opt);
+
+                                  handleInputChange(field.id, next);
+                                }}
+                                className="sr-only"
+                              />
+
+                              {/* Custom Checkbox */}
+                              <span
+                                className={`
+                                  flex h-5 w-5 shrink-0 items-center justify-center
+                                  rounded-md border-2
+                                  transition-all duration-200
+                                  ${
+                                    selected
+                                      ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
+                                      : 'border-slate-300 dark:border-slate-600 group-hover:border-[#FF7A00]/60'
+                                  }
+                                `}
+                              >
+                                {selected && (
+                                  <svg
+                                    className="h-3.5 w-3.5"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                  >
+                                    <path
+                                      d="m5 10 3 3 7-7"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                )}
+                              </span>
+
+                              <span
+                                className={`
+                                  text-sm leading-5
+                                  ${
+                                    selected
+                                      ? 'font-semibold text-[#D85F00] dark:text-[#FF9A4A]'
+                                      : 'font-medium text-slate-700 dark:text-slate-300'
+                                  }
+                                `}
+                              >
+                                {opt}
+                              </span>
+                            </label>
+                          );
+                        })}
                       </div>
                     )}
 
                     {/* DATE Field */}
                     {field.type === 'DATE' && (
-                      <input
+                      <SpotlightInput
+                        id={`field-${field.id}`}
                         type="date"
                         value={formData[field.id] || ''}
                         min={field.validation_rules?.minDate}
                         max={field.validation_rules?.maxDate}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
-                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
-                        }`}
+                        hasError={isErr}
                       />
                     )}
 
                     {/* TIME Field */}
                     {field.type === 'TIME' && (
-                      <input
+                      <SpotlightInput
+                        id={`field-${field.id}`}
                         type="time"
                         value={formData[field.id] || ''}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none transition ${
-                          isErr ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
-                        }`}
+                        hasError={isErr}
                       />
                     )}
 
                     {/* FILE / MULTI_FILE Field */}
                     {(field.type === 'FILE' || field.type === 'MULTI_FILE') && (
-                      <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-center bg-[#FAFAFC] dark:bg-[#0D0E15]">
+                      <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-center bg-[#FAFAFC] dark:bg-[#0D0E15] hover:border-[#FF7A00]/50 transition">
                         <Upload className="w-8 h-8 text-[#FF7A00] mx-auto mb-2" />
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                           Drag & drop {field.type === 'MULTI_FILE' ? 'files' : 'a file'} or click to select
@@ -937,10 +1389,11 @@ export default function FormDetailSubmissionPage() {
                       <button
                         type="button"
                         onClick={() => setShowLoginModal(true)}
-                        className="inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-extrabold text-sm shadow-sm transition"
+                        className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition"
                       >
                         <Lock className="w-4 h-4" />
                         <span>Sign In to Fill Form</span>
+                        <BottomGradient />
                       </button>
                     </div>
                   );
@@ -970,7 +1423,7 @@ export default function FormDetailSubmissionPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting || isClosed || isBeforeOpen}
-                      className="inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-extrabold text-base shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <span>
                         {isSubmitting
@@ -984,6 +1437,7 @@ export default function FormDetailSubmissionPage() {
                           : 'Submit Form'}
                       </span>
                       {isEditMode ? <CheckCircle2 className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                      <BottomGradient />
                     </button>
                   </div>
                 );
