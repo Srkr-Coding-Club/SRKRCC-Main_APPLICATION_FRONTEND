@@ -3,8 +3,11 @@ import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { Event } from '@/lib/types';
 import { Calendar } from 'lucide-react';
+import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
+import SectionHeading from '@/components/SectionHeading';
 import EventsRow from '@/components/EventsRow';
+import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,6 +118,17 @@ async function getEvents(): Promise<Event[]> {
 }
 
 export default async function EventsPage() {
+  const enabled = await isModuleEnabled('events');
+  if (!enabled) {
+    return (
+      <ModuleUnavailable
+        moduleName="Events"
+        icon={Calendar}
+        description="The events hub is paused right now. Check back once the next event window opens."
+      />
+    );
+  }
+
   const events = await getEvents();
 
   return (
@@ -127,7 +141,14 @@ export default async function EventsPage() {
           description="Explore upcoming technical workshops, expert guest seminars, competitive coding bootcamps, and official club gatherings."
         />
 
-        <EventsRow events={events} accent="#FF7A00" />
+        <div className="space-y-6">
+          <SectionHeading
+            icon={Calendar}
+            title={`Upcoming Events (${events.length})`}
+            description="Workshops, seminars, and gatherings happening across campus."
+          />
+          <EventsRow events={events} accent="#FF7A00" />
+        </div>
       </div>
     </div>
   );

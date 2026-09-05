@@ -59,12 +59,12 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
 
 ### 2. Install Dependencies
 
-Install required npm packages:
+Install required packages (pnpm is this project's package manager — see `pnpm-lock.yaml`):
 
 ```bash
 make setup
-# Or via npm:
-npm install
+# Or directly:
+pnpm install
 ```
 
 ---
@@ -75,8 +75,8 @@ Start the Next.js development server on `http://localhost:3000`:
 
 ```bash
 make dev
-# Or via npm:
-npm run dev
+# Or directly:
+pnpm run dev
 ```
 
 Open `http://localhost:3000` in your browser to view the platform!
@@ -101,10 +101,10 @@ make start
 
 | Task | Command | Description |
 |---|---|---|
-| **Install Dependencies** | `make setup` | Runs `npm install`. |
+| **Install Dependencies** | `make setup` | Runs `pnpm install`. |
 | **Run Dev Server** | `make dev` | Starts Next.js dev server on `http://localhost:3000`. |
-| **Production Build** | `make build` | Runs Next.js build verification (`npm run build`). |
-| **Start Production** | `make start` | Runs Next.js production server (`npm start`). |
+| **Production Build** | `make build` | Runs Next.js build verification (`pnpm run build`). |
+| **Start Production** | `make start` | Runs Next.js production server (`pnpm start`). |
 | **Code Linting** | `make lint` | Runs ESLint checks. |
 
 ---

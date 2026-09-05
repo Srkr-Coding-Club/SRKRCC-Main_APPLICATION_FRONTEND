@@ -161,7 +161,7 @@ export default function PageHero({
 
         <p
           data-hero-reveal
-          className="max-w-xl text-pretty text-sm leading-relaxed text-[#4A3B38] sm:text-base dark:text-slate-300/90"
+          className="max-w-xl text-pretty text-sm leading-relaxed text-[#4A3B38] sm:text-base dark:text-slate-200"
         >
           {description}
         </p>

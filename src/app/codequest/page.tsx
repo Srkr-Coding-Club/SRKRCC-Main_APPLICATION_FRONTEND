@@ -78,6 +78,15 @@ async function getProblems(): Promise<Problem[]> {
 
 export default async function CodequestPage() {
   const enabled = await isModuleEnabled('codequest');
+  if (!enabled) {
+    return (
+      <ModuleUnavailable
+        moduleName="CodeQuest"
+        icon={Terminal}
+        description="Daily problems are paused right now. Check back once the next CodeQuest season opens."
+      />
+    );
+  }
 
   const problems = await getProblems();
 

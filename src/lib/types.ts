@@ -201,10 +201,33 @@ export interface Form {
   allow_edits_until?: string;
   open_at?: string;
   close_at?: string;
+  club_id_enabled?: boolean;
+  club_id_prefix?: string;
+  club_id_field_mapping?: ClubIdFieldMapping;
+  confirmation_email_enabled?: boolean;
+  confirmation_email_template?: number | string | null;
   fields?: FormField[];
   created_at?: string;
   updated_at?: string;
   response_count?: number;
+}
+
+/** Maps club-member profile attributes to this form's own field IDs (see FormBuilderTab's Automation card). */
+export interface ClubIdFieldMapping {
+  email?: number | string;
+  full_name?: number | string;
+  phone_number?: number | string;
+  branch?: number | string;
+  roll_number?: number | string;
+}
+
+export interface EmailTemplateSummary {
+  id: number;
+  name: string;
+  display_title: string;
+  subject_template: string;
+  allowed_parameters: string[];
+  is_active: boolean;
 }
 
 // ---------------------------------------------------------------------------

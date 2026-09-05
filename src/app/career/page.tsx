@@ -12,6 +12,10 @@ import {
   DollarSign,
   CheckCircle2,
 } from 'lucide-react';
+import { isModuleEnabled } from '@/lib/moduleFlags';
+import ModuleUnavailable from '@/components/ModuleUnavailable';
+import PageHero from '@/components/PageHero';
+import SectionHeading from '@/components/SectionHeading';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,34 +72,39 @@ async function getJobs(): Promise<JobListing[]> {
 }
 
 export default async function CareerPage() {
+  const enabled = await isModuleEnabled('career');
+  if (!enabled) {
+    return (
+      <ModuleUnavailable
+        moduleName="Career Hub"
+        icon={Briefcase}
+        description="The career hub is paused right now. Check back once new listings open."
+      />
+    );
+  }
+
   const jobs = await getJobs();
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        
-        {/* Header Hero Banner */}
-        <div className="relative rounded-xl bg-gradient-to-r from-[#1A1A2E] via-[#8B2E3B] to-[#FF7A00] p-8 sm:p-12 text-white shadow-lg overflow-hidden">
-          <div className="absolute -right-10 -bottom-10 w-80 h-80 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
 
-          <div className="relative z-10 max-w-2xl space-y-4">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-md text-xs font-bold bg-white/10 text-white border border-white/20">
-              <Briefcase className="w-4 h-4 text-[#FF7A00]" />
-              <span>SRKR CODING CLUB CAREER HUB</span>
-            </div>
+        <PageHero
+          icon={<Briefcase className="h-4 w-4 text-[#FF7A00]" />}
+          eyebrow="SRKR CODING CLUB CAREER HUB"
+          title="Internships & Placement Drives"
+          description="Explore exclusive software engineering internships, campus recruitment drives, and referral applications for SRKRCC members."
+        />
 
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-              Internships & Placement Drives
-            </h1>
+        <div className="space-y-6">
+          <SectionHeading
+            icon={Briefcase}
+            title={`Open Opportunities (${jobs.length})`}
+            description="Internships, placements, and referral drives currently open to members."
+          />
 
-            <p className="text-sm sm:text-base text-slate-200 leading-relaxed">
-              Explore exclusive software engineering internships, campus recruitment drives, and referral applications for SRKRCC members.
-            </p>
-          </div>
-        </div>
-
-        {/* Jobs Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Jobs Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {jobs.map((j) => (
             <div
               key={j.id}
@@ -168,6 +177,7 @@ export default async function CareerPage() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
       </div>

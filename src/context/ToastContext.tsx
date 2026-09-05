@@ -86,7 +86,7 @@ export const useToast = (): ToastContextValue => {
       addToast: () => '',
       dismissToast: () => {},
       toast: {
-        success: (title) => { console.log('[Toast Success]:', title); return ''; },
+        success: (title) => { console.info('[Toast Success]:', title); return ''; },
         error: (title) => { console.error('[Toast Error]:', title); return ''; },
         warning: (title) => { console.warn('[Toast Warning]:', title); return ''; },
         info: (title) => { console.info('[Toast Info]:', title); return ''; },

@@ -5,6 +5,7 @@ import { Hackathon } from '@/lib/types';
 import { Trophy } from 'lucide-react';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
+import SectionHeading from '@/components/SectionHeading';
 import HackathonCard from '@/components/HackathonCard';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
@@ -81,10 +82,18 @@ export default async function HackathonsPage() {
           description="Form your hackathon squad, build real-world software prototypes, present to industry judges, and win prize pools!"
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {hackathons.map((h) => (
-            <HackathonCard key={h.id} hackathon={h} />
-          ))}
+        <div className="space-y-6">
+          <SectionHeading
+            icon={Trophy}
+            title={`Upcoming Hackathons (${hackathons.length})`}
+            description="Form a squad, build a prototype, and pitch to judges for a shot at the prize pool."
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {hackathons.map((h) => (
+              <HackathonCard key={h.id} hackathon={h} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

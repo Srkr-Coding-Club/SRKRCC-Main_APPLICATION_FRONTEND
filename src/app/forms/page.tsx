@@ -4,6 +4,7 @@ import { fetchApi } from '@/lib/api-client';
 import { Form } from '@/lib/types';
 import FormsRow from '@/components/FormsRow';
 import PageHero from '@/components/PageHero';
+import SectionHeading from '@/components/SectionHeading';
 import {
   FileText,
   ListFilter,
@@ -174,18 +175,16 @@ export default async function FormsCenterPage() {
         />
 
         {/* Filter & Count Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-          <div className="flex items-center space-x-2">
-            <ListFilter className="w-5 h-5 text-[#FF7A00]" />
-            <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white">
-              Open Forms ({formsToDisplay.length})
-            </h2>
-          </div>
-
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Showing all active & open club forms
-          </span>
-        </div>
+        <SectionHeading
+          icon={ListFilter}
+          title={`Open Forms (${formsToDisplay.length})`}
+          className="border-b border-slate-200 dark:border-slate-800 pb-4"
+          action={
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Showing all active & open club forms
+            </span>
+          }
+        />
 
         {/* Forms Grid */}
         {formsToDisplay.length === 0 ? (

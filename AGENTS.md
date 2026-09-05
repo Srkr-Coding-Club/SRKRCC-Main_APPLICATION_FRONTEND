@@ -105,7 +105,7 @@ Security MUST be considered whenever code is added or modified.
 
 Before considering a change complete:
 
-* Run TypeScript compiler checks and Next.js build verification (`npm run build` or `make build`).
+* Run TypeScript compiler checks and Next.js build verification (`pnpm run build` or `make build`).
 * Validate responsive design (mobile, tablet, desktop).
 * Verify API contract alignment with `src/lib/types.ts`.
 

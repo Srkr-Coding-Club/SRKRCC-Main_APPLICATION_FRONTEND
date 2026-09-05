@@ -86,8 +86,6 @@ const MODULES: ModuleItem[] = [
   },
 ];
 
-export const MODULE_KEYS = MODULES.map((m) => m.key);
-
 function RailColumn({ m, isActive, enabled, onActivate }: { m: ModuleItem; isActive: boolean; enabled: boolean; onActivate: () => void }) {
   const Icon = m.icon;
   return (

@@ -118,7 +118,7 @@ function ImpactCard({ stat, delay }: { stat: Stat; delay: number }) {
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.6, delay }}
       whileHover={{ y: -4 }}
-      className="group relative rounded-2xl p-6 sm:p-7 overflow-hidden border bg-[var(--card-bg)] transition-colors duration-300"
+      className="group relative rounded-2xl p-4 sm:p-7 overflow-hidden border bg-[var(--card-bg)] transition-colors duration-300"
       style={{ borderColor: `${stat.accent}30` }}
     >
       {/* corner glow, brightens on hover */}
@@ -128,28 +128,28 @@ function ImpactCard({ stat, delay }: { stat: Stat; delay: number }) {
       />
 
       {/* icon badge */}
-      <div className="relative w-14 h-14 flex items-center justify-center mb-6">
+      <div className="relative w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center mb-4 sm:mb-6">
         <div className="absolute inset-0 rounded-full border" style={{ borderColor: `${stat.accent}45` }} />
         <div className="absolute inset-[3px] rounded-full border border-dashed" style={{ borderColor: `${stat.accent}30` }} />
-        <Icon className="w-6 h-6 relative z-10" style={{ color: stat.accent }} strokeWidth={1.75} />
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" style={{ color: stat.accent }} strokeWidth={1.75} />
       </div>
 
       {/* count-up number */}
       <div className="flex items-baseline gap-0.5 font-poppins">
-        <span ref={numRef} className="text-4xl sm:text-5xl font-extrabold" style={{ color: stat.accent }}>
+        <span ref={numRef} className="text-3xl sm:text-5xl font-extrabold" style={{ color: stat.accent }}>
           0
         </span>
-        <span className="text-2xl sm:text-3xl font-extrabold" style={{ color: stat.accent }}>
+        <span className="text-xl sm:text-3xl font-extrabold" style={{ color: stat.accent }}>
           {stat.suffix}
         </span>
       </div>
 
       <div className="mt-3 mb-3 h-px w-10 rounded-full" style={{ background: stat.accent }} />
 
-      <h3 className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: stat.accent }}>
+      <h3 className="text-[11px] sm:text-xs font-bold uppercase tracking-widest mb-2" style={{ color: stat.accent }}>
         {stat.label}
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{stat.description}</p>
+      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{stat.description}</p>
     </motion.div>
   );
 }
@@ -187,7 +187,7 @@ export default function StatsBar() {
         </motion.div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {STATS.map((stat, i) => (
             <ImpactCard key={stat.label} stat={stat} delay={i * 0.1} />
           ))}

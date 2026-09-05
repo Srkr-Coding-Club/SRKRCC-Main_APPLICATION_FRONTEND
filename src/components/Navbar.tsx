@@ -321,7 +321,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="md:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col justify-between p-6 pt-24 overflow-y-auto"
+            className="md:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col p-6 pt-24 overflow-y-auto"
           >
             <div className="flex flex-col gap-1">
               {visibleNavItems.map((item, i) => (
@@ -358,7 +358,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               ))}
             </div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="pt-6 flex flex-col gap-3">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mt-8 pt-6 border-t border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-3">
               {isAuth ? (
                 <>
                   <div className="flex items-center gap-3">

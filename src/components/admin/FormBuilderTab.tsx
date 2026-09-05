@@ -38,8 +38,11 @@ import {
 } from 'lucide-react';
 import { Form, FormField, ValidationRules } from '@/lib/types';
 import { hasConstraintOptions, hasActiveValidation, getConstraintHint } from '@/lib/formValidation';
+import { normalizeImageUrl } from '@/lib/utils';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import EmailTemplateEditor from '@/components/admin/EmailTemplateEditor';
+import { IdCard, Mail as MailIcon } from 'lucide-react';
 
 interface TypeMeta {
   label: string;
@@ -100,6 +103,11 @@ interface FormBuilderTabProps {
     allow_response_editing?: boolean;
     max_responses_per_user?: number;
     allow_edits_until?: string;
+    club_id_enabled?: boolean;
+    club_id_prefix?: string;
+    club_id_field_mapping?: { email?: number | string; full_name?: number | string; phone_number?: number | string; branch?: number | string; roll_number?: number | string };
+    confirmation_email_enabled?: boolean;
+    confirmation_email_template?: number | string | null;
   };
   setFormMeta: React.Dispatch<React.SetStateAction<any>>;
   builderFields: FormField[];
@@ -144,6 +152,13 @@ export function FormBuilderTab({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showEmailEditor, setShowEmailEditor] = useState(false);
+  const [confirmationTemplateLabel, setConfirmationTemplateLabel] = useState<string>('');
+  // Club ID field mapping stores real FormField ids; a brand-new, never-saved
+  // field only has a client-side placeholder id (e.g. 'f2') until the form is
+  // saved once and the backend assigns it a permanent numeric id.
+  const formIsSaved = typeof formMeta.id === 'number' && formMeta.id > 0;
+  const emailFields = builderFields.filter((f) => f.type === 'EMAIL' && typeof f.id === 'number' && f.id > 0);
   const [scheduleOpenAt, setScheduleOpenAt] = useState(formMeta.open_at || '');
   const [scheduleCloseAt, setScheduleCloseAt] = useState(formMeta.close_at || '');
   const prevIdsRef = useRef<Set<number | string>>(new Set(builderFields.map((f) => f.id)));
@@ -398,6 +413,149 @@ export function FormBuilderTab({
                 </div>
               </div>
             </div>
+
+            {/* Automation Card — Club Member ID + confirmation email, wired into
+                Response submission on the backend (apps/forms/services.py). */}
+            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#FF7A00]" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#1A1A2E] dark:text-white">Automation</h3>
+              </div>
+
+              <div className="space-y-3 pb-5 border-b border-slate-100 dark:border-slate-800">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                    <IdCard className="w-4 h-4 text-[#FF7A00]" />
+                    Generate Club Member ID on submission
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!formMeta.club_id_enabled}
+                    onChange={(e) => setFormMeta({ ...formMeta, club_id_enabled: e.target.checked })}
+                    className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
+                  />
+                </label>
+
+                {formMeta.club_id_enabled && (
+                  <div className="pl-6 space-y-3">
+                    {!formIsSaved ? (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        Save this form once first, then come back here to pick which field supplies the member&apos;s
+                        email — field mapping needs each field&apos;s permanent saved ID.
+                      </p>
+                    ) : emailFields.length === 0 ? (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        Add an &quot;Email Address&quot; field to this form before enabling Club ID generation.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Club ID Prefix</label>
+                            <input
+                              value={formMeta.club_id_prefix || 'SCC'}
+                              onChange={(e) => setFormMeta({ ...formMeta, club_id_prefix: e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6) })}
+                              placeholder="SCC"
+                              className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 font-mono uppercase"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Email Field *</label>
+                            <select
+                              value={formMeta.club_id_field_mapping?.email ?? ''}
+                              onChange={(e) =>
+                                setFormMeta({
+                                  ...formMeta,
+                                  club_id_field_mapping: { ...formMeta.club_id_field_mapping, email: e.target.value || undefined },
+                                })
+                              }
+                              className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                            >
+                              <option value="">Select field…</option>
+                              {emailFields.map((f) => (
+                                <option key={f.id} value={f.id}>{f.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          {([
+                            ['full_name', 'Name Field'],
+                            ['phone_number', 'Phone Field'],
+                            ['branch', 'Branch Field'],
+                          ] as const).map(([key, labelText]) => (
+                            <div key={key}>
+                              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">{labelText}</label>
+                              <select
+                                value={formMeta.club_id_field_mapping?.[key] ?? ''}
+                                onChange={(e) =>
+                                  setFormMeta({
+                                    ...formMeta,
+                                    club_id_field_mapping: { ...formMeta.club_id_field_mapping, [key]: e.target.value || undefined },
+                                  })
+                                }
+                                className="w-full px-2.5 py-2 rounded border text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                              >
+                                <option value="">None</option>
+                                {builderFields.filter((f) => f.type !== 'SECTION' && typeof f.id === 'number' && f.id > 0).map((f) => (
+                                  <option key={f.id} value={f.id}>{f.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          Each completed submission is matched by email to the club member directory. New members get a
+                          permanent ID like &quot;{new Date().getFullYear().toString().slice(-2)}{formMeta.club_id_prefix || 'SCC'}001&quot; —
+                          returning members (same email) always keep their existing one.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                    <MailIcon className="w-4 h-4 text-[#FF7A00]" />
+                    Send confirmation email on submission
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!formMeta.confirmation_email_enabled}
+                    onChange={(e) => setFormMeta({ ...formMeta, confirmation_email_enabled: e.target.checked })}
+                    className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
+                  />
+                </label>
+                {formMeta.confirmation_email_enabled && (
+                  <div className="pl-6 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailEditor(true)}
+                      className="px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1A1A2E] dark:text-white hover:border-[#FF7A00]/50 transition"
+                    >
+                      {formMeta.confirmation_email_template ? 'Change Template' : 'Choose Template'}
+                    </button>
+                    {formMeta.confirmation_email_template && (
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                        ✓ {confirmationTemplateLabel || `Template #${formMeta.confirmation_email_template}`}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <EmailTemplateEditor
+              open={showEmailEditor}
+              onClose={() => setShowEmailEditor(false)}
+              mode="select"
+              onSelect={(id, label) => {
+                setFormMeta({ ...formMeta, confirmation_email_template: id });
+                setConfirmationTemplateLabel(label);
+              }}
+            />
 
             {/* Question Cards */}
             {builderFields.map((field, idx) => (
@@ -1013,11 +1171,7 @@ function LivePreview({
       {formMeta.image_url ? (
         <div className="h-44 rounded-lg overflow-hidden bg-slate-900">
           <img
-            src={
-              formMeta.image_url.startsWith('https://data:')
-                ? formMeta.image_url.replace('https://', '')
-                : formMeta.image_url
-            }
+            src={normalizeImageUrl(formMeta.image_url) || undefined}
             alt={formMeta.title}
             className="w-full h-full object-cover"
             onError={(e) => {

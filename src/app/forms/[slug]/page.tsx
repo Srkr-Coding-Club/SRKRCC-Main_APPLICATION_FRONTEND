@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Form, FormField } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
-import { getStoredUser, setStoredUser, AuthUser } from '@/lib/auth';
+import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
 import { getConstraintHint, validateFieldValue } from '@/lib/formValidation';
 import { useToast } from '@/context/ToastContext';
 import {
@@ -323,13 +323,12 @@ export default function FormDetailSubmissionPage() {
     const user = getStoredUser();
     if (user) {
       setCurrentUser(user);
-      fetch('/api/auth/me')
-        .then((res) => (res.ok ? res.json() : null))
+      // Goes through the token-refreshing proxy (unlike a raw fetch to /api/auth/me,
+      // which 401s outright once the 1-hour access token expires without refreshing it).
+      fetchAndSyncCurrentUser()
         .then((fresh) => {
-          if (fresh && fresh.id) {
-            const merged = { ...user, ...fresh };
-            setCurrentUser(merged);
-            setStoredUser(merged);
+          if (fresh) {
+            setCurrentUser(fresh);
           }
         })
         .catch(() => {});

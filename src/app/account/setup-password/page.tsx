@@ -89,6 +89,14 @@ function SetupPasswordContent() {
       toast.warning('Password Too Short', 'Password must be at least 8 characters long.');
       return;
     }
+    if (!hasMixedCase) {
+      toast.warning('Password Too Weak', 'Password must contain both upper and lower case letters.');
+      return;
+    }
+    if (!hasNumberOrSpecial) {
+      toast.warning('Password Too Weak', 'Password must contain at least one number or symbol.');
+      return;
+    }
     if (!passwordsMatch) {
       toast.warning('Passwords Do Not Match', 'Please ensure both passwords match.');
       return;
@@ -275,7 +283,7 @@ function SetupPasswordContent() {
 
           <button
             type="submit"
-            disabled={isSubmitting || !hasMinLength || !passwordsMatch}
+            disabled={isSubmitting || !isPasswordStrong || !passwordsMatch}
             className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-md shadow-orange-500/10"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}

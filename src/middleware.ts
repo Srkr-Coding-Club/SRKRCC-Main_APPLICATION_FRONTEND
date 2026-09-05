@@ -4,8 +4,10 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Intercept all /admin routes
-  if (pathname.startsWith('/admin')) {
+  // Intercept /admin and /profile routes. /account is intentionally excluded:
+  // its only route (/account/setup-password) is reached via an emailed one-time
+  // token and must stay reachable while logged out.
+  if (pathname.startsWith('/admin') || pathname.startsWith('/profile')) {
     const token = request.cookies.get('srkrcc_access_token')?.value;
     const refreshToken = request.cookies.get('srkrcc_refresh_token')?.value;
 
@@ -16,12 +18,12 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // If authenticated, allow request to proceed to AdminGuard for real-time clearance check
+    // If authenticated, allow request to proceed to the page's own real-time clearance check
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/profile/:path*'],
 };

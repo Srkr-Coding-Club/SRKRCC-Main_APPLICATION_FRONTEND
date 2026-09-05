@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { ArrowRight, Calendar, Clock } from "lucide-react";
 
 import { Form } from "@/lib/types";
+import { normalizeImageUrl } from "@/lib/utils";
 
 interface FormCardProps {
   form: Form;
@@ -70,11 +71,7 @@ export default function FormCard({
    * Uses form image when available.
    * Falls back to your uploaded document icon image.
    */
-  const backgroundImage = form.image_url
-    ? form.image_url.startsWith("https://data:")
-      ? form.image_url.replace("https://", "")
-      : form.image_url
-    : "/Form.svg";
+  const backgroundImage = normalizeImageUrl(form.image_url) || "/Form.svg";
 
   const formattedOpen = form.open_at
     ? new Date(form.open_at).toLocaleString("en-IN", {

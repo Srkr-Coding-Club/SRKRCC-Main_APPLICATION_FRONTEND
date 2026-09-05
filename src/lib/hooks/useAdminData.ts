@@ -78,6 +78,11 @@ export function useAdminData() {
     enable_prefill?: boolean;
     max_responses_per_user?: number;
     allow_edits_until?: string;
+    club_id_enabled?: boolean;
+    club_id_prefix?: string;
+    club_id_field_mapping?: import('@/lib/types').ClubIdFieldMapping;
+    confirmation_email_enabled?: boolean;
+    confirmation_email_template?: number | string | null;
   }>({
     title: '',
     slug: '',
@@ -91,6 +96,11 @@ export function useAdminData() {
     allow_response_editing: true,
     enable_prefill: true,
     allow_edits_until: '',
+    club_id_enabled: false,
+    club_id_prefix: 'SCC',
+    club_id_field_mapping: {},
+    confirmation_email_enabled: false,
+    confirmation_email_template: null,
   });
 
   const [builderFields, setBuilderFields] = useState<FormField[]>([
@@ -406,6 +416,11 @@ export function useAdminData() {
       close_at: form.close_at || '',
       allow_multiple_responses: form.allow_multiple_responses ?? false,
       allow_edits_until: form.allow_edits_until || '',
+      club_id_enabled: form.club_id_enabled ?? false,
+      club_id_prefix: form.club_id_prefix || 'SCC',
+      club_id_field_mapping: form.club_id_field_mapping || {},
+      confirmation_email_enabled: form.confirmation_email_enabled ?? false,
+      confirmation_email_template: form.confirmation_email_template ?? null,
     };
     const fields: FormField[] =
       form.fields && form.fields.length > 0
@@ -457,6 +472,11 @@ export function useAdminData() {
       allow_response_editing: formMeta.allow_response_editing ?? true,
       enable_prefill: formMeta.enable_prefill ?? true,
       allow_edits_until: cleanEditsUntil ? cleanEditsUntil : null,
+      club_id_enabled: formMeta.club_id_enabled ?? false,
+      club_id_prefix: (formMeta.club_id_prefix || 'SCC').trim().toUpperCase(),
+      club_id_field_mapping: formMeta.club_id_field_mapping || {},
+      confirmation_email_enabled: formMeta.confirmation_email_enabled ?? false,
+      confirmation_email_template: formMeta.confirmation_email_template || null,
       fields: builderFields.map((f, idx) => {
         const isRealDbId = typeof f.id === 'number' && f.id > 0 && f.id < 2000000000;
         return {

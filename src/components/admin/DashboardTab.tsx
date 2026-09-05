@@ -59,47 +59,47 @@ export function DashboardTab({
       </div>
 
       {/* Real-time Metric Snapshot Counters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="bg-white dark:bg-[#151722] p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Users</p>
-            <p className="text-3xl font-extrabold text-[#1A1A2E] dark:text-white mt-1">{userCount}</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#1A1A2E] dark:text-white mt-1">{userCount}</p>
           </div>
-          <div className="p-3 rounded-md bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]">
-            <Users className="w-6 h-6" />
+          <div className="p-2.5 sm:p-3 rounded-md bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]">
+            <Users className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-[#151722] p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Active Live Forms</p>
-            <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
+            <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
               {publishedCount}
               {scheduledCount > 0 && <span className="text-xs font-normal text-blue-400 ml-1.5">({scheduledCount} sched)</span>}
             </p>
           </div>
-          <div className="p-3 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
-            <UserCheck className="w-6 h-6" />
+          <div className="p-2.5 sm:p-3 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+            <UserCheck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-[#151722] p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Registered Forms Schema</p>
-            <p className="text-3xl font-extrabold text-[#8B2E3B] dark:text-rose-400 mt-1">{publishedForms.length}</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#8B2E3B] dark:text-rose-400 mt-1">{publishedForms.length}</p>
           </div>
-          <div className="p-3 rounded-md bg-rose-50 dark:bg-rose-950/40 text-[#8B2E3B] dark:text-rose-400">
-            <Trophy className="w-6 h-6" />
+          <div className="p-2.5 sm:p-3 rounded-md bg-rose-50 dark:bg-rose-950/40 text-[#8B2E3B] dark:text-rose-400">
+            <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-[#151722] p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Live Submissions Recorded</p>
-            <p className="text-3xl font-extrabold text-purple-600 dark:text-purple-400 mt-1">{totalSubmissions}</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400 mt-1">{totalSubmissions}</p>
           </div>
-          <div className="p-3 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
-            <FileText className="w-6 h-6" />
+          <div className="p-2.5 sm:p-3 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
+            <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
       </div>

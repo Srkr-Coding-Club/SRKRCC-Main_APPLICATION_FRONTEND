@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, LogIn, ArrowLeft, Loader2, RefreshCw, UserCheck, Home, LogOut } from 'lucide-react';
-import { getStoredUser, isAuthenticated, isAdminOrLead, fetchAndSyncCurrentUser, clearAuthSession, AuthUser } from '@/lib/auth';
+import { getStoredUser, fetchAndSyncCurrentUser, clearAuthSession, AuthUser } from '@/lib/auth';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -14,22 +14,14 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
-  const checkPermissions = useCallback(async (forceServer = false) => {
+  const checkPermissions = useCallback(async () => {
+    // localStorage and the non-HttpOnly srkrcc_user_role cookie are both editable from
+    // devtools, so they're used only for the optimistic "who am I" display below while
+    // the real check runs — never to decide whether protected content renders. Access
+    // is always gated on the authoritative server response.
     const localUser = getStoredUser();
-    const localAuth = isAuthenticated();
-    const localAdmin = isAdminOrLead();
-
-    setIsAuth(localAuth);
-    setIsAdmin(localAdmin);
     setCurrentUser(localUser);
 
-    // If already verified locally as admin/lead and not forcing a server check, we can allow immediate access
-    if (localAdmin && !forceServer) {
-      setMounted(true);
-      return;
-    }
-
-    // Otherwise, check live permissions against the backend server (/auth/me/)
     setCheckingServer(true);
     try {
       const serverUser = await fetchAndSyncCurrentUser();
@@ -43,7 +35,9 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         setIsAdmin(false);
       }
     } catch {
-      // Fall back to local evaluation
+      // Fail closed: a network error verifying the session is not proof of admin access.
+      setIsAuth(false);
+      setIsAdmin(false);
     } finally {
       setCheckingServer(false);
       setMounted(true);
@@ -121,7 +115,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
             {isAuth ? (
               <>
                 <button
-                  onClick={() => checkPermissions(true)}
+                  onClick={() => checkPermissions()}
                   disabled={checkingServer}
                   className="w-full px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition disabled:opacity-50"
                 >

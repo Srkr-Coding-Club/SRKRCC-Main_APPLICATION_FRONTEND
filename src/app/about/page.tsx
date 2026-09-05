@@ -176,11 +176,11 @@ export default function AboutPage() {
               title="Four things we optimise for"
               description="Every event, challenge, and project the club runs comes back to one of these."
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5">
               {VALUES.map((v) => (
                 <div
                   key={v.title}
-                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-6 shadow-sm hover:shadow-md transition-shadow"
+                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
@@ -207,12 +207,12 @@ export default function AboutPage() {
               title="One club, six ways to get involved"
               description="Pick whichever fits how you like to learn — or do all of them."
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
               {MODULES.map((m) => (
                 <Link
                   key={m.title}
                   href={m.href}
-                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-6 shadow-sm hover:shadow-md hover:border-[#FF7A00]/40 transition-all flex flex-col"
+                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-4 sm:p-6 shadow-sm hover:shadow-md hover:border-[#FF7A00]/40 transition-all flex flex-col"
                 >
                   <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00] flex items-center justify-center mb-4">
                     <m.icon className="w-5 h-5" />

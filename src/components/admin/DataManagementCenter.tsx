@@ -8,7 +8,7 @@ import {
   Search, Settings, SlidersHorizontal, X, Info, AlertCircle,
   CheckCircle2, Circle, Minus, HelpCircle, ArrowUpDown, ArrowUp, ArrowDown,
   ExternalLink, Users, FileSpreadsheet, Trophy, Calendar, Code2, Briefcase,
-  Layers, ShieldAlert, Sparkles
+  Layers, ShieldAlert, Sparkles, Mail
 } from 'lucide-react';
 
 import { useDMCCatalog } from '@/hooks/dmc/useDMCCatalog';
@@ -20,6 +20,7 @@ import type {
   CanonicalValue, ColumnDefinition, DatasetDefinition,
   ExportFormat, FilterClause, FilterDefinition, SortClause
 } from '@/lib/types/dmc';
+import EmailTemplateEditor, { EmailRecipient } from '@/components/admin/EmailTemplateEditor';
 
 // ============================================================================
 // Group Icons mapping
@@ -350,7 +351,7 @@ function FilterBar({
 // ============================================================================
 
 function ExportModal({
-  open, onClose, dataset, visibleKeys, activeFilters, search, sort,
+  open, onClose, dataset, visibleKeys, activeFilters, search, sort, selectedIds,
 }: {
   open: boolean;
   onClose: () => void;
@@ -359,6 +360,7 @@ function ExportModal({
   activeFilters: FilterClause[];
   search: string;
   sort: SortClause;
+  selectedIds: Set<string>;
 }) {
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [rowScope, setRowScope] = useState<'all_filtered' | 'selected'>('all_filtered');
@@ -376,7 +378,7 @@ function ExportModal({
         format,
         row_scope: rowScope,
         column_scope: 'visible',
-        selected_record_ids: [],
+        selected_record_ids: rowScope === 'selected' ? [...selectedIds] : [],
         visible_column_keys: visibleKeys,
         search,
         sort,
@@ -467,10 +469,11 @@ function ExportModal({
                     <button
                       key={s}
                       onClick={() => setRowScope(s)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all
+                      disabled={s === 'selected' && selectedIds.size === 0}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed
                         ${rowScope === s ? 'bg-blue-50 dark:bg-blue-600/20 border-blue-600 dark:border-blue-500 text-blue-700 dark:text-blue-300' : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400'}`}
                     >
-                      {s === 'all_filtered' ? 'All (Matching Filters)' : 'Selected Rows Only'}
+                      {s === 'all_filtered' ? 'All (Matching Filters)' : `Selected Rows Only (${selectedIds.size})`}
                     </button>
                   ))}
                 </div>
@@ -506,7 +509,7 @@ function ExportModal({
 // ============================================================================
 
 function DataGrid({
-  records, columns, sort, onSort, loading, empty,
+  records, columns, sort, onSort, loading, empty, selectedIds, onToggleSelect, onToggleSelectAll,
 }: {
   records: import('@/lib/types/dmc').DMCRecord[];
   columns: ColumnDefinition[];
@@ -514,6 +517,9 @@ function DataGrid({
   onSort: (field: string) => void;
   loading: boolean;
   empty: boolean;
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: (ids: string[]) => void;
 }) {
   if (loading) {
     return (
@@ -533,11 +539,23 @@ function DataGrid({
     );
   }
 
+  const recordIds = records.map((r) => String(r.id?.value ?? ''));
+  const allOnPageSelected = recordIds.length > 0 && recordIds.every((id) => selectedIds.has(id));
+
   return (
     <div className="overflow-auto flex-1 bg-white dark:bg-slate-950">
       <table className="w-full text-sm border-collapse">
         <thead className="sticky top-0 z-10">
           <tr className="bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 shadow-xs">
+            <th className="px-4 py-3.5 w-10">
+              <input
+                type="checkbox"
+                checked={allOnPageSelected}
+                onChange={() => onToggleSelectAll(recordIds)}
+                className="w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer"
+                aria-label="Select all rows on this page"
+              />
+            </th>
             {columns.map(col => {
               const isActive = sort.field === col.key;
               return (
@@ -562,21 +580,35 @@ function DataGrid({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-slate-800/70">
-          {records.map((record, rowIdx) => (
-            <motion.tr
-              key={rowIdx}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.1 }}
-              className="hover:bg-blue-50/60 dark:hover:bg-slate-900/80 transition-colors"
-            >
-              {columns.map(col => (
-                <td key={col.key} className="px-4 py-3.5 max-w-[240px] truncate align-middle">
-                  <StateBadge cv={record[col.key]} col={col} />
+          {records.map((record, rowIdx) => {
+            const id = recordIds[rowIdx];
+            return (
+              <motion.tr
+                key={rowIdx}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.1 }}
+                className={`hover:bg-blue-50/60 dark:hover:bg-slate-900/80 transition-colors ${selectedIds.has(id) ? 'bg-blue-50/40 dark:bg-blue-950/20' : ''}`}
+              >
+                <td className="px-4 py-3.5 w-10">
+                  {id && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(id)}
+                      onChange={() => onToggleSelect(id)}
+                      className="w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer"
+                      aria-label="Select row"
+                    />
+                  )}
                 </td>
-              ))}
-            </motion.tr>
-          ))}
+                {columns.map(col => (
+                  <td key={col.key} className="px-4 py-3.5 max-w-[240px] truncate align-middle">
+                    <StateBadge cv={record[col.key]} col={col} />
+                  </td>
+                ))}
+              </motion.tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -630,11 +662,41 @@ export default function DataManagementCenter() {
   const [showColumnPanel, setShowColumnPanel] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showEmailEditor, setShowEmailEditor] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllOnPage = (ids: string[]) => {
+    setSelectedIds((prev) => {
+      const allSelected = ids.length > 0 && ids.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (allSelected) {
+        ids.forEach((id) => next.delete(id));
+      } else {
+        ids.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
 
   const { columns: allColumns, filters: filterDefs, loading: schemaLoading } = useDMCSchema(activeDataset?.id ?? null);
   const { visibleKeys, visibleColumns, toggleColumn, showAll, resetToDefaults, isVisible } = useDMCColumns(allColumns);
   const { records, total, page, totalPages, loading: queryLoading, error: queryError, fetch: runQuery, pageSize } = useDMCQuery({ datasetId: activeDataset?.id ?? null });
+
+  const hasEmailColumn = allColumns.some((c) => c.type === 'email');
+  const selectedRecipients: EmailRecipient[] = records
+    .filter((r) => selectedIds.has(String(r.id?.value ?? '')))
+    .map((r) => ({ email: String(r.email?.value ?? ''), name: r.name?.value ? String(r.name.value) : undefined }))
+    .filter((r) => !!r.email);
 
   // When dataset changes, reset everything and run query
   useEffect(() => {
@@ -644,6 +706,7 @@ export default function DataManagementCenter() {
     setActiveFilters([]);
     setSort({ field: activeDataset.default_sort_field, direction: activeDataset.default_sort_direction as 'asc' | 'desc' });
     setShowFilters(false);
+    setSelectedIds(new Set());
   }, [activeDataset]);
 
   // When schema loads, run initial query
@@ -653,11 +716,15 @@ export default function DataManagementCenter() {
     runQuery(1, '', { field: activeDataset.default_sort_field, direction: activeDataset.default_sort_direction as 'asc' | 'desc' }, [], visColKeys);
   }, [activeDataset, schemaLoading, allColumns]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Row selection is scoped to whichever records are currently loaded (selectedRecipients
+  // reads name/email straight out of `records`), so any change to what's loaded clears it
+  // rather than risk emailing a stale, no-longer-visible selection.
   const handleSearch = (val: string) => {
     setSearch(val);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
       setDebouncedSearch(val);
+      setSelectedIds(new Set());
       runQuery(1, val, sort, activeFilters, [...visibleKeys]);
     }, 350);
   };
@@ -667,15 +734,18 @@ export default function DataManagementCenter() {
       ? { field, direction: sort.direction === 'asc' ? 'desc' : 'asc' }
       : { field, direction: 'desc' };
     setSort(next);
+    setSelectedIds(new Set());
     runQuery(1, debouncedSearch, next, activeFilters, [...visibleKeys]);
   };
 
   const handleFilterChange = (clauses: FilterClause[]) => {
     setActiveFilters(clauses);
+    setSelectedIds(new Set());
     runQuery(1, debouncedSearch, sort, clauses, [...visibleKeys]);
   };
 
   const handlePage = (p: number) => {
+    setSelectedIds(new Set());
     runQuery(p, debouncedSearch, sort, activeFilters, [...visibleKeys]);
   };
 
@@ -723,6 +793,11 @@ export default function DataManagementCenter() {
                   <button onClick={handleRefresh} title="Refresh dataset" className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition">
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-500' : ''}`} />
                   </button>
+                  {hasEmailColumn && selectedIds.size > 0 && (
+                    <button onClick={() => setShowEmailEditor(true)} className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm transition-colors">
+                      <Mail className="w-3.5 h-3.5" /> Email Selected ({selectedIds.size})
+                    </button>
+                  )}
                   {(activeDataset.capabilities.export_csv || activeDataset.capabilities.export_xlsx || activeDataset.capabilities.export_json) && (
                     <button onClick={() => setShowExport(true)} className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors">
                       <Download className="w-3.5 h-3.5" /> Export Data
@@ -824,6 +899,9 @@ export default function DataManagementCenter() {
               onSort={handleSort}
               loading={isLoading}
               empty={!isLoading && records.length === 0}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAllOnPage}
             />
 
             {/* Pagination Footer */}
@@ -843,6 +921,16 @@ export default function DataManagementCenter() {
         activeFilters={activeFilters}
         search={debouncedSearch}
         sort={sort}
+        selectedIds={selectedIds}
+      />
+
+      {/* Bulk Email Composer */}
+      <EmailTemplateEditor
+        open={showEmailEditor}
+        onClose={() => setShowEmailEditor(false)}
+        mode="send"
+        recipients={selectedRecipients}
+        onSent={() => setSelectedIds(new Set())}
       />
     </div>
   );

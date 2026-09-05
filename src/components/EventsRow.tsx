@@ -56,7 +56,7 @@ export default function EventsRow({ title, events, accent = '#FF7A00' }: EventsR
     <div className="flex items-center justify-center gap-3">
       <button
         type="button"
-        aria-label="Previous"
+        aria-label="Previous event"
         onClick={goLeft}
         disabled={!canGoLeft}
         className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 ${
@@ -79,7 +79,7 @@ export default function EventsRow({ title, events, accent = '#FF7A00' }: EventsR
 
       <button
         type="button"
-        aria-label="Next"
+        aria-label="Next event"
         onClick={goRight}
         disabled={!canGoRight}
         className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 ${

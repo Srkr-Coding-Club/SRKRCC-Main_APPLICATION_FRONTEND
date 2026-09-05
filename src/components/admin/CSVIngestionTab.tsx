@@ -1102,7 +1102,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                             </span>
                           </td>
                           <td className="p-3.5 text-slate-400">
-                            {new Date(b.created_at).toLocaleDateString()}
+                            {new Date(b.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </td>
                           <td className="p-3.5 text-right">
                             <a
