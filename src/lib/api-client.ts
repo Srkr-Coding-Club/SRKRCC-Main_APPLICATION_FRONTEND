@@ -54,8 +54,10 @@ export async function fetchApi<T>(
 
     if (!response.ok) {
       let errMsg = `API error: ${response.status} ${response.statusText}`;
+      let errBody: any = null;
       try {
         const errJson = await response.json();
+        errBody = errJson;
         if (errJson) {
           if (typeof errJson === 'string') {
             errMsg = errJson;
@@ -73,7 +75,12 @@ export async function fetchApi<T>(
       } catch {
         // use default errMsg
       }
-      throw new Error(errMsg);
+      // Preserve the structured payload (e.g. the form engine's {errors:[...]})
+      // so callers can render per-field messages, not just the summary string.
+      const err = new Error(errMsg) as Error & { status?: number; body?: any };
+      err.status = response.status;
+      err.body = errBody;
+      throw err;
     }
 
     return await response.json();

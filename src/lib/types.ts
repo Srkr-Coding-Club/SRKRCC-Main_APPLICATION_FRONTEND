@@ -129,19 +129,134 @@ export interface BlogPost {
   published_at?: string;
 }
 
+/**
+ * Canonical validation-rule shape — a strict superset of what the builder used to
+ * write. Mirrors `apps/forms/validation/schema.py::RULE_COMPAT` on the backend;
+ * both sides enforce the same keys.
+ */
+export type TextFormat =
+  | 'any' | 'alpha' | 'alphabetic' | 'alphanumeric' | 'numeric' | 'integer'
+  | 'decimal' | 'email' | 'phone' | 'url' | 'username' | 'slug' | 'date' | 'time';
+
+export type CrossFieldOp = 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte' | 'required_if';
+
+export interface CrossFieldRule {
+  op: CrossFieldOp;
+  /** the OTHER field's id this one is compared against */
+  field: number | string;
+  /** required_if only: the other field's value that triggers the requirement */
+  equals?: string;
+  message?: string;
+}
+
 export interface ValidationRules {
+  // text / paragraph
   minLength?: number;
   maxLength?: number;
+  exactLength?: number;
+  minWords?: number;
+  maxWords?: number;
   pattern?: string;
+  format?: TextFormat;
+  allowedChars?: string;
+  disallowedChars?: string;
+  startsWith?: string;
+  endsWith?: string;
+  contains?: string;
+  notContains?: string;
+  // number
   minValue?: number;
   maxValue?: number;
-  minSelected?: number;
-  maxSelected?: number;
+  exactValue?: number;
+  gt?: number;
+  gte?: number;
+  lt?: number;
+  lte?: number;
+  integerOnly?: boolean;
+  allowNegative?: boolean;
+  positiveOnly?: boolean;
+  step?: number;
+  // email
+  allowedDomains?: string[] | string;
+  blockedDomains?: string[] | string;
+  allowMultiple?: boolean;
+  normalizeCase?: boolean;
+  // phone
+  minDigits?: number;
+  maxDigits?: number;
+  numericOnly?: boolean;
+  // url
+  requireHttps?: boolean;
+  // date / time
   minDate?: string;
   maxDate?: string;
+  notBefore?: string;
+  notAfter?: string;
+  pastOnly?: boolean;
+  futureOnly?: boolean;
+  allowToday?: boolean;
+  minTime?: string;
+  maxTime?: string;
+  // choice
+  allowOther?: boolean;
+  minSelected?: number;
+  maxSelected?: number;
+  exactSelected?: number;
+  // file
   allowedFileTypes?: string;
+  blockedFileTypes?: string;
   maxFileSizeMB?: number;
+  minFileSizeKB?: number;
+  minFiles?: number;
+  maxFiles?: number;
+  // matrix
+  requiredRows?: string[];
+  allRowsRequired?: boolean;
+  minPerRow?: number;
+  maxPerRow?: number;
+  // cross-field + custom message
+  crossField?: CrossFieldRule[];
   patternError?: string;
+}
+
+export type ConditionalOperator =
+  | 'equals' | 'not_equals'
+  | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'not_between'
+  | 'contains' | 'not_contains' | 'starts_with' | 'ends_with'
+  | 'matches_regex' | 'not_matches_regex' | 'is_empty' | 'is_not_empty'
+  | 'selected' | 'not_selected' | 'includes' | 'not_includes'
+  | 'includes_any' | 'includes_all'
+  | 'before' | 'after' | 'on' | 'before_or_equal' | 'after_or_equal' | 'date_between';
+
+export type ConditionalAction = 'show' | 'hide' | 'require' | 'optional';
+
+export interface ConditionalLeaf {
+  field: number | string;
+  operator: ConditionalOperator;
+  value?: any;
+}
+export interface ConditionalGroup {
+  logic: 'AND' | 'OR';
+  rules: (ConditionalLeaf | ConditionalGroup)[];
+}
+export interface ConditionalLogic extends ConditionalGroup {
+  action?: ConditionalAction;
+}
+
+/** One entry of the backend's structured 400 body. */
+export interface SubmissionErrorItem {
+  field_id: number | null;
+  label?: string | null;
+  code: string;
+  message: string;
+  rule?: string;
+  context?: Record<string, any>;
+}
+export interface SubmissionErrorBody {
+  detail: string;
+  code: string;
+  errors: SubmissionErrorItem[];
+  warnings: SubmissionErrorItem[];
 }
 
 export type FieldType =
@@ -179,7 +294,8 @@ export interface FormField {
   min_value?: number;
   /** Maximum value for RATING / LINEAR_SCALE. */
   max_value?: number;
-  conditional_logic?: any;
+  /** Canonical shape {logic, rules, action}; legacy {if,equals} still accepted by the normalizer. */
+  conditional_logic?: ConditionalLogic | Record<string, any>;
   validation_rules?: ValidationRules;
   order: number;
   is_deleted?: boolean;

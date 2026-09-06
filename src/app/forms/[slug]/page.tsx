@@ -6,7 +6,8 @@ import { useParams } from 'next/navigation';
 import { Form, FormField } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
-import { getConstraintHint, validateFieldValue } from '@/lib/formValidation';
+import { getConstraintHint, validateSubmission } from '@/lib/formValidation';
+import { computeLayout, isFieldRequired } from '@/lib/formConditional';
 import { useToast } from '@/context/ToastContext';
 import {
   FileText,
@@ -318,6 +319,13 @@ export default function FormDetailSubmissionPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Conditional-logic layout — which fields are visible / required right now,
+  // recomputed whenever an answer changes. Mirrors the backend engine.
+  const layout = React.useMemo(
+    () => computeLayout((form?.fields as any) || [], formData),
+    [form?.fields, formData],
+  );
+
   // Check user authentication & fetch fresh profile details
   useEffect(() => {
     const user = getStoredUser();
@@ -468,6 +476,39 @@ export default function FormDetailSubmissionPage() {
     }
   };
 
+  // There is no binary-upload endpoint — files are captured inline as data URLs
+  // (bounded by the field's max size, or 5 MB) so the answer stores something
+  // that can actually be viewed / downloaded from the responses tab.
+  const MAX_INLINE_FILE_MB = 5;
+  const handleFileChange = async (field: FormField, fileList: FileList | null) => {
+    const picked = Array.from(fileList || []);
+    if (!picked.length) return;
+    const capMb = Number(field.validation_rules?.maxFileSizeMB) || MAX_INLINE_FILE_MB;
+    const out: { name: string; size: number; type: string; url: string }[] = [];
+    for (const f of picked) {
+      if (f.size > capMb * 1024 * 1024) {
+        setErrors((prev) => ({
+          ...prev,
+          [String(field.id)]: `"${f.name}" is ${(f.size / 1048576).toFixed(1)} MB — the limit is ${capMb} MB.`,
+        }));
+        continue;
+      }
+      try {
+        const url = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = () => reject(r.error);
+          r.readAsDataURL(f);
+        });
+        out.push({ name: f.name, size: f.size, type: f.type || 'application/octet-stream', url });
+      } catch {
+        setErrors((prev) => ({ ...prev, [String(field.id)]: `Could not read "${f.name}".` }));
+      }
+    }
+    if (!out.length) return;
+    handleInputChange(field.id, field.type === 'MULTI_FILE' ? out : out[0]);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
@@ -483,35 +524,35 @@ export default function FormDetailSubmissionPage() {
 
     if (!form || !form.fields) return;
 
-    const newErrors: Record<string, string> = {};
-    form.fields.forEach((field) => {
-      if (field.type === 'SECTION') return;
-      const error = validateFieldValue(field, formData[String(field.id)] ?? formData[field.id]);
-      if (error) newErrors[String(field.id)] = error;
-    });
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      toast.error('Validation Error', 'Please complete all required fields correctly.');
+    // Client-side pre-check — mirrors the backend engine (conditional visibility,
+    // required, type + rule + cross-field). The backend re-validates everything.
+    const { errors: clientErrors, layout, payload } = validateSubmission(form.fields, formData);
+    if (clientErrors.length > 0) {
+      const map: Record<string, string> = {};
+      for (const e of clientErrors) if (e.field_id != null && !map[String(e.field_id)]) map[String(e.field_id)] = e.message;
+      setErrors(map);
+      const first = clientErrors[0];
+      toast.error('Please fix the highlighted fields', first.message);
+      // scroll to the first field with an error
+      if (first.field_id != null) {
+        document.getElementById(`field-${first.field_id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
     setIsSubmitting(true);
     setSubmissionError(null);
+    setErrors({});
     try {
-      const answersPayload = Object.entries(formData)
-        .filter(([fieldId]) => {
-          const field = form.fields?.find((f) => String(f.id) === String(fieldId));
-          return field && field.type !== 'SECTION';
-        })
-        .map(([fieldId, value]) => ({
-          field: Number(fieldId) || fieldId,
-          value: value,
-        }));
+      // Only submit answers for fields the conditional layout leaves visible.
+      const answersPayload = Object.entries(payload).map(([fieldId, value]) => ({
+        field: Number(fieldId) || fieldId,
+        value,
+      }));
 
       const idempotencyKey = `sub_${form.id}_${currentUser.id}_${isEditMode ? 'edit_' : ''}${Date.now()}`;
 
-      await fetchApi('/forms/submissions/', {
+      const result: any = await fetchApi('/forms/submissions/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -529,6 +570,9 @@ export default function FormDetailSubmissionPage() {
         if (slug) localStorage.removeItem(`srkrcc_form_draft_${slug}`);
       } catch {}
 
+      if (Array.isArray(result?.warnings) && result.warnings.length > 0) {
+        toast.info('Submitted with notes', result.warnings[0].message);
+      }
       if (isEditMode) {
         toast.success('Response Updated!', `Your updated response for ${form.title} has been saved.`);
       } else {
@@ -537,9 +581,22 @@ export default function FormDetailSubmissionPage() {
       setIsSubmitted(true);
     } catch (err: any) {
       console.error('[Form Submit Error]:', err);
-      const errMsg = err?.message || err?.error || 'Failed to submit form to server.';
-      setSubmissionError(errMsg);
-      toast.error('Submission Failed', errMsg);
+      // The backend returns { detail, code, errors:[{field_id, code, message, ...}] }.
+      const body = err?.body;
+      if (body && Array.isArray(body.errors) && body.errors.length > 0) {
+        const map: Record<string, string> = {};
+        for (const e of body.errors) if (e.field_id != null && !map[String(e.field_id)]) map[String(e.field_id)] = e.message;
+        setErrors(map);
+        const generic = body.errors.filter((e: any) => e.field_id == null).map((e: any) => e.message);
+        setSubmissionError(generic[0] || body.detail || 'Some answers need fixing.');
+        toast.error('Submission Rejected', body.errors[0].message || body.detail);
+        const firstId = body.errors.find((e: any) => e.field_id != null)?.field_id;
+        if (firstId != null) document.getElementById(`field-${firstId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        const errMsg = err?.message || err?.error || 'Failed to submit form to server.';
+        setSubmissionError(errMsg);
+        toast.error('Submission Failed', errMsg);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1006,7 +1063,7 @@ function ModernSelect({
             {/* Form Fields */}
             <form onSubmit={handleSubmit} className="space-y-6">
               {form.fields?.map((field) => {
-                const isErr = !!errors[field.id];
+                const isErr = !!(errors[field.id] || errors[String(field.id)]);
                 const hint = getConstraintHint(field);
 
                 if (field.type === 'SECTION') {
@@ -1017,6 +1074,12 @@ function ModernSelect({
                     </div>
                   );
                 }
+
+                // Conditional visibility — a hidden field is not rendered, not
+                // validated and not submitted (the backend enforces the same).
+                if (!layout.visible.has(String(field.id))) return null;
+
+                const conditionallyRequired = isFieldRequired(field as any, layout);
 
                 const fieldVal = formData[String(field.id)] ?? formData[field.id] ?? '';
                 const isAutoMatched = (
@@ -1032,7 +1095,7 @@ function ModernSelect({
                 return (
                   <div key={field.id} className="flex w-full flex-col space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <FieldLabel htmlFor={`field-${field.id}`} required={field.is_required}>
+                      <FieldLabel htmlFor={`field-${field.id}`} required={conditionallyRequired}>
                         {field.label}
                       </FieldLabel>
                       {isAutoMatched && (
@@ -1334,18 +1397,34 @@ function ModernSelect({
                         <input
                           type="file"
                           multiple={field.type === 'MULTI_FILE'}
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files || []).map((f) => ({ name: f.name, size: f.size }));
-                            handleInputChange(field.id, field.type === 'MULTI_FILE' ? files : files[0]);
-                          }}
+                          accept={field.validation_rules?.allowedFileTypes || undefined}
+                          onChange={(e) => { void handleFileChange(field, e.target.files); }}
                           className="mt-2 text-xs text-slate-500"
                         />
-                        {Array.isArray(formData[field.id]) && formData[field.id].length > 0 && (
-                          <p className="text-[11px] text-slate-400 mt-2">{formData[field.id].map((f: any) => f.name).join(', ')}</p>
-                        )}
-                        {formData[field.id] && !Array.isArray(formData[field.id]) && (
-                          <p className="text-[11px] text-slate-400 mt-2">{formData[field.id].name}</p>
-                        )}
+                        {(() => {
+                          const val = formData[field.id];
+                          const items: any[] = Array.isArray(val) ? val : val ? [val] : [];
+                          if (!items.length) return null;
+                          return (
+                            <div className="mt-3 flex flex-wrap justify-center gap-3">
+                              {items.map((f, i) => {
+                                const isImg = typeof f?.type === 'string'
+                                  ? f.type.startsWith('image/')
+                                  : /\.(png|jpe?g|gif|webp|svg)$/i.test(f?.name || '');
+                                return (
+                                  <div key={i} className="flex flex-col items-center gap-1 max-w-[120px]">
+                                    {isImg && f?.url ? (
+                                      <img src={f.url} alt={f.name} className="w-20 h-20 object-cover rounded border border-slate-300 dark:border-slate-700" />
+                                    ) : (
+                                      <FileText className="w-8 h-8 text-slate-400" />
+                                    )}
+                                    <span className="text-[11px] text-slate-400 truncate max-w-[120px]">{f?.name}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
 
@@ -1362,7 +1441,7 @@ function ModernSelect({
                     {isErr && (
                       <p className="text-xs text-rose-500 font-semibold flex items-center space-x-1">
                         <AlertCircle className="w-3.5 h-3.5" />
-                        <span>{errors[field.id]}</span>
+                        <span>{errors[field.id] || errors[String(field.id)]}</span>
                       </p>
                     )}
                   </div>
