@@ -15,7 +15,6 @@ import {
   Flame,
   Search,
 } from 'lucide-react';
-import { useToast } from '@/context/ToastContext';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 import PageHero from '@/components/PageHero';
@@ -113,7 +112,6 @@ function getAuthorName(author: any): string {
 }
 
 export default function BlogsPage() {
-  const { toast } = useToast();
   const [blogs, setBlogs] = useState<BlogPost[]>(FALLBACK_BLOGS);
   // Defaults to enabled (matches moduleFlags.ts's fail-open convention) so there's
   // no flash of "unavailable" while the flag request is in flight.
@@ -213,10 +211,12 @@ export default function BlogsPage() {
                 </div>
 
                 <button
-                  onClick={() => toast.info('Article Reader', `Opening "${featuredPost.title}"`)}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition"
+                  disabled
+                  aria-disabled="true"
+                  title="Full articles aren't published yet"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-[#FF7A00]/40 text-white/80 font-bold text-xs shadow-sm cursor-not-allowed"
                 >
-                  <span>Read Article</span>
+                  <span>Coming Soon</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -289,10 +289,12 @@ export default function BlogsPage() {
                   </div>
 
                   <button
-                    onClick={() => toast.info('Article Reader', `Opening "${post.title}"`)}
-                    className="text-xs font-bold text-[#FF7A00] hover:text-[#E06B00] flex items-center space-x-1"
+                    disabled
+                    aria-disabled="true"
+                    title="Full articles aren't published yet"
+                    className="text-xs font-bold text-[#FF7A00]/50 flex items-center space-x-1 cursor-not-allowed"
                   >
-                    <span>Read</span>
+                    <span>Coming Soon</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>

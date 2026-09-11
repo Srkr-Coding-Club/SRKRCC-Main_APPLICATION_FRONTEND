@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Calendar, Clock, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import PillButton from './PillButton';
 
 interface EventItem {
@@ -52,9 +52,13 @@ const EVENTS: EventItem[] = [
 const AUTO_ADVANCE_MS = 5500;
 
 export default function UpcomingEventsGrid() {
+  const reduceMotion = useReducedMotion();
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
-  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(true);
+  const paused = hovered || focused || !autoPlay;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const goTo = (i: number) => {
@@ -115,8 +119,14 @@ export default function UpcomingEventsGrid() {
         <div
           className="relative rounded-3xl p-[1.5px] overflow-hidden"
           style={{ background: `linear-gradient(150deg, ${evt.accent}55, transparent 40%, transparent 70%, ${evt.accent}30)` }}
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          onFocus={() => setFocused(true)}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setFocused(false);
+            }
+          }}
         >
           {/* Fixed-height frame — keeps the card from collapsing during a slide  */}
           {/* swap, which is what made the Register button appear to flicker in   */}
@@ -127,10 +137,10 @@ export default function UpcomingEventsGrid() {
               <motion.div
                 key={evt.id}
                 custom={direction}
-                initial={{ opacity: 0, x: direction * 40 }}
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: direction * 40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: direction * -40, pointerEvents: 'none' }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                exit={reduceMotion ? { opacity: 0, pointerEvents: 'none' } : { opacity: 0, x: direction * -40, pointerEvents: 'none' }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className="absolute inset-0 grid grid-cols-1 lg:grid-cols-2"
               >
                 {/* Image */}
@@ -202,30 +212,41 @@ export default function UpcomingEventsGrid() {
         </div>
 
         {/* Dots + progress */}
-        <div className="flex items-center justify-center gap-2.5 mt-7">
-          {EVENTS.map((s, i) => (
-            <button
-              key={s.id}
-              onClick={(e) => {
-                goTo(i);
-                e.currentTarget.blur();
-              }}
-              className="relative h-1.5 rounded-full overflow-hidden transition-all duration-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-              style={{ width: i === index ? 36 : 8, background: 'rgba(128,128,128,0.25)' }}
-              aria-label={`Go to ${s.title}`}
-            >
-              {i === index && (
-                <motion.span
-                  key={`${s.id}-${paused}`}
-                  className="absolute inset-y-0 left-0 rounded-full"
-                  style={{ background: s.accent }}
-                  initial={{ width: '0%' }}
-                  animate={{ width: paused ? '0%' : '100%' }}
-                  transition={{ duration: paused ? 0 : AUTO_ADVANCE_MS / 1000, ease: 'linear' }}
-                />
-              )}
-            </button>
-          ))}
+        <div className="flex items-center justify-center gap-3 mt-7">
+          <div className="flex items-center gap-2.5">
+            {EVENTS.map((s, i) => (
+              <button
+                key={s.id}
+                onClick={(e) => {
+                  goTo(i);
+                  e.currentTarget.blur();
+                }}
+                className="relative h-1.5 rounded-full overflow-hidden transition-all duration-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+                style={{ width: i === index ? 36 : 8, background: 'rgba(128,128,128,0.25)' }}
+                aria-label={`Go to ${s.title}`}
+              >
+                {i === index && (
+                  <motion.span
+                    key={`${s.id}-${paused}`}
+                    className="absolute inset-y-0 left-0 rounded-full"
+                    style={{ background: s.accent }}
+                    initial={{ width: '0%' }}
+                    animate={{ width: paused ? '0%' : '100%' }}
+                    transition={{ duration: paused ? 0 : AUTO_ADVANCE_MS / 1000, ease: 'linear' }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setAutoPlay((p) => !p)}
+            aria-label={autoPlay ? 'Pause auto-advance' : 'Resume auto-advance'}
+            aria-pressed={!autoPlay}
+            className="flex items-center justify-center w-11 h-11 rounded-full text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+          >
+            {autoPlay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          </button>
         </div>
       </div>
     </section>

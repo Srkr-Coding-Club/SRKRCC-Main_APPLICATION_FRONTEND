@@ -1,16 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { User, Mail, Hash, BookOpen, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import BrainLogo from '@/components/BrainLogo';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { registerUser, loginUser } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
 
-export default function SignupPage() {
+function isSafeNextPath(next: string | null): next is string {
+  return !!next && next.startsWith('/') && !next.startsWith('//');
+}
+
+function SignupContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextUrl = searchParams.get('next');
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     fullName: '',
@@ -67,7 +73,9 @@ export default function SignupPage() {
       toast.success('Account Created', `Welcome to SRKR Coding Club, ${firstName || formData.fullName}!`);
 
       setTimeout(() => {
-        if (formData.role === 'ADMIN' || formData.role === 'CLUB_LEAD') {
+        if (isSafeNextPath(nextUrl)) {
+          router.push(nextUrl);
+        } else if (formData.role === 'ADMIN' || formData.role === 'CLUB_LEAD') {
           router.push('/admin');
         } else {
           router.push('/profile');
@@ -304,7 +312,10 @@ export default function SignupPage() {
           {/* Footer Link to Login */}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 text-center text-xs text-slate-500 dark:text-slate-400">
             Already have an account?{' '}
-            <Link href="/login" className="font-bold text-[#FF7A00] hover:text-[#E06B00]">
+            <Link
+              href={isSafeNextPath(nextUrl) ? `/login?next=${encodeURIComponent(nextUrl)}` : '/login'}
+              className="font-bold text-[#FF7A00] hover:text-[#E06B00]"
+            >
               Sign In Here
             </Link>
           </div>
@@ -313,5 +324,13 @@ export default function SignupPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupContent />
+    </Suspense>
   );
 }

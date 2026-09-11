@@ -1,6 +1,8 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, User, Gauge, ArrowRight } from 'lucide-react';
+import { Calendar, User, Gauge, ArrowRight, Info, X } from 'lucide-react';
 import { IconCodersChallenge } from '@/lib/types';
 
 interface IconCodersEditionCardProps {
@@ -14,6 +16,7 @@ export default function IconCodersEditionCard({
 }: IconCodersEditionCardProps) {
   const fallbackImage =
     'https://images.unsplash.com/photo-1550439062-609e1531270e?auto=format&fit=crop&w=900&q=70';
+  const [flipped, setFlipped] = useState(false);
 
   return (
     <div className="group relative isolate h-[330px] w-full [perspective:1400px]">
@@ -25,7 +28,7 @@ export default function IconCodersEditionCard({
 
       <div
         tabIndex={0}
-        className="relative h-full w-full rounded-2xl outline-none transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)] focus-visible:[transform:rotateY(180deg)]"
+        className={`relative h-full w-full rounded-2xl outline-none transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)] focus-visible:[transform:rotateY(180deg)] ${flipped ? '[transform:rotateY(180deg)]' : ''}`}
       >
         {/* ---------- FRONT (image) ---------- */}
         <div className="absolute inset-0 overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white shadow-[0_14px_40px_-20px_rgba(139,46,59,0.28)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] dark:border-white/10 dark:bg-[#161622]">
@@ -36,6 +39,15 @@ export default function IconCodersEditionCard({
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A2E]/90 via-[#1A1A2E]/25 to-transparent" />
+
+          <button
+            type="button"
+            onClick={() => setFlipped(true)}
+            aria-label="View details"
+            className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+          >
+            <Info className="h-4 w-4" />
+          </button>
 
           <div className="absolute inset-x-0 top-0 p-4">
             <span
@@ -67,6 +79,15 @@ export default function IconCodersEditionCard({
             className="absolute inset-x-0 top-0 h-0.5"
             style={{ background: `linear-gradient(90deg, ${accent}66, ${accent}, ${accent}66)` }}
           />
+
+          <button
+            type="button"
+            onClick={() => setFlipped(false)}
+            aria-label="Back to card front"
+            className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B2E3B] dark:hover:bg-white/5 dark:hover:text-slate-200"
+          >
+            <X className="h-4 w-4" />
+          </button>
 
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
             {challenge.edition}

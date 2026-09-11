@@ -186,7 +186,7 @@ function SetupPasswordContent() {
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 space-y-3">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 space-y-3">
             <p>Setup tokens are single-use and expire within 24 hours for security. Please request a fresh link below.</p>
             <button
               type="button"
@@ -204,7 +204,7 @@ function SetupPasswordContent() {
         <form onSubmit={handleConfirmPassword} className="space-y-5">
           <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-white">
+              <span className="font-bold text-[#1A1A2E] dark:text-white">
                 Welcome, {memberInfo?.first_name || 'Member'}!
               </span>
               {memberInfo?.club_id && (
@@ -213,7 +213,7 @@ function SetupPasswordContent() {
                 </span>
               )}
             </div>
-            <p className="text-slate-300 text-[11px]">
+            <p className="text-slate-600 dark:text-slate-300 text-[11px]">
               Please choose a secure password to activate your account.
             </p>
           </div>
@@ -260,21 +260,21 @@ function SetupPasswordContent() {
           </div>
 
           {/* Password Requirements Gauge */}
-          <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] space-y-1">
-            <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-400' : 'text-slate-400'}`}>
+          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[11px] space-y-1">
+            <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>At least 8 characters</span>
             </div>
-            <div className={`flex items-center gap-1.5 ${hasMixedCase ? 'text-emerald-400' : 'text-slate-400'}`}>
+            <div className={`flex items-center gap-1.5 ${hasMixedCase ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Contains upper & lower case letters</span>
             </div>
-            <div className={`flex items-center gap-1.5 ${hasNumberOrSpecial ? 'text-emerald-400' : 'text-slate-400'}`}>
+            <div className={`flex items-center gap-1.5 ${hasNumberOrSpecial ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Contains number or symbol</span>
             </div>
             {password && confirmPassword && (
-              <div className={`flex items-center gap-1.5 ${passwordsMatch ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <div className={`flex items-center gap-1.5 ${passwordsMatch ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Passwords match</span>
               </div>
@@ -298,8 +298,8 @@ function SetupPasswordContent() {
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-7 h-7" />
           </div>
-          <h3 className="text-xl font-bold text-white">Password Established!</h3>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
+          <h3 className="text-xl font-bold text-[#1A1A2E] dark:text-white">Password Established!</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
             Your SRKR Coding Club account is now active. You can now sign in with your email and new password.
           </p>
           <Link
@@ -351,9 +351,9 @@ function SetupPasswordContent() {
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
             <Mail className="w-7 h-7" />
           </div>
-          <h3 className="text-xl font-bold text-white">Check Your Inbox</h3>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
-            If an eligible account matching <strong className="text-white">{requestEmail}</strong> exists, a password setup link has been sent to your inbox.
+          <h3 className="text-xl font-bold text-[#1A1A2E] dark:text-white">Check Your Inbox</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+            If an eligible account matching <strong className="text-[#1A1A2E] dark:text-white">{requestEmail}</strong> exists, a password setup link has been sent to your inbox.
           </p>
           <div className="pt-2">
             <Link

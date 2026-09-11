@@ -22,6 +22,7 @@ import { fetchApi } from '@/lib/api-client';
 import { useToast } from '@/context/ToastContext';
 import { DetailDrawer } from './DetailDrawer';
 import { ChartSkeleton } from '@/components/ui/LoadingSkeleton';
+import EmailTemplateEditor, { EmailRecipient } from './EmailTemplateEditor';
 
 const ResponseTimelineChart = dynamic(
   () => import('./ResponseTimelineChart'),
@@ -147,6 +148,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
   const [showChart, setShowChart] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [drawerResponse, setDrawerResponse] = useState<ResponseDetail | null>(null);
+  const [showEmailEditor, setShowEmailEditor] = useState(false);
 
   const selectedForm = forms.find((f) => f.slug === selectedSlug) ?? null;
   const fieldColumns: FormField[] = useMemo(
@@ -227,6 +229,20 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       return base;
     });
     downloadCSV(flat, `responses-${selectedSlug}-${Date.now()}.csv`);
+  };
+
+  const selectedRecipients: EmailRecipient[] = useMemo(() => {
+    const rows = (data?.results ?? []).filter((r) => selectedIds.has(r.id));
+    const emails: EmailRecipient[] = rows
+      .map((r) => ({ email: r.user?.email || r.user_email || '', name: r.user?.name || r.user_name }))
+      .filter((r) => r.email.length > 0);
+    // De-dupe in case the same respondent submitted more than once.
+    const seen = new Set<string>();
+    return emails.filter((r) => (seen.has(r.email) ? false : (seen.add(r.email), true)));
+  }, [data, selectedIds]);
+
+  const handleBulkDelete = () => {
+    toast.info('Bulk Delete Not Available', 'Deleting responses isn’t supported from this view yet — use Django Admin to remove them.');
   };
 
   // --- No form selected ---
@@ -314,10 +330,16 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             <button onClick={handleBulkExport} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white">
               <Download className="w-3 h-3" /> Export
             </button>
-            <button className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300">
+            <button
+              onClick={() => setShowEmailEditor(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300"
+            >
               <Mail className="w-3 h-3" /> Email
             </button>
-            <button className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300">
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300"
+            >
               <Trash2 className="w-3 h-3" /> Delete
             </button>
             <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-slate-500 hover:text-slate-600 dark:text-slate-300">Clear</button>
@@ -469,6 +491,18 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
           </DetailDrawer>
         )}
       </AnimatePresence>
+
+      {/* Bulk Email Composer */}
+      <EmailTemplateEditor
+        open={showEmailEditor}
+        onClose={() => setShowEmailEditor(false)}
+        mode="send"
+        recipients={selectedRecipients}
+        onSent={() => {
+          setSelectedIds(new Set());
+          setShowEmailEditor(false);
+        }}
+      />
     </>
   );
 }

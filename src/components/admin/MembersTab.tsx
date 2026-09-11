@@ -199,6 +199,9 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
       toast.error('Missing Fields', 'Please enter both subject and message body.');
       return;
     }
+    if (!confirm(`Send this email to ${filteredMembers.length} members? This cannot be undone.`)) {
+      return;
+    }
     setSendingEmail(true);
     try {
       const recipientEmails = filteredMembers.map((m) => m.email);

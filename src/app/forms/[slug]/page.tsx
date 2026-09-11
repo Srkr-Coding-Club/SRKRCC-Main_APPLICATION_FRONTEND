@@ -295,6 +295,189 @@ function matchUserDetailToField(field: FormField, user: AuthUser | null): any {
   return undefined;
 }
 
+interface ModernSelectProps {
+  id: string;
+  value: string;
+  options: string[];
+  placeholder?: string;
+  onChange: (value: string) => void;
+  hasError?: boolean;
+}
+
+function ModernSelect({
+  id,
+  value,
+  options,
+  placeholder = "Select an option",
+  onChange,
+  hasError = false,
+}: ModernSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find((option) => option === value);
+
+  // Close when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        selectRef.current &&
+        !selectRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleSelect = (option: string) => {
+    onChange(option);
+    setIsOpen(false);
+  };
+
+  return (
+    <div
+      ref={selectRef}
+      id={id}
+      className="relative w-full"
+    >
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`
+          group flex w-full items-center justify-between
+          rounded-xl
+          border
+          bg-white dark:bg-[#101117]
+          px-4 py-3.5
+          text-left
+          shadow-[0_1px_2px_rgba(0,0,0,0.03)]
+          outline-none
+          transition-all duration-200
+          ${
+            isOpen
+              ? "border-[#FF7A00] ring-4 ring-[#FF7A00]/10"
+              : hasError
+                ? "border-rose-400 dark:border-rose-500/60"
+                : "border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50"
+          }
+        `}
+      >
+        <span
+          className={`
+            truncate text-sm
+            ${
+              selectedOption
+                ? "font-medium text-slate-800 dark:text-slate-100"
+                : "font-medium text-slate-400 dark:text-slate-500"
+            }
+          `}
+        >
+          {selectedOption || placeholder}
+        </span>
+
+        <ChevronDown
+          className={`
+            ml-3 h-4 w-4 shrink-0
+            text-slate-400
+            transition-transform duration-200
+            ${isOpen ? "rotate-180 text-[#FF7A00]" : ""}
+          `}
+        />
+      </button>
+
+      {/* Dropdown */}
+      {isOpen && (
+        <div
+          className="
+            absolute left-0 right-0 top-[calc(100%+8px)]
+            z-50
+            overflow-hidden
+            rounded-xl
+            border border-slate-200
+            dark:border-slate-800
+            bg-white
+            dark:bg-[#151722]
+            p-1.5
+            shadow-[0_12px_35px_rgba(0,0,0,0.12)]
+            dark:shadow-[0_15px_40px_rgba(0,0,0,0.4)]
+            animate-in fade-in-0 zoom-in-95 slide-in-from-top-1
+            duration-150
+          "
+          role="listbox"
+        >
+          {/* Placeholder */}
+          <button
+            type="button"
+            onClick={() => handleSelect("")}
+            className={`
+              flex w-full items-center justify-between
+              rounded-lg
+              px-3 py-2.5
+              text-left text-sm
+              transition-colors duration-150
+              ${
+                !value
+                  ? "bg-[#FF7A00]/10 text-[#D85F00] dark:text-[#FF9A4A]"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04]"
+              }
+            `}
+            role="option"
+            aria-selected={!value}
+          >
+            <span>{placeholder}</span>
+
+            {!value && (
+              <Check className="h-4 w-4 text-[#FF7A00]" />
+            )}
+          </button>
+
+          {/* Options */}
+          {options.map((option) => {
+            const selected = value === option;
+
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => handleSelect(option)}
+                className={`
+                  flex w-full items-center justify-between
+                  rounded-lg
+                  px-3 py-2.5
+                  text-left text-sm
+                  transition-all duration-150
+                  ${
+                    selected
+                      ? "bg-[#FF7A00]/10 font-semibold text-[#D85F00] dark:text-[#FF9A4A]"
+                      : "font-medium text-slate-700 dark:text-slate-300 hover:bg-[#FF7A00]/[0.06] hover:text-[#D85F00] dark:hover:text-[#FF9A4A]"
+                  }
+                `}
+                role="option"
+                aria-selected={selected}
+              >
+                <span className="truncate">{option}</span>
+
+                {selected && (
+                  <Check className="ml-3 h-4 w-4 shrink-0 text-[#FF7A00]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FormDetailSubmissionPage() {
   const { toast } = useToast();
   const params = useParams();
@@ -581,189 +764,6 @@ export default function FormDetailSubmissionPage() {
 
   const isFormClosedOrDraft = form.status === 'CLOSED' || form.status === 'DRAFT';
 
-  interface ModernSelectProps {
-  id: string;
-  value: string;
-  options: string[];
-  placeholder?: string;
-  onChange: (value: string) => void;
-  hasError?: boolean;
-}
-
-function ModernSelect({
-  id,
-  value,
-  options,
-  placeholder = "Select an option",
-  onChange,
-  hasError = false,
-}: ModernSelectProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const selectRef = useRef<HTMLDivElement>(null);
-
-  const selectedOption = options.find((option) => option === value);
-
-  // Close when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        selectRef.current &&
-        !selectRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleSelect = (option: string) => {
-    onChange(option);
-    setIsOpen(false);
-  };
-
-  return (
-    <div
-      ref={selectRef}
-      id={id}
-      className="relative w-full"
-    >
-      {/* Trigger */}
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        className={`
-          group flex w-full items-center justify-between
-          rounded-xl
-          border
-          bg-white dark:bg-[#101117]
-          px-4 py-3.5
-          text-left
-          shadow-[0_1px_2px_rgba(0,0,0,0.03)]
-          outline-none
-          transition-all duration-200
-          ${
-            isOpen
-              ? "border-[#FF7A00] ring-4 ring-[#FF7A00]/10"
-              : hasError
-                ? "border-rose-400 dark:border-rose-500/60"
-                : "border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50"
-          }
-        `}
-      >
-        <span
-          className={`
-            truncate text-sm
-            ${
-              selectedOption
-                ? "font-medium text-slate-800 dark:text-slate-100"
-                : "font-medium text-slate-400 dark:text-slate-500"
-            }
-          `}
-        >
-          {selectedOption || placeholder}
-        </span>
-
-        <ChevronDown
-          className={`
-            ml-3 h-4 w-4 shrink-0
-            text-slate-400
-            transition-transform duration-200
-            ${isOpen ? "rotate-180 text-[#FF7A00]" : ""}
-          `}
-        />
-      </button>
-
-      {/* Dropdown */}
-      {isOpen && (
-        <div
-          className="
-            absolute left-0 right-0 top-[calc(100%+8px)]
-            z-50
-            overflow-hidden
-            rounded-xl
-            border border-slate-200
-            dark:border-slate-800
-            bg-white
-            dark:bg-[#151722]
-            p-1.5
-            shadow-[0_12px_35px_rgba(0,0,0,0.12)]
-            dark:shadow-[0_15px_40px_rgba(0,0,0,0.4)]
-            animate-in fade-in-0 zoom-in-95 slide-in-from-top-1
-            duration-150
-          "
-          role="listbox"
-        >
-          {/* Placeholder */}
-          <button
-            type="button"
-            onClick={() => handleSelect("")}
-            className={`
-              flex w-full items-center justify-between
-              rounded-lg
-              px-3 py-2.5
-              text-left text-sm
-              transition-colors duration-150
-              ${
-                !value
-                  ? "bg-[#FF7A00]/10 text-[#D85F00] dark:text-[#FF9A4A]"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04]"
-              }
-            `}
-            role="option"
-            aria-selected={!value}
-          >
-            <span>{placeholder}</span>
-
-            {!value && (
-              <Check className="h-4 w-4 text-[#FF7A00]" />
-            )}
-          </button>
-
-          {/* Options */}
-          {options.map((option) => {
-            const selected = value === option;
-
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => handleSelect(option)}
-                className={`
-                  flex w-full items-center justify-between
-                  rounded-lg
-                  px-3 py-2.5
-                  text-left text-sm
-                  transition-all duration-150
-                  ${
-                    selected
-                      ? "bg-[#FF7A00]/10 font-semibold text-[#D85F00] dark:text-[#FF9A4A]"
-                      : "font-medium text-slate-700 dark:text-slate-300 hover:bg-[#FF7A00]/[0.06] hover:text-[#D85F00] dark:hover:text-[#FF9A4A]"
-                  }
-                `}
-                role="option"
-                aria-selected={selected}
-              >
-                <span className="truncate">{option}</span>
-
-                {selected && (
-                  <Check className="ml-3 h-4 w-4 shrink-0 text-[#FF7A00]" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
 
@@ -784,7 +784,7 @@ function ModernSelect({
 
             <div className="pt-2 space-y-2.5">
               <Link
-                href={`/login?redirect=/forms/${slug}`}
+                href={`/login?next=/forms/${slug}`}
                 className="group/btn relative w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition"
               >
                 <span>Click Here to Sign In</span>
@@ -793,7 +793,7 @@ function ModernSelect({
               </Link>
 
               <Link
-                href={`/signup?redirect=/forms/${slug}`}
+                href={`/signup?next=/forms/${slug}`}
                 className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition"
               >
                 Create New Account
@@ -914,7 +914,7 @@ function ModernSelect({
                     </div>
                   </div>
                   <Link
-                    href={`/login?redirect=/forms/${slug}`}
+                    href={`/login?next=/forms/${slug}`}
                     className="px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs whitespace-nowrap shadow transition text-center"
                   >
                     Click Here to Log In

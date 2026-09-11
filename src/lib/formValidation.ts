@@ -100,6 +100,28 @@ export function validateFieldValue(field: FormField, value: any): string | null 
       if (r.maxDate && String(value) > r.maxDate) return r.patternError || `Date must be on or before ${r.maxDate}.`;
       return null;
     }
+    case 'EMAIL': {
+      const str = String(value).trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str)) return r.patternError || 'Please enter a valid email address.';
+      return null;
+    }
+    case 'PHONE': {
+      const str = String(value).trim();
+      if (!/^[0-9+\-\s()]+$/.test(str)) return r.patternError || 'Please enter a valid phone number.';
+      const digits = str.replace(/\D/g, '');
+      if (digits.length < 7 || digits.length > 15) return r.patternError || 'Phone number must be between 7 and 15 digits.';
+      return null;
+    }
+    case 'URL': {
+      const str = String(value).trim();
+      if (!/^https?:\/\//i.test(str)) return r.patternError || 'URL must start with http:// or https://.';
+      try {
+        new URL(str);
+      } catch {
+        return r.patternError || 'Please enter a valid URL.';
+      }
+      return null;
+    }
     case 'FILE':
     case 'MULTI_FILE': {
       const files: FileLike[] = Array.isArray(value) ? value : [value];

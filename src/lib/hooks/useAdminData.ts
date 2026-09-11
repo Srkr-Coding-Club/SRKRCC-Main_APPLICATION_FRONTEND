@@ -315,7 +315,26 @@ export function useAdminData() {
   };
 
   const handleRoleChange = (userId: number, role: UserRecord['role']) => {
+    const user = usersList.find((u) => u.id === userId);
+    if (!user) return;
+    const previousRole = user.role;
+
+    // Optimistic — flip immediately for instant feedback, then best-effort persist.
     setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
+    fetchApi(`/auth/users/${userId}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    })
+      .then(() => {
+        toast.success('Role Updated', `${user.name} is now ${role}.`);
+      })
+      .catch((err: any) => {
+        // Roll the optimistic change back — it never actually persisted, so the
+        // UI must not keep claiming it did.
+        setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role: previousRole } : u)));
+        toast.error('Not Saved to Server', err?.message || `Could not update role for ${user.name}. Reverted.`);
+      });
   };
 
   const handleAddFieldFromPalette = (type: FormField['type'], label: string) => {
