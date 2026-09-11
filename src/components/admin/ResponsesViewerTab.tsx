@@ -57,18 +57,46 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
   if (type === 'FILE' || type === 'MULTI_FILE') {
     const files = Array.isArray(value) ? value : [value];
     return (
-      <div className="space-y-0.5">
-        {files.map((f, i) => (
-          <a
-            key={i}
-            href={String(f)}
-            download
-            className="flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 font-semibold truncate max-w-[140px]"
-          >
-            <Download className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{String(f).split('/').pop() || `File ${i + 1}`}</span>
-          </a>
-        ))}
+      <div className="flex flex-wrap gap-2">
+        {files.map((f, i) => {
+          // Answer entry is either a bare string (legacy / absolute URL) or
+          // { name, size, type?, url? }. url is a data: URI for inline captures.
+          const url: string = typeof f === 'string' ? f : (f?.url || '');
+          const name: string = typeof f === 'string'
+            ? (f.split('/').pop() || `File ${i + 1}`)
+            : (f?.name || `File ${i + 1}`);
+          const isImg = typeof f === 'object' && typeof f?.type === 'string'
+            ? f.type.startsWith('image/')
+            : /^data:image\//.test(url) || /\.(png|jpe?g|gif|webp|svg)$/i.test(name);
+
+          if (!url) {
+            return (
+              <span key={i} className="flex items-center gap-1 text-[11px] text-slate-500 italic" title="File contents were not stored">
+                <Download className="w-3 h-3 flex-shrink-0 opacity-40" />
+                <span className="truncate max-w-[140px] not-italic">{name}</span>
+                <span>(no file)</span>
+              </span>
+            );
+          }
+          return (
+            <a
+              key={i}
+              href={url}
+              download={name}
+              target="_blank"
+              rel="noreferrer"
+              className="flex flex-col items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 font-semibold max-w-[120px]"
+              title={name}
+            >
+              {isImg ? (
+                <img src={url} alt={name} className="w-16 h-16 object-cover rounded border border-slate-300 dark:border-slate-700 bg-white" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span className="truncate max-w-[120px]">{name}</span>
+            </a>
+          );
+        })}
       </div>
     );
   }
@@ -225,7 +253,19 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         respondent: r.user?.email ?? 'Anonymous',
         is_manual_entry: r.is_manual_entry,
       };
-      r.answers.forEach((a) => { base[a.field_label] = a.value; });
+      r.answers.forEach((a) => {
+        // FILE answers hold {name,size,url} objects (url can be a huge data: URI)
+        // — export just the file name(s), never the blob.
+        if ((a.field_type === 'FILE' || a.field_type === 'MULTI_FILE') && a.value) {
+          const items = Array.isArray(a.value) ? a.value : [a.value];
+          base[a.field_label] = items
+            .map((f: any) => (typeof f === 'string' ? f : f?.name))
+            .filter(Boolean)
+            .join('; ');
+        } else {
+          base[a.field_label] = a.value;
+        }
+      });
       return base;
     });
     downloadCSV(flat, `responses-${selectedSlug}-${Date.now()}.csv`);

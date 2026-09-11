@@ -38,6 +38,66 @@ interface AuditLogRecord {
   details: string;
 }
 
+/**
+ * Conditional rules and cross-field rules reference sibling fields by their id.
+ * A brand-new field only has a client-side placeholder id (e.g. a Date.now()
+ * number) until the form is first saved and the backend assigns a real id — so
+ * a rule wired against an unsaved field ends up pointing at a stale placeholder,
+ * which the publish gate then rejects ("references a field not on this form").
+ *
+ * After a save we know both id sets (old builder fields and the freshly saved
+ * fields, in the same order), so we can rewrite every rule ref old id -> real id.
+ */
+function remapFieldRefsInLogic(node: any, idMap: Map<string, number>): { node: any; changed: boolean } {
+  if (!node || typeof node !== 'object') return { node, changed: false };
+  let changed = false;
+
+  if (Array.isArray(node.rules)) {
+    const rules = node.rules.map((r: any) => {
+      const res = remapFieldRefsInLogic(r, idMap);
+      if (res.changed) changed = true;
+      return res.node;
+    });
+    return { node: { ...node, rules }, changed };
+  }
+
+  const ref = node.field ?? node.if;
+  if (ref !== undefined && ref !== null) {
+    const mapped = idMap.get(String(ref));
+    if (mapped !== undefined && mapped !== ref) {
+      changed = true;
+      const next = { ...node };
+      if ('field' in next) next.field = mapped;
+      if ('if' in next) next.if = mapped;
+      return { node: next, changed };
+    }
+  }
+  return { node, changed };
+}
+
+function remapFieldRefs(field: FormField, idMap: Map<string, number>): { field: FormField; changed: boolean } {
+  let changed = false;
+  let conditional_logic = field.conditional_logic;
+  let validation_rules = field.validation_rules;
+
+  if (conditional_logic && typeof conditional_logic === 'object') {
+    const res = remapFieldRefsInLogic(conditional_logic, idMap);
+    if (res.changed) { conditional_logic = res.node; changed = true; }
+  }
+
+  const cf = (validation_rules as any)?.crossField;
+  if (Array.isArray(cf)) {
+    const nextCf = cf.map((c: any) => {
+      const mapped = c && c.field != null ? idMap.get(String(c.field)) : undefined;
+      if (mapped !== undefined && mapped !== c.field) { changed = true; return { ...c, field: mapped }; }
+      return c;
+    });
+    if (changed) validation_rules = { ...(validation_rules as any), crossField: nextCf };
+  }
+
+  return { field: { ...field, conditional_logic, validation_rules }, changed };
+}
+
 export function useAdminData() {
   const { toast } = useToast();
 
@@ -565,6 +625,62 @@ export function useAdminData() {
         }
       }
 
+      // Rewrite conditional / cross-field rule refs that still point at the
+      // client-side placeholder ids of fields that just got their real db ids.
+      // builderFields (pre-save) and saved.fields (post-save) are in the same
+      // order, so we can pair them up to build the old-id -> real-id map.
+      if (saved.fields && saved.fields.length > 0) {
+        const idMap = new Map<string, number>();
+        const preSave = payload.fields; // same order as saved.fields
+        saved.fields.forEach((sf, i) => {
+          const realId = Number(sf?.id);
+          if (!Number.isFinite(realId)) return;
+          const pre = preSave[i];
+          if (pre && (pre as any).id != null) idMap.set(String((pre as any).id), realId);
+          const bf = builderFields[i];
+          if (bf?.id != null) idMap.set(String(bf.id), realId);
+        });
+
+        let anyRemapped = false;
+        const fixedFields = saved.fields.map((sf) => {
+          const res = remapFieldRefs(sf as FormField, idMap);
+          if (res.changed) anyRemapped = true;
+          return res.field;
+        });
+
+        if (anyRemapped) {
+          try {
+            const corrected = await fetchApi<Form>(`/forms/${saved.slug}/`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...payload,
+                slug: saved.slug,
+                fields: fixedFields.map((f, i) => ({
+                  id: f.id,
+                  label: f.label,
+                  type: f.type,
+                  placeholder: f.placeholder || '',
+                  description: f.description || '',
+                  is_required: !!f.is_required,
+                  options: f.options || [],
+                  rows: f.rows || [],
+                  min_value: f.min_value ?? null,
+                  max_value: f.max_value ?? null,
+                  conditional_logic: f.conditional_logic || {},
+                  validation_rules: f.validation_rules || {},
+                  order: i + 1,
+                })),
+              }),
+            });
+            saved = corrected;
+          } catch (remapErr) {
+            console.warn('[Save Form] conditional-ref remap re-save failed:', remapErr);
+            saved = { ...saved, fields: fixedFields };
+          }
+        }
+      }
+
       const updatedMeta = {
         id: saved.id,
         originalSlug: saved.slug,
@@ -618,6 +734,25 @@ export function useAdminData() {
       return saved;
     } catch (err: any) {
       console.error('[Save Form Error]:', err);
+
+      // A 400 from the definition/publish gate is a real, actionable rejection —
+      // surface the per-field problems and do NOT fake a local "saved" form.
+      const body = err?.body;
+      const fieldErrors: any[] = Array.isArray(body?.errors) ? body.errors : [];
+      if (err?.status === 400 || fieldErrors.length) {
+        const detail =
+          fieldErrors.length
+            ? fieldErrors.slice(0, 4).map((e: any) => `• ${e.label ? `${e.label}: ` : ''}${e.message}`).join('\n') +
+              (fieldErrors.length > 4 ? `\n…and ${fieldErrors.length - 4} more` : '')
+            : body?.detail || err?.message || 'The form has validation problems.';
+        toast.error(
+          finalStatus === 'PUBLISHED' ? 'Cannot Publish — Fix These First' : 'Form Not Saved',
+          detail,
+        );
+        return null;
+      }
+
+      // Network / server error — keep the old offline-preview fallback.
       toast.error('Form Save Failed', err?.message || 'Unable to save form to server. Showing local preview.');
       const fallbackForm: Form = {
         id: formMeta.id || Date.now(),

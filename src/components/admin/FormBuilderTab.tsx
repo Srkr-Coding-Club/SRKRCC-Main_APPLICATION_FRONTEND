@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Eye,
   Trash2,
@@ -20,24 +19,22 @@ import {
   Monitor,
   GitFork,
   Plus,
-  GripVertical,
-  ShieldCheck,
+  ChevronUp,
   ChevronDown,
+  ShieldCheck,
   Hash,
   X,
   SeparatorHorizontal,
-  Sparkles,
   Layers,
   ListChecks,
   Asterisk,
-  Move,
-  MousePointerClick,
-  Undo2,
   RotateCcw,
   Save,
+  Globe,
 } from 'lucide-react';
 import { Form, FormField, ValidationRules } from '@/lib/types';
 import { hasConstraintOptions, hasActiveValidation, getConstraintHint } from '@/lib/formValidation';
+import { computeLayout, normalizeConditional } from '@/lib/formConditional';
 import { normalizeImageUrl } from '@/lib/utils';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
@@ -149,8 +146,6 @@ export function FormBuilderTab({
   const [typeMenuId, setTypeMenuId] = useState<number | string | null>(null);
   const [validationOpenId, setValidationOpenId] = useState<number | string | null>(null);
   const [conditionalOpenId, setConditionalOpenId] = useState<number | string | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showEmailEditor, setShowEmailEditor] = useState(false);
   const [confirmationTemplateLabel, setConfirmationTemplateLabel] = useState<string>('');
@@ -162,7 +157,6 @@ export function FormBuilderTab({
   const [scheduleOpenAt, setScheduleOpenAt] = useState(formMeta.open_at || '');
   const [scheduleCloseAt, setScheduleCloseAt] = useState(formMeta.close_at || '');
   const prevIdsRef = useRef<Set<number | string>>(new Set(builderFields.map((f) => f.id)));
-  const paletteDragType = useRef<FormField['type'] | null>(null);
 
   useEffect(() => {
     const currentIds = new Set(builderFields.map((f) => f.id));
@@ -175,9 +169,13 @@ export function FormBuilderTab({
 
   const addFieldOfType = (type: FormField['type']) => onAddFieldFromPalette(type, getTypeMeta(type).label);
 
-  const handlePaletteDragStart = (type: FormField['type']) => (e: React.DragEvent) => {
-    paletteDragType.current = type;
-    e.dataTransfer.effectAllowed = 'copy';
+  const moveField = (idx: number, dir: -1 | 1) => {
+    const target = idx + dir;
+    if (target < 0 || target >= builderFields.length) return;
+    const updated = [...builderFields];
+    const [moved] = updated.splice(idx, 1);
+    updated.splice(target, 0, moved);
+    onReorderFields(updated);
   };
 
   const handleTypeChange = (field: FormField, newType: FormField['type']) => {
@@ -209,32 +207,17 @@ export function FormBuilderTab({
     onFieldChange(field.id, 'validation_rules', { ...(field.validation_rules || {}), ...patch });
   };
 
-  const handleCanvasDrop = (idx: number) => {
-    if (paletteDragType.current) {
-      const type = paletteDragType.current;
-      onAddFieldAtIndex(type, getTypeMeta(type).label, idx);
-      paletteDragType.current = null;
-    } else if (dragIndex !== null && dragIndex !== idx) {
-      const updated = [...builderFields];
-      const [moved] = updated.splice(dragIndex, 1);
-      updated.splice(idx, 0, moved);
-      onReorderFields(updated);
-    }
-    setDragIndex(null);
-    setDragOverIndex(null);
-  };
-
   const totalRequired = builderFields.filter((f) => f.is_required).length;
-  const totalConditional = builderFields.filter((f) => f.conditional_logic?.if).length;
+  const totalConditional = builderFields.filter((f) => !!normalizeConditional(f.conditional_logic)).length;
   const isCurrentlyPublished = formMeta.status === 'PUBLISHED';
 
   return (
     <div className="space-y-6">
       {/* Top Controls Bar */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between bg-white dark:bg-[#151722] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between bg-white dark:bg-[#151722] p-4 rounded-lg border border-slate-200 dark:border-slate-800 gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] text-white shadow-[0_4px_14px_rgba(255,122,0,0.35)] flex-shrink-0">
-            <Sparkles className="w-5 h-5" />
+          <div className="p-2.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[#FF7A00] flex-shrink-0">
+            <Layers className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -259,7 +242,6 @@ export function FormBuilderTab({
               <StatPill icon={ListChecks} label={`${builderFields.length} Fields`} tone="slate" />
               <StatPill icon={Asterisk} label={`${totalRequired} Required`} tone="orange" />
               <StatPill icon={GitFork} label={`${totalConditional} Conditional`} tone="purple" />
-              <StatPill icon={Move} label="Drag to reorder" tone="sky" />
             </div>
           </div>
         </div>
@@ -284,32 +266,54 @@ export function FormBuilderTab({
 
           <button
             onClick={() => setIsPreviewMode(!isPreviewMode)}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
-              isPreviewMode ? 'bg-purple-600 text-white shadow' : 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/40'
+            className={`px-3.5 py-2 rounded-md text-xs font-bold border flex items-center space-x-1.5 ${
+              isPreviewMode
+                ? 'bg-slate-800 text-white border-slate-800'
+                : 'bg-white dark:bg-[#151722] text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
-            <span>{isPreviewMode ? 'Exit Preview' : 'Live Preview'}</span>
+            <span>{isPreviewMode ? 'Exit Preview' : 'Preview'}</span>
           </button>
 
           {/* Reset Button */}
           <button
             onClick={onResetForm}
-            className="px-3.5 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 font-bold text-xs border border-rose-200 dark:border-rose-800/40 transition flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-md bg-white dark:bg-[#151722] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5"
             title={formMeta.id ? "Reset form back to last saved checkpoint" : "Reset to blank form"}
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset</span>
           </button>
 
-          {/* Save Draft / Save Changes */}
+          {/* Save — keeps the form's current status */}
           <button
             onClick={() => onSaveForm(formMeta.status || 'DRAFT')}
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white font-extrabold text-xs shadow-[0_4px_14px_rgba(255,122,0,0.35)] transition flex items-center gap-1.5"
+            className="px-4 py-2 rounded-md border border-[#FF7A00] text-[#FF7A00] hover:bg-orange-50 dark:hover:bg-orange-950/30 font-bold text-xs flex items-center gap-1.5"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{formMeta.id ? 'Save Changes' : 'Save Draft'}</span>
           </button>
+
+          {/* Publish / Unpublish */}
+          {formMeta.status === 'PUBLISHED' ? (
+            <button
+              onClick={() => onSaveForm('DRAFT')}
+              className="px-4 py-2 rounded-md bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs flex items-center gap-1.5"
+              title="Revert to draft — students can no longer see or submit this form"
+            >
+              <span>Unpublish</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onSaveForm('PUBLISHED')}
+              className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5"
+              title="Save and make this form live on the public Forms page"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Publish</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -325,19 +329,12 @@ export function FormBuilderTab({
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Field Palette — left side, click + or drag onto the canvas */}
+          {/* Field Palette — left side, click + to add a field to the form */}
           <div className="lg:col-span-4 lg:sticky lg:top-24 self-start">
-            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_2px_24px_-8px_rgba(139,46,59,0.12)] overflow-hidden">
-              <div className="relative p-4 bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] overflow-hidden">
-                <div className="absolute -right-4 -top-6 w-24 h-24 rounded-full bg-white/10" />
-                <div className="absolute right-8 -bottom-8 w-16 h-16 rounded-full bg-white/10" />
-                <div className="relative flex items-center gap-2 text-white">
-                  <Sparkles className="w-4 h-4" />
-                  <h3 className="text-sm font-extrabold uppercase tracking-wider">Add Fields</h3>
-                </div>
-                <p className="relative text-[11px] text-white/85 mt-0.5 flex items-center gap-1">
-                  <MousePointerClick className="w-3 h-3" /> Click + or drag a field onto the canvas
-                </p>
+            <div className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-[#1A1A2E] dark:text-white">Add Fields</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Click a field to add it to the form.</p>
               </div>
 
               <div className="p-3 space-y-4 max-h-[65vh] overflow-y-auto">
@@ -350,12 +347,7 @@ export function FormBuilderTab({
                         <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">{group.label}</p>
                       </div>
                       {group.types.map((type) => (
-                        <PaletteItem
-                          key={type}
-                          type={type}
-                          onAdd={() => addFieldOfType(type)}
-                          onDragStart={handlePaletteDragStart(type)}
-                        />
+                        <PaletteItem key={type} type={type} onAdd={() => addFieldOfType(type)} />
                       ))}
                     </div>
                   );
@@ -371,13 +363,13 @@ export function FormBuilderTab({
           {/* Canvas — right side */}
           <div className="lg:col-span-8 space-y-3">
             {/* Title & Description Card */}
-            <div className="bg-white dark:bg-[#151722] rounded-2xl border-t-8 border-t-[#FF7A00] border border-slate-200 dark:border-slate-800 shadow-md p-6 space-y-4">
+            <div className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-4">
               <input
                 type="text"
                 value={formMeta.title}
                 onChange={(e) => setFormMeta({ ...formMeta, title: e.target.value })}
                 placeholder="Form title (e.g. IconCoders Flagship Hackathon 2026)"
-                className="w-full text-2xl sm:text-3xl font-black bg-transparent border-0 border-b-2 border-transparent focus:border-[#FF7A00] focus:outline-none text-[#1A1A2E] dark:text-white pb-2 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                className="w-full text-2xl font-bold bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:outline-none text-[#1A1A2E] dark:text-white pb-2 placeholder:text-slate-400 dark:placeholder:text-slate-600"
               />
 
               <MarkdownEditor
@@ -416,9 +408,8 @@ export function FormBuilderTab({
 
             {/* Automation Card — Club Member ID + confirmation email, wired into
                 Response submission on the backend (apps/forms/services.py). */}
-            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-5">
+            <div className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-5">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#FF7A00]" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#1A1A2E] dark:text-white">Automation</h3>
               </div>
 
@@ -563,9 +554,8 @@ export function FormBuilderTab({
                 key={field.id}
                 field={field}
                 index={idx}
+                total={builderFields.length}
                 isActive={activeFieldId === field.id}
-                isDragOver={dragOverIndex === idx}
-                isBeingDragged={dragIndex === idx}
                 typeMenuOpen={typeMenuId === field.id}
                 validationOpen={validationOpenId === field.id}
                 conditionalOpen={conditionalOpenId === field.id}
@@ -581,44 +571,21 @@ export function FormBuilderTab({
                 onAddOption={() => addOption(field)}
                 onRemoveOption={(i) => removeOption(field, i)}
                 onValidationChange={(patch) => updateValidation(field, patch)}
-                onConditionalChange={(v) => onFieldChange(field.id, 'conditional_logic', { if: 'parent', equals: v })}
+                onConditionalChange={(logic) => onFieldChange(field.id, 'conditional_logic', logic)}
+                siblingFields={builderFields.filter((f) => f.id !== field.id && f.type !== 'SECTION')}
                 onRequiredChange={(v) => onFieldChange(field.id, 'is_required', v)}
                 onDuplicate={() => onDuplicateField(field)}
                 onRemove={() => onRemoveField(field.id)}
-                onDragStart={() => setDragIndex(idx)}
-                onDragOver={() => setDragOverIndex(idx)}
-                onDrop={() => handleCanvasDrop(idx)}
-                onDragEnd={() => {
-                  setDragIndex(null);
-                  setDragOverIndex(null);
-                }}
+                onMoveUp={() => moveField(idx, -1)}
+                onMoveDown={() => moveField(idx, 1)}
               />
             ))}
 
-            {/* End-of-canvas drop zone — also the empty-state prompt */}
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOverIndex(builderFields.length);
-              }}
-              onDragLeave={() => setDragOverIndex((prev) => (prev === builderFields.length ? null : prev))}
-              onDrop={(e) => {
-                e.preventDefault();
-                handleCanvasDrop(builderFields.length);
-              }}
-              className={`rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 text-center text-xs font-bold transition-all ${
-                builderFields.length === 0 ? 'py-12' : 'py-5'
-              } ${
-                dragOverIndex === builderFields.length
-                  ? 'border-[#FF7A00] bg-orange-50/60 dark:bg-orange-950/20 text-[#FF7A00] scale-[1.01]'
-                  : 'border-slate-200 dark:border-slate-800 text-slate-400'
-              }`}
-            >
-              <MousePointerClick className={`w-5 h-5 ${dragOverIndex === builderFields.length ? 'text-[#FF7A00]' : 'text-slate-300 dark:text-slate-700'}`} />
-              {builderFields.length === 0
-                ? 'No questions yet — click + or drag a field from the palette to get started'
-                : 'Drop a field here to add it'}
-            </div>
+            {builderFields.length === 0 && (
+              <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 py-12 text-center text-xs font-semibold text-slate-400">
+                No questions yet — click a field in the palette to add one.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -642,7 +609,7 @@ function StatPill({
     sky: 'bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400',
   };
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${toneClasses[tone]}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold ${toneClasses[tone]}`}>
       <Icon className="w-3 h-3" /> {label}
     </span>
   );
@@ -651,47 +618,34 @@ function StatPill({
 function PaletteItem({
   type,
   onAdd,
-  onDragStart,
 }: {
   type: FormField['type'];
   onAdd: () => void;
-  onDragStart: (e: React.DragEvent) => void;
 }) {
   const meta = getTypeMeta(type);
   const Icon = meta.icon;
 
   return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      className="group flex items-center gap-3 p-2.5 rounded-xl border border-transparent hover:border-[#FF7A00]/30 hover:bg-orange-50/60 dark:hover:bg-orange-950/20 hover:shadow-sm hover:-translate-y-0.5 cursor-grab active:cursor-grabbing active:scale-[0.98] transition-all"
-      title={`Drag onto the canvas, or click + to add ${meta.label}`}
+    <button
+      type="button"
+      onClick={onAdd}
+      className="w-full flex items-center gap-3 p-2.5 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#FF7A00] hover:bg-slate-50 dark:hover:bg-slate-800/50 text-left"
+      title={`Add ${meta.label}`}
     >
-      <div className="p-2 rounded-lg bg-gradient-to-br from-[#FF7A00]/15 to-[#8B2E3B]/15 text-[#FF7A00] group-hover:from-[#FF7A00]/25 group-hover:to-[#8B2E3B]/25 group-hover:scale-110 group-hover:rotate-3 transition-all flex-shrink-0">
+      <span className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 flex-shrink-0">
         <Icon className="w-4 h-4" />
-      </div>
-      <span className="flex-1 text-xs font-bold text-[#1A1A2E] dark:text-white">{meta.label}</span>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onAdd();
-        }}
-        title={`Add ${meta.label}`}
-        aria-label={`Add ${meta.label}`}
-        className="w-7 h-7 rounded-full flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] opacity-85 group-hover:opacity-100 group-hover:shadow-[0_4px_14px_rgba(255,122,0,0.45)] hover:scale-110 active:scale-95 transition-all flex-shrink-0"
-      >
-        <Plus className="w-3.5 h-3.5" />
-      </button>
-    </div>
+      </span>
+      <span className="flex-1 text-xs font-semibold text-[#1A1A2E] dark:text-white">{meta.label}</span>
+      <Plus className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+    </button>
   );
 }
 
 interface QuestionCardProps {
   field: FormField;
   index: number;
+  total: number;
   isActive: boolean;
-  isDragOver: boolean;
-  isBeingDragged: boolean;
   typeMenuOpen: boolean;
   validationOpen: boolean;
   conditionalOpen: boolean;
@@ -707,22 +661,20 @@ interface QuestionCardProps {
   onAddOption: () => void;
   onRemoveOption: (idx: number) => void;
   onValidationChange: (patch: Partial<ValidationRules>) => void;
-  onConditionalChange: (v: string) => void;
+  onConditionalChange: (logic: any) => void;
+  siblingFields: FormField[];
   onRequiredChange: (v: boolean) => void;
   onDuplicate: () => void;
   onRemove: () => void;
-  onDragStart: () => void;
-  onDragOver: () => void;
-  onDrop: () => void;
-  onDragEnd: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }
 
 function QuestionCard({
   field,
   index,
+  total,
   isActive,
-  isDragOver,
-  isBeingDragged,
   typeMenuOpen,
   validationOpen,
   conditionalOpen,
@@ -739,59 +691,43 @@ function QuestionCard({
   onRemoveOption,
   onValidationChange,
   onConditionalChange,
+  siblingFields,
   onRequiredChange,
   onDuplicate,
   onRemove,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
+  onMoveUp,
+  onMoveDown,
 }: QuestionCardProps) {
   const meta = getTypeMeta(field.type);
   const Icon = meta.icon;
   const isSection = field.type === 'SECTION';
   const hasPlaceholder = field.type === 'TEXT' || field.type === 'PARAGRAPH' || field.type === 'EMAIL' || field.type === 'NUMBER';
 
-  const dragHandle = (
-    <div
-      draggable
-      onDragStart={(e) => {
-        e.stopPropagation();
-        onDragStart();
-      }}
-      onDragEnd={onDragEnd}
-      onClick={(e) => e.stopPropagation()}
-      className="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-700 hover:text-slate-400 flex-shrink-0"
-      title="Drag to reorder"
-    >
-      <GripVertical className="w-4 h-4" />
+  const reorderControls = (
+    <div className="flex flex-col flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={onMoveUp}
+        disabled={index === 0}
+        title="Move up"
+        className="text-slate-400 hover:text-[#FF7A00] disabled:opacity-25 disabled:hover:text-slate-400"
+      >
+        <ChevronUp className="w-4 h-4" />
+      </button>
+      <button
+        onClick={onMoveDown}
+        disabled={index === total - 1}
+        title="Move down"
+        className="text-slate-400 hover:text-[#FF7A00] disabled:opacity-25 disabled:hover:text-slate-400"
+      >
+        <ChevronDown className="w-4 h-4" />
+      </button>
     </div>
-  );
-
-  const wrapperProps = {
-    onDragOver: (e: React.DragEvent) => {
-      e.preventDefault();
-      onDragOver();
-    },
-    onDrop: (e: React.DragEvent) => {
-      e.preventDefault();
-      onDrop();
-    },
-  };
-
-  const insertionIndicator = isDragOver && (
-    <motion.div
-      layout
-      initial={{ scaleX: 0, opacity: 0 }}
-      animate={{ scaleX: 1, opacity: 1 }}
-      className="h-1 -mt-3 mb-3 rounded-full bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500]"
-    />
   );
 
   const numberBadge = (
     <span
-      className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-extrabold flex-shrink-0 transition-colors ${
-        isActive ? 'bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+      className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+        isActive ? 'bg-[#FF7A00] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
       }`}
     >
       {index + 1}
@@ -800,24 +736,19 @@ function QuestionCard({
 
   if (isSection) {
     return (
-      <motion.div
-        layout
-        {...wrapperProps}
+      <div
         onClick={onFocus}
-        className={`bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 cursor-pointer transition-all ${
-          isDragOver ? 'ring-2 ring-[#FF7A00]/50' : ''
-        } ${isBeingDragged ? 'opacity-40' : ''}`}
+        className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 p-5 cursor-pointer"
       >
-        {insertionIndicator}
-        <div className="flex items-center gap-3 border-b-2 border-[#FF7A00] pb-3">
-          {dragHandle}
+        <div className="flex items-center gap-3 border-b border-[#FF7A00] pb-3">
+          {reorderControls}
           {numberBadge}
           <SeparatorHorizontal className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
           <input
             value={field.label}
             onChange={(e) => onLabelChange(e.target.value)}
             placeholder="Section title"
-            className="flex-1 text-lg font-extrabold bg-transparent border-0 focus:outline-none text-[#1A1A2E] dark:text-white"
+            className="flex-1 text-lg font-bold bg-transparent border-0 focus:outline-none text-[#1A1A2E] dark:text-white"
           />
           <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="p-1.5 rounded text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0">
             <Trash2 className="w-4 h-4" />
@@ -829,24 +760,19 @@ function QuestionCard({
           placeholder="Section description (optional)"
           className="w-full text-xs bg-transparent border-0 focus:outline-none text-slate-500 dark:text-slate-400 pt-2"
         />
-      </motion.div>
+      </div>
     );
   }
 
   if (!isActive) {
     return (
-      <motion.div
-        layout
-        {...wrapperProps}
+      <div
         onClick={onFocus}
-        className={`group bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#FF7A00]/40 hover:-translate-y-0.5 transition-all cursor-pointer p-4 flex items-center gap-3 ${
-          isDragOver ? 'ring-2 ring-[#FF7A00]/50' : ''
-        } ${isBeingDragged ? 'opacity-40' : ''}`}
+        className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50 cursor-pointer p-4 flex items-center gap-3"
       >
-        {insertionIndicator}
-        {dragHandle}
+        {reorderControls}
         {numberBadge}
-        <div className="p-1.5 rounded bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00] flex-shrink-0">
+        <div className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 flex-shrink-0">
           <Icon className="w-3.5 h-3.5" />
         </div>
         <span className="flex-1 text-sm font-semibold text-[#1A1A2E] dark:text-white truncate">
@@ -854,68 +780,53 @@ function QuestionCard({
         </span>
         <span className="text-[11px] text-slate-400 flex-shrink-0 hidden sm:inline">{meta.label}</span>
         {field.is_required && <span className="text-rose-500 text-xs flex-shrink-0">*</span>}
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div
-      layout
-      {...wrapperProps}
-      className={`bg-white dark:bg-[#151722] rounded-2xl border-l-4 border-l-[#FF7A00] border border-slate-200 dark:border-slate-800 shadow-[0_4px_24px_-6px_rgba(255,122,0,0.18)] p-5 space-y-3 transition-all ${
-        isDragOver ? 'ring-2 ring-[#FF7A00]/50' : ''
-      } ${isBeingDragged ? 'opacity-40' : ''}`}
-    >
-      {insertionIndicator}
+    <div className="bg-white dark:bg-[#151722] rounded-lg border-l-4 border-l-[#FF7A00] border border-slate-200 dark:border-slate-800 p-5 space-y-3">
       <div className="flex items-start gap-3">
-        <div className="mt-2.5">{dragHandle}</div>
-        <div className="mt-2">{numberBadge}</div>
+        <div className="mt-1.5">{reorderControls}</div>
+        <div className="mt-1.5">{numberBadge}</div>
         <input
           value={field.label}
           onChange={(e) => onLabelChange(e.target.value)}
           placeholder="Question"
           autoFocus
-          className="flex-1 text-base font-bold bg-transparent border-0 border-b-2 border-slate-100 dark:border-slate-800 focus:border-[#FF7A00] focus:outline-none pb-2 text-[#1A1A2E] dark:text-white transition-colors"
+          className="flex-1 text-base font-bold bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:outline-none pb-2 text-[#1A1A2E] dark:text-white"
         />
 
         {/* Type selector */}
         <div className="relative flex-shrink-0">
           <button
             onClick={onToggleTypeMenu}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-[#FF7A00] transition"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-[#FF7A00]"
           >
             <Icon className="w-3.5 h-3.5 text-[#FF7A00]" />
             <span className="hidden sm:inline">{meta.label}</span>
-            <ChevronDown className={`w-3 h-3 transition-transform ${typeMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-3 h-3 ${typeMenuOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          <AnimatePresence>
-            {typeMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl z-20 p-1 max-h-80 overflow-y-auto"
-              >
-                {SELECTABLE_TYPES.map((t) => {
-                  const m = getTypeMeta(t);
-                  const TIcon = m.icon;
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => onTypeChange(t)}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition ${
-                        field.type === t ? 'text-[#FF7A00]' : 'text-slate-600 dark:text-slate-300'
-                      }`}
-                    >
-                      <TIcon className="w-3.5 h-3.5" /> {m.label}
-                    </button>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {typeMenuOpen && (
+            <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-20 p-1 max-h-80 overflow-y-auto">
+              {SELECTABLE_TYPES.map((t) => {
+                const m = getTypeMeta(t);
+                const TIcon = m.icon;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => onTypeChange(t)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold text-left hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                      field.type === t ? 'text-[#FF7A00]' : 'text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    <TIcon className="w-3.5 h-3.5" /> {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -928,7 +839,7 @@ function QuestionCard({
           className="w-full text-xs bg-transparent border-0 focus:outline-none text-slate-500 dark:text-slate-400"
         />
       ) : (
-        <button onClick={() => onDescriptionChange('')} className="text-[11px] font-semibold text-slate-400 hover:text-[#FF7A00] transition">
+        <button onClick={() => onDescriptionChange('')} className="text-[11px] font-semibold text-slate-400 hover:text-[#FF7A00]">
           + Add description
         </button>
       )}
@@ -939,7 +850,7 @@ function QuestionCard({
           value={field.placeholder || ''}
           onChange={(e) => onPlaceholderChange(e.target.value)}
           placeholder="Input placeholder text (optional)"
-          className="w-full px-3 py-2 rounded-lg border text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+          className="w-full px-3 py-2 rounded-md border text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
         />
       )}
 
@@ -958,14 +869,14 @@ function QuestionCard({
               <input
                 value={opt}
                 onChange={(e) => onOptionChange(i, e.target.value)}
-                className="flex-1 text-sm border-0 border-b border-slate-100 dark:border-slate-800 focus:border-[#FF7A00] focus:outline-none bg-transparent py-1 text-[#1A1A2E] dark:text-white transition-colors"
+                className="flex-1 text-sm border-0 border-b border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:outline-none bg-transparent py-1 text-[#1A1A2E] dark:text-white"
               />
-              <button onClick={() => onRemoveOption(i)} className="text-slate-300 hover:text-rose-500 flex-shrink-0 transition">
+              <button onClick={() => onRemoveOption(i)} className="text-slate-300 hover:text-rose-500 flex-shrink-0">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
           ))}
-          <button onClick={onAddOption} className="text-xs font-semibold text-slate-400 hover:text-[#FF7A00] flex items-center gap-1.5 pt-1 transition">
+          <button onClick={onAddOption} className="text-xs font-semibold text-slate-400 hover:text-[#FF7A00] flex items-center gap-1.5 pt-1">
             <Plus className="w-3.5 h-3.5" /> Add option
           </button>
         </div>
@@ -974,23 +885,13 @@ function QuestionCard({
       {/* Response validation */}
       {hasConstraintOptions(field.type) && (
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
-          <button onClick={onToggleValidation} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5 transition">
+          <button onClick={onToggleValidation} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5" />
             {hasActiveValidation(field) ? 'Response validation: Active' : 'Response validation'}
           </button>
-          <AnimatePresence initial={false}>
-            {validationOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <ValidationPanel field={field} onChange={(patch) => onValidationChange(patch)} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {validationOpen && (
+            <ValidationPanel field={field} siblingFields={siblingFields} onChange={(patch) => onValidationChange(patch)} />
+          )}
           {!validationOpen && getConstraintHint(field) && (
             <p className="text-[11px] text-slate-400 mt-1">{getConstraintHint(field)}</p>
           )}
@@ -999,109 +900,358 @@ function QuestionCard({
 
       {/* Conditional visibility */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
-        <button onClick={onToggleConditional} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5 transition">
+        <button onClick={onToggleConditional} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5">
           <GitFork className="w-3.5 h-3.5" />
-          {field.conditional_logic?.if || field.conditional_logic?.parent ? 'Conditional: Active' : 'Add conditional rule'}
+          {readConditional(field.conditional_logic) ? 'Conditional: Active' : 'Add conditional rule'}
         </button>
-        <AnimatePresence initial={false}>
-          {conditionalOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="p-3 rounded bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs space-y-2 mt-2">
-                <p className="font-bold text-[#FF7A00]">Conditional Visibility Rule</p>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500">Show if a prior field has value</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. AI/ML & GenAI"
-                    value={field.conditional_logic?.equals || ''}
-                    onChange={(e) => onConditionalChange(e.target.value)}
-                    className="w-full px-2.5 py-1 rounded border text-xs bg-white dark:bg-[#151722] border-slate-200 dark:border-slate-800"
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {conditionalOpen && (
+          <ConditionalEditor field={field} siblingFields={siblingFields} onChange={onConditionalChange} />
+        )}
       </div>
 
       {/* Footer toolbar */}
       <div className="flex items-center justify-end gap-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-        <button onClick={onDuplicate} title="Duplicate" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-[#FF7A00] transition">
+        <button onClick={onDuplicate} title="Duplicate" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-[#FF7A00]">
           <Copy className="w-4 h-4" />
         </button>
-        <button onClick={onRemove} title="Delete" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500 transition">
+        <button onClick={onRemove} title="Delete" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500">
           <Trash2 className="w-4 h-4" />
         </button>
         <div className="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1" />
         <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={!!field.is_required}
+            onChange={(e) => onRequiredChange(e.target.checked)}
+            className="w-4 h-4 accent-[#FF7A00]"
+          />
           Required
-          <button
-            onClick={() => onRequiredChange(!field.is_required)}
-            className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${field.is_required ? 'bg-[#FF7A00]' : 'bg-slate-200 dark:bg-slate-700'}`}
-          >
-            <motion.span
-              layout
-              transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-              className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
-              style={{ left: field.is_required ? '18px' : '2px' }}
-            />
-          </button>
         </label>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-function ValidationPanel({ field, onChange }: { field: FormField; onChange: (patch: Partial<ValidationRules>) => void }) {
-  const r: ValidationRules = field.validation_rules || {};
+/* ------------------------------------------------------------------ */
+/* Conditional rule editor — emits the canonical backend shape:        */
+/*   { logic:'AND', rules:[{ field, operator, value }], action }       */
+/* ------------------------------------------------------------------ */
 
-  const textLike = field.type === 'TEXT' || field.type === 'PARAGRAPH';
-  const numberLike = field.type === 'NUMBER';
-  const checkboxLike = field.type === 'CHECKBOX';
-  const dateLike = field.type === 'DATE';
-  const fileLike = field.type === 'FILE' || field.type === 'MULTI_FILE';
+const CONDITION_OPERATORS: { value: string; label: string }[] = [
+  { value: 'equals', label: 'equals' },
+  { value: 'not_equals', label: 'does not equal' },
+  { value: 'contains', label: 'contains' },
+  { value: 'not_contains', label: 'does not contain' },
+  { value: 'starts_with', label: 'starts with' },
+  { value: 'ends_with', label: 'ends with' },
+  { value: 'gt', label: '>' },
+  { value: 'gte', label: '≥' },
+  { value: 'lt', label: '<' },
+  { value: 'lte', label: '≤' },
+  { value: 'is_empty', label: 'is empty' },
+  { value: 'is_not_empty', label: 'is not empty' },
+  { value: 'includes', label: 'includes option' },
+  { value: 'not_includes', label: 'excludes option' },
+  { value: 'before', label: 'is before' },
+  { value: 'after', label: 'is after' },
+];
+
+const CONDITION_ACTIONS: { value: string; label: string }[] = [
+  { value: 'show', label: 'Show this field' },
+  { value: 'hide', label: 'Hide this field' },
+  { value: 'require', label: 'Make this field required' },
+  { value: 'optional', label: 'Make this field optional' },
+];
+
+export function readConditional(raw: any): { field: any; operator: string; value: any; action: string } | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const node = Array.isArray(raw.rules) ? raw.rules[0] : raw;
+  if (!node) return null;
+  const ref = node.field ?? node.if;
+  if (ref === undefined || ref === null || ref === 'parent') return null;
+  const operator =
+    'equals' in node && !('operator' in node) ? 'equals' : String(node.operator || 'equals');
+  return {
+    field: ref,
+    operator,
+    value: 'equals' in node && !('operator' in node) ? node.equals : node.value,
+    action: String(raw.action || 'show'),
+  };
+}
+
+function ConditionalEditor({
+  field,
+  siblingFields,
+  onChange,
+}: {
+  field: FormField;
+  siblingFields: FormField[];
+  onChange: (logic: any) => void;
+}) {
+  const rule = readConditional(field.conditional_logic);
+  const active = !!rule;
+  const targetField = siblingFields.find((f) => String(f.id) === String(rule?.field));
+  const needsValue = !['is_empty', 'is_not_empty'].includes(rule?.operator || 'equals');
+
+  const emit = (patch: Partial<{ field: any; operator: string; value: any; action: string }>) => {
+    const next = {
+      field: patch.field ?? rule?.field ?? siblingFields[0]?.id,
+      operator: patch.operator ?? rule?.operator ?? 'equals',
+      value: patch.value ?? rule?.value ?? '',
+      action: patch.action ?? rule?.action ?? 'show',
+    };
+    if (next.field === undefined || next.field === null) {
+      onChange({});
+      return;
+    }
+    onChange({
+      logic: 'AND',
+      rules: [{ field: Number(next.field) || next.field, operator: next.operator, value: next.value }],
+      action: next.action,
+    });
+  };
+
+  const sel = 'w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]';
+
+  return (
+    <div className="p-3 rounded bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs space-y-2 mt-2">
+      <p className="font-bold text-[#FF7A00]">Conditional Rule</p>
+
+      {siblingFields.length === 0 ? (
+        <p className="text-slate-500">Add another question first — a rule needs a field to depend on.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <select className={sel} value={rule?.action || 'show'} onChange={(e) => emit({ action: e.target.value })}>
+              {CONDITION_ACTIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+            </select>
+            <select className={sel} value={String(rule?.field ?? siblingFields[0]?.id ?? '')} onChange={(e) => emit({ field: e.target.value })}>
+              <option value="">— when field —</option>
+              {siblingFields.map((f) => <option key={f.id} value={String(f.id)}>{f.label || `Question ${f.order}`}</option>)}
+            </select>
+            <select className={sel} value={rule?.operator || 'equals'} onChange={(e) => emit({ operator: e.target.value })}>
+              {CONDITION_OPERATORS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          {needsValue && (
+            targetField && (targetField.options?.length ?? 0) > 0 ? (
+              <select className={sel} value={rule?.value ?? ''} onChange={(e) => emit({ value: e.target.value })}>
+                <option value="">— value —</option>
+                {targetField.options!.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
+              </select>
+            ) : (
+              <input
+                type={targetField?.type === 'NUMBER' ? 'number' : targetField?.type === 'DATE' ? 'date' : 'text'}
+                className={sel}
+                placeholder="value to compare"
+                value={rule?.value ?? ''}
+                onChange={(e) => emit({ value: e.target.value })}
+              />
+            )
+          )}
+
+          {active && (
+            <button
+              onClick={() => onChange({})}
+              className="text-[11px] font-bold text-rose-500 hover:underline"
+            >
+              Remove rule
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Per-type validation panel — the full backend rule set              */
+/* ------------------------------------------------------------------ */
+
+const TEXT_FORMAT_OPTIONS = [
+  { value: '', label: 'Any text' },
+  { value: 'alpha', label: 'Alphabetic (letters + spaces)' },
+  { value: 'alphanumeric', label: 'Alphanumeric' },
+  { value: 'numeric', label: 'Digits only' },
+  { value: 'integer', label: 'Integer' },
+  { value: 'decimal', label: 'Decimal' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'url', label: 'URL' },
+  { value: 'username', label: 'Username' },
+  { value: 'slug', label: 'Slug' },
+];
+
+function CheckboxRow({ label, checked, onChange }: { label: string; checked?: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">
+      <input type="checkbox" checked={!!checked} onChange={(e) => onChange(e.target.checked)} className="accent-[#FF7A00]" />
+      {label}
+    </label>
+  );
+}
+
+function CrossFieldEditor({ field, siblingFields, onChange }: {
+  field: FormField; siblingFields: FormField[]; onChange: (patch: Partial<ValidationRules>) => void;
+}) {
+  const rules = (field.validation_rules?.crossField as any[]) || [];
+  const rule = rules[0];
+  const sel = 'px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] border-slate-200 dark:border-slate-800';
+  const emit = (patch: any) => {
+    const next = { op: patch.op ?? rule?.op ?? 'eq', field: patch.field ?? rule?.field ?? siblingFields[0]?.id, equals: patch.equals ?? rule?.equals };
+    if (!next.field) { onChange({ crossField: undefined }); return; }
+    onChange({ crossField: [{ op: next.op, field: Number(next.field) || next.field, ...(next.op === 'required_if' && next.equals ? { equals: next.equals } : {}) }] });
+  };
+  if (siblingFields.length === 0) return null;
+  return (
+    <div className="pt-2 border-t border-orange-200/60 dark:border-orange-900/40 space-y-1.5">
+      <p className="text-[10px] uppercase font-bold text-slate-500">Compare with another field</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <select className={sel} value={rule?.op || ''} onChange={(e) => e.target.value ? emit({ op: e.target.value }) : onChange({ crossField: undefined })}>
+          <option value="">no comparison</option>
+          <option value="eq">must equal</option>
+          <option value="ne">must differ from</option>
+          <option value="lte">must be ≤</option>
+          <option value="gte">must be ≥</option>
+          <option value="lt">must be &lt;</option>
+          <option value="gt">must be &gt;</option>
+          <option value="required_if">required if</option>
+        </select>
+        <select className={sel} value={String(rule?.field ?? '')} onChange={(e) => emit({ field: e.target.value })} disabled={!rule?.op}>
+          <option value="">— field —</option>
+          {siblingFields.map((f) => <option key={f.id} value={String(f.id)}>{f.label}</option>)}
+        </select>
+        {rule?.op === 'required_if' && (
+          <input className={sel} placeholder="equals value" value={rule?.equals || ''} onChange={(e) => emit({ equals: e.target.value })} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ValidationPanel({ field, siblingFields, onChange }: {
+  field: FormField;
+  siblingFields: FormField[];
+  onChange: (patch: Partial<ValidationRules>) => void;
+}) {
+  const r: ValidationRules = field.validation_rules || {};
+  const t = field.type;
+  const textLike = t === 'TEXT' || t === 'PARAGRAPH';
 
   return (
     <div className="mt-2 p-3 rounded-lg bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 space-y-2">
       {textLike && (
-        <div className="grid grid-cols-2 gap-2">
-          <LabeledInput label="Min characters" type="number" value={r.minLength} onChange={(v) => onChange({ minLength: v })} />
-          <LabeledInput label="Max characters" type="number" value={r.maxLength} onChange={(v) => onChange({ maxLength: v })} />
-          <div className="col-span-2">
-            <LabeledInput label="Custom pattern (regex, optional)" type="text" value={r.pattern} onChange={(v) => onChange({ pattern: v })} />
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Min characters" type="number" value={r.minLength} onChange={(v) => onChange({ minLength: v })} />
+            <LabeledInput label="Max characters" type="number" value={r.maxLength} onChange={(v) => onChange({ maxLength: v })} />
+            <LabeledInput label="Exact length" type="number" value={r.exactLength} onChange={(v) => onChange({ exactLength: v })} />
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Format</label>
+              <select value={r.format || ''} onChange={(e) => onChange({ format: (e.target.value || undefined) as any })}
+                className="w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] border-slate-200 dark:border-slate-800">
+                {TEXT_FORMAT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
           </div>
-        </div>
+          {t === 'PARAGRAPH' && (
+            <div className="grid grid-cols-2 gap-2">
+              <LabeledInput label="Min words" type="number" value={r.minWords} onChange={(v) => onChange({ minWords: v })} />
+              <LabeledInput label="Max words" type="number" value={r.maxWords} onChange={(v) => onChange({ maxWords: v })} />
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Starts with" type="text" value={r.startsWith} onChange={(v) => onChange({ startsWith: v })} />
+            <LabeledInput label="Ends with" type="text" value={r.endsWith} onChange={(v) => onChange({ endsWith: v })} />
+            <LabeledInput label="Must contain" type="text" value={r.contains} onChange={(v) => onChange({ contains: v })} />
+            <LabeledInput label="Must not contain" type="text" value={r.notContains} onChange={(v) => onChange({ notContains: v })} />
+          </div>
+          <LabeledInput label="Custom pattern (regex)" type="text" value={r.pattern} onChange={(v) => onChange({ pattern: v })} />
+        </>
       )}
-      {numberLike && (
-        <div className="grid grid-cols-2 gap-2">
-          <LabeledInput label="Minimum value" type="number" value={r.minValue} onChange={(v) => onChange({ minValue: v })} />
-          <LabeledInput label="Maximum value" type="number" value={r.maxValue} onChange={(v) => onChange({ maxValue: v })} />
-        </div>
+
+      {t === 'NUMBER' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Minimum value" type="number" value={r.minValue} onChange={(v) => onChange({ minValue: v })} />
+            <LabeledInput label="Maximum value" type="number" value={r.maxValue} onChange={(v) => onChange({ maxValue: v })} />
+            <LabeledInput label="Exact value" type="number" value={r.exactValue} onChange={(v) => onChange({ exactValue: v })} />
+            <LabeledInput label="Step / multiple of" type="number" value={r.step} onChange={(v) => onChange({ step: v })} />
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <CheckboxRow label="Integers only" checked={r.integerOnly} onChange={(v) => onChange({ integerOnly: v || undefined })} />
+            <CheckboxRow label="Positive only" checked={r.positiveOnly} onChange={(v) => onChange({ positiveOnly: v || undefined })} />
+            <CheckboxRow label="Allow negative" checked={r.allowNegative !== false} onChange={(v) => onChange({ allowNegative: v ? undefined : false })} />
+          </div>
+        </>
       )}
-      {checkboxLike && (
-        <div className="grid grid-cols-2 gap-2">
+
+      {t === 'EMAIL' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Allowed domains (comma-separated)" type="text" value={Array.isArray(r.allowedDomains) ? r.allowedDomains.join(', ') : r.allowedDomains} onChange={(v) => onChange({ allowedDomains: v === undefined ? undefined : String(v) })} />
+            <LabeledInput label="Blocked domains (comma-separated)" type="text" value={Array.isArray(r.blockedDomains) ? r.blockedDomains.join(', ') : r.blockedDomains} onChange={(v) => onChange({ blockedDomains: v === undefined ? undefined : String(v) })} />
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <CheckboxRow label="Lower-case on save" checked={r.normalizeCase} onChange={(v) => onChange({ normalizeCase: v || undefined })} />
+            <CheckboxRow label="Allow multiple" checked={r.allowMultiple} onChange={(v) => onChange({ allowMultiple: v || undefined })} />
+          </div>
+        </>
+      )}
+
+      {(t === 'RADIO' || t === 'DROPDOWN') && (
+        <CheckboxRow label='Allow an "other" value outside the options' checked={r.allowOther} onChange={(v) => onChange({ allowOther: v || undefined })} />
+      )}
+
+      {t === 'CHECKBOX' && (
+        <div className="grid grid-cols-3 gap-2">
           <LabeledInput label="Min selections" type="number" value={r.minSelected} onChange={(v) => onChange({ minSelected: v })} />
           <LabeledInput label="Max selections" type="number" value={r.maxSelected} onChange={(v) => onChange({ maxSelected: v })} />
+          <LabeledInput label="Exact selections" type="number" value={r.exactSelected} onChange={(v) => onChange({ exactSelected: v })} />
         </div>
       )}
-      {dateLike && (
+
+      {t === 'DATE' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Earliest date" type="date" value={r.minDate} onChange={(v) => onChange({ minDate: v })} />
+            <LabeledInput label="Latest date" type="date" value={r.maxDate} onChange={(v) => onChange({ maxDate: v })} />
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <CheckboxRow label="Past dates only" checked={r.pastOnly} onChange={(v) => onChange({ pastOnly: v || undefined })} />
+            <CheckboxRow label="Future dates only" checked={r.futureOnly} onChange={(v) => onChange({ futureOnly: v || undefined })} />
+            <CheckboxRow label="Disallow today" checked={r.allowToday === false} onChange={(v) => onChange({ allowToday: v ? false : undefined })} />
+          </div>
+        </>
+      )}
+
+      {t === 'TIME' && (
         <div className="grid grid-cols-2 gap-2">
-          <LabeledInput label="Earliest date" type="date" value={r.minDate} onChange={(v) => onChange({ minDate: v })} />
-          <LabeledInput label="Latest date" type="date" value={r.maxDate} onChange={(v) => onChange({ maxDate: v })} />
+          <LabeledInput label="Earliest time" type="time" value={r.minTime} onChange={(v) => onChange({ minTime: v })} />
+          <LabeledInput label="Latest time" type="time" value={r.maxTime} onChange={(v) => onChange({ maxTime: v })} />
         </div>
       )}
-      {fileLike && (
-        <div className="grid grid-cols-2 gap-2">
-          <LabeledInput label="Allowed types (.pdf,.docx)" type="text" value={r.allowedFileTypes} onChange={(v) => onChange({ allowedFileTypes: v })} />
-          <LabeledInput label="Max file size (MB)" type="number" value={r.maxFileSizeMB} onChange={(v) => onChange({ maxFileSizeMB: v })} />
-        </div>
+
+      {(t === 'FILE' || t === 'MULTI_FILE') && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Allowed types (.pdf,.docx)" type="text" value={r.allowedFileTypes} onChange={(v) => onChange({ allowedFileTypes: v })} />
+            <LabeledInput label="Blocked types" type="text" value={r.blockedFileTypes} onChange={(v) => onChange({ blockedFileTypes: v })} />
+            <LabeledInput label="Max file size (MB)" type="number" value={r.maxFileSizeMB} onChange={(v) => onChange({ maxFileSizeMB: v })} />
+            <LabeledInput label="Min file size (KB)" type="number" value={r.minFileSizeKB} onChange={(v) => onChange({ minFileSizeKB: v })} />
+          </div>
+          {t === 'MULTI_FILE' && (
+            <div className="grid grid-cols-2 gap-2">
+              <LabeledInput label="Min files" type="number" value={r.minFiles} onChange={(v) => onChange({ minFiles: v })} />
+              <LabeledInput label="Max files" type="number" value={r.maxFiles} onChange={(v) => onChange({ maxFiles: v })} />
+            </div>
+          )}
+        </>
       )}
+
+      <CrossFieldEditor field={field} siblingFields={siblingFields} onChange={onChange} />
+
       <LabeledInput label="Custom error message (optional)" type="text" value={r.patternError} onChange={(v) => onChange({ patternError: v })} />
     </div>
   );
@@ -1118,13 +1268,53 @@ function LabeledInput({
   value: string | number | undefined;
   onChange: (v: any) => void;
 }) {
+  // Keep exactly what the user typed in local state so intermediate values like
+  // "1.", "-", or "0.50" don't get rewritten mid-keystroke (which ate characters
+  // when we parsed to Number() on every change). We only push a parsed number to
+  // the parent when the text is a complete, valid number.
+  const isNumber = type === 'number';
+  const asStr = (v: string | number | undefined) => (v === undefined || v === null ? '' : String(v));
+  const [raw, setRaw] = React.useState<string>(asStr(value));
+  // Remember the value we last emitted; if the parent's value diverges from it
+  // (e.g. the panel switched to a different field), adopt the parent's value.
+  const lastEmitted = React.useRef<string | number | undefined>(value);
+
+  React.useEffect(() => {
+    if (value !== lastEmitted.current) {
+      lastEmitted.current = value;
+      setRaw(asStr(value));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const emit = (v: string | number | undefined) => {
+    lastEmitted.current = v;
+    onChange(v);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const next = e.target.value;
+    setRaw(next);
+    if (!isNumber) {
+      emit(next === '' ? undefined : next);
+      return;
+    }
+    if (next.trim() === '') {
+      emit(undefined);
+      return;
+    }
+    const n = Number(next);
+    if (Number.isFinite(n)) emit(n);
+  };
+
   return (
     <div>
       <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">{label}</label>
       <input
-        type={type}
-        value={value ?? ''}
-        onChange={(e) => onChange(type === 'number' ? (e.target.value === '' ? undefined : Number(e.target.value)) : e.target.value)}
+        type={isNumber ? 'text' : type}
+        inputMode={isNumber ? 'decimal' : undefined}
+        value={raw}
+        onChange={handleChange}
         className="w-full px-2.5 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
       />
     </div>
@@ -1150,16 +1340,22 @@ function LivePreview({
   viewportMode,
   setIsPreviewMode,
 }: LivePreviewProps) {
+  // previewAnswers is keyed by label; rebuild it by field id for the shared
+  // conditional engine (same one the public form + backend use).
+  const previewValuesById: Record<string, any> = {};
+  builderFields.forEach((f) => { previewValuesById[String(f.id)] = previewAnswers[f.label]; });
+  const previewLayout = computeLayout(builderFields as any, previewValuesById);
+
   return (
     <div
-      className={`bg-white dark:bg-[#151722] rounded-xl p-6 sm:p-8 border border-purple-200 dark:border-purple-900 shadow-xl transition-all duration-300 mx-auto space-y-6 ${
-        viewportMode === 'mobile' ? 'max-w-sm border-2 border-slate-700 rounded-3xl' : 'max-w-3xl'
+      className={`bg-white dark:bg-[#151722] rounded-lg p-6 sm:p-8 border border-slate-200 dark:border-slate-800 mx-auto space-y-6 ${
+        viewportMode === 'mobile' ? 'max-w-sm border-2 border-slate-700' : 'max-w-3xl'
       }`}
     >
-      <div className="flex items-center justify-between border-b border-purple-100 dark:border-purple-900/50 pb-4">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
         <div className="flex items-center space-x-2">
-          <Eye className="w-5 h-5 text-purple-600" />
-          <span className="text-xs font-bold uppercase tracking-wider text-purple-600">
+          <Eye className="w-5 h-5 text-slate-500" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
             {viewportMode === 'mobile' ? 'Mobile Simulator View' : 'Desktop End User View'}
           </span>
         </div>
@@ -1193,13 +1389,8 @@ function LivePreview({
 
       <form onSubmit={onTestPreviewSubmit} className="space-y-6">
         {builderFields.map((field) => {
-          if (field.conditional_logic && (field.conditional_logic.if || field.conditional_logic.parent)) {
-            const parentKey = field.conditional_logic.if || field.conditional_logic.parent;
-            const parentVal = previewAnswers[parentKey];
-            const expectedVal = field.conditional_logic.equals;
-            if (expectedVal && String(parentVal) !== String(expectedVal)) {
-              return null;
-            }
+          if (field.type !== 'SECTION' && !previewLayout.visible.has(String(field.id))) {
+            return null;
           }
 
           if (field.type === 'SECTION') {
@@ -1345,7 +1536,7 @@ function LivePreview({
         })}
 
         <div className="pt-4 flex justify-end">
-          <button type="submit" className="px-6 py-3 rounded-lg bg-purple-600 text-white font-bold text-sm shadow-md hover:bg-purple-700 transition">
+          <button type="submit" className="px-6 py-3 rounded-md bg-[#FF7A00] text-white font-bold text-sm hover:bg-[#e66f00]">
             Test Submit Response
           </button>
         </div>
