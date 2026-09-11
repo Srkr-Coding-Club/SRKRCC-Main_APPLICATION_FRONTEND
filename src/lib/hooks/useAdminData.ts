@@ -219,7 +219,9 @@ export function useAdminData() {
 
     try {
       const [fetchedUsers, fetchedFlags, fetchedForms, fetchedAudit, fetchedSubmissions] = await Promise.all([
-        fetchApi<any[]>('/auth/users/').catch(() => []),
+        // page_size guards against a future paginated backend truncating this list
+        // (mirrors the same defensive page_size used by MembersTab's /auth/users/ fetch).
+        fetchApi<any>('/auth/users/?page_size=500').catch(() => []),
         fetchApi<FeatureFlag[]>('/feature-flags/').catch(() => []),
         fetchApi<any>('/forms/').catch(() => []),
         fetchApi<any[]>('/audit/').catch(() => []),

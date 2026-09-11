@@ -262,36 +262,36 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
   };
 
   const domainIcons: Record<BackupDomainKey, React.ReactNode> = {
-    USERS: <Users className="w-6 h-6 text-indigo-400" />,
-    FORMS: <Layers className="w-6 h-6 text-emerald-400" />,
-    EVENTS: <Calendar className="w-6 h-6 text-amber-400" />,
-    HACKATHONS: <Trophy className="w-6 h-6 text-purple-400" />,
-    UNKNOWN_RAW: <Archive className="w-6 h-6 text-cyan-400" />,
+    USERS: <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />,
+    FORMS: <Layers className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
+    EVENTS: <Calendar className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
+    HACKATHONS: <Trophy className="w-6 h-6 text-purple-600 dark:text-purple-400" />,
+    UNKNOWN_RAW: <Archive className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />,
   };
 
   return (
     <div className="space-y-6">
       {/* Top Header & Tab Selector */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
               Universal Engine
             </span>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Universal Backup Center</h1>
+            <h1 className="text-2xl font-bold text-[#1A1A2E] dark:text-white tracking-tight">Universal Backup Center</h1>
           </div>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
             Preserve arbitrary college spreadsheets, map structured domains, or store in the schemaless Raw Vault.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
           <button
             onClick={() => setActiveTab('wizard')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'wizard'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Sparkles className="w-4 h-4" />
@@ -302,7 +302,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'history'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Database className="w-4 h-4" />
@@ -317,43 +317,46 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
       {activeTab === 'wizard' && (
         <div className="space-y-6">
           {/* Step Progression Bar */}
-          <div className="grid grid-cols-5 gap-2 p-3 bg-slate-900/40 rounded-xl border border-slate-800/80">
+          <div className="grid grid-cols-5 gap-2 p-3 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800/80">
             {[
-              { step: 1, label: 'Intake & Preserve' },
-              { step: 2, label: 'Domain Target' },
-              { step: 3, label: 'Column Mapping' },
-              { step: 4, label: 'Schema Validation' },
-              { step: 5, label: 'Commit & Actions' },
+              { step: 1, label: 'Intake & Preserve', shortLabel: 'Intake' },
+              { step: 2, label: 'Domain Target', shortLabel: 'Domain' },
+              { step: 3, label: 'Column Mapping', shortLabel: 'Mapping' },
+              { step: 4, label: 'Schema Validation', shortLabel: 'Validate' },
+              { step: 5, label: 'Commit & Actions', shortLabel: 'Commit' },
             ].map((s) => (
               <div
                 key={s.step}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                title={s.label}
+                className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-1.5 md:px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                   currentStep === s.step
-                    ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300'
+                    ? 'bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-300 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300'
                     : currentStep > s.step
-                    ? 'text-emerald-400 bg-emerald-500/10'
+                    ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10'
                     : 'text-slate-500'
                 }`}
               >
                 <div
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                     currentStep === s.step
                       ? 'bg-indigo-600 text-white'
                       : currentStep > s.step
                       ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-800 text-slate-400'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                   }`}
+                  aria-hidden="true"
                 >
                   {currentStep > s.step ? '✓' : s.step}
                 </div>
                 <span className="hidden md:inline truncate">{s.label}</span>
+                <span className="md:hidden text-[9px] leading-tight text-center truncate max-w-full">{s.shortLabel}</span>
               </div>
             ))}
           </div>
 
           {/* STEP 1: INTAKE & PRESERVE */}
           {currentStep === 1 && (
-            <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl text-center">
+            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl text-center">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -365,20 +368,20 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
 
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-700 hover:border-indigo-500/60 rounded-2xl p-12 transition-all cursor-pointer bg-slate-950/40 hover:bg-slate-900/50 flex flex-col items-center justify-center group"
+                className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500/60 rounded-2xl p-12 transition-all cursor-pointer bg-slate-50 dark:bg-slate-950/40 hover:bg-slate-100 dark:hover:bg-slate-900/50 flex flex-col items-center justify-center group"
               >
-                <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform mb-4 shadow-lg shadow-indigo-500/10">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform mb-4 shadow-lg shadow-indigo-500/10">
                   {isUploading ? <Loader2 className="w-8 h-8 animate-spin" /> : <Upload className="w-8 h-8" />}
                 </div>
-                <h3 className="text-lg font-semibold text-white">Upload Application Backup Spreadsheet</h3>
-                <p className="text-sm text-slate-400 mt-1 max-w-md">
-                  Drag and drop a <span className="text-indigo-400 font-mono">.csv</span> or{' '}
-                  <span className="text-indigo-400 font-mono">.xlsx</span> file here, or click to browse. Max 10 MB, up to 10,000 rows.
+                <h3 className="text-lg font-semibold text-[#1A1A2E] dark:text-white">Upload Application Backup Spreadsheet</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-md">
+                  Drag and drop a <span className="text-indigo-600 dark:text-indigo-400 font-mono">.csv</span> or{' '}
+                  <span className="text-indigo-600 dark:text-indigo-400 font-mono">.xlsx</span> file here, or click to browse. Max 10 MB, up to 10,000 rows.
                 </p>
 
                 <div className="mt-6 flex items-center gap-4 text-xs text-slate-500">
                   <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" /> SHA-256 Hashed
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> SHA-256 Hashed
                   </span>
                   <span>•</span>
                   <span>Zero-Loss Provenance</span>
@@ -388,10 +391,10 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
               </div>
 
               {/* Mock Datasets & Sample Files Download Box */}
-              <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 backdrop-blur-md space-y-3">
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 backdrop-blur-md space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-white text-xs font-semibold">
-                    <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                  <div className="flex items-center gap-2 text-[#1A1A2E] dark:text-white text-xs font-semibold">
+                    <FileSpreadsheet className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <span>Download Pre-formatted Mock Datasets for Testing</span>
                   </div>
                   <span className="text-[11px] text-slate-500">CSV & Excel formats ready</span>
@@ -432,24 +435,24 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   ].map((d) => (
                     <div
                       key={d.label}
-                      className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between space-y-2 hover:border-slate-700 transition"
+                      className="p-3 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between space-y-2 hover:border-slate-300 dark:hover:border-slate-700 transition"
                     >
                       <div>
-                        <span className="text-xs font-semibold text-slate-200 block">{d.label}</span>
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">{d.label}</span>
                         <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">{d.desc}</span>
                       </div>
                       <div className="flex items-center gap-1.5 pt-1">
                         <a
                           href={d.csv}
                           download
-                          className="flex-1 py-1 px-2 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold text-center transition"
+                          className="flex-1 py-1 px-2 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold text-center transition"
                         >
                           .CSV
                         </a>
                         <a
                           href={d.xlsx}
                           download
-                          className="flex-1 py-1 px-2 rounded-md bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 text-[10px] font-bold text-center border border-indigo-500/30 transition"
+                          className="flex-1 py-1 px-2 rounded-md bg-indigo-100 dark:bg-indigo-600/30 hover:bg-indigo-200 dark:hover:bg-indigo-600/50 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold text-center border border-indigo-300 dark:border-indigo-500/30 transition"
                         >
                           .XLSX
                         </a>
@@ -464,18 +467,18 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
           {/* STEP 2: DOMAIN TARGET SELECTION */}
           {currentStep === 2 && backupJob && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">What does this backup contain?</h3>
-                    <p className="text-sm text-slate-400 mt-1">
-                      File: <span className="text-white font-mono">{backupJob.original_filename}</span> ({backupJob.total_rows} rows,{' '}
+                    <h3 className="text-lg font-semibold text-[#1A1A2E] dark:text-white">What does this backup contain?</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      File: <span className="text-[#1A1A2E] dark:text-white font-mono">{backupJob.original_filename}</span> ({backupJob.total_rows} rows,{' '}
                       {backupJob.headers.length} columns)
                     </p>
                   </div>
 
                   {backupJob.suggested_domain && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-100 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs">
                       <Sparkles className="w-4 h-4" />
                       Suggested Domain: <strong className="uppercase">{backupJob.suggested_domain}</strong> (
                       {backupJob.suggestion_confidence}%)
@@ -523,21 +526,21 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                         onClick={() => setSelectedDomain(dom.key)}
                         className={`p-5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
                           isSelected
-                            ? 'bg-indigo-600/15 border-indigo-500/80 shadow-lg shadow-indigo-600/10'
-                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                            ? 'bg-indigo-50 dark:bg-indigo-600/15 border-indigo-400 dark:border-indigo-500/80 shadow-lg shadow-indigo-600/10'
+                            : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                         }`}
                       >
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                               {domainIcons[dom.key]}
                             </div>
-                            {isSelected && <CheckCircle className="w-5 h-5 text-indigo-400" />}
+                            {isSelected && <CheckCircle className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
                           </div>
-                          <h4 className="text-base font-semibold text-white">{dom.title}</h4>
-                          <p className="text-xs text-slate-400 mt-1">{dom.desc}</p>
+                          <h4 className="text-base font-semibold text-[#1A1A2E] dark:text-white">{dom.title}</h4>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{dom.desc}</p>
                         </div>
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-500 font-mono">
+                        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800/80 text-[11px] text-slate-500 font-mono">
                           {dom.req}
                         </div>
                       </div>
@@ -547,14 +550,14 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
 
                 {/* Optional Target Form Selector if FORMS is chosen */}
                 {selectedDomain === 'FORMS' && (
-                  <div className="mt-6 p-4 rounded-xl bg-slate-950/80 border border-slate-800">
-                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  <div className="mt-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                       Select Target Published Form:
                     </label>
                     <select
                       value={targetFormId || ''}
                       onChange={(e) => setTargetFormId(Number(e.target.value) || null)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-indigo-500"
                     >
                       <option value="">-- Choose Target Form --</option>
                       {forms.map((f) => (
@@ -566,10 +569,10 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-800">
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
                   <button
                     onClick={handleReset}
-                    className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white"
+                    className="px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white"
                   >
                     Cancel & Upload New
                   </button>
@@ -606,20 +609,20 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
           {/* STEP 3: COLUMN MAPPING */}
           {currentStep === 3 && analysis && backupJob && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Column Mapping Configuration</h3>
-                    <p className="text-sm text-slate-400 mt-1">
-                      Target Domain: <strong className="text-indigo-400">{analysis.domain_display}</strong>
+                    <h3 className="text-lg font-semibold text-[#1A1A2E] dark:text-white">Column Mapping Configuration</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      Target Domain: <strong className="text-indigo-600 dark:text-indigo-400">{analysis.domain_display}</strong>
                     </p>
                   </div>
 
                   <div className="flex items-center gap-4 text-xs">
-                    <span className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 font-mono">
+                    <span className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
                       {backupJob.headers.length} Uploaded Columns
                     </span>
-                    <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                    <span className="px-3 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 font-mono">
                       {Object.values(customMapping).filter(Boolean).length} Mapped
                     </span>
                   </div>
@@ -627,21 +630,21 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
 
                 {/* Mapping Grid */}
                 <div className="mt-6 overflow-x-auto">
-                  <table className="w-full text-left text-sm text-slate-300">
-                    <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 font-semibold">
+                  <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+                    <thead className="bg-slate-50 dark:bg-slate-950/80 text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 font-semibold">
                       <tr>
                         <th className="p-3.5 rounded-l-lg">Source Column (Uploaded)</th>
                         <th className="p-3.5">Mapped Target Field</th>
                         <th className="p-3.5 rounded-r-lg">Field Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60">
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                       {backupJob.headers.map((hdr) => {
                         const currentMapped = customMapping[hdr] || '';
                         const isMapped = Boolean(currentMapped);
                         return (
-                          <tr key={hdr} className="hover:bg-slate-800/30">
-                            <td className="p-3.5 font-medium text-white font-mono text-xs">{hdr}</td>
+                          <tr key={hdr} className="hover:bg-slate-100 dark:hover:bg-slate-800/30">
+                            <td className="p-3.5 font-medium text-[#1A1A2E] dark:text-white font-mono text-xs">{hdr}</td>
                             <td className="p-3.5">
                               <select
                                 value={currentMapped}
@@ -651,7 +654,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                                     [hdr]: e.target.value,
                                   }));
                                 }}
-                                className="w-full max-w-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                                className="w-full max-w-xs bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-indigo-500"
                               >
                                 <option value="">-- Ignore / Keep in Raw Provenance --</option>
                                 {Object.entries(analysis.expected_fields).map(([k, aliases]) => {
@@ -668,11 +671,11 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                             </td>
                             <td className="p-3.5">
                               {isMapped ? (
-                                <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                                <span className="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md">
                                   <CheckCircle className="w-3.5 h-3.5" /> Matched
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-md font-mono">
+                                <span className="inline-flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 px-2 py-0.5 rounded-md font-mono">
                                   Unmapped (Preserved in Raw)
                                 </span>
                               )}
@@ -684,10 +687,10 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   </table>
                 </div>
 
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-800">
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
                   <button
                     onClick={() => setCurrentStep(2)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white"
                   >
                     <ChevronLeft className="w-4 h-4" /> Back to Domain Selection
                   </button>
@@ -705,27 +708,27 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
           {/* STEP 4: SCHEMA VALIDATION & 50% CONFIDENCE GAUGE */}
           {currentStep === 4 && analysis && backupJob && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
-                <h3 className="text-lg font-semibold text-white mb-1">Domain Schema Validation</h3>
-                <p className="text-sm text-slate-400 mb-6">
-                  Evaluation against <span className="text-indigo-400 font-semibold">{analysis.domain_display}</span>{' '}
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+                <h3 className="text-lg font-semibold text-[#1A1A2E] dark:text-white mb-1">Domain Schema Validation</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                  Evaluation against <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{analysis.domain_display}</span>{' '}
                   invariants.
                 </p>
 
                 {/* Score Indicators */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-xs text-slate-400 font-medium">Required Fields Status</div>
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Required Fields Status</div>
                     <div className="flex items-center gap-2 mt-2">
                       {analysis.required_fields_satisfied ? (
                         <>
-                          <CheckCircle className="w-5 h-5 text-emerald-400" />
-                          <span className="text-base font-bold text-emerald-400">PASSED</span>
+                          <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">PASSED</span>
                         </>
                       ) : (
                         <>
-                          <XCircle className="w-5 h-5 text-rose-400" />
-                          <span className="text-base font-bold text-rose-400">MISSING REQUIRED</span>
+                          <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                          <span className="text-base font-bold text-rose-600 dark:text-rose-400">MISSING REQUIRED</span>
                         </>
                       )}
                     </div>
@@ -734,12 +737,12 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-xs text-slate-400 font-medium">Schema Match Confidence</div>
-                    <div className="text-2xl font-bold text-white mt-1">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Schema Match Confidence</div>
+                    <div className="text-2xl font-bold text-[#1A1A2E] dark:text-white mt-1">
                       {analysis.schema_confidence_percentage}%
                     </div>
-                    <div className="w-full bg-slate-800 rounded-full h-2 mt-2 overflow-hidden">
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 mt-2 overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
                           parseFloat(analysis.schema_confidence_percentage) >= 50
@@ -751,18 +754,18 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-xs text-slate-400 font-medium">Import Eligibility</div>
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Import Eligibility</div>
                     <div className="flex items-center gap-2 mt-2">
                       {analysis.is_eligible_for_structured_import ? (
                         <>
-                          <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                          <span className="text-base font-bold text-emerald-400">ELIGIBLE (≥50%)</span>
+                          <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">ELIGIBLE (≥50%)</span>
                         </>
                       ) : (
                         <>
-                          <AlertTriangle className="w-5 h-5 text-amber-400" />
-                          <span className="text-base font-bold text-amber-400">FAIL (BELOW 50%)</span>
+                          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          <span className="text-base font-bold text-amber-600 dark:text-amber-400">FAIL (BELOW 50%)</span>
                         </>
                       )}
                     </div>
@@ -774,12 +777,12 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
 
                 {/* Validation Banner */}
                 {!analysis.is_eligible_for_structured_import && (
-                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-6 flex items-start justify-between gap-4">
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 mb-6 flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                      <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="text-sm font-semibold text-amber-300">Structured Import Requirements Not Met</h4>
-                        <p className="text-xs text-amber-400/80 mt-1">
+                        <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300">Structured Import Requirements Not Met</h4>
+                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
                           This spreadsheet does not meet the 50% column matching threshold or is missing essential required keys.
                           You can still preserve this backup forensically in the Raw Vault!
                         </p>
@@ -794,10 +797,10 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-6 border-t border-slate-800">
+                <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800">
                   <button
                     onClick={() => setCurrentStep(3)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white"
                   >
                     <ChevronLeft className="w-4 h-4" /> Back to Column Mapping
                   </button>
@@ -805,7 +808,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handleArchiveRaw}
-                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-all"
+                      className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-all"
                     >
                       Save to Raw Vault Instead
                     </button>
@@ -836,21 +839,21 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
               {commitResult ? (
                 /* Success Screen */
                 <div className="p-8 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-xl text-center">
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
                     <CheckCircle className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-white">
+                  <h3 className="text-xl font-bold text-[#1A1A2E] dark:text-white">
                     {commitResult.is_raw_vault ? 'Backup Successfully Preserved in Raw Vault!' : 'Domain Import Completed!'}
                   </h3>
-                  <p className="text-sm text-emerald-400 mt-1">
-                    Processed <strong className="text-white">{commitResult.imported_count}</strong> records into{' '}
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400 mt-1">
+                    Processed <strong className="text-[#1A1A2E] dark:text-white">{commitResult.imported_count}</strong> records into{' '}
                     <span className="uppercase font-semibold">{selectedDomain}</span>.
                   </p>
 
                   <div className="mt-8 flex items-center justify-center gap-4">
                     <button
                       onClick={handleReset}
-                      className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm"
+                      className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#1A1A2E] dark:text-white font-medium text-sm"
                     >
                       Upload Another Backup
                     </button>
@@ -867,25 +870,25 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                 </div>
               ) : (
                 /* Preview State */
-                <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+                <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
                     <div>
-                      <h3 className="text-lg font-semibold text-white">Row-Level Ingestion Preview</h3>
-                      <p className="text-sm text-slate-400 mt-1">
-                        Domain: <strong className="text-indigo-400">{selectedDomain}</strong> • {preview.valid_records} valid of{' '}
+                      <h3 className="text-lg font-semibold text-[#1A1A2E] dark:text-white">Row-Level Ingestion Preview</h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                        Domain: <strong className="text-indigo-600 dark:text-indigo-400">{selectedDomain}</strong> • {preview.valid_records} valid of{' '}
                         {preview.total_records} rows
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span className="px-3 py-1 rounded-md text-xs font-semibold bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
                         {preview.inserted_records} New Records
                       </span>
-                      <span className="px-3 py-1 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      <span className="px-3 py-1 rounded-md text-xs font-semibold bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
                         {preview.updated_records} Updates
                       </span>
                       {preview.conflict_records > 0 && (
-                        <span className="px-3 py-1 rounded-md text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                        <span className="px-3 py-1 rounded-md text-xs font-semibold bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20">
                           {preview.conflict_records} Conflicts
                         </span>
                       )}
@@ -893,9 +896,9 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   </div>
 
                   {/* Sample Rows Table */}
-                  <div className="mt-6 overflow-x-auto max-h-96 overflow-y-auto rounded-xl border border-slate-800">
-                    <table className="w-full text-left text-xs text-slate-300">
-                      <thead className="bg-slate-950 text-slate-400 uppercase font-semibold sticky top-0">
+                  <div className="mt-6 overflow-x-auto max-h-96 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                    <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                      <thead className="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 uppercase font-semibold sticky top-0">
                         <tr>
                           <th className="p-3">#</th>
                           <th className="p-3">Action</th>
@@ -904,37 +907,37 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                           <th className="p-3">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/60 font-mono">
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono">
                         {preview.rows_sample.map((row) => (
-                          <tr key={row.source_row_number} className="hover:bg-slate-800/30">
+                          <tr key={row.source_row_number} className="hover:bg-slate-100 dark:hover:bg-slate-800/30">
                             <td className="p-3 text-slate-500">{row.source_row_number}</td>
                             <td className="p-3">
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                   row.action === 'CREATE'
-                                    ? 'bg-emerald-500/20 text-emerald-400'
+                                    ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
                                     : row.action === 'UPDATE'
-                                    ? 'bg-blue-500/20 text-blue-400'
-                                    : 'bg-rose-500/20 text-rose-400'
+                                    ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400'
+                                    : 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400'
                                 }`}
                               >
                                 {row.action}
                               </span>
                             </td>
-                            <td className="p-3 font-medium text-white">
+                            <td className="p-3 font-medium text-[#1A1A2E] dark:text-white">
                               {row.normalized_data.email ||
                                 row.normalized_data.club_id ||
                                 row.normalized_data.title ||
                                 '—'}
                             </td>
-                            <td className="p-3 text-slate-400 truncate max-w-xs">
+                            <td className="p-3 text-slate-600 dark:text-slate-400 truncate max-w-xs">
                               {JSON.stringify(row.normalized_data)}
                             </td>
                             <td className="p-3">
                               {row.is_valid ? (
-                                <span className="text-emerald-400">Ready</span>
+                                <span className="text-emerald-600 dark:text-emerald-400">Ready</span>
                               ) : (
-                                <span className="text-rose-400 truncate block max-w-xs">{row.error_message}</span>
+                                <span className="text-rose-600 dark:text-rose-400 truncate block max-w-xs">{row.error_message}</span>
                               )}
                             </td>
                           </tr>
@@ -945,32 +948,32 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
 
                   {/* Domain-specific Action: Welcome Email */}
                   {selectedDomain === 'USERS' && (
-                    <div className="mt-6 p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                    <div className="mt-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Mail className="w-5 h-5 text-indigo-400" />
+                        <Mail className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                         <div>
-                          <h4 className="text-sm font-semibold text-white">Member Welcome Email Campaign</h4>
-                          <p className="text-xs text-slate-400">
+                          <h4 className="text-sm font-semibold text-[#1A1A2E] dark:text-white">Member Welcome Email Campaign</h4>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
                             Automatically queue personalized welcome emails with allocated Club IDs.
                           </p>
                         </div>
                       </div>
-                      <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300">
                         <input
                           type="checkbox"
                           checked={sendWelcomeEmail}
                           onChange={(e) => setSendWelcomeEmail(e.target.checked)}
-                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-700 bg-slate-900"
+                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
                         />
                         Send Emails
                       </label>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-800">
+                  <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
                     <button
                       onClick={() => setCurrentStep(4)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white"
                     >
                       <ChevronLeft className="w-4 h-4" /> Back to Validation
                     </button>
@@ -979,7 +982,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                       <button
                         onClick={handleArchiveRaw}
                         disabled={isCommitting}
-                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-all"
+                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-all"
                       >
                         Save as Raw Archive
                       </button>
@@ -1012,7 +1015,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
       {/* ========================================================================= */}
       {activeTab === 'history' && (
         <div className="space-y-4">
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div className="relative flex-1 max-w-md w-full">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -1021,14 +1024,14 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   placeholder="Search backups by filename or SHA-256 hash..."
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-sm text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <button
                 onClick={loadHistory}
                 disabled={isLoadingHistory}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm text-slate-300 font-medium transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-300 font-medium transition-all"
               >
                 <RefreshCw className={`w-4 h-4 ${isLoadingHistory ? 'animate-spin' : ''}`} />
                 Refresh Vault
@@ -1036,20 +1039,20 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
             </div>
 
             {isLoadingHistory ? (
-              <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-400 mb-2" />
+              <div className="flex flex-col items-center justify-center py-16 text-slate-600 dark:text-slate-400">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400 mb-2" />
                 <p className="text-sm">Loading backup vault archives...</p>
               </div>
             ) : backupHistory.length === 0 ? (
               <div className="text-center py-16 text-slate-500">
-                <Archive className="w-12 h-12 mx-auto text-slate-600 mb-3" />
-                <h4 className="text-base font-semibold text-slate-400">No Backup Archives Found</h4>
+                <Archive className="w-12 h-12 mx-auto text-slate-400 dark:text-slate-600 mb-3" />
+                <h4 className="text-base font-semibold text-slate-600 dark:text-slate-400">No Backup Archives Found</h4>
                 <p className="text-xs mt-1">Upload a spreadsheet via the Ingestion Wizard to preserve it here.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-800">
-                <table className="w-full text-left text-sm text-slate-300">
-                  <thead className="bg-slate-950 text-xs uppercase tracking-wider text-slate-400 font-semibold">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+                  <thead className="bg-slate-50 dark:bg-slate-950 text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 font-semibold">
                     <tr>
                       <th className="p-3.5">Filename</th>
                       <th className="p-3.5">Format / Size</th>
@@ -1060,7 +1063,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                       <th className="p-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono text-xs">
                     {backupHistory
                       .filter((b) =>
                         historySearch
@@ -1069,22 +1072,22 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                           : true
                       )
                       .map((b) => (
-                        <tr key={b.id} className="hover:bg-slate-800/30">
-                          <td className="p-3.5 font-medium text-white">
+                        <tr key={b.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/30">
+                          <td className="p-3.5 font-medium text-[#1A1A2E] dark:text-white">
                             <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
+                              <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                               <span className="truncate max-w-xs">{b.original_filename}</span>
                             </div>
                             <div className="text-[10px] text-slate-500 mt-0.5 truncate max-w-xs font-mono">
                               SHA-256: {b.file_sha256.slice(0, 16)}...
                             </div>
                           </td>
-                          <td className="p-3.5 text-slate-400">
+                          <td className="p-3.5 text-slate-600 dark:text-slate-400">
                             {b.file_format} • {(b.file_size_bytes / 1024).toFixed(1)} KB
                           </td>
-                          <td className="p-3.5 text-white font-semibold">{b.total_rows}</td>
+                          <td className="p-3.5 text-[#1A1A2E] dark:text-white font-semibold">{b.total_rows}</td>
                           <td className="p-3.5">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 uppercase">
                               {b.suggested_domain || 'RAW'}
                             </span>
                           </td>
@@ -1092,23 +1095,23 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                             <span
                               className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                 b.status === 'ARCHIVED_RAW'
-                                  ? 'bg-cyan-500/20 text-cyan-300'
+                                  ? 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300'
                                   : b.status === 'PARTIALLY_IMPORTED' || b.status === 'READY'
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : 'bg-amber-500/20 text-amber-300'
+                                  ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                                  : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
                               }`}
                             >
                               {b.status}
                             </span>
                           </td>
-                          <td className="p-3.5 text-slate-400">
+                          <td className="p-3.5 text-slate-600 dark:text-slate-400">
                             {new Date(b.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </td>
                           <td className="p-3.5 text-right">
                             <a
                               href={`/api/proxy/admin/backups/${b.id}/raw-download/`}
                               download
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-all"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium transition-all"
                             >
                               <Download className="w-3.5 h-3.5" /> Download
                             </a>

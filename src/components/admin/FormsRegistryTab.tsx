@@ -91,6 +91,7 @@ export function FormsRegistryTab({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [selectedFormId, setSelectedFormId] = useState<number | string | null>(forms[0]?.id ?? null);
   const [localFormOverrides, setLocalFormOverrides] = useState<Record<string, Partial<Form>>>({});
+  const [deletedFormSlugs, setDeletedFormSlugs] = useState<Set<string>>(new Set());
   const [slugCopied, setSlugCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const { toast } = useToast();
@@ -100,8 +101,13 @@ export function FormsRegistryTab({
   const [schedCloseAt, setSchedCloseAt] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  const activeForms = useMemo(
+    () => forms.filter((f) => !deletedFormSlugs.has(f.slug)),
+    [forms, deletedFormSlugs]
+  );
+
   const filteredForms = useMemo(() => {
-    return forms.map((f) => ({ ...f, ...(localFormOverrides[f.slug] || {}) })).filter((f) => {
+    return activeForms.map((f) => ({ ...f, ...(localFormOverrides[f.slug] || {}) })).filter((f) => {
       const matchSearch =
         f.title.toLowerCase().includes(search.toLowerCase()) ||
         f.slug.toLowerCase().includes(search.toLowerCase()) ||
@@ -109,9 +115,9 @@ export function FormsRegistryTab({
       const matchStatus = statusFilter === 'ALL' || f.status === statusFilter;
       return matchSearch && matchStatus;
     });
-  }, [forms, search, statusFilter, localFormOverrides]);
+  }, [activeForms, search, statusFilter, localFormOverrides]);
 
-  const selectedFormRaw = forms.find((f) => f.id === selectedFormId) || forms[0];
+  const selectedFormRaw = activeForms.find((f) => f.id === selectedFormId) || activeForms[0];
   const selectedForm = selectedFormRaw
     ? { ...selectedFormRaw, ...(localFormOverrides[selectedFormRaw.slug] || {}) }
     : null;
@@ -162,13 +168,25 @@ export function FormsRegistryTab({
     }
   };
 
+  const confirmedAction = (
+    action: 'publish' | 'unpublish' | 'close' | 'schedule' | 'reopen',
+    message: string,
+    extraData?: any
+  ) => {
+    if (confirm(message)) {
+      handleAction(action, extraData);
+    }
+  };
+
   const handleDelete = async () => {
     if (!selectedForm) return;
     if (confirm(`Permanently delete form "${selectedForm.title}"? This cannot be undone.`)) {
       try {
         await fetchApi(`/forms/${selectedForm.slug}/`, { method: 'DELETE' });
         toast.success('Form Removed', `Form "${selectedForm.title}" deleted.`);
-        window.location.reload();
+        setDeletedFormSlugs((prev) => new Set(prev).add(selectedForm.slug));
+        setSelectedFormId(null);
+        if (onRefresh) onRefresh();
       } catch (err: any) {
         toast.error('Delete Failed', err?.message || `Could not delete "${selectedForm.title}".`);
       }
@@ -554,7 +572,7 @@ export function FormsRegistryTab({
                   {selectedForm.status === 'PUBLISHED' && (
                     <>
                       <button
-                        onClick={() => handleAction('unpublish')}
+                        onClick={() => confirmedAction('unpublish', 'Unpublish this form? It will be hidden from the public forms list and reverted to Draft.')}
                         disabled={actionLoading}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-bold border border-amber-500/30 transition"
                         title="Undo publish and revert back to Draft"
@@ -570,7 +588,7 @@ export function FormsRegistryTab({
                         <span>Reschedule Window</span>
                       </button>
                       <button
-                        onClick={() => handleAction('close')}
+                        onClick={() => confirmedAction('close', 'Close this form to new responses? Submitters will no longer be able to respond.')}
                         disabled={actionLoading}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-300 dark:border-slate-600 transition"
                       >
@@ -599,7 +617,7 @@ export function FormsRegistryTab({
                         <span>Modify Schedule</span>
                       </button>
                       <button
-                        onClick={() => handleAction('unpublish')}
+                        onClick={() => confirmedAction('unpublish', 'Cancel this scheduled launch? The form will revert to Draft and will not open automatically.')}
                         disabled={actionLoading}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 text-amber-400 text-xs font-bold border border-amber-500/30 transition"
                       >
@@ -628,7 +646,7 @@ export function FormsRegistryTab({
                         <span>Schedule Re-open</span>
                       </button>
                       <button
-                        onClick={() => handleAction('reopen', { status: 'DRAFT' })}
+                        onClick={() => confirmedAction('reopen', 'Reopen this form as a draft? It will need to be published again before it is publicly visible.', { status: 'DRAFT' })}
                         disabled={actionLoading}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-300 dark:border-slate-700 transition"
                       >
@@ -972,7 +990,7 @@ export function FormsRegistryTab({
                 {dangerOpen && (
                   <div className="px-4 pb-4 space-y-2 border-t border-rose-500/20">
                     <button
-                      onClick={() => handleAction('close')}
+                      onClick={() => confirmedAction('close', 'Close this form to new responses? Submitters will no longer be able to respond.')}
                       className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-300 hover:bg-rose-500/10 font-semibold transition"
                     >
                       <XCircle className="w-3 h-3 inline mr-1.5" />

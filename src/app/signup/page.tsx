@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { User, Mail, Hash, BookOpen, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
+import { User, Mail, Hash, BookOpen, Lock, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 import BrainLogo from '@/components/BrainLogo';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -31,21 +31,31 @@ function SignupContent() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirmPassword?: string }>({});
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === 'password' && fieldErrors.password) {
+      setFieldErrors((prev) => ({ ...prev, password: undefined }));
+    }
+    if (field === 'confirmPassword' && fieldErrors.confirmPassword) {
+      setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       toast.warning('Passwords Don’t Match', 'Please make sure both password fields are identical.');
+      setFieldErrors((prev) => ({ ...prev, confirmPassword: 'Passwords do not match.' }));
       return;
     }
     if (formData.password.length < 6) {
       toast.warning('Password Too Short', 'Password must be at least 6 characters long.');
+      setFieldErrors((prev) => ({ ...prev, password: 'Password must be at least 6 characters long.' }));
       return;
     }
+    setFieldErrors({});
     setIsLoading(true);
 
     try {
@@ -129,6 +139,7 @@ function SignupContent() {
                   <input
                     type="text"
                     required
+                    autoComplete="name"
                     placeholder="John Doe"
                     value={formData.fullName}
                     onChange={(e) => handleChange('fullName', e.target.value)}
@@ -148,6 +159,7 @@ function SignupContent() {
                   <input
                     type="email"
                     required
+                    autoComplete="email"
                     placeholder="student@srkr.ac.in"
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
@@ -268,12 +280,23 @@ function SignupContent() {
                   <input
                     type="password"
                     required
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => handleChange('password', e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none ${
+                      fieldErrors.password
+                        ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                        : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
+                    }`}
                   />
                 </div>
+                {fieldErrors.password && (
+                  <p className="text-xs text-rose-500 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{fieldErrors.password}</span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -287,12 +310,23 @@ function SignupContent() {
                   <input
                     type="password"
                     required
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={formData.confirmPassword}
                     onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white focus:outline-none ${
+                      fieldErrors.confirmPassword
+                        ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                        : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00]'
+                    }`}
                   />
                 </div>
+                {fieldErrors.confirmPassword && (
+                  <p className="text-xs text-rose-500 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{fieldErrors.confirmPassword}</span>
+                  </p>
+                )}
               </div>
             </div>
 

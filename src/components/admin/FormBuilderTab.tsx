@@ -278,7 +278,11 @@ export function FormBuilderTab({
 
           {/* Reset Button */}
           <button
-            onClick={onResetForm}
+            onClick={() => {
+              if (window.confirm('Reset all unsaved changes to the form? This cannot be undone.')) {
+                onResetForm?.();
+              }
+            }}
             className="px-3.5 py-2 rounded-md bg-white dark:bg-[#151722] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5"
             title={formMeta.id ? "Reset form back to last saved checkpoint" : "Reset to blank form"}
           >
@@ -575,7 +579,11 @@ export function FormBuilderTab({
                 siblingFields={builderFields.filter((f) => f.id !== field.id && f.type !== 'SECTION')}
                 onRequiredChange={(v) => onFieldChange(field.id, 'is_required', v)}
                 onDuplicate={() => onDuplicateField(field)}
-                onRemove={() => onRemoveField(field.id)}
+                onRemove={() => {
+                  if (window.confirm('Delete this question? This cannot be undone.')) {
+                    onRemoveField(field.id);
+                  }
+                }}
                 onMoveUp={() => moveField(idx, -1)}
                 onMoveDown={() => moveField(idx, 1)}
               />

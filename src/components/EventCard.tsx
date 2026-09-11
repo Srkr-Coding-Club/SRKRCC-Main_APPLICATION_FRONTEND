@@ -120,7 +120,7 @@ export default function EventCard({
   };
 
   return (
-    <div ref={wrapperRef} className="h-full w-[300px] shrink-0 sm:w-[340px]">
+    <div ref={wrapperRef} className="h-full w-[300px] shrink-0">
       {" "}
       <SpotlightCard
         spotlightColor={accent}

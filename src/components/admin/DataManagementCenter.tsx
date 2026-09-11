@@ -8,7 +8,7 @@ import {
   Search, Settings, SlidersHorizontal, X, Info, AlertCircle,
   CheckCircle2, Circle, Minus, HelpCircle, ArrowUpDown, ArrowUp, ArrowDown,
   ExternalLink, Users, FileSpreadsheet, Trophy, Calendar, Code2, Briefcase,
-  Layers, ShieldAlert, Sparkles, Mail
+  Layers, ShieldAlert, Sparkles, Mail, Menu
 } from 'lucide-react';
 
 import { useDMCCatalog } from '@/hooks/dmc/useDMCCatalog';
@@ -131,16 +131,29 @@ interface SidebarProps {
   active: DatasetDefinition | null;
   onSelect: (d: DatasetDefinition) => void;
   loading: boolean;
+  open: boolean;
+  onClose: () => void;
 }
 
-function Sidebar({ grouped, active, onSelect, loading }: SidebarProps) {
+function Sidebar({ grouped, active, onSelect, loading, open, onClose }: SidebarProps) {
   const groups = Object.keys(grouped);
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col h-full overflow-y-auto">
+    <aside
+      className={`${open ? 'flex' : 'hidden'} md:flex flex-col absolute md:static inset-y-0 left-0 z-40 w-64 shrink-0 h-full overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl md:shadow-none`}
+    >
       <div className="px-4 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40">
-        <div className="flex items-center gap-2">
-          <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">Datasets Explorer</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">Datasets Explorer</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="md:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0"
+            aria-label="Close datasets menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Select a dataset to view and manage</p>
       </div>
@@ -664,6 +677,7 @@ export default function DataManagementCenter() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showEmailEditor, setShowEmailEditor] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleSelect = (id: string) => {
@@ -757,9 +771,34 @@ export default function DataManagementCenter() {
   const hasDataset = !!activeDataset;
 
   return (
-    <div className="flex h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden" style={{ minHeight: '100vh' }}>
+    <div className="relative flex h-[calc(100vh-74px)] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
+      {/* Mobile datasets toggle — sidebar is hidden below md, so this is the only way in */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="md:hidden absolute top-3 left-3 z-30 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-md text-xs font-bold text-slate-700 dark:text-slate-300"
+        aria-label="Open datasets menu"
+      >
+        <Menu className="w-4 h-4" /> Datasets
+      </button>
+
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden absolute inset-0 z-30 bg-black/50"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
-      <Sidebar grouped={grouped} active={activeDataset} onSelect={setActiveDataset} loading={catalogLoading} />
+      <Sidebar
+        grouped={grouped}
+        active={activeDataset}
+        onSelect={(d) => { setActiveDataset(d); setSidebarOpen(false); }}
+        loading={catalogLoading}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main panel */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white dark:bg-slate-950">
@@ -778,8 +817,8 @@ export default function DataManagementCenter() {
         ) : (
           <motion.div key={activeDataset.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full">
             {/* Toolbar */}
-            <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-5 py-3.5 shrink-0 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
+            <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-5 pt-14 pb-3.5 md:pt-3.5 shrink-0 shadow-xs">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-base font-bold text-slate-900 dark:text-white">{activeDataset.label}</h1>
@@ -806,9 +845,9 @@ export default function DataManagementCenter() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center flex-wrap gap-2.5">
                 {/* Search */}
-                <div className="relative flex-1 max-w-xs">
+                <div className="relative flex-1 min-w-[140px] max-w-xs">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                   <input
                     value={search}

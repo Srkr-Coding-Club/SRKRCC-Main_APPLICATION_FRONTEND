@@ -1,12 +1,12 @@
 'use client';
 
-import React from 'react';
-import { UserPlus, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { UserPlus, X, Loader2 } from 'lucide-react';
 
 interface CreateUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => void | Promise<void>;
   newUser: {
     name: string;
     email: string;
@@ -28,7 +28,17 @@ interface CreateUserModalProps {
 }
 
 export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser }: CreateUserModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -43,7 +53,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
               Full Name *
@@ -143,15 +153,18 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-lg text-xs font-bold bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm"
+              disabled={isSubmitting}
+              className="px-5 py-2 rounded-lg text-xs font-bold bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              Save User Account
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {isSubmitting ? 'Saving...' : 'Save User Account'}
             </button>
           </div>
         </form>

@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { Problem } from '@/lib/types';
-import { Terminal, Flame, Code2 } from 'lucide-react';
+import { Terminal, Flame, Code2, Info } from 'lucide-react';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
@@ -10,6 +10,7 @@ import Card from '@/components/Card';
 import ProblemCard from '@/components/ProblemCard';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 import ScrollReveal from '@/components/ScrollReveal';
+import MidnightCountdown from '@/components/MidnightCountdown';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,15 +20,15 @@ export const metadata: Metadata = {
     'Solve daily competitive programming problems, build coding streaks, and level up your data structures & algorithms problem-solving skills.',
 };
 
-async function getProblems(): Promise<Problem[]> {
+async function getProblems(): Promise<{ problems: Problem[]; usingFallback: boolean }> {
   try {
     const fetched = await fetchApi<Problem[]>('/codequest/');
-    if (fetched && fetched.length > 0) return fetched;
+    if (fetched && fetched.length > 0) return { problems: fetched, usingFallback: false };
   } catch (error) {
     // Fallback to Codequest problem bank
   }
 
-  return [
+  const fallbackProblems: Problem[] = [
     {
       id: 101,
       title: 'Problem #142: Subarray Maximum Bitwise OR Value',
@@ -74,6 +75,8 @@ async function getProblems(): Promise<Problem[]> {
       external_platform: 'LeetCode',
     },
   ];
+
+  return { problems: fallbackProblems, usingFallback: true };
 }
 
 export default async function CodequestPage() {
@@ -88,7 +91,7 @@ export default async function CodequestPage() {
     );
   }
 
-  const problems = await getProblems();
+  const { problems, usingFallback } = await getProblems();
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
@@ -99,6 +102,13 @@ export default async function CodequestPage() {
           title="Daily Coding Streak & Leaderboard"
           description="Solve daily algorithmic problem challenges published at midnight, build your continuous coding streak, and earn leaderboard XP points!"
         />
+
+        {usingFallback && (
+          <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-2.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+            <Info className="h-4 w-4 shrink-0" />
+            <span>Showing sample data — live data is temporarily unavailable.</span>
+          </div>
+        )}
 
         <ScrollReveal className="space-y-6">
           <div data-reveal>
@@ -118,7 +128,7 @@ export default async function CodequestPage() {
 
                 <div className="flex items-center space-x-3 text-xs font-bold text-slate-500">
                   <span className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                    Midnight Reset: 02h 45m 12s
+                    <MidnightCountdown />
                   </span>
                 </div>
               </div>

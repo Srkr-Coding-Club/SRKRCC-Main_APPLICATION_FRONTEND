@@ -11,7 +11,7 @@ interface EventsRowProps {
   accent?: string;
 }
 
-const CARD_WIDTH = 340; // match EventCard's sm width
+const CARD_WIDTH = 300; // match EventCard's fixed w-[300px] width
 const CARD_GAP = 20; // gap-5
 
 export default function EventsRow({ title, events, accent = '#FF7A00' }: EventsRowProps) {

@@ -16,6 +16,7 @@ import {
   FileText,
   ShieldCheck,
   LogOut,
+  AlertCircle,
 } from 'lucide-react';
 import AuthLayout from '@/components/AuthLayout';
 import { loginUser, getStoredUser, isAuthenticated, clearAuthSession, AuthUser } from '@/lib/auth';
@@ -38,6 +39,7 @@ export default function LoginCard({
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -68,6 +70,7 @@ export default function LoginCard({
     setLoggedInUser(null);
     setEmail('');
     setPassword('');
+    setFieldErrors({});
     setSetupRequired(false);
     setSetupSent(false);
   };
@@ -97,8 +100,13 @@ export default function LoginCard({
     e.preventDefault();
     if (!email || !password) {
       toast.warning('Missing Details', 'Please enter your email and password.');
+      setFieldErrors({
+        email: !email ? 'Email is required.' : undefined,
+        password: !password ? 'Password is required.' : undefined,
+      });
       return;
     }
+    setFieldErrors({});
     setIsLoading(true);
 
     try {
@@ -126,7 +134,9 @@ export default function LoginCard({
         setSetupRequired(true);
         toast.warning('Password Setup Required', 'Your account was restored from backup. Please set up your password to activate it.');
       } else {
-        toast.error('Sign In Failed', err?.message || 'Login failed. Please check your credentials.');
+        const message = err?.message || 'Login failed. Please check your credentials.';
+        toast.error('Sign In Failed', message);
+        setFieldErrors({ password: message });
       }
     } finally {
       setIsLoading(false);
@@ -243,13 +253,27 @@ export default function LoginCard({
             <input
               type="email"
               required
+              autoComplete="email"
               placeholder="student@srkr.ac.in"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+              }}
               disabled={isLoading || success}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
+              className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
+                fieldErrors.email
+                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
+                  : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:ring-[#FF7A00]'
+              }`}
             />
           </div>
+          {fieldErrors.email && (
+            <p className="text-xs text-rose-500 font-semibold flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span>{fieldErrors.email}</span>
+            </p>
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -264,11 +288,19 @@ export default function LoginCard({
             <input
               type={showPassword ? 'text' : 'password'}
               required
+              autoComplete="current-password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+              }}
               disabled={isLoading || success}
-              className="w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
+              className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
+                fieldErrors.password
+                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
+                  : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:ring-[#FF7A00]'
+              }`}
             />
             <button
               type="button"
@@ -278,6 +310,12 @@ export default function LoginCard({
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+          {fieldErrors.password && (
+            <p className="text-xs text-rose-500 font-semibold flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span>{fieldErrors.password}</span>
+            </p>
+          )}
         </div>
 
         <button
