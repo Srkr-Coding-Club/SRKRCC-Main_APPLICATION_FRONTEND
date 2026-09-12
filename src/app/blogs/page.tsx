@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api-client';
 import { BlogPost } from '@/lib/types';
@@ -146,7 +147,7 @@ export default function BlogsPage() {
   const remainingBlogs = blogs.slice(1);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
 
         <PageHero
@@ -160,10 +161,12 @@ export default function BlogsPage() {
         {featuredPost && (
           <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0">
             <div className="lg:col-span-7 h-64 sm:h-80 lg:h-full relative overflow-hidden bg-slate-900">
-              <img
+              <Image
                 src={featuredPost.image_url || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80'}
                 alt={featuredPost.title}
-                className="w-full h-full object-cover transform hover:scale-105 transition duration-500"
+                fill
+                sizes="(min-width: 1024px) 58vw, 100vw"
+                className="object-cover transform hover:scale-105 transition duration-500"
               />
               <div className="absolute top-4 left-4">
                 <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[#8B2E3B] text-white shadow">
@@ -242,10 +245,12 @@ export default function BlogsPage() {
                   {/* Cover Image */}
                   {(post.image_url || post.cover_image) && (
                     <div className="relative h-48 w-full overflow-hidden bg-slate-900">
-                      <img
-                        src={post.image_url || post.cover_image}
+                      <Image
+                        src={post.image_url || post.cover_image || ''}
                         alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-90"
+                        fill
+                        sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                        className="object-cover group-hover:scale-105 transition duration-500 opacity-90"
                       />
                       <span className="absolute top-3 left-4 text-[11px] font-bold uppercase tracking-wider text-white bg-[#8B2E3B] px-2.5 py-0.5 rounded shadow">
                         {post.category || 'Tutorial'}

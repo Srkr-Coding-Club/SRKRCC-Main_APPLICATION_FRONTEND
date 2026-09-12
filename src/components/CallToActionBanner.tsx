@@ -1,16 +1,17 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import PillButton from './PillButton';
 import BrainLogo from './BrainLogo';
 
 export default function CallToActionBanner() {
+  const reduce = useReducedMotion();
   return (
     <section id="join" className="relative py-20 sm:py-28 bg-[var(--background)] transition-colors duration-300 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: reduce ? 0 : 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.7 }}

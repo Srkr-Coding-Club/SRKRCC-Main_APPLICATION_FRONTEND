@@ -10,7 +10,7 @@ interface ModuleUnavailableProps {
 
 export default function ModuleUnavailable({ moduleName, icon: Icon, description }: ModuleUnavailableProps) {
   return (
-    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-10 sm:p-16 text-center space-y-5">
           <div className="w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00] flex items-center justify-center mx-auto">

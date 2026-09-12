@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { User, Mail, Hash, BookOpen, Lock, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { User, Mail, Hash, BookOpen, Lock, ArrowRight, ShieldCheck, AlertCircle, Users, CheckCircle2, Loader2 } from 'lucide-react';
 import BrainLogo from '@/components/BrainLogo';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -25,6 +25,7 @@ function SignupContent() {
     branch: 'CSE',
     year: '2nd Year',
     role: 'MEMBER',
+    affiliateId: '',
     password: '',
     confirmPassword: '',
   });
@@ -75,6 +76,7 @@ function SignupContent() {
         branch: formData.branch,
         year: yearNumber,
         role: formData.role,
+        club_id: formData.affiliateId.trim() || undefined,
       });
 
       // 2. Auto Login
@@ -267,6 +269,28 @@ function SignupContent() {
               </div>
             </div>
 
+            {/* Affiliate ID (optional) — pre-assigned Club ID, if the member already has one */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[#1A1A2E] dark:text-white">
+                Affiliate ID <span className="normal-case font-medium text-slate-400">(optional)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Users className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="e.g. 25SCC277"
+                  value={formData.affiliateId}
+                  onChange={(e) => handleChange('affiliateId', e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                Already have a Club Affiliate ID from a club representative? Enter it here. Otherwise, leave blank — one will be assigned to you.
+              </p>
+            </div>
+
             {/* Password Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -334,11 +358,21 @@ function SignupContent() {
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || success}
                 className="w-full inline-flex items-center justify-center space-x-2 py-3.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition disabled:opacity-50"
               >
-                <span>{isLoading ? 'Creating Account...' : 'Create Account'}</span>
-                <ArrowRight className="w-4 h-4" />
+                {success ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Account created — redirecting…</span>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  </>
+                ) : (
+                  <>
+                    <span>{isLoading ? 'Creating Account...' : 'Create Account'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           </form>

@@ -16,6 +16,7 @@ import {
   BookOpen,
   GraduationCap,
 } from 'lucide-react';
+import Image from 'next/image';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -100,7 +101,7 @@ const FACTS = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         <PageHero
           icon={<Users className="h-4 w-4 text-[#FF7A00]" />}
@@ -152,12 +153,13 @@ export default function AboutPage() {
                 className="relative z-10 p-[2px] rounded-[10px]"
                 style={{ background: 'linear-gradient(135deg, #FFA500, #FF7A00 45%, #8B2E3B 85%)' }}
               >
-                <div className="relative overflow-hidden rounded-[10px] bg-white dark:bg-[#151722]">
-                  <img
+                <div className="relative h-[320px] sm:h-[400px] overflow-hidden rounded-[10px] bg-white dark:bg-[#151722]">
+                  <Image
                     src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1000&q=80"
                     alt="Students working together at laptops"
-                    loading="lazy"
-                    className="w-full h-[320px] sm:h-[400px] object-cover"
+                    fill
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    className="object-cover"
                   />
                   <div
                     aria-hidden="true"

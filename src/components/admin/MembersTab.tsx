@@ -234,7 +234,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
               <Users className="w-5 h-5 text-orange-500" />
               SRKR Coding Club Member Directory
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-black">
+            <span className="px-2.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400 text-xs font-black">
               {filteredMembers.length} Members
             </span>
           </div>
@@ -256,7 +256,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
             onClick={() => setIsEmailModalOpen(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition border border-slate-200 dark:border-slate-700"
           >
-            <Mail className="w-4 h-4 text-orange-400" />
+            <Mail className="w-4 h-4 text-orange-600 dark:text-orange-400" />
             <span>Broadcast Email</span>
           </button>
 
@@ -306,6 +306,16 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Status Color Legend */}
+      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Active
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-amber-500" /> Inactive / Alumni
+        </span>
       </div>
 
       {/* Members Directory Table */}
@@ -430,19 +440,21 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
       )}
 
       {/* Member Detail Drawer */}
-      <DetailDrawer
-        isOpen={Boolean(selectedMember)}
-        onClose={() => setSelectedMember(null)}
-        title="Member Information"
-      >
+      <AnimatePresence>
         {selectedMember && (
-          <MemberDetailContent
-            member={selectedMember}
-            onCopyClubId={handleCopyClubId}
-            copiedId={copiedId}
-          />
+          <DetailDrawer
+            isOpen={Boolean(selectedMember)}
+            onClose={() => setSelectedMember(null)}
+            title="Member Information"
+          >
+            <MemberDetailContent
+              member={selectedMember}
+              onCopyClubId={handleCopyClubId}
+              copiedId={copiedId}
+            />
+          </DetailDrawer>
         )}
-      </DetailDrawer>
+      </AnimatePresence>
 
       {/* Email Broadcast Modal */}
       <AnimatePresence>
@@ -468,7 +480,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                 </div>
                 <button
                   onClick={() => setIsEmailModalOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -496,7 +508,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                     className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
                   />
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Allowed parameters: <span className="font-mono text-orange-400">&#123;&#123;full_name&#125;&#125;</span>, <span className="font-mono text-orange-400">&#123;&#123;club_id&#125;&#125;</span>, <span className="font-mono text-orange-400">&#123;&#123;branch&#125;&#125;</span>, <span className="font-mono text-orange-400">&#123;&#123;email&#125;&#125;</span>.
+                    Allowed parameters: <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;full_name&#125;&#125;</span>, <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;club_id&#125;&#125;</span>, <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;branch&#125;&#125;</span>, <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;email&#125;&#125;</span>.
                   </p>
                 </div>
               </div>

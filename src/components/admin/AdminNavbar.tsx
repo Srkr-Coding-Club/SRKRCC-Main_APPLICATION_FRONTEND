@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -92,6 +92,10 @@ export default function AdminNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  // Click/keyboard-driven dropdown, independent of the hover-only state above —
+  // lets touch and keyboard users open a dropdown without a mouseenter event.
+  const [clickedDropdown, setClickedDropdown] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
@@ -113,6 +117,19 @@ export default function AdminNavbar() {
     };
   }, [mobileMenuOpen]);
 
+  // Click-outside closes a dropdown that was opened by click/keyboard (hover-opened
+  // dropdowns already close via onMouseLeave on the nav).
+  useEffect(() => {
+    if (!clickedDropdown) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setClickedDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [clickedDropdown]);
+
   const activeNavItem = navItems.find(
     (item) => pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false),
   );
@@ -120,6 +137,10 @@ export default function AdminNavbar() {
   // is hovered — so ONLY that tab gets white text. Previously the active tab
   // stayed white after the pill slid away to a hovered sibling.
   const pillLabel = hovered ?? activeNavItem?.label ?? null;
+
+  // Breadcrumb trail derived from the same navItems hierarchy — skipped entirely
+  // on the dashboard root or any path that doesn't map onto a known section.
+  const activeChild = activeNavItem?.children?.find((c) => pathname === c.href);
 
   return (
     <>
@@ -152,6 +173,7 @@ export default function AdminNavbar() {
 
           {/* Center — segmented sliding-pill nav, mirrors the public navbar's silhouette */}
           <nav
+            ref={navRef}
             className="hidden lg:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
             onMouseLeave={() => setHovered(null)}
           >
@@ -159,6 +181,7 @@ export default function AdminNavbar() {
               const isHovered = hovered === item.label;
               const hasPill = item.label === pillLabel;
               const Icon = item.icon;
+              const isDropdownOpen = !!item.hasDropdown && ((isHovered && dropdownOpen) || clickedDropdown === item.label);
 
               return (
                 <div
@@ -171,6 +194,16 @@ export default function AdminNavbar() {
                 >
                   <Link
                     href={item.href}
+                    onClick={(e) => {
+                      if (!item.hasDropdown) return;
+                      e.preventDefault();
+                      setClickedDropdown((prev) => (prev === item.label ? null : item.label));
+                    }}
+                    onFocus={() => {
+                      if (item.hasDropdown) setClickedDropdown(item.label);
+                    }}
+                    aria-haspopup={item.hasDropdown ? 'true' : undefined}
+                    aria-expanded={item.hasDropdown ? isDropdownOpen : undefined}
                     className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors duration-200 ${
                       hasPill
                         ? 'text-white'
@@ -180,7 +213,7 @@ export default function AdminNavbar() {
                     <Icon className="w-3.5 h-3.5" />
                     {item.shortLabel}
                     {item.hasDropdown && (
-                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${dropdownOpen && isHovered ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                     )}
                   </Link>
 
@@ -195,7 +228,7 @@ export default function AdminNavbar() {
 
                   {item.hasDropdown && (
                     <AnimatePresence>
-                      {isHovered && dropdownOpen && (
+                      {isDropdownOpen && (
                         <motion.div
                           initial={{ opacity: 0, y: 6, scale: 0.97 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -210,6 +243,7 @@ export default function AdminNavbar() {
                                 <Link
                                   key={child.label}
                                   href={child.href}
+                                  onClick={() => setClickedDropdown(null)}
                                   className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition-colors"
                                 >
                                   <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-[#FF7A00] transition-colors">
@@ -278,6 +312,32 @@ export default function AdminNavbar() {
         </div>
       </div>
     </header>
+
+      {/* Breadcrumb strip — derived from navItems, hidden on the dashboard root  */}
+      {/* and on any path that doesn't map onto a known top-level section.       */}
+      {activeNavItem && pathname !== '/admin' && (
+        <div className="w-full border-b border-black/[0.04] dark:border-white/[0.06] bg-[var(--background)]/60">
+          <div className="max-w-[1600px] mx-auto px-5 sm:px-8 py-2">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#1A1A2E]/45 dark:text-white/40">
+              <Link href="/admin" className="hover:text-[#FF7A00] transition-colors">
+                Admin
+              </Link>
+              <span className="text-[#1A1A2E]/25 dark:text-white/20">/</span>
+              {activeChild ? (
+                <>
+                  <Link href={activeNavItem.href} className="hover:text-[#FF7A00] transition-colors">
+                    {activeNavItem.label}
+                  </Link>
+                  <span className="text-[#1A1A2E]/25 dark:text-white/20">/</span>
+                  <span className="text-[#1A1A2E]/70 dark:text-white/60">{activeChild.label}</span>
+                </>
+              ) : (
+                <span className="text-[#1A1A2E]/70 dark:text-white/60">{activeNavItem.label}</span>
+              )}
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* Fullscreen mobile menu — rendered as a sibling of <header>, not a       */}
       {/* descendant, for the same backdrop-filter containing-block reason       */}

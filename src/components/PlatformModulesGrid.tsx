@@ -92,8 +92,7 @@ function RailColumn({ m, isActive, enabled, onActivate }: { m: ModuleItem; isAct
     <div
       onMouseEnter={onActivate}
       onFocus={onActivate}
-      className="relative h-[26rem] rounded-3xl overflow-hidden transition-[flex-grow] duration-500 ease-out"
-      style={{ flexGrow: isActive ? 5 : 1, flexBasis: 0, minWidth: isActive ? undefined : 88 }}
+      className="relative h-[26rem] min-w-0 rounded-3xl overflow-hidden"
     >
       <div className="absolute inset-0">
         <div
@@ -310,17 +309,23 @@ export default function PlatformModulesGrid({ enabledMap }: { enabledMap: Record
             transition={{ duration: 0.5, delay: 0.16 }}
             className="mt-5 text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed"
           >
-            Hover a module to open it up. Every tool controlled dynamically via feature flags.
+            <span className="hidden lg:inline">Hover a module to open it up.</span>
+            <span className="lg:hidden">Tap a module to open it up.</span>{' '}
+            Every tool controlled dynamically via feature flags.
           </motion.p>
         </div>
 
-        {/* Desktop — expanding rail */}
+        {/* Desktop — expanding rail. A single grid-template-columns transition on
+            this container (rather than a flex-grow transition on every column)
+            keeps the reflow-on-hover contained to one property on one element
+            instead of six. */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.6 }}
-          className="hidden lg:flex gap-3"
+          className="hidden lg:grid gap-3 transition-[grid-template-columns] duration-500 ease-out"
+          style={{ gridTemplateColumns: MODULES.map((m) => (m.key === activeKey ? '5fr' : '1fr')).join(' ') }}
         >
           {MODULES.map((m) => (
             <RailColumn

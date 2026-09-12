@@ -25,24 +25,39 @@ const errorClass = 'border-rose-500 focus:border-rose-500 focus:ring-rose-500';
 export const SpotlightInput = React.forwardRef<
   HTMLInputElement,
   React.InputHTMLAttributes<HTMLInputElement> & { hasError?: boolean }
->(({ className, hasError, ...props }, ref) => (
-  <input ref={ref} className={cn(fieldBaseClass, 'h-10', hasError && errorClass, className)} {...props} />
+>(({ className, hasError, 'aria-invalid': ariaInvalid, ...props }, ref) => (
+  <input
+    ref={ref}
+    aria-invalid={ariaInvalid ?? hasError ?? undefined}
+    className={cn(fieldBaseClass, 'h-10', hasError && errorClass, className)}
+    {...props}
+  />
 ));
 SpotlightInput.displayName = 'SpotlightInput';
 
 export const SpotlightTextarea = React.forwardRef<
   HTMLTextAreaElement,
   React.TextareaHTMLAttributes<HTMLTextAreaElement> & { hasError?: boolean }
->(({ className, hasError, ...props }, ref) => (
-  <textarea ref={ref} className={cn(fieldBaseClass, 'resize-y', hasError && errorClass, className)} {...props} />
+>(({ className, hasError, 'aria-invalid': ariaInvalid, ...props }, ref) => (
+  <textarea
+    ref={ref}
+    aria-invalid={ariaInvalid ?? hasError ?? undefined}
+    className={cn(fieldBaseClass, 'resize-y', hasError && errorClass, className)}
+    {...props}
+  />
 ));
 SpotlightTextarea.displayName = 'SpotlightTextarea';
 
 export const SpotlightSelect = React.forwardRef<
   HTMLSelectElement,
   React.SelectHTMLAttributes<HTMLSelectElement> & { hasError?: boolean }
->(({ className, hasError, children, ...props }, ref) => (
-  <select ref={ref} className={cn(fieldBaseClass, 'h-10', hasError && errorClass, className)} {...props}>
+>(({ className, hasError, children, 'aria-invalid': ariaInvalid, ...props }, ref) => (
+  <select
+    ref={ref}
+    aria-invalid={ariaInvalid ?? hasError ?? undefined}
+    className={cn(fieldBaseClass, 'h-10', hasError && errorClass, className)}
+    {...props}
+  >
     {children}
   </select>
 ));
@@ -60,7 +75,12 @@ export function FieldLabel({
   return (
     <label htmlFor={htmlFor} className="block text-sm font-semibold text-[#1A1A2E] dark:text-white">
       {children}
-      {required && <span className="text-rose-500"> *</span>}
+      {required && (
+        <>
+          <span className="text-rose-500" aria-hidden="true"> *</span>
+          <span className="sr-only">(required)</span>
+        </>
+      )}
     </label>
   );
 }

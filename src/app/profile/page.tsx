@@ -27,6 +27,8 @@ import {
 import BrainLogo from '@/components/BrainLogo';
 import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated, AuthUser } from '@/lib/auth';
 import { fetchApi } from '@/lib/api-client';
+import { ordinalYear } from '@/lib/utils';
+import { EditProfileModal } from '@/components/EditProfileModal';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,6 +63,8 @@ interface FullUserProfile {
   branch?: string;
   year?: number | string;
   phone_number?: string;
+  github_profile?: string;
+  linkedin_profile?: string;
   registered_at?: string;
   referred_by_display?: string;
   streak: number;
@@ -80,6 +84,9 @@ function ProfileContent() {
   const [profile, setProfile] = useState<FullUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedClubId, setCopiedClubId] = useState(false);
+  const [refreshError, setRefreshError] = useState(false);
+  const [refreshAttempt, setRefreshAttempt] = useState(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -102,6 +109,9 @@ function ProfileContent() {
         roll_number: localUser.roll_number,
         branch: localUser.branch,
         year: localUser.year,
+        phone_number: localUser.phone_number,
+        github_profile: localUser.github_profile,
+        linkedin_profile: localUser.linkedin_profile,
         registered_at: localUser.registered_at,
         referred_by_display: localUser.referred_by_display,
         streak: 0,
@@ -114,6 +124,7 @@ function ProfileContent() {
     }
 
     // Fetch live, real-time calculated database profile
+    setRefreshError(false);
     fetchApi<FullUserProfile>('/auth/me/')
       .then((data) => {
         if (data && data.email) {
@@ -130,29 +141,59 @@ function ProfileContent() {
             roll_number: data.roll_number,
             branch: data.branch,
             year: data.year,
+            phone_number: data.phone_number,
+            github_profile: data.github_profile,
+            linkedin_profile: data.linkedin_profile,
             registered_at: data.registered_at,
             referred_by_display: data.referred_by_display,
           });
         }
       })
       .catch(() => {
-        // Tolerant fallback
+        // Tolerant fallback — keep showing the cached/local profile, but let the user know.
+        setRefreshError(true);
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [router]);
+  }, [router, refreshAttempt]);
 
   const handleLogout = () => {
     clearAuthSession();
     router.push('/login');
   };
 
-  const copyClubId = (clubId: string) => {
-    navigator.clipboard.writeText(clubId);
-    setCopiedClubId(true);
-    toast.success('Club ID Copied', `Copied ${clubId} to clipboard.`);
-    setTimeout(() => setCopiedClubId(false), 2000);
+  const handleProfileUpdated = (data: FullUserProfile) => {
+    setProfile((prev) => (prev ? { ...prev, ...data } : data));
+    setStoredUser({
+      id: data.id,
+      email: data.email,
+      username: data.username,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      role: data.role as any,
+      club_id: data.club_id,
+      membership_status: data.membership_status,
+      roll_number: data.roll_number,
+      branch: data.branch,
+      year: data.year,
+      phone_number: data.phone_number,
+      github_profile: data.github_profile,
+      linkedin_profile: data.linkedin_profile,
+      registered_at: data.registered_at,
+      referred_by_display: data.referred_by_display,
+    });
+  };
+
+  const copyClubId = async (clubId: string) => {
+    try {
+      await navigator.clipboard.writeText(clubId);
+      setCopiedClubId(true);
+      toast.success('Club ID Copied', `Copied ${clubId} to clipboard.`);
+      setTimeout(() => setCopiedClubId(false), 2000);
+    } catch {
+      toast.error('Copy Failed', 'Could not copy the Club ID to your clipboard.');
+    }
   };
 
   const user = {
@@ -164,7 +205,7 @@ function ProfileContent() {
     membershipStatus: profile?.membership_status || 'ACTIVE',
     rollNumber: profile?.roll_number || 'Not set',
     branch: profile?.branch || 'Not set',
-    year: profile?.year ? `${profile.year}th Year` : 'Not set',
+    year: profile?.year ? ordinalYear(Number(profile.year)) : 'Not set',
     role: profile?.role || 'MEMBER',
     registeredAt: profile?.registered_at ? new Date(profile.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
     referredBy: profile?.referred_by_display || null,
@@ -180,7 +221,24 @@ function ProfileContent() {
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8">
-        
+
+        {/* Stale Profile Refresh Notice */}
+        {refreshError && (
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
+            <span>Couldn&apos;t refresh your profile — showing cached data.</span>
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                setRefreshAttempt((prev) => prev + 1);
+              }}
+              className="font-bold text-[#FF7A00] hover:text-[#E06B00] transition flex-shrink-0"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Top Profile Header Banner */}
         <div className="bg-white dark:bg-[#151722] rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
@@ -262,7 +320,7 @@ function ProfileContent() {
             )}
 
             <button
-              onClick={() => toast.info('Profile Settings', 'Profile details are synchronized with SRKR student records.')}
+              onClick={() => setIsEditModalOpen(true)}
               className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
             >
               <Settings className="w-4 h-4" />
@@ -466,6 +524,13 @@ function ProfileContent() {
         </div>
 
       </div>
+
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        profile={profile}
+        onSaved={handleProfileUpdated}
+      />
     </div>
   );
 }

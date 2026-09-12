@@ -60,6 +60,7 @@ export default function PageHero({
   const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const root = rootRef.current;
     if (!root) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const r = root.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width - 0.5;
     const py = (e.clientY - r.top) / r.height - 0.5;

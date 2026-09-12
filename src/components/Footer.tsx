@@ -73,7 +73,7 @@ export default function Footer() {
                   <span className="font-poppins font-extrabold text-[15px] bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
                     SRKR
                   </span>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-[#1A1A2E]/45 dark:text-white/40">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#1A1A2E]/45 dark:text-white/40">
                     Coding Club
                   </span>
                 </div>
@@ -93,7 +93,7 @@ export default function Footer() {
                     href={href}
                     target="_blank"
                     rel="noreferrer"
-                    className="group relative w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
+                    className="group relative w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
                     aria-label={label}
                   >
                     <span className="absolute inset-0 rounded-full blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300 bg-[#FF7A00] -z-10" />
@@ -168,7 +168,7 @@ export default function Footer() {
               </span>
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="w-8 h-8 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
+                className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
                 aria-label="Back to top"
               >
                 <ArrowUp className="w-3.5 h-3.5" />

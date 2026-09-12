@@ -91,7 +91,7 @@ export function ManualEntryModal({
         {/* Form Fields for Manual Entry */}
         <form onSubmit={handleFormSubmit} className="space-y-4 max-h-[58vh] overflow-y-auto pr-1">
           {activeFields.length === 0 ? (
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
               This form has no configured input fields.
             </div>
           ) : (

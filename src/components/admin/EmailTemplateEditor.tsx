@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Mail, X, Sparkles, Loader2, Send, PlusCircle, ListChecks } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Mail, X, Sparkles, Loader2, Send, PlusCircle, ListChecks, Eye, Pencil } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
 import { EmailTemplateSummary } from '@/lib/types';
 import { useToast } from '@/context/ToastContext';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 // Mirrors GLOBAL_ALLOWED_PARAMETERS in apps/core/services/email_service.py — every
 // chip inserted here is guaranteed to render server-side, since the backend rejects
@@ -12,6 +13,17 @@ import { useToast } from '@/context/ToastContext';
 const PLACEHOLDER_CHIPS = [
   'full_name', 'first_name', 'email', 'club_id', 'branch', 'portal_url', 'login_url',
 ] as const;
+
+// Realistic stand-in values so admins can see a rendered preview before sending.
+const SAMPLE_PLACEHOLDER_VALUES: Record<(typeof PLACEHOLDER_CHIPS)[number], string> = {
+  full_name: 'Aditi Sharma',
+  first_name: 'Aditi',
+  email: 'aditi.sharma@srkr.ac.in',
+  club_id: '25SCC142',
+  branch: 'CSE',
+  portal_url: 'https://srkrcc.com/profile',
+  login_url: 'https://srkrcc.com/login',
+};
 
 export interface EmailRecipient {
   email: string;
@@ -41,6 +53,10 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
   const [body, setBody] = useState('');
   const [campaignName, setCampaignName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(true);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, open);
 
   useEffect(() => {
     if (!open) return;
@@ -53,10 +69,58 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
       .finally(() => setLoadingTemplates(false));
   }, [open]);
 
+  const handleClose = () => {
+    const hasUnsavedDraft = tab === 'new' && (subject.trim() || body.trim());
+    if (hasUnsavedDraft && !window.confirm('Discard this draft? Your unsaved subject and message will be lost.')) {
+      return;
+    }
+    onClose();
+  };
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, tab, subject, body, onClose]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
   if (!open) return null;
 
   const insertChip = (chip: string) => {
     setBody((prev) => `${prev}{{${chip}}}`);
+  };
+
+  // Prefer the first real recipient's own data where available; sample data covers the
+  // rest (club_id/branch/portal_url/login_url aren't known client-side from EmailRecipient).
+  const getPreviewValues = (): Record<string, string> => {
+    const values: Record<string, string> = { ...SAMPLE_PLACEHOLDER_VALUES };
+    const first = mode === 'send' ? recipients[0] : undefined;
+    if (first?.email) values.email = first.email;
+    if (first?.name) {
+      values.full_name = first.name;
+      values.first_name = first.name.trim().split(/\s+/)[0];
+    }
+    return values;
+  };
+
+  const renderPreviewText = (text: string) => {
+    const values = getPreviewValues();
+    return text.replace(/\{\{(\w+)\}\}/g, (match, key) => (key in values ? values[key] : match));
   };
 
   const handleUseExisting = () => {
@@ -101,9 +165,32 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
       } finally {
         setSubmitting(false);
       }
+    } else if (saveAsTemplate) {
+      // Persist the broadcast as a real, reusable EmailTemplate before dispatching so it
+      // isn't lost after this one send — same pattern as the mode === 'select' branch above.
+      setSubmitting(true);
+      try {
+        const name = `dmc_broadcast_${Date.now().toString(36)}`;
+        const created = await fetchApi<{ id: number; name: string }>('/auth/email-templates/', {
+          method: 'POST',
+          body: JSON.stringify({
+            name,
+            display_title: campaignName || 'DMC Broadcast',
+            subject_template: subject,
+            html_template: `<p>${body.replace(/\n/g, '</p><p>')}</p>`,
+            text_template: body,
+            allowed_parameters: PLACEHOLDER_CHIPS,
+          }),
+        });
+        await dispatchSend({ template_id: created.id });
+      } catch (err: any) {
+        toast.error('Save Failed', err?.message || 'Could not save the template.');
+      } finally {
+        setSubmitting(false);
+      }
     } else {
-      // DMC ad-hoc send: EmailDispatchView auto-creates a lightweight template from
-      // template_name + subject_template + message when no template_id is given.
+      // Opted out of saving: EmailDispatchView auto-creates a throwaway lightweight
+      // template from template_name + subject_template + message when no template_id is given.
       dispatchSend({
         template_name: `dmc_broadcast_${Date.now().toString(36)}`,
         subject_template: subject,
@@ -139,7 +226,13 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-[#151722] rounded-xl max-w-2xl w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        className="bg-white dark:bg-[#151722] rounded-xl max-w-2xl w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto"
+      >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center space-x-2">
             <Mail className="w-5 h-5 text-[#FF7A00]" />
@@ -147,7 +240,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
               {mode === 'select' ? 'Confirmation Email Template' : 'Email Selected Members'}
             </h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-white">
+          <button onClick={handleClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -253,42 +346,77 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
                 />
               </div>
             )}
-            <div>
-              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Subject Line *</label>
-              <input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="e.g. Welcome to SRKR Coding Club, {{full_name}}!"
-                className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
-              />
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setShowPreview((p) => !p)}
+                className="flex items-center gap-1 text-[10px] font-bold uppercase text-slate-500 hover:text-[#FF7A00] transition"
+              >
+                {showPreview ? <Pencil className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                {showPreview ? 'Edit' : 'Preview'}
+              </button>
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-[10px] font-bold uppercase text-slate-500">Message Body *</label>
+            {showPreview ? (
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-4 space-y-2">
+                <p className="text-[10px] font-bold uppercase text-slate-400">Rendered Preview</p>
+                <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">
+                  {subject.trim() ? renderPreviewText(subject) : <span className="font-normal italic text-slate-400">No subject yet</span>}
+                </p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                  {body.trim() ? renderPreviewText(body) : <span className="italic text-slate-400">No message yet</span>}
+                </p>
               </div>
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={6}
-                placeholder="Hi {{full_name}}, thanks for registering! Your Club ID is {{club_id}}."
-                className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 font-mono"
-              />
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {PLACEHOLDER_CHIPS.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => insertChip(chip)}
-                    className="text-[10px] font-mono px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:text-[#FF7A00] transition"
-                  >
-                    {`{{${chip}}}`}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1">
-                Only these placeholders are recognized — anything else is rejected before sending.
-              </p>
-            </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Subject Line *</label>
+                  <input
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="e.g. Welcome to SRKR Coding Club, {{full_name}}!"
+                    className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-bold uppercase text-slate-500">Message Body *</label>
+                  </div>
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={6}
+                    placeholder="Hi {{full_name}}, thanks for registering! Your Club ID is {{club_id}}."
+                    className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 font-mono"
+                  />
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {PLACEHOLDER_CHIPS.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => insertChip(chip)}
+                        className="text-[10px] font-mono px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:text-[#FF7A00] transition"
+                      >
+                        {`{{${chip}}}`}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Only these placeholders are recognized — anything else is rejected before sending.
+                  </p>
+                </div>
+              </>
+            )}
+            {mode === 'send' && (
+              <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={saveAsTemplate}
+                  onChange={(e) => setSaveAsTemplate(e.target.checked)}
+                  className="rounded"
+                />
+                Save as reusable template
+              </label>
+            )}
             <button
               onClick={handleUseNew}
               disabled={submitting}

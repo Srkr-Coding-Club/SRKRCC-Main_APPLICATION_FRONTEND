@@ -89,7 +89,7 @@ export default async function CareerPage() {
   const { jobs, usingFallback } = await getJobs();
 
   return (
-    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
 
         <PageHero

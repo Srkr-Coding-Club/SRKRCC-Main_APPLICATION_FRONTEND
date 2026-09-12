@@ -88,7 +88,13 @@ export async function fetchAndSyncCurrentUser(): Promise<AuthUser | null> {
       credentials: 'include',
       cache: 'no-store',
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // The server rejected the session outright (e.g. expired/invalidated),
+      // but the localStorage user + role cookie can outlive it — clear them so
+      // isAuthenticated() stops reporting a session that no longer exists.
+      clearAuthSession();
+      return null;
+    }
     const data = await res.json();
     if (data && data.email) {
       const user: AuthUser = {
@@ -165,6 +171,7 @@ export async function registerUser(payload: Record<string, any>): Promise<any> {
       err.email?.[0] ||
       err.username?.[0] ||
       err.password?.[0] ||
+      err.club_id?.[0] ||
       err.detail ||
       'Registration failed. Please check your details.';
     throw new Error(message);

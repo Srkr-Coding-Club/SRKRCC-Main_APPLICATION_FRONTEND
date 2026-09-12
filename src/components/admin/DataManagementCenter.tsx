@@ -156,6 +156,17 @@ function Sidebar({ grouped, active, onSelect, loading, open, onClose }: SidebarP
           </button>
         </div>
         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Select a dataset to view and manage</p>
+        <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1 mt-2 text-[10px] text-slate-500 dark:text-slate-400">
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> OK
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Degraded
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Critical
+          </span>
+        </div>
       </div>
       <div className="flex-1 py-3 px-2 space-y-4">
         {loading ? (
@@ -279,10 +290,25 @@ function FilterBar({
   onFilterChange: (clauses: FilterClause[]) => void;
   onClearAll: () => void;
 }) {
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const addFilterMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showFilterMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addFilterMenuRef.current && !addFilterMenuRef.current.contains(e.target as Node)) {
+        setShowFilterMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilterMenu]);
+
   const addFilter = (filter: FilterDefinition) => {
     if (activeFilters.find(f => f.field === filter.key)) return;
     const def = filter.options[0];
     onFilterChange([...activeFilters, { field: filter.key, operator: filter.operators[0], value: def?.value ?? '' }]);
+    setShowFilterMenu(false);
   };
 
   const updateFilter = (idx: number, partial: Partial<FilterClause>) => {
@@ -337,17 +363,24 @@ function FilterBar({
         );
       })}
       {availableFilters.length > 0 && (
-        <div className="relative group">
-          <button className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-dashed border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 hover:border-slate-400 bg-white dark:bg-slate-800 shadow-xs transition-colors">
+        <div className="relative" ref={addFilterMenuRef}>
+          <button
+            onClick={() => setShowFilterMenu(v => !v)}
+            aria-haspopup="true"
+            aria-expanded={showFilterMenu}
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-dashed border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 hover:border-slate-400 bg-white dark:bg-slate-800 shadow-xs transition-colors"
+          >
             <Filter className="w-3 h-3 text-blue-500" /> Add Filter
           </button>
-          <div className="absolute top-10 left-0 z-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl w-52 py-1 hidden group-hover:block">
-            {availableFilters.map(f => (
-              <button key={f.key} onClick={() => addFilter(f)} className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 transition">
-                {f.label}
-              </button>
-            ))}
-          </div>
+          {showFilterMenu && (
+            <div className="absolute top-10 left-0 z-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl w-52 py-1">
+              {availableFilters.map(f => (
+                <button key={f.key} onClick={() => addFilter(f)} className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 transition">
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {activeFilters.length > 0 && (

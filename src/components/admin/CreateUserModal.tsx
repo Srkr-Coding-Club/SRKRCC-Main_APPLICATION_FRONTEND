@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { UserPlus, X, Loader2 } from 'lucide-react';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ interface CreateUserModalProps {
     rollNumber: string;
     branch: string;
     year: string;
-    role: 'MEMBER' | 'CONTRIBUTOR' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
     password: string;
   };
   setNewUser: React.Dispatch<React.SetStateAction<{
@@ -22,13 +23,38 @@ interface CreateUserModalProps {
     rollNumber: string;
     branch: string;
     year: string;
-    role: 'MEMBER' | 'CONTRIBUTOR' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
     password: string;
   }>>;
 }
 
 export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser }: CreateUserModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, isOpen);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,13 +68,19 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-[#151722] rounded-xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        className="bg-white dark:bg-[#151722] rounded-xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6"
+      >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center space-x-2">
             <UserPlus className="w-5 h-5 text-[#FF7A00]" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Create New User Account</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -126,12 +158,11 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
                 className="w-full px-3.5 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
               >
                 <option value="MEMBER">MEMBER</option>
-                <option value="CONTRIBUTOR">CONTRIBUTOR</option>
                 <option value="VOLUNTEER">VOLUNTEER</option>
-                <option value="JUDGE">JUDGE</option>
-                <option value="CLUB_LEAD">CLUB_LEAD</option>
-                <option value="ADMIN">ADMIN</option>
               </select>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Judge, Club Lead, or Admin can be granted afterward from the Users tab.
+              </p>
             </div>
           </div>
 

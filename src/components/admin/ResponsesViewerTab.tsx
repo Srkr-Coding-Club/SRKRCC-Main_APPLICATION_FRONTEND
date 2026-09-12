@@ -15,8 +15,12 @@ import {
   ChevronRight,
   BarChart3,
   AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  RotateCw,
 } from 'lucide-react';
-import { Form, FormField, ResponseDetail, PaginatedResponse } from '@/lib/types';
+import { Form, FormField, ResponseDetail, PaginatedResponse, ConfirmationEmailStatus } from '@/lib/types';
 import { starsDisplay, downloadCSV, groupByDay } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
 import { useToast } from '@/context/ToastContext';
@@ -85,6 +89,7 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
               download={name}
               target="_blank"
               rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="flex flex-col items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 font-semibold max-w-[120px]"
               title={name}
             >
@@ -117,7 +122,66 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
   );
 }
 
-function ResponseDrawerContent({ response, form }: { response: ResponseDetail; form: Form }) {
+function ConfirmationEmailBadge({ status }: { status: ConfirmationEmailStatus | null | undefined }) {
+  if (!status) {
+    return <span className="text-slate-400 italic text-[11px]">Not sent</span>;
+  }
+  const config = {
+    SENT: { icon: CheckCircle2, cls: 'text-emerald-600 dark:text-emerald-400', label: 'Sent' },
+    PENDING: { icon: Clock, cls: 'text-amber-600 dark:text-amber-400', label: 'Pending' },
+    RETRYING: { icon: Clock, cls: 'text-amber-600 dark:text-amber-400', label: 'Retrying' },
+    FAILED: { icon: XCircle, cls: 'text-rose-600 dark:text-rose-400', label: 'Failed' },
+  }[status.status] ?? { icon: Clock, cls: 'text-slate-500', label: status.status };
+  const Icon = config.icon;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold ${config.cls}`}
+      title={status.error_message || status.recipient_email || undefined}
+    >
+      <Icon className="w-3 h-3" /> {config.label}
+    </span>
+  );
+}
+
+function ConfirmationEmailCell({
+  response,
+  formConfirmationEnabled,
+  onResend,
+  resending,
+}: {
+  response: ResponseDetail;
+  formConfirmationEnabled: boolean;
+  onResend: (id: number) => void;
+  resending: boolean;
+}) {
+  if (!formConfirmationEnabled && !response.confirmation_email) {
+    return <span className="text-slate-400 text-[11px]">—</span>;
+  }
+  return (
+    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      <ConfirmationEmailBadge status={response.confirmation_email} />
+      {formConfirmationEnabled && (
+        <button
+          onClick={() => onResend(response.id)}
+          disabled={resending}
+          title={response.confirmation_email ? 'Resend confirmation email' : 'Send confirmation email'}
+          className="text-slate-400 hover:text-[#FF7A00] disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <RotateCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ResponseDrawerContent({
+  response, form, onResend, resending,
+}: {
+  response: ResponseDetail;
+  form: Form;
+  onResend: (id: number) => void;
+  resending: boolean;
+}) {
   return (
     <div className="space-y-6">
       {/* Meta */}
@@ -143,6 +207,29 @@ function ResponseDrawerContent({ response, form }: { response: ResponseDetail; f
             </div>
           ))}
         </div>
+        {(form.confirmation_email_enabled || response.confirmation_email) && (
+          <div className="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Confirmation Email</div>
+              <div className="mt-1"><ConfirmationEmailBadge status={response.confirmation_email} /></div>
+              {response.confirmation_email?.error_message && (
+                <p className="text-[10px] text-rose-500 mt-1 max-w-[220px] truncate" title={response.confirmation_email.error_message}>
+                  {response.confirmation_email.error_message}
+                </p>
+              )}
+            </div>
+            {form.confirmation_email_enabled && (
+              <button
+                onClick={() => onResend(response.id)}
+                disabled={resending}
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0"
+              >
+                <RotateCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
+                {response.confirmation_email ? 'Resend' : 'Send Now'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {/* Answers */}
       <div className="space-y-3">
@@ -170,6 +257,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [manualOnly, setManualOnly] = useState(false);
@@ -177,6 +265,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [drawerResponse, setDrawerResponse] = useState<ResponseDetail | null>(null);
   const [showEmailEditor, setShowEmailEditor] = useState(false);
+  const [resendingIds, setResendingIds] = useState<Set<number>>(new Set());
 
   const selectedForm = forms.find((f) => f.slug === selectedSlug) ?? null;
   const fieldColumns: FormField[] = useMemo(
@@ -191,7 +280,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       const params = new URLSearchParams({
         page: String(page),
         page_size: '20',
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(dateFrom && { date_from: dateFrom }),
         ...(dateTo && { date_to: dateTo }),
         ...(manualOnly && { manual_only: 'true' }),
@@ -205,10 +294,16 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       toast.error('Failed to Load Responses', err?.message || 'Is the backend running?');
     }
     setLoading(false);
-  }, [selectedSlug, page, search, dateFrom, dateTo, manualOnly, toast]);
+  }, [selectedSlug, page, debouncedSearch, dateFrom, dateTo, manualOnly, toast]);
+
+  // Debounce the raw search input so we don't fire a request per keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => { loadResponses(); }, [loadResponses]);
-  useEffect(() => { setPage(1); }, [selectedSlug, search, dateFrom, dateTo, manualOnly]);
+  useEffect(() => { setPage(1); }, [selectedSlug, debouncedSearch, dateFrom, dateTo, manualOnly]);
 
   const timelineData = useMemo(() => {
     const timestamps = data?.results?.map((r) => r.submitted_at) ?? [];
@@ -280,6 +375,37 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
     const seen = new Set<string>();
     return emails.filter((r) => (seen.has(r.email) ? false : (seen.add(r.email), true)));
   }, [data, selectedIds]);
+
+  const handleResend = async (responseId: number) => {
+    setResendingIds((prev) => new Set(prev).add(responseId));
+    try {
+      const result = await fetchApi<{ success: boolean; status: string; recipient_email: string | null }>(
+        `/forms/submissions/${responseId}/resend-confirmation-email/`,
+        { method: 'POST' }
+      );
+      const updated: ConfirmationEmailStatus = {
+        status: (result.status as ConfirmationEmailStatus['status']) || 'SENT',
+        sent_at: new Date().toISOString(),
+        error_message: '',
+        recipient_email: result.recipient_email || '',
+      };
+      setData((prev) =>
+        prev
+          ? { ...prev, results: prev.results.map((r) => (r.id === responseId ? { ...r, confirmation_email: updated } : r)) }
+          : prev
+      );
+      setDrawerResponse((prev) => (prev && prev.id === responseId ? { ...prev, confirmation_email: updated } : prev));
+      toast.success('Confirmation Email Sent', result.recipient_email ? `Sent to ${result.recipient_email}.` : 'Sent successfully.');
+    } catch (err: any) {
+      toast.error('Send Failed', err?.message || 'Could not send the confirmation email.');
+    } finally {
+      setResendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(responseId);
+        return next;
+      });
+    }
+  };
 
   const handleBulkDelete = () => {
     toast.info('Bulk Delete Not Available', 'Deleting responses isn’t supported from this view yet — use Django Admin to remove them.');
@@ -430,6 +556,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                       Respondent
                     </th>
                     <th className="px-4 py-3 font-bold whitespace-nowrap">Submitted</th>
+                    <th className="px-4 py-3 font-bold whitespace-nowrap">Confirmation Email</th>
                     {fieldColumns.map((f) => (
                       <th key={f.id} className="px-4 py-3 font-bold whitespace-nowrap min-w-[120px]">
                         {f.label}
@@ -476,6 +603,14 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                             dateStyle: 'medium',
                             timeStyle: 'short',
                           })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <ConfirmationEmailCell
+                            response={resp}
+                            formConfirmationEnabled={!!selectedForm?.confirmation_email_enabled}
+                            onResend={handleResend}
+                            resending={resendingIds.has(resp.id)}
+                          />
                         </td>
                         {fieldColumns.map((f) => {
                           const ans = getAnswerForField(resp, f.id);
@@ -527,7 +662,12 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             onClose={() => setDrawerResponse(null)}
             title={`Response #${drawerResponse.id}`}
           >
-            <ResponseDrawerContent response={drawerResponse} form={selectedForm} />
+            <ResponseDrawerContent
+              response={drawerResponse}
+              form={selectedForm}
+              onResend={handleResend}
+              resending={resendingIds.has(drawerResponse.id)}
+            />
           </DetailDrawer>
         )}
       </AnimatePresence>

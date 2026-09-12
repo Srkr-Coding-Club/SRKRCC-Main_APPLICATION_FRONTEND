@@ -9,7 +9,7 @@ export default function ForbiddenPage() {
         {/* 403 Header Badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500 font-mono text-xs uppercase tracking-wider">
           <ShieldAlert className="w-3.5 h-3.5" />
-          HTTP 403 Forbidden
+          HTTP 403 Error
         </div>
 
         <div className="space-y-3">
@@ -17,10 +17,10 @@ export default function ForbiddenPage() {
             403
           </h1>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Access Restricted
+            Admin Clearance Required
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-            You do not have the required administrative clearance (<strong>ADMIN</strong> or <strong>CLUB_LEAD</strong>) to view or manage this resource.
+            This module is protected by SRKR Coding Club Role-Based Access Control. Only users with <strong>ADMIN</strong> or <strong>CLUB_LEAD</strong> permissions can access it.
           </p>
         </div>
 
@@ -31,7 +31,7 @@ export default function ForbiddenPage() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-lg shadow-orange-500/25 transition"
           >
             <LogIn className="w-4 h-4" />
-            Sign in with Admin Credentials
+            Sign in as Admin
           </Link>
 
           <Link

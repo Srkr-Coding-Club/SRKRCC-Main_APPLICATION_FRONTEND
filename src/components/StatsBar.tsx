@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import gsap from 'gsap';
 import { UserCheck, CalendarDays, Code2, Trophy, LucideIcon } from 'lucide-react';
 
@@ -90,12 +90,16 @@ function CornerBrackets() {
 /* ------------------------------------------------------------------ */
 /* Single impact stat card with a GSAP count-up number                 */
 /* ------------------------------------------------------------------ */
-function ImpactCard({ stat, delay }: { stat: Stat; delay: number }) {
+function ImpactCard({ stat, delay, reduce }: { stat: Stat; delay: number; reduce: boolean }) {
   const numRef = useRef<HTMLSpanElement>(null);
   const Icon = stat.icon;
 
   useEffect(() => {
     if (!numRef.current) return;
+    if (reduce) {
+      numRef.current.textContent = stat.value.toString();
+      return;
+    }
     const counter = { val: 0 };
     const tween = gsap.to(counter, {
       val: stat.value,
@@ -109,14 +113,14 @@ function ImpactCard({ stat, delay }: { stat: Stat; delay: number }) {
     return () => {
       tween.kill();
     };
-  }, [stat.value, delay]);
+  }, [stat.value, delay, reduce]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.6, delay }}
+      transition={{ duration: reduce ? 0 : 0.6, delay: reduce ? 0 : delay }}
       whileHover={{ y: -4 }}
       className="group relative rounded-2xl p-4 sm:p-7 overflow-hidden border bg-[var(--card-bg)] transition-colors duration-300"
       style={{ borderColor: `${stat.accent}30` }}
@@ -155,6 +159,8 @@ function ImpactCard({ stat, delay }: { stat: Stat; delay: number }) {
 }
 
 export default function StatsBar() {
+  const reduce = useReducedMotion();
+
   return (
     <section className="relative py-20 sm:py-28 overflow-hidden bg-[var(--background)] transition-colors duration-300">
       <div className="absolute inset-0 bg-blueprint-grid opacity-30 [mask-image:radial-gradient(ellipse_70%_65%_at_50%_40%,#000_15%,transparent_100%)] pointer-events-none" />
@@ -164,10 +170,10 @@ export default function StatsBar() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: reduce ? 0 : 0.6 }}
           className="text-center mb-14 sm:mb-20"
         >
           <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-[#FF7A00] mb-4">
@@ -189,16 +195,16 @@ export default function StatsBar() {
         {/* Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {STATS.map((stat, i) => (
-            <ImpactCard key={stat.label} stat={stat} delay={i * 0.1} />
+            <ImpactCard key={stat.label} stat={stat} delay={i * 0.1} reduce={!!reduce} />
           ))}
         </div>
 
         {/* Footer tagline */}
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={reduce ? { opacity: 1 } : { opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
+          transition={{ duration: reduce ? 0 : 0.6, delay: reduce ? 0 : 0.4 }}
           className="mt-14 sm:mt-16 flex items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500"
         >
           <span className="hidden sm:block h-px w-10 bg-current opacity-30" />

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar, User, Gauge, ArrowRight, Info, X } from 'lucide-react';
 import { IconCodersChallenge } from '@/lib/types';
@@ -32,11 +33,12 @@ export default function IconCodersEditionCard({
       >
         {/* ---------- FRONT (image) ---------- */}
         <div className="absolute inset-0 overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white shadow-[0_14px_40px_-20px_rgba(139,46,59,0.28)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] dark:border-white/10 dark:bg-[#161622]">
-          <img
+          <Image
             src={challenge.image_url || fallbackImage}
             alt={challenge.title}
-            loading="lazy"
-            className="h-full w-full object-cover"
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A2E]/90 via-[#1A1A2E]/25 to-transparent" />
 

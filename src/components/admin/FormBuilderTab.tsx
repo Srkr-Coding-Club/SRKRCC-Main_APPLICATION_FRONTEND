@@ -99,6 +99,8 @@ interface FormBuilderTabProps {
     allow_multiple_responses?: boolean;
     allow_response_editing?: boolean;
     max_responses_per_user?: number;
+    max_total_responses?: number | null;
+    prevent_duplicate_email_answers?: boolean;
     allow_edits_until?: string;
     club_id_enabled?: boolean;
     club_id_prefix?: string;
@@ -126,16 +128,16 @@ export function FormBuilderTab({
   isPreviewMode,
   setIsPreviewMode,
   formMeta,
-  setFormMeta,
+  setFormMeta: setFormMetaProp,
   builderFields,
-  onAddFieldFromPalette,
+  onAddFieldFromPalette: onAddFieldFromPaletteProp,
   onAddFieldAtIndex,
-  onDuplicateField,
-  onReorderFields,
-  onRemoveField,
-  onFieldChange,
-  onSaveForm,
-  onResetForm,
+  onDuplicateField: onDuplicateFieldProp,
+  onReorderFields: onReorderFieldsProp,
+  onRemoveField: onRemoveFieldProp,
+  onFieldChange: onFieldChangeProp,
+  onSaveForm: onSaveFormProp,
+  onResetForm: onResetFormProp,
   hasSavedCheckpoint,
   previewAnswers,
   setPreviewAnswers,
@@ -166,6 +168,53 @@ export function FormBuilderTab({
     }
     prevIdsRef.current = currentIds;
   }, [builderFields]);
+
+  // Tracks in-progress edits (fields added/changed/removed, settings changed) so we
+  // can warn before an accidental tab close/refresh throws away unsaved work.
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const setFormMeta: React.Dispatch<React.SetStateAction<any>> = (value) => {
+    setHasUnsavedChanges(true);
+    setFormMetaProp(value);
+  };
+  const onAddFieldFromPalette = (type: FormField['type'], label: string) => {
+    setHasUnsavedChanges(true);
+    onAddFieldFromPaletteProp(type, label);
+  };
+  const onDuplicateField = (field: FormField) => {
+    setHasUnsavedChanges(true);
+    onDuplicateFieldProp(field);
+  };
+  const onReorderFields = (fields: FormField[]) => {
+    setHasUnsavedChanges(true);
+    onReorderFieldsProp(fields);
+  };
+  const onRemoveField = (id: number | string) => {
+    setHasUnsavedChanges(true);
+    onRemoveFieldProp(id);
+  };
+  const onFieldChange = (id: number | string, key: keyof FormField, value: any) => {
+    setHasUnsavedChanges(true);
+    onFieldChangeProp(id, key, value);
+  };
+  const onSaveForm = (status?: Form['status'], scheduleOptions?: { open_at?: string; close_at?: string }) => {
+    onSaveFormProp(status, scheduleOptions);
+    setHasUnsavedChanges(false);
+  };
+  const onResetForm = () => {
+    onResetFormProp?.();
+    setHasUnsavedChanges(false);
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const addFieldOfType = (type: FormField['type']) => onAddFieldFromPalette(type, getTypeMeta(type).label);
 
@@ -539,6 +588,43 @@ export function FormBuilderTab({
                     )}
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-3 pt-5 border-t border-slate-100 dark:border-slate-800">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Max Total Responses (optional)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={formMeta.max_total_responses ?? ''}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setFormMeta({ ...formMeta, max_total_responses: raw === '' ? undefined : Number(raw) });
+                    }}
+                    placeholder="Unlimited"
+                    className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Auto-closes the form once this many total (non-test) responses are received. Leave blank for unlimited.
+                  </p>
+                </div>
+
+                <label className="flex items-center justify-between cursor-pointer pt-2">
+                  <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                    <ShieldCheck className="w-4 h-4 text-[#FF7A00]" />
+                    Prevent Duplicate Email Answers
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!formMeta.prevent_duplicate_email_answers}
+                    onChange={(e) => setFormMeta({ ...formMeta, prevent_duplicate_email_answers: e.target.checked })}
+                    className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
+                  />
+                </label>
+                <p className="text-[10px] text-slate-400">
+                  Reject a submission if its email answer was already used to respond to this form. Leave off if this
+                  form expects one email to submit more than once (e.g. a parent registering multiple children).
+                </p>
               </div>
             </div>
 
@@ -1205,6 +1291,16 @@ function ValidationPanel({ field, siblingFields, onChange }: {
             <CheckboxRow label="Lower-case on save" checked={r.normalizeCase} onChange={(v) => onChange({ normalizeCase: v || undefined })} />
             <CheckboxRow label="Allow multiple" checked={r.allowMultiple} onChange={(v) => onChange({ allowMultiple: v || undefined })} />
           </div>
+        </>
+      )}
+
+      {t === 'PHONE' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Min digits" type="number" value={r.minDigits} onChange={(v) => onChange({ minDigits: v })} />
+            <LabeledInput label="Max digits" type="number" value={r.maxDigits} onChange={(v) => onChange({ maxDigits: v })} />
+          </div>
+          <CheckboxRow label="Numeric only (no spaces/dashes/parentheses)" checked={r.numericOnly} onChange={(v) => onChange({ numericOnly: v || undefined })} />
         </>
       )}
 

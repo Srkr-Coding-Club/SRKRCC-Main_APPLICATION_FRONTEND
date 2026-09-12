@@ -17,7 +17,7 @@ import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
 import LoginCard from '@/components/LoginCard';
-import { getStoredUser, isAuthenticated, loginUser, AuthUser } from '@/lib/auth';
+import { getStoredUser, isAuthenticated, loginUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
 
 interface NavChild {
   label: string;
@@ -71,6 +71,22 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
     setIsAuth(isAuthenticated());
     setCurrentUser(getStoredUser());
   }, [pathname]);
+
+  useEffect(() => {
+    // The optimistic read above trusts localStorage + a plain role cookie, which
+    // can outlive the real server session (expired/invalidated elsewhere) and
+    // keep showing a signed-in navbar for a user who isn't actually authenticated.
+    // Validate once on mount and correct the state if the server disagrees.
+    let cancelled = false;
+    fetchAndSyncCurrentUser().then((user) => {
+      if (cancelled) return;
+      setIsAuth(!!user);
+      setCurrentUser(user);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const visibleNavItems: NavItem[] = navItems.map((item) =>
     item.children
@@ -209,7 +225,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                                 <Link
                                   key={child.label}
                                   href={child.href}
-                                  className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition-colors"
+                                  className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] active:bg-black/[0.06] dark:active:bg-white/[0.08] transition-colors"
                                 >
                                   {Icon && (
                                     <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-[#FF7A00] transition-colors">

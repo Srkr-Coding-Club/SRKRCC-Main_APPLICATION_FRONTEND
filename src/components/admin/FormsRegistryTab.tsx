@@ -352,10 +352,26 @@ export function FormsRegistryTab({
                 </button>
               ))}
             </div>
+
+            {/* Status Color Legend */}
+            <div className="flex items-center flex-wrap gap-x-3 gap-y-1 pt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Published
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Draft
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Scheduled
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500" /> Closed
+              </span>
+            </div>
           </div>
 
           {/* Forms Card List */}
-          <div className="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+          <div className="space-y-2.5 lg:max-h-[calc(100vh-280px)] lg:overflow-y-auto pr-1">
             {isLoading ? (
               /* Skeleton Loader Cards */
               <div className="space-y-3">

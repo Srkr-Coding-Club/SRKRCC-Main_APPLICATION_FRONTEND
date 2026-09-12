@@ -314,6 +314,10 @@ export interface Form {
   allow_response_editing?: boolean;
   enable_prefill?: boolean;
   max_responses_per_user?: number;
+  /** Auto-close the form once this many total (non-test) responses are received. Leave blank for unlimited. */
+  max_total_responses?: number | null;
+  /** Reject a submission if any EMAIL-type field's value has already been used to answer this same form. */
+  prevent_duplicate_email_answers?: boolean;
   allow_edits_until?: string;
   open_at?: string;
   close_at?: string;
@@ -421,6 +425,13 @@ export interface ResponseUser {
 }
 
 /** Full response detail with user + enriched answers */
+export interface ConfirmationEmailStatus {
+  status: 'PENDING' | 'SENT' | 'FAILED' | 'RETRYING';
+  sent_at: string | null;
+  error_message: string;
+  recipient_email: string;
+}
+
 export interface ResponseDetail {
   id: number;
   form_id?: number;
@@ -434,6 +445,8 @@ export interface ResponseDetail {
   user_name?: string;
   user_email?: string;
   answers: AnswerDetail[];
+  confirmation_email_enabled?: boolean;
+  confirmation_email?: ConfirmationEmailStatus | null;
 }
 
 /** Paginated response from DRF PageNumberPagination */

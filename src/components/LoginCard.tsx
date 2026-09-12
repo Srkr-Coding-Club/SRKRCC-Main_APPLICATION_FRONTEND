@@ -19,7 +19,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import AuthLayout from '@/components/AuthLayout';
-import { loginUser, getStoredUser, isAuthenticated, clearAuthSession, AuthUser } from '@/lib/auth';
+import { loginUser, getStoredUser, isAuthenticated, clearAuthSession, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
 
 export interface LoginCardProps {
@@ -43,15 +43,27 @@ export default function LoginCard({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | null>(null);
   const [setupRequired, setSetupRequired] = useState(false);
   const [isSendingSetup, setIsSendingSetup] = useState(false);
   const [setupSent, setSetupSent] = useState(false);
 
   useEffect(() => {
+    // Trust localStorage optimistically for the first paint, but validate against
+    // the server — a locally-cached "signed in" artifact can outlive the real
+    // session (expired/invalidated elsewhere), which previously showed "Already
+    // Signed In" and blocked a legitimate re-login attempt.
+    let cancelled = false;
     if (isAuthenticated()) {
       setLoggedInUser(getStoredUser());
+      fetchAndSyncCurrentUser().then((user) => {
+        if (!cancelled) setLoggedInUser(user);
+      });
     }
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleContinueAsExisting = () => {
@@ -118,6 +130,7 @@ export default function LoginCard({
         const { user } = await loginUser(email, password);
         setSuccess(true);
         toast.success('Signed In', `Welcome back, ${user.first_name || user.email}!`);
+        setRedirecting(true);
 
         setTimeout(() => {
           if (nextUrl) {
@@ -305,7 +318,8 @@ export default function LoginCard({
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-3.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -331,7 +345,8 @@ export default function LoginCard({
           ) : success ? (
             <>
               <CheckCircle2 className="w-4 h-4" />
-              <span>Signed in</span>
+              <span>{redirecting ? 'Signed in — redirecting…' : 'Signed in'}</span>
+              {redirecting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             </>
           ) : (
             <>

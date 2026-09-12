@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { Form, FormField } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
-import { getConstraintHint, validateSubmission } from '@/lib/formValidation';
+import { getConstraintHint, validateSubmission, validateFieldValue } from '@/lib/formValidation';
 import { computeLayout, isFieldRequired } from '@/lib/formConditional';
 import { useToast } from '@/context/ToastContext';
 import {
@@ -302,7 +302,10 @@ interface ModernSelectProps {
   options: string[];
   placeholder?: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   hasError?: boolean;
+  'aria-invalid'?: boolean;
+  'aria-describedby'?: string;
 }
 
 function ModernSelect({
@@ -311,7 +314,10 @@ function ModernSelect({
   options,
   placeholder = "Select an option",
   onChange,
+  onBlur,
   hasError = false,
+  'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
 }: ModernSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
@@ -351,8 +357,11 @@ function ModernSelect({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
+        onBlur={onBlur}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-invalid={ariaInvalid ?? hasError}
+        aria-describedby={ariaDescribedBy}
         className={`
           group flex w-full items-center justify-between
           rounded-xl
@@ -490,6 +499,10 @@ export default function FormDetailSubmissionPage() {
   const [form, setForm] = useState<Form | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Fields the user has blurred at least once — gates when an error is allowed
+  // to display, so nothing appears red before the user has touched the field.
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -639,7 +652,8 @@ export default function FormDetailSubmissionPage() {
     }
   }, [slug, hasSubmitted]);
 
-  const handleInputChange = (fieldId: number | string, value: any) => {
+  const handleInputChange = (field: FormField, value: any) => {
+    const fieldId = field.id;
     if (hasSubmitted && !canEditResponse) return; // Prevent edits when locked
 
     setFormData((prev) => {
@@ -649,14 +663,34 @@ export default function FormDetailSubmissionPage() {
       } catch {}
       return next;
     });
+    // Once an error is already showing for this field, re-check on every
+    // keystroke so it can clear (or update) the moment the value is fixed —
+    // matches Formik's validateOnChange-after-error behavior.
     if (errors[String(fieldId)] || errors[fieldId]) {
+      const message = validateFieldValue(field, value);
       setErrors((prev) => {
         const next = { ...prev };
         delete next[String(fieldId)];
         delete next[fieldId];
+        if (message) next[String(fieldId)] = message;
         return next;
       });
     }
+  };
+
+  // Runs once per blur, validating only the field that lost focus — cheap
+  // enough to call on every field in a long form, unlike a full re-validation.
+  const handleFieldBlur = (field: FormField, value: any) => {
+    const fieldId = String(field.id);
+    setTouched((prev) => (prev[fieldId] ? prev : { ...prev, [fieldId]: true }));
+    const message = validateFieldValue(field, value);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[field.id];
+      delete next[fieldId];
+      if (message) next[fieldId] = message;
+      return next;
+    });
   };
 
   // There is no binary-upload endpoint — files are captured inline as data URLs
@@ -666,6 +700,9 @@ export default function FormDetailSubmissionPage() {
   const handleFileChange = async (field: FormField, fileList: FileList | null) => {
     const picked = Array.from(fileList || []);
     if (!picked.length) return;
+    // Picking a file is itself an interaction — mark touched now so a
+    // too-large-file error (set directly below) isn't hidden pending a blur.
+    setTouched((prev) => (prev[String(field.id)] ? prev : { ...prev, [String(field.id)]: true }));
     const capMb = Number(field.validation_rules?.maxFileSizeMB) || MAX_INLINE_FILE_MB;
     const out: { name: string; size: number; type: string; url: string }[] = [];
     for (const f of picked) {
@@ -689,7 +726,7 @@ export default function FormDetailSubmissionPage() {
       }
     }
     if (!out.length) return;
-    handleInputChange(field.id, field.type === 'MULTI_FILE' ? out : out[0]);
+    handleInputChange(field, field.type === 'MULTI_FILE' ? out : out[0]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -706,6 +743,9 @@ export default function FormDetailSubmissionPage() {
     }
 
     if (!form || !form.fields) return;
+
+    // From here on, every field's error (not just touched ones) is allowed to display.
+    setHasAttemptedSubmit(true);
 
     // Client-side pre-check — mirrors the backend engine (conditional visibility,
     // required, type + rule + cross-field). The backend re-validates everything.
@@ -733,21 +773,36 @@ export default function FormDetailSubmissionPage() {
         value,
       }));
 
-      const idempotencyKey = `sub_${form.id}_${currentUser.id}_${isEditMode ? 'edit_' : ''}${Date.now()}`;
+      // Editing an existing response must PATCH that exact response in place —
+      // POSTing again would create a brand-new row (the backend's create()-side
+      // auto-update-in-place path only fires when the form disallows multiple
+      // responses; with multiple responses allowed there's no way for create()
+      // to know which prior response "update" means, so it always inserts).
+      const isEditingExisting = isEditMode && !!existingResponse?.id;
 
-      const result: any = await fetchApi('/forms/submissions/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify({
-          form: form.id,
-          user: currentUser.id,
-          answers: answersPayload,
-          idempotency_key: idempotencyKey,
-        }),
-      });
+      let result: any;
+      if (isEditingExisting) {
+        result = await fetchApi(`/forms/submissions/${existingResponse.id}/`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answers: answersPayload }),
+        });
+      } else {
+        const idempotencyKey = `sub_${form.id}_${currentUser.id}_${Date.now()}`;
+        result = await fetchApi('/forms/submissions/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+          body: JSON.stringify({
+            form: form.id,
+            user: currentUser.id,
+            answers: answersPayload,
+            idempotency_key: idempotencyKey,
+          }),
+        });
+      }
 
       try {
         if (slug) localStorage.removeItem(`srkrcc_form_draft_${slug}`);
@@ -1063,8 +1118,13 @@ export default function FormDetailSubmissionPage() {
             {/* Form Fields */}
             <form onSubmit={handleSubmit} className="space-y-6">
               {form.fields?.map((field) => {
-                const isErr = !!(errors[field.id] || errors[String(field.id)]);
+                const hasFieldError = !!(errors[field.id] || errors[String(field.id)]);
+                // Only show an error once the user has left this field, or a
+                // submit attempt has already happened — never pre-emptively.
+                const isFieldTouched = !!touched[String(field.id)];
+                const isErr = hasFieldError && (isFieldTouched || hasAttemptedSubmit);
                 const hint = getConstraintHint(field);
+                const errorId = isErr ? `field-${field.id}-error` : undefined;
 
                 if (field.type === 'SECTION') {
                   return (
@@ -1117,8 +1177,11 @@ export default function FormDetailSubmissionPage() {
                         placeholder={field.placeholder || 'Enter response...'}
                         value={fieldVal}
                         maxLength={field.validation_rules?.maxLength}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                        onBlur={(e) => handleFieldBlur(field, e.target.value)}
                         hasError={isErr}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
                       />
                     )}
 
@@ -1129,8 +1192,11 @@ export default function FormDetailSubmissionPage() {
                         type="email"
                         placeholder={field.placeholder || 'email@example.com'}
                         value={fieldVal}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                        onBlur={(e) => handleFieldBlur(field, e.target.value)}
                         hasError={isErr}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
                       />
                     )}
 
@@ -1141,8 +1207,11 @@ export default function FormDetailSubmissionPage() {
                         type="tel"
                         placeholder={field.placeholder || '+91 9876543210'}
                         value={fieldVal}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                        onBlur={(e) => handleFieldBlur(field, e.target.value)}
                         hasError={isErr}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
                       />
                     )}
 
@@ -1153,8 +1222,11 @@ export default function FormDetailSubmissionPage() {
                         type="url"
                         placeholder={field.placeholder || 'https://...'}
                         value={fieldVal}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                        onBlur={(e) => handleFieldBlur(field, e.target.value)}
                         hasError={isErr}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
                       />
                     )}
 
@@ -1166,8 +1238,11 @@ export default function FormDetailSubmissionPage() {
                         placeholder={field.placeholder || 'Type details here...'}
                         value={fieldVal}
                         maxLength={field.validation_rules?.maxLength}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                        onBlur={(e) => handleFieldBlur(field, e.target.value)}
                         hasError={isErr}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
                       />
                     )}
 
@@ -1179,13 +1254,21 @@ export default function FormDetailSubmissionPage() {
                         options={field.options || []}
                         placeholder="Select an option"
                         hasError={isErr}
-                        onChange={(value) => handleInputChange(field.id, value)}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
+                        onChange={(value) => handleInputChange(field, value)}
+                        onBlur={() => handleFieldBlur(field, fieldVal)}
                       />
                     )}
 
                     {/* RADIO Field */}
                     {field.type === 'RADIO' && (
-                      <div className="grid gap-2.5 pt-1">
+                      <div
+                        className="grid gap-2.5 pt-1"
+                        role="radiogroup"
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
+                      >
                         {field.options?.map((opt) => {
                           const selected = fieldVal === opt;
 
@@ -1211,7 +1294,8 @@ export default function FormDetailSubmissionPage() {
                                 name={`field-${field.id}`}
                                 value={opt}
                                 checked={selected}
-                                onChange={(e) => handleInputChange(field.id, e.target.value)}
+                                onChange={(e) => handleInputChange(field, e.target.value)}
+                                onBlur={() => handleFieldBlur(field, fieldVal)}
                                 className="sr-only"
                               />
 
@@ -1267,14 +1351,22 @@ export default function FormDetailSubmissionPage() {
                         value={fieldVal}
                         min={field.validation_rules?.minValue}
                         max={field.validation_rules?.maxValue}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                        onBlur={(e) => handleFieldBlur(field, e.target.value)}
                         hasError={isErr}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
                       />
                     )}
 
                     {/* CHECKBOX Field */}
                     {field.type === 'CHECKBOX' && (
-                      <div className="grid gap-2.5 pt-1">
+                      <div
+                        className="grid gap-2.5 pt-1"
+                        role="group"
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
+                      >
                         {field.options?.map((opt) => {
                           const selected =
                             Array.isArray(formData[field.id]) &&
@@ -1310,8 +1402,9 @@ export default function FormDetailSubmissionPage() {
                                     ? [...curr, opt]
                                     : curr.filter((i: string) => i !== opt);
 
-                                  handleInputChange(field.id, next);
+                                  handleInputChange(field, next);
                                 }}
+                                onBlur={() => handleFieldBlur(field, formData[field.id])}
                                 className="sr-only"
                               />
 
@@ -1371,8 +1464,11 @@ export default function FormDetailSubmissionPage() {
                         value={formData[field.id] || ''}
                         min={field.validation_rules?.minDate}
                         max={field.validation_rules?.maxDate}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                        onBlur={(e) => handleFieldBlur(field, e.target.value)}
                         hasError={isErr}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
                       />
                     )}
 
@@ -1382,8 +1478,11 @@ export default function FormDetailSubmissionPage() {
                         id={`field-${field.id}`}
                         type="time"
                         value={formData[field.id] || ''}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                        onBlur={(e) => handleFieldBlur(field, e.target.value)}
                         hasError={isErr}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
                       />
                     )}
 
@@ -1399,6 +1498,7 @@ export default function FormDetailSubmissionPage() {
                           multiple={field.type === 'MULTI_FILE'}
                           accept={field.validation_rules?.allowedFileTypes || undefined}
                           onChange={(e) => { void handleFileChange(field, e.target.files); }}
+                          onBlur={() => handleFieldBlur(field, formData[field.id])}
                           className="mt-2 text-xs text-slate-500"
                         />
                         {(() => {
@@ -1439,7 +1539,12 @@ export default function FormDetailSubmissionPage() {
 
                     {/* Error message */}
                     {isErr && (
-                      <p className="text-xs text-rose-500 font-semibold flex items-center space-x-1">
+                      <p
+                        id={errorId}
+                        role="alert"
+                        aria-live="polite"
+                        className="text-xs text-rose-500 font-semibold flex items-center space-x-1"
+                      >
                         <AlertCircle className="w-3.5 h-3.5" />
                         <span>{errors[field.id] || errors[String(field.id)]}</span>
                       </p>

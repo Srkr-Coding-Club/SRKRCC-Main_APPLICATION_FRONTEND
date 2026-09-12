@@ -35,7 +35,10 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const addToast = useCallback((item: Omit<ToastItem, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
-    const newToast: ToastItem = { ...item, id, duration: item.duration ?? 4000 };
+    // Error toasts tend to carry longer, more important messages — give them
+    // extra time on screen before auto-dismissing.
+    const defaultDuration = item.type === 'error' ? 6500 : 4000;
+    const newToast: ToastItem = { ...item, id, duration: item.duration ?? defaultDuration };
     setToasts((prev) => [...prev, newToast]);
     return id;
   }, []);

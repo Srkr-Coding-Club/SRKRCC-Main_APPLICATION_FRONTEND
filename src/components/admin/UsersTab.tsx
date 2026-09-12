@@ -1,8 +1,11 @@
 'use client';
 
-import React from 'react';
-import { Search, UserPlus } from 'lucide-react';
+import React, { useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { Search, UserPlus, Eye } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { getStoredUser } from '@/lib/auth';
+import { DetailDrawer } from './DetailDrawer';
 
 interface UserRecord {
   id: number;
@@ -11,10 +14,97 @@ interface UserRecord {
   rollNumber: string;
   branch: string;
   year: string;
-  role: 'MEMBER' | 'CONTRIBUTOR' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  membershipStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI' | 'PENDING';
   scopedAssignments?: { type: 'EVENT' | 'HACKATHON'; targetTitle: string; role: string }[];
   isActive: boolean;
   joinedDate: string;
+  clubId?: string | null;
+  phoneNumber?: string | null;
+  githubProfile?: string | null;
+  linkedinProfile?: string | null;
+  registeredAt?: string | null;
+  createdFrom?: string;
+  referredBy?: string;
+}
+
+const ALL_ROLES: UserRecord['role'][] = ['MEMBER', 'VOLUNTEER', 'JUDGE', 'CLUB_LEAD', 'ADMIN'];
+const ELEVATED_ROLES = new Set<UserRecord['role']>(['ADMIN', 'CLUB_LEAD']);
+const ALL_MEMBERSHIP_STATUSES: UserRecord['membershipStatus'][] = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'ALUMNI', 'PENDING'];
+
+function DrawerField({ label, value }: { label: string; value?: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{label}</p>
+      <p className="text-sm text-[#1A1A2E] dark:text-white mt-0.5 break-words">
+        {value || <span className="italic text-slate-400">Not set</span>}
+      </p>
+    </div>
+  );
+}
+
+function DrawerSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200 dark:border-slate-800 pb-1.5">
+        {title}
+      </p>
+      <div className="grid grid-cols-2 gap-3">{children}</div>
+    </div>
+  );
+}
+
+function UserDrawerContent({ user }: { user: UserRecord }) {
+  return (
+    <div className="space-y-6">
+      <DrawerSection title="Identity">
+        <DrawerField label="Name" value={user.name} />
+        <DrawerField label="Email" value={user.email} />
+        <DrawerField label="Club ID" value={user.clubId} />
+      </DrawerSection>
+
+      <DrawerSection title="Academic">
+        <DrawerField label="Roll Number" value={user.rollNumber !== 'Not set' ? user.rollNumber : undefined} />
+        <DrawerField label="Branch" value={user.branch} />
+        <DrawerField label="Year" value={user.year} />
+      </DrawerSection>
+
+      <DrawerSection title="Contact">
+        <DrawerField label="Phone" value={user.phoneNumber} />
+        <DrawerField
+          label="GitHub"
+          value={
+            user.githubProfile ? (
+              <a href={user.githubProfile} target="_blank" rel="noreferrer" className="text-[#FF7A00] hover:underline break-all">
+                {user.githubProfile}
+              </a>
+            ) : undefined
+          }
+        />
+        <DrawerField
+          label="LinkedIn"
+          value={
+            user.linkedinProfile ? (
+              <a href={user.linkedinProfile} target="_blank" rel="noreferrer" className="text-[#FF7A00] hover:underline break-all">
+                {user.linkedinProfile}
+              </a>
+            ) : undefined
+          }
+        />
+      </DrawerSection>
+
+      <DrawerSection title="Membership">
+        <DrawerField label="Status" value={user.membershipStatus} />
+        <DrawerField label="Role" value={user.role} />
+        <DrawerField
+          label="Registered At"
+          value={user.registeredAt ? new Date(user.registeredAt).toLocaleDateString('en-IN') : undefined}
+        />
+        <DrawerField label="Created From" value={user.createdFrom} />
+        <DrawerField label="Referred By" value={user.referredBy} />
+      </DrawerSection>
+    </div>
+  );
 }
 
 interface UsersTabProps {
@@ -23,6 +113,7 @@ interface UsersTabProps {
   filteredUsers: UserRecord[];
   onOpenCreateModal: () => void;
   onRoleChange: (userId: number, role: UserRecord['role']) => void;
+  onMembershipStatusChange: (userId: number, status: UserRecord['membershipStatus']) => void;
   isLoading?: boolean;
 }
 
@@ -32,9 +123,15 @@ export function UsersTab({
   filteredUsers,
   onOpenCreateModal,
   onRoleChange,
+  onMembershipStatusChange,
   isLoading = false,
 }: UsersTabProps) {
   const { toast } = useToast();
+  const [viewedUser, setViewedUser] = useState<UserRecord | null>(null);
+  // Only a full ADMIN may grant ADMIN/CLUB_LEAD (the backend enforces this too —
+  // see UserDetailView.perform_update — this just keeps the dropdown from
+  // offering an option that would fail with a confusing 403 for a CLUB_LEAD viewer).
+  const canAssignElevatedRoles = getStoredUser()?.role === 'ADMIN';
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -67,6 +164,7 @@ export function UsersTab({
                 <th className="px-6 py-4 font-bold">User Name</th>
                 <th className="px-6 py-4 font-bold">Roll / Branch</th>
                 <th className="px-6 py-4 font-bold">Platform Role</th>
+                <th className="px-6 py-4 font-bold">Membership Status</th>
                 <th className="px-6 py-4 font-bold">Scoped Assignments</th>
                 <th className="px-6 py-4 font-bold text-right">Actions</th>
               </tr>
@@ -87,6 +185,9 @@ export function UsersTab({
                       <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded w-24" />
                     </td>
                     <td className="px-6 py-4">
+                      <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded w-24" />
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-32" />
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -96,7 +197,7 @@ export function UsersTab({
                 ))
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm">
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-sm">
                     No users found matching your search.
                   </td>
                 </tr>
@@ -111,7 +212,11 @@ export function UsersTab({
                     </td>
 
                     <td className="px-6 py-4 text-xs font-mono">
-                      <p className="font-bold text-[#FF7A00]">{user.rollNumber}</p>
+                      {user.rollNumber === 'Not set' ? (
+                        <p className="italic text-slate-400">Not set</p>
+                      ) : (
+                        <p className="font-bold text-[#1A1A2E] dark:text-white">{user.rollNumber}</p>
+                      )}
                       <p className="text-slate-500">{user.branch} ({user.year})</p>
                     </td>
 
@@ -121,12 +226,23 @@ export function UsersTab({
                         onChange={(e) => onRoleChange(user.id, e.target.value as UserRecord['role'])}
                         className="px-2.5 py-1 rounded border text-xs font-bold bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
                       >
-                        <option value="MEMBER">MEMBER</option>
-                        <option value="CONTRIBUTOR">CONTRIBUTOR</option>
-                        <option value="VOLUNTEER">VOLUNTEER</option>
-                        <option value="JUDGE">JUDGE</option>
-                        <option value="CLUB_LEAD">CLUB_LEAD</option>
-                        <option value="ADMIN">ADMIN</option>
+                        {ALL_ROLES
+                          .filter((role) => !ELEVATED_ROLES.has(role) || canAssignElevatedRoles || role === user.role)
+                          .map((role) => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                      </select>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <select
+                        value={user.membershipStatus}
+                        onChange={(e) => onMembershipStatusChange(user.id, e.target.value as UserRecord['membershipStatus'])}
+                        className="px-2.5 py-1 rounded border text-xs font-bold bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+                      >
+                        {ALL_MEMBERSHIP_STATUSES.map((statusOption) => (
+                          <option key={statusOption} value={statusOption}>{statusOption}</option>
+                        ))}
                       </select>
                     </td>
 
@@ -144,9 +260,16 @@ export function UsersTab({
                       )}
                     </td>
 
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                       <button
-                        onClick={() => toast.info('Scoped Role Assignment', `Scoped role editor opened for ${user.name}`)}
+                        onClick={() => setViewedUser(user)}
+                        className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                      >
+                        <Eye className="w-3 h-3" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => toast.info('Not Available Yet', `Scoped role assignment for ${user.name} isn't implemented yet.`)}
                         className="text-xs font-bold px-3 py-1 rounded bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 transition"
                       >
                         + Scoped Role
@@ -159,6 +282,19 @@ export function UsersTab({
           </table>
         </div>
       </div>
+
+      {/* User Detail Drawer */}
+      <AnimatePresence>
+        {viewedUser && (
+          <DetailDrawer
+            isOpen={!!viewedUser}
+            onClose={() => setViewedUser(null)}
+            title={viewedUser.name}
+          >
+            <UserDrawerContent user={viewedUser} />
+          </DetailDrawer>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

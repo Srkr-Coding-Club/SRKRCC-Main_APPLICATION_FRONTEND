@@ -382,7 +382,16 @@ function SetupPasswordContent() {
 
 export default function SetupPasswordPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#FAFAFC] dark:bg-[#0D0E15]">
+          <div className="flex items-center space-x-3 text-slate-500">
+            <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+            <span className="text-sm font-medium">Loading account setup...</span>
+          </div>
+        </div>
+      }
+    >
       <SetupPasswordContent />
     </Suspense>
   );

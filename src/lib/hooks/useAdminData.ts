@@ -13,10 +13,18 @@ interface UserRecord {
   rollNumber: string;
   branch: string;
   year: string;
-  role: 'MEMBER' | 'CONTRIBUTOR' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  membershipStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI' | 'PENDING';
   scopedAssignments?: { type: 'EVENT' | 'HACKATHON'; targetTitle: string; role: string }[];
   isActive: boolean;
   joinedDate: string;
+  clubId?: string | null;
+  phoneNumber?: string | null;
+  githubProfile?: string | null;
+  linkedinProfile?: string | null;
+  registeredAt?: string | null;
+  createdFrom?: string;
+  referredBy?: string;
 }
 
 interface FormSubmissionRecord {
@@ -98,8 +106,34 @@ function remapFieldRefs(field: FormField, idMap: Map<string, number>): { field: 
   return { field: { ...field, conditional_logic, validation_rules }, changed };
 }
 
-export function useAdminData() {
+/**
+ * Which of the admin data types a caller actually needs. Defaults to
+ * everything so existing callers that don't pass `options` keep their
+ * current fetch-everything behavior unchanged.
+ */
+export type AdminDataType = 'users' | 'flags' | 'forms' | 'audit' | 'submissions';
+
+const ALL_ADMIN_DATA_TYPES: AdminDataType[] = ['users', 'flags', 'forms', 'audit', 'submissions'];
+
+export interface UseAdminDataOptions {
+  /**
+   * Restrict `refetchAll` (the initial load + the 8s background poll) to
+   * only these data types, sparing pages that render a narrow slice of the
+   * admin data (e.g. the Flags page) from also fetching the full user list,
+   * all forms, all audit logs, and all submissions on every poll tick.
+   * Omit to fetch everything, as before.
+   */
+  include?: AdminDataType[];
+}
+
+export function useAdminData(options?: UseAdminDataOptions) {
   const { toast } = useToast();
+  const include = options?.include ?? ALL_ADMIN_DATA_TYPES;
+  const wantsUsers = include.includes('users');
+  const wantsFlags = include.includes('flags');
+  const wantsForms = include.includes('forms');
+  const wantsAudit = include.includes('audit');
+  const wantsSubmissions = include.includes('submissions');
 
   // Dynamic Flags State — fetched live from backend
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
@@ -137,6 +171,8 @@ export function useAdminData() {
     allow_response_editing?: boolean;
     enable_prefill?: boolean;
     max_responses_per_user?: number;
+    max_total_responses?: number | null;
+    prevent_duplicate_email_answers?: boolean;
     allow_edits_until?: string;
     club_id_enabled?: boolean;
     club_id_prefix?: string;
@@ -155,6 +191,9 @@ export function useAdminData() {
     allow_multiple_responses: false,
     allow_response_editing: true,
     enable_prefill: true,
+    max_responses_per_user: 1,
+    max_total_responses: null,
+    prevent_duplicate_email_answers: false,
     allow_edits_until: '',
     club_id_enabled: false,
     club_id_prefix: 'SCC',
@@ -187,12 +226,13 @@ export function useAdminData() {
   const [formSubmissions, setFormSubmissions] = useState<FormSubmissionRecord[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
 
-  // Loading States
-  const [isLoadingForms, setIsLoadingForms] = useState(true);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(true);
-  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(true);
-  const [isLoadingFlags, setIsLoadingFlags] = useState(true);
+  // Loading States — a type this hook instance was never asked to `include`
+  // starts (and stays) non-loading, since it will never be fetched.
+  const [isLoadingForms, setIsLoadingForms] = useState(wantsForms);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(wantsUsers);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(wantsSubmissions);
+  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(wantsAudit);
+  const [isLoadingFlags, setIsLoadingFlags] = useState(wantsFlags);
   const [isLoadingBuilder, setIsLoadingBuilder] = useState(false);
 
   const refetchForms = async () => {
@@ -210,105 +250,123 @@ export function useAdminData() {
 
   const refetchAll = async (silent = false) => {
     if (!silent) {
-      setIsLoadingForms(true);
-      setIsLoadingUsers(true);
-      setIsLoadingFlags(true);
-      setIsLoadingAuditLogs(true);
-      setIsLoadingSubmissions(true);
+      if (wantsForms) setIsLoadingForms(true);
+      if (wantsUsers) setIsLoadingUsers(true);
+      if (wantsFlags) setIsLoadingFlags(true);
+      if (wantsAudit) setIsLoadingAuditLogs(true);
+      if (wantsSubmissions) setIsLoadingSubmissions(true);
     }
 
     try {
       const [fetchedUsers, fetchedFlags, fetchedForms, fetchedAudit, fetchedSubmissions] = await Promise.all([
         // page_size guards against a future paginated backend truncating this list
         // (mirrors the same defensive page_size used by MembersTab's /auth/users/ fetch).
-        fetchApi<any>('/auth/users/?page_size=500').catch(() => []),
-        fetchApi<FeatureFlag[]>('/feature-flags/').catch(() => []),
-        fetchApi<any>('/forms/').catch(() => []),
-        fetchApi<any[]>('/audit/').catch(() => []),
-        fetchApi<any>('/forms/submissions/').catch(() => []),
+        wantsUsers ? fetchApi<any>('/auth/users/?page_size=500').catch(() => []) : Promise.resolve([]),
+        wantsFlags ? fetchApi<FeatureFlag[]>('/feature-flags/').catch(() => []) : Promise.resolve([]),
+        wantsForms ? fetchApi<any>('/forms/').catch(() => []) : Promise.resolve([]),
+        wantsAudit ? fetchApi<any[]>('/audit/').catch(() => []) : Promise.resolve([]),
+        wantsSubmissions ? fetchApi<any>('/forms/submissions/').catch(() => []) : Promise.resolve([]),
       ]);
 
-      const usersArray = Array.isArray(fetchedUsers)
-        ? fetchedUsers
-        : (fetchedUsers as any)?.results || [];
-      if (usersArray.length > 0) {
-        setUsersList(
-          usersArray.map((u: any) => ({
-            id: u.id,
-            name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email,
-            email: u.email,
-            rollNumber: u.roll_number || 'N/A',
-            branch: u.branch || 'CSE',
-            year: u.year ? `${u.year}th Year` : '1st Year',
-            role: u.role || 'MEMBER',
-            isActive: u.is_active !== false,
-            joinedDate: u.date_joined ? u.date_joined.split('T')[0] : '2025-01-01',
-          }))
-        );
+      if (wantsUsers) {
+        const usersArray = Array.isArray(fetchedUsers)
+          ? fetchedUsers
+          : (fetchedUsers as any)?.results || [];
+        if (usersArray.length > 0) {
+          setUsersList(
+            usersArray.map((u: any) => ({
+              id: u.id,
+              name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email,
+              email: u.email,
+              rollNumber: u.roll_number || 'Not set',
+              branch: u.branch || 'CSE',
+              year: u.year ? `${u.year}th Year` : '1st Year',
+              role: u.role || 'MEMBER',
+              membershipStatus: u.membership_status || 'ACTIVE',
+              isActive: u.is_active !== false,
+              joinedDate: u.date_joined ? u.date_joined.split('T')[0] : '2025-01-01',
+              clubId: u.club_id || null,
+              phoneNumber: u.phone_number || null,
+              githubProfile: u.github_profile || null,
+              linkedinProfile: u.linkedin_profile || null,
+              registeredAt: u.registered_at || null,
+              createdFrom: u.created_from || 'SELF_REGISTRATION',
+              referredBy: u.referred_by_display || u.referred_by_raw || '',
+            }))
+          );
+        }
       }
 
-      const flagsArray = Array.isArray(fetchedFlags)
-        ? fetchedFlags
-        : (fetchedFlags as any)?.results || [];
-      if (flagsArray.length > 0) {
-        setFlags(flagsArray);
+      if (wantsFlags) {
+        const flagsArray = Array.isArray(fetchedFlags)
+          ? fetchedFlags
+          : (fetchedFlags as any)?.results || [];
+        if (flagsArray.length > 0) {
+          setFlags(flagsArray);
+        }
       }
 
-      const formsArray = Array.isArray(fetchedForms)
-        ? fetchedForms
-        : (fetchedForms as any)?.results || [];
-      setPublishedForms(formsArray);
-
-      const auditArray = Array.isArray(fetchedAudit)
-        ? fetchedAudit
-        : (fetchedAudit as any)?.results || [];
-      if (auditArray.length > 0) {
-        setAuditLogs(
-          auditArray.map((a: any) => ({
-            id: a.id || Date.now(),
-            timestamp: a.timestamp || a.created_at?.replace('T', ' ').substring(0, 19) || new Date().toISOString().substring(0, 19),
-            actor: a.actor_name || a.actor_email || 'System',
-            action: a.action || 'System Mutation',
-            target: a.target || a.target_model || 'System',
-            details: typeof a.details === 'object' ? JSON.stringify(a.details) : String(a.details || ''),
-          }))
-        );
+      if (wantsForms) {
+        const formsArray = Array.isArray(fetchedForms)
+          ? fetchedForms
+          : (fetchedForms as any)?.results || [];
+        setPublishedForms(formsArray);
       }
 
-      const rawSubs = Array.isArray(fetchedSubmissions)
-        ? fetchedSubmissions
-        : (fetchedSubmissions as any)?.results || [];
+      if (wantsAudit) {
+        const auditArray = Array.isArray(fetchedAudit)
+          ? fetchedAudit
+          : (fetchedAudit as any)?.results || [];
+        if (auditArray.length > 0) {
+          setAuditLogs(
+            auditArray.map((a: any) => ({
+              id: a.id || Date.now(),
+              timestamp: a.timestamp || a.created_at?.replace('T', ' ').substring(0, 19) || new Date().toISOString().substring(0, 19),
+              actor: a.actor_name || a.actor_email || 'System',
+              action: a.action || 'System Mutation',
+              target: a.target || a.target_model || 'System',
+              details: typeof a.details === 'object' ? JSON.stringify(a.details) : String(a.details || ''),
+            }))
+          );
+        }
+      }
 
-      if (rawSubs.length > 0) {
-        setFormSubmissions(
-          rawSubs.map((s: any) => {
-            const ansMap: Record<string, any> = {};
-            if (s.answers && Array.isArray(s.answers)) {
-              s.answers.forEach((ans: any) => {
-                const key = ans.field_label || `Field ${ans.field}`;
-                ansMap[key] = ans.value;
-              });
-            }
-            return {
-              id: s.id,
-              formTitle: s.form_title || 'Form Submission',
-              submitterName: s.user?.name || s.user_name || s.user_email || 'Student',
-              submitterEmail: s.user?.email || s.user_email || 'student@srkr.ac.in',
-              submittedAt: s.submitted_at ? s.submitted_at.replace('T', ' ').substring(0, 16) : new Date().toISOString().substring(0, 16),
-              answers: ansMap,
-              isManualAdminEntry: s.is_manual_entry ?? false,
-            };
-          })
-        );
+      if (wantsSubmissions) {
+        const rawSubs = Array.isArray(fetchedSubmissions)
+          ? fetchedSubmissions
+          : (fetchedSubmissions as any)?.results || [];
+
+        if (rawSubs.length > 0) {
+          setFormSubmissions(
+            rawSubs.map((s: any) => {
+              const ansMap: Record<string, any> = {};
+              if (s.answers && Array.isArray(s.answers)) {
+                s.answers.forEach((ans: any) => {
+                  const key = ans.field_label || `Field ${ans.field}`;
+                  ansMap[key] = ans.value;
+                });
+              }
+              return {
+                id: s.id,
+                formTitle: s.form_title || 'Form Submission',
+                submitterName: s.user?.name || s.user_name || s.user_email || 'Student',
+                submitterEmail: s.user?.email || s.user_email || 'student@srkr.ac.in',
+                submittedAt: s.submitted_at ? s.submitted_at.replace('T', ' ').substring(0, 16) : new Date().toISOString().substring(0, 16),
+                answers: ansMap,
+                isManualAdminEntry: s.is_manual_entry ?? false,
+              };
+            })
+          );
+        }
       }
     } catch (err) {
       console.error('[Admin Data Fetch Error]:', err);
     } finally {
-      setIsLoadingForms(false);
-      setIsLoadingUsers(false);
-      setIsLoadingFlags(false);
-      setIsLoadingAuditLogs(false);
-      setIsLoadingSubmissions(false);
+      if (wantsForms) setIsLoadingForms(false);
+      if (wantsUsers) setIsLoadingUsers(false);
+      if (wantsFlags) setIsLoadingFlags(false);
+      if (wantsAudit) setIsLoadingAuditLogs(false);
+      if (wantsSubmissions) setIsLoadingSubmissions(false);
     }
   };
 
@@ -365,6 +423,7 @@ export function useAdminData() {
         branch: newUser.branch,
         year: newUser.year,
         role: newUser.role,
+        membershipStatus: 'ACTIVE',
         isActive: true,
         joinedDate: new Date().toISOString().split('T')[0],
       };
@@ -396,6 +455,29 @@ export function useAdminData() {
         // UI must not keep claiming it did.
         setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role: previousRole } : u)));
         toast.error('Not Saved to Server', err?.message || `Could not update role for ${user.name}. Reverted.`);
+      });
+  };
+
+  const handleMembershipStatusChange = (userId: number, membershipStatus: UserRecord['membershipStatus']) => {
+    const user = usersList.find((u) => u.id === userId);
+    if (!user) return;
+    const previousStatus = user.membershipStatus;
+
+    // Optimistic — flip immediately for instant feedback, then best-effort persist.
+    setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, membershipStatus } : u)));
+    fetchApi(`/auth/users/${userId}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ membership_status: membershipStatus }),
+    })
+      .then(() => {
+        toast.success('Membership Status Updated', `${user.name} is now ${membershipStatus}.`);
+      })
+      .catch((err: any) => {
+        // Roll the optimistic change back — it never actually persisted, so the
+        // UI must not keep claiming it did.
+        setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, membershipStatus: previousStatus } : u)));
+        toast.error('Not Saved to Server', err?.message || `Could not update membership status for ${user.name}. Reverted.`);
       });
   };
 
@@ -496,6 +578,11 @@ export function useAdminData() {
       open_at: form.open_at || '',
       close_at: form.close_at || '',
       allow_multiple_responses: form.allow_multiple_responses ?? false,
+      allow_response_editing: form.allow_response_editing ?? true,
+      enable_prefill: form.enable_prefill ?? true,
+      max_responses_per_user: form.max_responses_per_user ?? 1,
+      max_total_responses: form.max_total_responses ?? null,
+      prevent_duplicate_email_answers: form.prevent_duplicate_email_answers ?? false,
       allow_edits_until: form.allow_edits_until || '',
       club_id_enabled: form.club_id_enabled ?? false,
       club_id_prefix: form.club_id_prefix || 'SCC',
@@ -552,6 +639,9 @@ export function useAdminData() {
       allow_multiple_responses: formMeta.allow_multiple_responses ?? false,
       allow_response_editing: formMeta.allow_response_editing ?? true,
       enable_prefill: formMeta.enable_prefill ?? true,
+      max_responses_per_user: formMeta.max_responses_per_user ?? 1,
+      max_total_responses: formMeta.max_total_responses ?? null,
+      prevent_duplicate_email_answers: formMeta.prevent_duplicate_email_answers ?? false,
       allow_edits_until: cleanEditsUntil ? cleanEditsUntil : null,
       club_id_enabled: formMeta.club_id_enabled ?? false,
       club_id_prefix: (formMeta.club_id_prefix || 'SCC').trim().toUpperCase(),
@@ -698,7 +788,15 @@ export function useAdminData() {
         allow_multiple_responses: saved.allow_multiple_responses ?? false,
         allow_response_editing: saved.allow_response_editing ?? true,
         enable_prefill: saved.enable_prefill ?? true,
+        max_responses_per_user: saved.max_responses_per_user ?? 1,
+        max_total_responses: saved.max_total_responses ?? null,
+        prevent_duplicate_email_answers: saved.prevent_duplicate_email_answers ?? false,
         allow_edits_until: saved.allow_edits_until || '',
+        club_id_enabled: saved.club_id_enabled ?? false,
+        club_id_prefix: saved.club_id_prefix || 'SCC',
+        club_id_field_mapping: saved.club_id_field_mapping || {},
+        confirmation_email_enabled: saved.confirmation_email_enabled ?? false,
+        confirmation_email_template: saved.confirmation_email_template ?? null,
       };
 
       const updatedFields: FormField[] =
@@ -922,6 +1020,7 @@ export function useAdminData() {
     setNewUser,
     handleCreateUser,
     handleRoleChange,
+    handleMembershipStatusChange,
 
     publishedForms,
     setPublishedForms,

@@ -183,7 +183,7 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
         </div>
         <div className="p-5">
           {warnings.length === 0 ? (
-            <div className="flex items-center gap-3 text-sm text-emerald-400">
+            <div className="flex items-center gap-3 text-sm text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="w-5 h-5" />
               <span className="font-semibold">All systems healthy</span>
             </div>
