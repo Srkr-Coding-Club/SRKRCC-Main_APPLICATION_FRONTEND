@@ -20,6 +20,7 @@ import {
   UploadCloud,
   Activity,
   Database,
+  ListChecks,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
@@ -57,6 +58,7 @@ const navItems: NavItem[] = [
       { label: 'Responses', shortLabel: 'Responses', href: '/admin/responses', desc: 'View & export submissions', icon: Inbox },
       { label: 'Import Data', shortLabel: 'Import', href: '/admin/csv-ingestion', desc: 'Bulk CSV / Excel ingestion', icon: UploadCloud },
       { label: 'Data Health', shortLabel: 'Health', href: '/admin/data-health', desc: 'Stats, warnings & activity', icon: Activity },
+      { label: 'Background Jobs', shortLabel: 'Jobs', href: '/admin/jobs', desc: 'Bulk email, export & import job status', icon: ListChecks },
       ],
   },
   {
