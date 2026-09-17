@@ -126,10 +126,13 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
 
     // If a new access token was issued via transparent refresh, update the HttpOnly cookies
     if (newAccessToken) {
+      const isHttps = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
       const isProduction = process.env.NODE_ENV === 'production';
+      const secure = isProduction && isHttps;
+
       nextResponse.cookies.set('srkrcc_access_token', newAccessToken, {
         httpOnly: true,
-        secure: isProduction,
+        secure,
         sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60, // 1 hour
@@ -138,7 +141,7 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
       if (newRefreshToken) {
         nextResponse.cookies.set('srkrcc_refresh_token', newRefreshToken, {
           httpOnly: true,
-          secure: isProduction,
+          secure,
           sameSite: 'lax',
           path: '/',
           maxAge: 7 * 24 * 60 * 60, // 7 days

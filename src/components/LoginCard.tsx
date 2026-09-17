@@ -68,13 +68,12 @@ export default function LoginCard({
 
   const handleContinueAsExisting = () => {
     if (!loggedInUser) return;
-    if (nextUrl) {
-      router.push(nextUrl);
-    } else if (loggedInUser.role === 'ADMIN' || loggedInUser.role === 'CLUB_LEAD') {
-      router.push('/admin');
-    } else {
-      router.push('/profile');
-    }
+    const targetUrl = (nextUrl && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/signup'))
+      ? nextUrl
+      : (loggedInUser.role === 'ADMIN' || loggedInUser.role === 'CLUB_LEAD')
+        ? '/admin'
+        : '/';
+    window.location.replace(targetUrl);
   };
 
   const handleSwitchAccount = () => {
@@ -122,26 +121,27 @@ export default function LoginCard({
     setIsLoading(true);
 
     try {
+      let loggedUser = loggedInUser;
       if (onSubmitProp) {
         await onSubmitProp({ email, password });
-        setSuccess(true);
-        toast.success('Signed In', 'Welcome back!');
+        loggedUser = getStoredUser();
       } else {
         const { user } = await loginUser(email, password);
-        setSuccess(true);
-        toast.success('Signed In', `Welcome back, ${user.first_name || user.email}!`);
-        setRedirecting(true);
-
-        setTimeout(() => {
-          if (nextUrl) {
-            router.push(nextUrl);
-          } else if (user.role === 'ADMIN' || user.role === 'CLUB_LEAD') {
-            router.push('/admin');
-          } else {
-            router.push('/profile');
-          }
-        }, 500);
+        loggedUser = user;
       }
+      setSuccess(true);
+      toast.success('Signed In', `Welcome back, ${loggedUser?.first_name || loggedUser?.email || ''}!`);
+      setRedirecting(true);
+
+      const targetUrl = (nextUrl && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/signup'))
+        ? nextUrl
+        : (loggedUser?.role === 'ADMIN' || loggedUser?.role === 'CLUB_LEAD')
+          ? '/admin'
+          : '/';
+
+      setTimeout(() => {
+        window.location.replace(targetUrl);
+      }, 350);
     } catch (err: any) {
       if (err?.code === 'PASSWORD_SETUP_REQUIRED') {
         setSetupRequired(true);

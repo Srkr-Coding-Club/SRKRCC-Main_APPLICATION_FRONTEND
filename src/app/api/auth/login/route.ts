@@ -32,7 +32,9 @@ export async function POST(request: NextRequest) {
 
     const { access, refresh, user } = data;
     const role = user?.role || 'MEMBER';
+    const isHttps = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
     const isProduction = process.env.NODE_ENV === 'production';
+    const secure = isProduction && isHttps;
 
     const response = NextResponse.json({
       success: true,
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
     // 1. Set HttpOnly Access Token Cookie (1 hour)
     response.cookies.set('srkrcc_access_token', access, {
       httpOnly: true,
-      secure: isProduction,
+      secure,
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60, // 1 hour
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (refresh) {
       response.cookies.set('srkrcc_refresh_token', refresh, {
         httpOnly: true,
-        secure: isProduction,
+        secure,
         sameSite: 'lax',
         path: '/',
         maxAge: 7 * 24 * 60 * 60, // 7 days
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
     // 3. Set Non-HttpOnly Role & User Cookie for UI/Client reading
     response.cookies.set('srkrcc_user_role', role, {
       httpOnly: false,
-      secure: isProduction,
+      secure,
       sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60,

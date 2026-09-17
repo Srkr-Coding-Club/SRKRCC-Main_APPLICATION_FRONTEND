@@ -452,6 +452,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                   const result = await loginUser(values.email, values.password);
                   setCurrentUser(result.user);
                   setIsAuth(true);
+                  setLoginModalOpen(false);
                 }}
               />
             </div>
