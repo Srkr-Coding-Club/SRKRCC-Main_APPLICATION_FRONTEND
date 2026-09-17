@@ -185,7 +185,15 @@ export async function DELETE(request: NextRequest, props: Props) {
   return handleProxy(request, params);
 }
 
-export async function OPTIONS(request: NextRequest, props: Props) {
-  const params = await props.params;
-  return handleProxy(request, params);
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Idempotency-Key, x-idempotency-key, X-CSRFToken, Cache-Control, Pragma',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }
+
