@@ -109,6 +109,21 @@ make start
 
 ---
 
+## ☁️ Production Deployment (Vercel & Docker)
+
+* **Vercel (Recommended, Free Tier)**:
+  1. Import `SRKRCC-Main_APPLICATION_FRONTEND` on [Vercel](https://vercel.com).
+  2. Set Environment Variable: `NEXT_PUBLIC_API_BASE_URL=https://your-backend.onrender.com/api`
+  3. Click **Deploy**! (Uses included [`vercel.json`](vercel.json)).
+* **Docker Deployment**:
+  Build and run the lightweight standalone Docker container:
+  ```bash
+  docker build -t srkrcc-frontend .
+  docker run -p 3000:3000 -e NEXT_PUBLIC_API_BASE_URL=https://your-backend.onrender.com/api srkrcc-frontend
+  ```
+
+---
+
 ## 📂 Repository Directory Structure
 
 ```
