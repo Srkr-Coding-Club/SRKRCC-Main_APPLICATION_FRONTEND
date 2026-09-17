@@ -46,7 +46,7 @@ export default function IconCodersEditionCard({
             type="button"
             onClick={() => setFlipped(true)}
             aria-label="View details"
-            className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition hover:bg-black/60 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
           >
             <Info className="h-4 w-4" />
           </button>
@@ -86,7 +86,7 @@ export default function IconCodersEditionCard({
             type="button"
             onClick={() => setFlipped(false)}
             aria-label="Back to card front"
-            className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B2E3B] dark:hover:bg-white/5 dark:hover:text-slate-200"
+            className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-black/5 hover:text-slate-600 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B2E3B] dark:hover:bg-white/5 dark:hover:text-slate-200"
           >
             <X className="h-4 w-4" />
           </button>

@@ -112,7 +112,7 @@ const ToastCard: React.FC<{ toast: ToastItem; onDismiss: (id: string) => void }>
 
       <button
         onClick={() => onDismiss(toast.id)}
-        className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition flex-shrink-0"
+        className="p-2 min-h-8 min-w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition active:scale-90 flex-shrink-0"
         aria-label="Dismiss notification"
       >
         <X className="w-4 h-4" />

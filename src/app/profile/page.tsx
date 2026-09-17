@@ -232,7 +232,7 @@ function ProfileContent() {
                 setLoading(true);
                 setRefreshAttempt((prev) => prev + 1);
               }}
-              className="font-bold text-[#FF7A00] hover:text-[#E06B00] transition flex-shrink-0"
+              className="font-bold text-[#FF7A00] hover:text-[#E06B00] transition active:scale-95 flex-shrink-0"
             >
               Retry
             </button>
@@ -264,7 +264,7 @@ function ProfileContent() {
                   <button
                     onClick={() => copyClubId(user.clubId!)}
                     title="Click to copy Club ID"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-xs hover:bg-orange-500/20 transition cursor-pointer shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-xs hover:bg-orange-500/20 transition active:scale-95 cursor-pointer shadow-sm"
                   >
                     <span>{user.clubId}</span>
                     <span className="text-[10px] text-orange-400/80 uppercase tracking-wider">{copiedClubId ? '✓ Copied' : 'Copy'}</span>
@@ -321,7 +321,7 @@ function ProfileContent() {
 
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95"
             >
               <Settings className="w-4 h-4" />
               <span>Edit Profile</span>
@@ -329,7 +329,7 @@ function ProfileContent() {
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/50 transition border border-rose-200 dark:border-rose-800"
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/50 transition active:scale-95 border border-rose-200 dark:border-rose-800"
             >
               <LogOut className="w-4 h-4" />
               <span>Log Out</span>
@@ -355,7 +355,7 @@ function ProfileContent() {
             </div>
             <button
               onClick={() => copyClubId(user.clubId!)}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 transition whitespace-nowrap"
+              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 transition active:scale-95 whitespace-nowrap"
             >
               {copiedClubId ? '✓ Copied to Clipboard' : 'Copy Club ID'}
             </button>

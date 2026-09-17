@@ -31,6 +31,12 @@ import {
   RotateCcw,
   Save,
   Globe,
+  Star,
+  SlidersHorizontal,
+  Grid3x3,
+  Table2,
+  PenTool,
+  Link2,
 } from 'lucide-react';
 import { Form, FormField, ValidationRules } from '@/lib/types';
 import { hasConstraintOptions, hasActiveValidation, getConstraintHint } from '@/lib/formValidation';
@@ -39,21 +45,26 @@ import { normalizeImageUrl } from '@/lib/utils';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import EmailTemplateEditor from '@/components/admin/EmailTemplateEditor';
-import { IdCard, Mail as MailIcon } from 'lucide-react';
+import { IdCard, Mail as MailIcon, QrCode } from 'lucide-react';
 
 interface TypeMeta {
   label: string;
   icon: React.ElementType;
   hasOptions?: boolean;
+  /** MATRIX_RADIO / MATRIX_CHECKBOX — has a `rows` list in addition to `options` (columns). */
+  hasRows?: boolean;
+  /** RATING / LINEAR_SCALE — has a min_value/max_value range instead of options. */
+  hasScale?: boolean;
 }
 
-// Partial because FormField['type'] also includes exotic types (RATING, SIGNATURE, PHONE, URL, ...)
-// used by the ported response/CSV admin tools that this builder doesn't offer as addable fields.
+// Partial because FormField['type'] also includes exotic types (PHONE, ...) used by the
+// ported response/CSV admin tools that this builder doesn't offer as addable fields.
 const TYPE_META: Partial<Record<FormField['type'], TypeMeta>> = {
   TEXT: { label: 'Short Answer', icon: Type },
   PARAGRAPH: { label: 'Paragraph', icon: AlignLeft },
   EMAIL: { label: 'Email Address', icon: Mail },
   NUMBER: { label: 'Number / Phone', icon: Hash },
+  URL: { label: 'Website URL', icon: Link2 },
   DROPDOWN: { label: 'Dropdown', icon: List, hasOptions: true },
   RADIO: { label: 'Multiple Choice', icon: CheckCircle2, hasOptions: true },
   CHECKBOX: { label: 'Checkboxes', icon: CheckSquare, hasOptions: true },
@@ -61,6 +72,11 @@ const TYPE_META: Partial<Record<FormField['type'], TypeMeta>> = {
   TIME: { label: 'Time', icon: Clock },
   FILE: { label: 'File Upload', icon: Upload },
   MULTI_FILE: { label: 'Multiple Files', icon: Files },
+  RATING: { label: 'Rating', icon: Star, hasScale: true },
+  LINEAR_SCALE: { label: 'Linear Scale', icon: SlidersHorizontal, hasScale: true },
+  MATRIX_RADIO: { label: 'Multiple Choice Grid', icon: Grid3x3, hasOptions: true, hasRows: true },
+  MATRIX_CHECKBOX: { label: 'Checkbox Grid', icon: Table2, hasOptions: true, hasRows: true },
+  SIGNATURE: { label: 'Signature', icon: PenTool },
   SECTION: { label: 'Section Header', icon: SeparatorHorizontal },
 };
 
@@ -73,12 +89,14 @@ function getTypeMeta(type: FormField['type']): TypeMeta {
 }
 
 const SELECTABLE_TYPES: FormField['type'][] = [
-  'TEXT', 'PARAGRAPH', 'EMAIL', 'NUMBER', 'DROPDOWN', 'RADIO', 'CHECKBOX', 'DATE', 'TIME', 'FILE', 'MULTI_FILE',
+  'TEXT', 'PARAGRAPH', 'EMAIL', 'NUMBER', 'URL', 'DROPDOWN', 'RADIO', 'CHECKBOX', 'DATE', 'TIME', 'FILE', 'MULTI_FILE',
+  'RATING', 'LINEAR_SCALE', 'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE',
 ];
 
 const FIELD_GROUPS: { label: string; icon: React.ElementType; types: FormField['type'][] }[] = [
-  { label: 'Text Inputs', icon: Type, types: ['TEXT', 'PARAGRAPH', 'EMAIL', 'NUMBER'] },
+  { label: 'Text Inputs', icon: Type, types: ['TEXT', 'PARAGRAPH', 'EMAIL', 'NUMBER', 'URL'] },
   { label: 'Choice Fields', icon: List, types: ['DROPDOWN', 'RADIO', 'CHECKBOX'] },
+  { label: 'Rating & Matrix', icon: Grid3x3, types: ['RATING', 'LINEAR_SCALE', 'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE'] },
   { label: 'Advanced', icon: Layers, types: ['DATE', 'TIME', 'FILE', 'MULTI_FILE', 'SECTION'] },
 ];
 
@@ -107,6 +125,11 @@ interface FormBuilderTabProps {
     club_id_field_mapping?: { email?: number | string; full_name?: number | string; phone_number?: number | string; branch?: number | string; roll_number?: number | string };
     confirmation_email_enabled?: boolean;
     confirmation_email_template?: number | string | null;
+    attendance_enabled?: boolean;
+    attendance_start_date?: string | null;
+    attendance_days?: number;
+    attendance_sessions_per_day?: 1 | 2 | 3;
+    attendance_window_minutes?: number | null;
   };
   setFormMeta: React.Dispatch<React.SetStateAction<any>>;
   builderFields: FormField[];
@@ -164,7 +187,19 @@ export function FormBuilderTab({
     const currentIds = new Set(builderFields.map((f) => f.id));
     if (currentIds.size > prevIdsRef.current.size) {
       const newField = builderFields.find((f) => !prevIdsRef.current.has(f.id));
-      if (newField) setActiveFieldId(newField.id);
+      if (newField) {
+        setActiveFieldId(newField.id);
+        // Matrix fields are useless with no rows/columns — seed a sensible
+        // 2x2 default so they render something the admin can immediately edit.
+        if (newField.type === 'MATRIX_RADIO' || newField.type === 'MATRIX_CHECKBOX') {
+          if (!newField.rows || newField.rows.length === 0) {
+            onFieldChangeProp(newField.id, 'rows', ['Row 1', 'Row 2']);
+          }
+          if (!newField.options || newField.options.length === 0) {
+            onFieldChangeProp(newField.id, 'options', ['Column 1', 'Column 2']);
+          }
+        }
+      }
     }
     prevIdsRef.current = currentIds;
   }, [builderFields]);
@@ -229,8 +264,13 @@ export function FormBuilderTab({
 
   const handleTypeChange = (field: FormField, newType: FormField['type']) => {
     onFieldChange(field.id, 'type', newType);
-    if (getTypeMeta(newType).hasOptions && (!field.options || field.options.length === 0)) {
-      onFieldChange(field.id, 'options', ['Option 1', 'Option 2']);
+    const newMeta = getTypeMeta(newType);
+    const isMatrix = newType === 'MATRIX_RADIO' || newType === 'MATRIX_CHECKBOX';
+    if (newMeta.hasOptions && (!field.options || field.options.length === 0)) {
+      onFieldChange(field.id, 'options', isMatrix ? ['Column 1', 'Column 2'] : ['Option 1', 'Option 2']);
+    }
+    if (newMeta.hasRows && (!field.rows || field.rows.length === 0)) {
+      onFieldChange(field.id, 'rows', ['Row 1', 'Row 2']);
     }
     setTypeMenuId(null);
   };
@@ -243,13 +283,38 @@ export function FormBuilderTab({
 
   const addOption = (field: FormField) => {
     const opts = [...(field.options || [])];
-    opts.push(`Option ${opts.length + 1}`);
+    const isMatrix = field.type === 'MATRIX_RADIO' || field.type === 'MATRIX_CHECKBOX';
+    opts.push(isMatrix ? `Column ${opts.length + 1}` : `Option ${opts.length + 1}`);
     onFieldChange(field.id, 'options', opts);
   };
 
   const removeOption = (field: FormField, idx: number) => {
     const opts = (field.options || []).filter((_, i) => i !== idx);
     onFieldChange(field.id, 'options', opts);
+  };
+
+  // Rows editor for MATRIX_RADIO / MATRIX_CHECKBOX — mirrors the options editor above.
+  const updateRow = (field: FormField, idx: number, value: string) => {
+    const rows = [...(field.rows || [])];
+    rows[idx] = value;
+    onFieldChange(field.id, 'rows', rows);
+  };
+
+  const addRow = (field: FormField) => {
+    const rows = [...(field.rows || [])];
+    rows.push(`Row ${rows.length + 1}`);
+    onFieldChange(field.id, 'rows', rows);
+  };
+
+  const removeRow = (field: FormField, idx: number) => {
+    const rows = (field.rows || []).filter((_, i) => i !== idx);
+    onFieldChange(field.id, 'rows', rows);
+  };
+
+  // Scale range for RATING / LINEAR_SCALE — field-level min_value/max_value
+  // (distinct from validation_rules; this is what the public form renders).
+  const updateScaleRange = (field: FormField, key: 'min_value' | 'max_value', value: number | undefined) => {
+    onFieldChange(field.id, key, value);
   };
 
   const updateValidation = (field: FormField, patch: Partial<ValidationRules>) => {
@@ -297,16 +362,16 @@ export function FormBuilderTab({
 
         <div className="flex items-center flex-wrap gap-2">
           {isPreviewMode && (
-            <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-md">
+            <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-md">
               <button
                 onClick={() => setViewportMode('desktop')}
-                className={`p-1.5 rounded ${viewportMode === 'desktop' ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow' : 'text-slate-400'}`}
+                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'desktop' ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow' : 'text-slate-400'}`}
               >
                 <Monitor className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewportMode('mobile')}
-                className={`p-1.5 rounded ${viewportMode === 'mobile' ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow' : 'text-slate-400'}`}
+                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'mobile' ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow' : 'text-slate-400'}`}
               >
                 <Smartphone className="w-4 h-4" />
               </button>
@@ -315,7 +380,7 @@ export function FormBuilderTab({
 
           <button
             onClick={() => setIsPreviewMode(!isPreviewMode)}
-            className={`px-3.5 py-2 rounded-md text-xs font-bold border flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-md text-xs font-bold border flex items-center space-x-1.5 transition-transform duration-100 active:scale-95 ${
               isPreviewMode
                 ? 'bg-slate-800 text-white border-slate-800'
                 : 'bg-white dark:bg-[#151722] text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
@@ -332,7 +397,7 @@ export function FormBuilderTab({
                 onResetForm?.();
               }
             }}
-            className="px-3.5 py-2 rounded-md bg-white dark:bg-[#151722] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-md bg-white dark:bg-[#151722] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
             title={formMeta.id ? "Reset form back to last saved checkpoint" : "Reset to blank form"}
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -342,7 +407,7 @@ export function FormBuilderTab({
           {/* Save — keeps the form's current status */}
           <button
             onClick={() => onSaveForm(formMeta.status || 'DRAFT')}
-            className="px-4 py-2 rounded-md border border-[#FF7A00] text-[#FF7A00] hover:bg-orange-50 dark:hover:bg-orange-950/30 font-bold text-xs flex items-center gap-1.5"
+            className="px-4 py-2 rounded-md border border-[#FF7A00] text-[#FF7A00] hover:bg-orange-50 dark:hover:bg-orange-950/30 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{formMeta.id ? 'Save Changes' : 'Save Draft'}</span>
@@ -352,7 +417,7 @@ export function FormBuilderTab({
           {formMeta.status === 'PUBLISHED' ? (
             <button
               onClick={() => onSaveForm('DRAFT')}
-              className="px-4 py-2 rounded-md bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs flex items-center gap-1.5"
+              className="px-4 py-2 rounded-md bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
               title="Revert to draft — students can no longer see or submit this form"
             >
               <span>Unpublish</span>
@@ -360,7 +425,7 @@ export function FormBuilderTab({
           ) : (
             <button
               onClick={() => onSaveForm('PUBLISHED')}
-              className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5"
+              className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
               title="Save and make this form live on the public Forms page"
             >
               <Globe className="w-3.5 h-3.5" />
@@ -577,7 +642,7 @@ export function FormBuilderTab({
                     <button
                       type="button"
                       onClick={() => setShowEmailEditor(true)}
-                      className="px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1A1A2E] dark:text-white hover:border-[#FF7A00]/50 transition"
+                      className="px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1A1A2E] dark:text-white hover:border-[#FF7A00]/50 transition active:scale-95"
                     >
                       {formMeta.confirmation_email_template ? 'Change Template' : 'Choose Template'}
                     </button>
@@ -586,6 +651,90 @@ export function FormBuilderTab({
                         ✓ {confirmationTemplateLabel || `Template #${formMeta.confirmation_email_template}`}
                       </span>
                     )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3 pt-5 pb-5 border-t border-b border-slate-100 dark:border-slate-800">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                    <QrCode className="w-4 h-4 text-[#FF7A00]" />
+                    Enable QR-code attendance tracking
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!formMeta.attendance_enabled}
+                    onChange={(e) => setFormMeta({ ...formMeta, attendance_enabled: e.target.checked })}
+                    className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
+                  />
+                </label>
+
+                {formMeta.attendance_enabled && (
+                  <div className="pl-6 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Start Date *</label>
+                        <input
+                          type="date"
+                          value={formMeta.attendance_start_date || ''}
+                          onChange={(e) => setFormMeta({ ...formMeta, attendance_start_date: e.target.value || null })}
+                          className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Number of Days</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={formMeta.attendance_days ?? 1}
+                          onChange={(e) => {
+                            const raw = Number(e.target.value);
+                            const clamped = Number.isFinite(raw) ? Math.min(30, Math.max(1, raw)) : 1;
+                            setFormMeta({ ...formMeta, attendance_days: clamped });
+                          }}
+                          className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Sessions Per Day</label>
+                        <select
+                          value={formMeta.attendance_sessions_per_day ?? 1}
+                          onChange={(e) =>
+                            setFormMeta({ ...formMeta, attendance_sessions_per_day: Number(e.target.value) as 1 | 2 | 3 })
+                          }
+                          className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                        >
+                          <option value={1}>Morning only</option>
+                          <option value={2}>Morning + Afternoon</option>
+                          <option value={3}>Morning + Afternoon + Evening</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Scan Window (minutes)</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={formMeta.attendance_window_minutes ?? ''}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            setFormMeta({
+                              ...formMeta,
+                              attendance_window_minutes: raw === '' ? null : Math.max(1, Number(raw)),
+                            });
+                          }}
+                          placeholder="Leave blank for no time restriction"
+                          className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      Each registrant gets a permanent QR badge (view under &quot;My Responses&quot;) scannable by
+                      volunteers at the Attendance Scanner. Sessions are generated/kept in sync automatically whenever
+                      this form is saved.
+                    </p>
                   </div>
                 )}
               </div>
@@ -660,6 +809,10 @@ export function FormBuilderTab({
                 onOptionChange={(i, v) => updateOption(field, i, v)}
                 onAddOption={() => addOption(field)}
                 onRemoveOption={(i) => removeOption(field, i)}
+                onRowChange={(i, v) => updateRow(field, i, v)}
+                onAddRow={() => addRow(field)}
+                onRemoveRow={(i) => removeRow(field, i)}
+                onScaleRangeChange={(key, v) => updateScaleRange(field, key, v)}
                 onValidationChange={(patch) => updateValidation(field, patch)}
                 onConditionalChange={(logic) => onFieldChange(field.id, 'conditional_logic', logic)}
                 siblingFields={builderFields.filter((f) => f.id !== field.id && f.type !== 'SECTION')}
@@ -723,7 +876,7 @@ function PaletteItem({
     <button
       type="button"
       onClick={onAdd}
-      className="w-full flex items-center gap-3 p-2.5 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#FF7A00] hover:bg-slate-50 dark:hover:bg-slate-800/50 text-left"
+      className="w-full flex items-center gap-3 p-2.5 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#FF7A00] hover:bg-slate-50 dark:hover:bg-slate-800/50 text-left transition-transform duration-100 active:scale-[0.98]"
       title={`Add ${meta.label}`}
     >
       <span className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 flex-shrink-0">
@@ -754,6 +907,10 @@ interface QuestionCardProps {
   onOptionChange: (idx: number, v: string) => void;
   onAddOption: () => void;
   onRemoveOption: (idx: number) => void;
+  onRowChange: (idx: number, v: string) => void;
+  onAddRow: () => void;
+  onRemoveRow: (idx: number) => void;
+  onScaleRangeChange: (key: 'min_value' | 'max_value', v: number | undefined) => void;
   onValidationChange: (patch: Partial<ValidationRules>) => void;
   onConditionalChange: (logic: any) => void;
   siblingFields: FormField[];
@@ -783,6 +940,10 @@ function QuestionCard({
   onOptionChange,
   onAddOption,
   onRemoveOption,
+  onRowChange,
+  onAddRow,
+  onRemoveRow,
+  onScaleRangeChange,
   onValidationChange,
   onConditionalChange,
   siblingFields,
@@ -798,12 +959,12 @@ function QuestionCard({
   const hasPlaceholder = field.type === 'TEXT' || field.type === 'PARAGRAPH' || field.type === 'EMAIL' || field.type === 'NUMBER';
 
   const reorderControls = (
-    <div className="flex flex-col flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+    <div className="flex flex-col flex-shrink-0 gap-2" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={onMoveUp}
         disabled={index === 0}
         title="Move up"
-        className="text-slate-400 hover:text-[#FF7A00] disabled:opacity-25 disabled:hover:text-slate-400"
+        className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded text-slate-400 hover:text-[#FF7A00] hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-25 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition-transform duration-100 active:scale-90"
       >
         <ChevronUp className="w-4 h-4" />
       </button>
@@ -811,7 +972,7 @@ function QuestionCard({
         onClick={onMoveDown}
         disabled={index === total - 1}
         title="Move down"
-        className="text-slate-400 hover:text-[#FF7A00] disabled:opacity-25 disabled:hover:text-slate-400"
+        className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded text-slate-400 hover:text-[#FF7A00] hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-25 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition-transform duration-100 active:scale-90"
       >
         <ChevronDown className="w-4 h-4" />
       </button>
@@ -844,7 +1005,7 @@ function QuestionCard({
             placeholder="Section title"
             className="flex-1 text-lg font-bold bg-transparent border-0 focus:outline-none text-[#1A1A2E] dark:text-white"
           />
-          <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="p-1.5 rounded text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0">
+          <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="p-2 rounded text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0 transition-transform duration-100 active:scale-90">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -895,7 +1056,7 @@ function QuestionCard({
         <div className="relative flex-shrink-0">
           <button
             onClick={onToggleTypeMenu}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-[#FF7A00]"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-[#FF7A00] transition-transform duration-100 active:scale-95"
           >
             <Icon className="w-3.5 h-3.5 text-[#FF7A00]" />
             <span className="hidden sm:inline">{meta.label}</span>
@@ -911,7 +1072,7 @@ function QuestionCard({
                   <button
                     key={t}
                     onClick={() => onTypeChange(t)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold text-left hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-transform duration-100 active:scale-[0.98] ${
                       field.type === t ? 'text-[#FF7A00]' : 'text-slate-600 dark:text-slate-300'
                     }`}
                   >
@@ -933,7 +1094,7 @@ function QuestionCard({
           className="w-full text-xs bg-transparent border-0 focus:outline-none text-slate-500 dark:text-slate-400"
         />
       ) : (
-        <button onClick={() => onDescriptionChange('')} className="text-[11px] font-semibold text-slate-400 hover:text-[#FF7A00]">
+        <button onClick={() => onDescriptionChange('')} className="text-[11px] font-semibold text-slate-400 hover:text-[#FF7A00] transition-transform duration-100 active:scale-95 inline-block">
           + Add description
         </button>
       )}
@@ -948,14 +1109,38 @@ function QuestionCard({
         />
       )}
 
-      {/* Options editor */}
+      {/* Rows editor (MATRIX_RADIO / MATRIX_CHECKBOX only) */}
+      {meta.hasRows && (
+        <div className="space-y-2 pl-1 pt-1">
+          <p className="text-[10px] uppercase font-bold text-slate-500">Rows</p>
+          {(field.rows || []).map((row, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-[11px] font-mono text-slate-400 w-3.5 flex-shrink-0">{i + 1}.</span>
+              <input
+                value={row}
+                onChange={(e) => onRowChange(i, e.target.value)}
+                className="flex-1 text-sm border-0 border-b border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:outline-none bg-transparent py-1 text-[#1A1A2E] dark:text-white"
+              />
+              <button onClick={() => onRemoveRow(i)} className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded text-slate-300 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0 transition-transform duration-100 active:scale-90">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          <button onClick={onAddRow} className="text-xs font-semibold text-slate-400 hover:text-[#FF7A00] flex items-center gap-1.5 pt-1 transition-transform duration-100 active:scale-95">
+            <Plus className="w-3.5 h-3.5" /> Add row
+          </button>
+        </div>
+      )}
+
+      {/* Options editor (also doubles as the column editor for matrix fields) */}
       {meta.hasOptions && (
         <div className="space-y-2 pl-1 pt-1">
+          {meta.hasRows && <p className="text-[10px] uppercase font-bold text-slate-500">Columns</p>}
           {(field.options || []).map((opt, i) => (
             <div key={i} className="flex items-center gap-2">
-              {field.type === 'CHECKBOX' ? (
+              {field.type === 'CHECKBOX' || field.type === 'MATRIX_CHECKBOX' ? (
                 <div className="w-3.5 h-3.5 rounded-[3px] border-2 border-slate-300 dark:border-slate-600 flex-shrink-0" />
-              ) : field.type === 'RADIO' ? (
+              ) : field.type === 'RADIO' || field.type === 'MATRIX_RADIO' ? (
                 <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-300 dark:border-slate-600 flex-shrink-0" />
               ) : (
                 <span className="text-[11px] font-mono text-slate-400 w-3.5 flex-shrink-0">{i + 1}.</span>
@@ -965,21 +1150,51 @@ function QuestionCard({
                 onChange={(e) => onOptionChange(i, e.target.value)}
                 className="flex-1 text-sm border-0 border-b border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:outline-none bg-transparent py-1 text-[#1A1A2E] dark:text-white"
               />
-              <button onClick={() => onRemoveOption(i)} className="text-slate-300 hover:text-rose-500 flex-shrink-0">
+              <button onClick={() => onRemoveOption(i)} className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded text-slate-300 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0 transition-transform duration-100 active:scale-90">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
           ))}
-          <button onClick={onAddOption} className="text-xs font-semibold text-slate-400 hover:text-[#FF7A00] flex items-center gap-1.5 pt-1">
-            <Plus className="w-3.5 h-3.5" /> Add option
+          <button onClick={onAddOption} className="text-xs font-semibold text-slate-400 hover:text-[#FF7A00] flex items-center gap-1.5 pt-1 transition-transform duration-100 active:scale-95">
+            <Plus className="w-3.5 h-3.5" /> {meta.hasRows ? 'Add column' : 'Add option'}
           </button>
+        </div>
+      )}
+
+      {/* Scale range editor (RATING / LINEAR_SCALE only) — this is the actual
+          field.min_value/max_value range rendered on the public form; distinct
+          from the validation_rules.minValue/maxValue rule below. */}
+      {meta.hasScale && (
+        <div className="grid grid-cols-2 gap-2 pl-1 pt-1">
+          <div>
+            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+              {field.type === 'RATING' ? 'Min stars' : 'Min value'}
+            </label>
+            <input
+              type="number"
+              value={field.min_value ?? 1}
+              onChange={(e) => onScaleRangeChange('min_value', e.target.value === '' ? undefined : Number(e.target.value))}
+              className="w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+              {field.type === 'RATING' ? 'Max stars' : 'Max value'}
+            </label>
+            <input
+              type="number"
+              value={field.max_value ?? 5}
+              onChange={(e) => onScaleRangeChange('max_value', e.target.value === '' ? undefined : Number(e.target.value))}
+              className="w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+            />
+          </div>
         </div>
       )}
 
       {/* Response validation */}
       {hasConstraintOptions(field.type) && (
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
-          <button onClick={onToggleValidation} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5">
+          <button onClick={onToggleValidation} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
             <ShieldCheck className="w-3.5 h-3.5" />
             {hasActiveValidation(field) ? 'Response validation: Active' : 'Response validation'}
           </button>
@@ -994,7 +1209,7 @@ function QuestionCard({
 
       {/* Conditional visibility */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
-        <button onClick={onToggleConditional} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5">
+        <button onClick={onToggleConditional} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
           <GitFork className="w-3.5 h-3.5" />
           {readConditional(field.conditional_logic) ? 'Conditional: Active' : 'Add conditional rule'}
         </button>
@@ -1004,11 +1219,11 @@ function QuestionCard({
       </div>
 
       {/* Footer toolbar */}
-      <div className="flex items-center justify-end gap-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-        <button onClick={onDuplicate} title="Duplicate" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-[#FF7A00]">
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <button onClick={onDuplicate} title="Duplicate" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-[#FF7A00] transition-transform duration-100 active:scale-90">
           <Copy className="w-4 h-4" />
         </button>
-        <button onClick={onRemove} title="Delete" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500">
+        <button onClick={onRemove} title="Delete" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500 transition-transform duration-100 active:scale-90">
           <Trash2 className="w-4 h-4" />
         </button>
         <div className="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1" />
@@ -1148,7 +1363,7 @@ function ConditionalEditor({
           {active && (
             <button
               onClick={() => onChange({})}
-              className="text-[11px] font-bold text-rose-500 hover:underline"
+              className="text-[11px] font-bold text-rose-500 hover:underline transition-transform duration-100 active:scale-95 inline-block"
             >
               Remove rule
             </button>
@@ -1354,6 +1569,72 @@ function ValidationPanel({ field, siblingFields, onChange }: {
         </>
       )}
 
+      {t === 'URL' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Allowed domains (comma-separated)" type="text" value={Array.isArray(r.allowedDomains) ? r.allowedDomains.join(', ') : r.allowedDomains} onChange={(v) => onChange({ allowedDomains: v === undefined ? undefined : String(v) })} />
+            <LabeledInput label="Blocked domains (comma-separated)" type="text" value={Array.isArray(r.blockedDomains) ? r.blockedDomains.join(', ') : r.blockedDomains} onChange={(v) => onChange({ blockedDomains: v === undefined ? undefined : String(v) })} />
+          </div>
+          <LabeledInput label="Custom pattern (regex)" type="text" value={r.pattern} onChange={(v) => onChange({ pattern: v })} />
+          <CheckboxRow label="Require https://" checked={r.requireHttps} onChange={(v) => onChange({ requireHttps: v || undefined })} />
+        </>
+      )}
+
+      {(t === 'RATING' || t === 'LINEAR_SCALE') && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Extra rule: min value" type="number" value={r.minValue} onChange={(v) => onChange({ minValue: v })} />
+            <LabeledInput label="Extra rule: max value" type="number" value={r.maxValue} onChange={(v) => onChange({ maxValue: v })} />
+            <LabeledInput label="Step / multiple of" type="number" value={r.step} onChange={(v) => onChange({ step: v })} />
+          </div>
+          <CheckboxRow label="Whole numbers only" checked={r.integerOnly ?? true} onChange={(v) => onChange({ integerOnly: v ? undefined : false })} />
+          <p className="text-[10px] text-slate-400">
+            The star/scale range itself is set above (Min/Max stars or values) — these extra rules layer a
+            stricter check on top, if needed.
+          </p>
+        </>
+      )}
+
+      {(t === 'MATRIX_RADIO' || t === 'MATRIX_CHECKBOX') && (
+        <>
+          {(field.rows || []).length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase font-bold text-slate-500 mb-1">Rows that must be answered</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {(field.rows || []).map((row) => {
+                  const list = Array.isArray(r.requiredRows) ? r.requiredRows : [];
+                  const checked = list.includes(row);
+                  return (
+                    <CheckboxRow
+                      key={row}
+                      label={row}
+                      checked={checked}
+                      onChange={(v) => {
+                        const next = v ? [...list, row] : list.filter((x) => x !== row);
+                        onChange({ requiredRows: next.length ? next : undefined });
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <CheckboxRow label="Every row requires an answer" checked={r.allRowsRequired} onChange={(v) => onChange({ allRowsRequired: v || undefined })} />
+          {t === 'MATRIX_CHECKBOX' && (
+            <div className="grid grid-cols-2 gap-2">
+              <LabeledInput label="Min selections per row" type="number" value={r.minPerRow} onChange={(v) => onChange({ minPerRow: v })} />
+              <LabeledInput label="Max selections per row" type="number" value={r.maxPerRow} onChange={(v) => onChange({ maxPerRow: v })} />
+            </div>
+          )}
+        </>
+      )}
+
+      {t === 'SIGNATURE' && (
+        <p className="text-[11px] text-slate-400">
+          Signatures only support "Required" and the comparison rule below — there are no extra format rules.
+        </p>
+      )}
+
       <CrossFieldEditor field={field} siblingFields={siblingFields} onChange={onChange} />
 
       <LabeledInput label="Custom error message (optional)" type="text" value={r.patternError} onChange={(v) => onChange({ patternError: v })} />
@@ -1463,7 +1744,7 @@ function LivePreview({
             {viewportMode === 'mobile' ? 'Mobile Simulator View' : 'Desktop End User View'}
           </span>
         </div>
-        <button onClick={() => setIsPreviewMode(false)} className="text-xs font-bold text-slate-500 hover:text-slate-800">
+        <button onClick={() => setIsPreviewMode(false)} className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-transform duration-100 active:scale-95">
           Exit Preview
         </button>
       </div>
@@ -1634,13 +1915,109 @@ function LivePreview({
                 />
               )}
 
+              {field.type === 'URL' && (
+                <input
+                  type="url"
+                  required={field.is_required}
+                  placeholder={field.placeholder || 'https://...'}
+                  value={previewAnswers[field.label] || ''}
+                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                />
+              )}
+
+              {(field.type === 'RATING' || field.type === 'LINEAR_SCALE') && (() => {
+                const min = field.min_value ?? 1;
+                const max = field.max_value ?? 5;
+                const current = Number(previewAnswers[field.label]) || 0;
+                const nums: number[] = [];
+                for (let i = min; i <= max; i++) nums.push(i);
+                return (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {nums.map((i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setPreviewAnswers({ ...previewAnswers, [field.label]: i })}
+                        className={`h-9 w-9 rounded-lg border text-xs font-bold transition-transform duration-100 active:scale-90 ${
+                          current === i
+                            ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
+                            : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300'
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {(field.type === 'MATRIX_RADIO' || field.type === 'MATRIX_CHECKBOX') && (() => {
+                const rows = field.rows || [];
+                const cols = field.options || [];
+                const multi = field.type === 'MATRIX_CHECKBOX';
+                const matrixVal: Record<string, any> =
+                  previewAnswers[field.label] && typeof previewAnswers[field.label] === 'object' ? previewAnswers[field.label] : {};
+                return (
+                  <div className="overflow-x-auto pt-1">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr>
+                          <th className="text-left p-1.5" />
+                          {cols.map((c) => (
+                            <th key={c} className="p-1.5 text-center font-semibold text-slate-500">{c}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((row) => {
+                          const cell = matrixVal[row];
+                          return (
+                            <tr key={row} className="border-t border-slate-100 dark:border-slate-800">
+                              <td className="p-1.5 font-medium text-[#1A1A2E] dark:text-white">{row}</td>
+                              {cols.map((c) => {
+                                const selected = multi ? Array.isArray(cell) && cell.includes(c) : cell === c;
+                                return (
+                                  <td key={c} className="p-1.5 text-center">
+                                    <input
+                                      type={multi ? 'checkbox' : 'radio'}
+                                      name={multi ? undefined : `preview-${field.id}-${row}`}
+                                      checked={selected}
+                                      onChange={() => {
+                                        const nextCell = multi
+                                          ? selected
+                                            ? (Array.isArray(cell) ? cell : []).filter((x: string) => x !== c)
+                                            : [...(Array.isArray(cell) ? cell : []), c]
+                                          : c;
+                                        setPreviewAnswers({ ...previewAnswers, [field.label]: { ...matrixVal, [row]: nextCell } });
+                                      }}
+                                      className="h-3.5 w-3.5 accent-[#FF7A00]"
+                                    />
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+
+              {field.type === 'SIGNATURE' && (
+                <p className="text-xs text-slate-400 italic px-4 py-2.5 rounded-lg border border-dashed border-slate-200 dark:border-slate-800">
+                  Signature pad renders on the live public form (canvas drawing isn't simulated in this quick preview).
+                </p>
+              )}
+
               {hint && <p className="text-[11px] text-slate-400">{hint}</p>}
             </div>
           );
         })}
 
         <div className="pt-4 flex justify-end">
-          <button type="submit" className="px-6 py-3 rounded-md bg-[#FF7A00] text-white font-bold text-sm hover:bg-[#e66f00]">
+          <button type="submit" className="px-6 py-3 rounded-md bg-[#FF7A00] text-white font-bold text-sm hover:bg-[#e66f00] transition-transform duration-100 active:scale-95">
             Test Submit Response
           </button>
         </div>

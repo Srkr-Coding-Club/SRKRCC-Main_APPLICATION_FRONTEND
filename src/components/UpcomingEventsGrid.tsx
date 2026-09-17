@@ -299,7 +299,7 @@ export default function UpcomingEventsGrid() {
                 prev();
                 e.currentTarget.blur();
               }}
-              className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/60 transition-colors z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/60 transition z-10 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
               aria-label="Previous event"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -309,7 +309,7 @@ export default function UpcomingEventsGrid() {
                 next();
                 e.currentTarget.blur();
               }}
-              className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/60 transition-colors z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/60 transition z-10 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
               aria-label="Next event"
             >
               <ChevronRight className="w-4 h-4" />
@@ -327,7 +327,7 @@ export default function UpcomingEventsGrid() {
                   goTo(i);
                   e.currentTarget.blur();
                 }}
-                className="relative h-1.5 rounded-full overflow-hidden transition-all duration-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+                className="relative h-1.5 rounded-full overflow-hidden transition-all duration-400 active:scale-y-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
                 style={{ width: i === index ? 36 : 8, background: 'rgba(128,128,128,0.25)' }}
                 aria-label={`Go to ${s.title}`}
               >
@@ -349,7 +349,7 @@ export default function UpcomingEventsGrid() {
             onClick={() => setAutoPlay((p) => !p)}
             aria-label={autoPlay ? 'Pause auto-advance' : 'Resume auto-advance'}
             aria-pressed={!autoPlay}
-            className="flex items-center justify-center w-11 h-11 rounded-full text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+            className="flex items-center justify-center w-11 h-11 rounded-full text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:bg-black/5 dark:hover:bg-white/5 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
           >
             {autoPlay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>

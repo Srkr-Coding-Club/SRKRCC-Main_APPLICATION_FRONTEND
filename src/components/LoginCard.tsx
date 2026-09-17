@@ -206,7 +206,7 @@ export default function LoginCard({
             <button
               type="button"
               onClick={handleContinueAsExisting}
-              className="flex-1 py-2 px-3 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm"
+              className="flex-1 py-2 px-3 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm"
             >
               <span>Continue as {loggedInUser.first_name || loggedInUser.username || 'User'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -214,7 +214,7 @@ export default function LoginCard({
             <button
               type="button"
               onClick={handleSwitchAccount}
-              className="py-2 px-3 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center gap-1 transition"
+              className="py-2 px-3 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center gap-1 transition active:scale-95"
             >
               <LogOut className="w-3.5 h-3.5" />
               Switch
@@ -243,7 +243,7 @@ export default function LoginCard({
               type="button"
               onClick={handleRequestSetup}
               disabled={isSendingSetup}
-              className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-50 shadow-sm"
+              className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50 shadow-sm"
             >
               {isSendingSetup ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
               <span>Send Password Setup Link</span>
@@ -319,7 +319,7 @@ export default function LoginCard({
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute right-0 top-1/2 -translate-y-1/2 p-3.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-3.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-transform duration-100 active:scale-90"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -335,7 +335,7 @@ export default function LoginCard({
         <button
           type="submit"
           disabled={isLoading || success}
-          className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition active:scale-[0.98] disabled:opacity-50"
         >
           {isLoading ? (
             <>

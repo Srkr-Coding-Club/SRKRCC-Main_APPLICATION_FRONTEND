@@ -87,7 +87,7 @@ export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerP
           )}
           <button
             onClick={onClose}
-            className="ml-auto p-1.5 rounded-lg text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white hover:bg-white/10 transition-colors"
+            className="ml-auto p-2 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white hover:bg-white/10 transition active:scale-90"
             aria-label="Close drawer"
           >
             <X className="w-4 h-4" />

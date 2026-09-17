@@ -288,7 +288,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
         <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
           <button
             onClick={() => setActiveTab('wizard')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all active:scale-95 ${
               activeTab === 'wizard'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -299,7 +299,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all active:scale-95 ${
               activeTab === 'history'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -572,7 +572,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
                   <button
                     onClick={handleReset}
-                    className="px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white"
+                    className="px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-95"
                   >
                     Cancel & Upload New
                   </button>
@@ -690,13 +690,13 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
                   <button
                     onClick={() => setCurrentStep(2)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-95"
                   >
                     <ChevronLeft className="w-4 h-4" /> Back to Domain Selection
                   </button>
                   <button
                     onClick={() => setCurrentStep(4)}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/20"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
                   >
                     Verify Schema & 50% Rule <ChevronRight className="w-4 h-4" />
                   </button>
@@ -790,7 +790,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                     </div>
                     <button
                       onClick={handleArchiveRaw}
-                      className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-xs transition-all shrink-0"
+                      className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-xs transition-all active:scale-95 shrink-0"
                     >
                       Save as Raw Vault Backup
                     </button>
@@ -800,7 +800,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                 <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800">
                   <button
                     onClick={() => setCurrentStep(3)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-95"
                   >
                     <ChevronLeft className="w-4 h-4" /> Back to Column Mapping
                   </button>
@@ -808,14 +808,14 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handleArchiveRaw}
-                      className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-all"
+                      className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-all active:scale-95"
                     >
                       Save to Raw Vault Instead
                     </button>
                     <button
                       onClick={runPreview}
                       disabled={isPreviewing || !analysis.is_eligible_for_structured_import}
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all active:scale-95 shadow-lg shadow-indigo-600/20 disabled:opacity-50"
                     >
                       {isPreviewing ? (
                         <>
@@ -853,7 +853,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   <div className="mt-8 flex items-center justify-center gap-4">
                     <button
                       onClick={handleReset}
-                      className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#1A1A2E] dark:text-white font-medium text-sm"
+                      className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#1A1A2E] dark:text-white font-medium text-sm transition-transform duration-100 active:scale-95"
                     >
                       Upload Another Backup
                     </button>
@@ -862,7 +862,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                         handleReset();
                         setActiveTab('history');
                       }}
-                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm shadow-lg shadow-indigo-600/20"
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm shadow-lg shadow-indigo-600/20 transition-transform duration-100 active:scale-95"
                     >
                       View in Vault Archive
                     </button>
@@ -973,7 +973,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
                     <button
                       onClick={() => setCurrentStep(4)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-95"
                     >
                       <ChevronLeft className="w-4 h-4" /> Back to Validation
                     </button>
@@ -982,14 +982,14 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                       <button
                         onClick={handleArchiveRaw}
                         disabled={isCommitting}
-                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-all"
+                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium transition-all active:scale-95"
                       >
                         Save as Raw Archive
                       </button>
                       <button
                         onClick={handleCommit}
                         disabled={isCommitting || preview.valid_records === 0}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50"
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all active:scale-95 shadow-lg shadow-emerald-600/20 disabled:opacity-50"
                       >
                         {isCommitting ? (
                           <>
@@ -1031,7 +1031,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
               <button
                 onClick={loadHistory}
                 disabled={isLoadingHistory}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-300 font-medium transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-300 font-medium transition-all active:scale-95"
               >
                 <RefreshCw className={`w-4 h-4 ${isLoadingHistory ? 'animate-spin' : ''}`} />
                 Refresh Vault

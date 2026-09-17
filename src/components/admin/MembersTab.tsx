@@ -52,7 +52,7 @@ function MemberDetailContent({ member, onCopyClubId, copiedId }: { member: User;
             {member.club_id && (
               <button
                 onClick={() => onCopyClubId(member.club_id!)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-xs hover:bg-orange-500/20 transition"
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-xs hover:bg-orange-500/20 transition active:scale-95"
               >
                 <span>{member.club_id}</span>
                 {copiedId === member.club_id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
@@ -254,7 +254,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
 
           <button
             onClick={() => setIsEmailModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition border border-slate-200 dark:border-slate-700"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition active:scale-95 border border-slate-200 dark:border-slate-700"
           >
             <Mail className="w-4 h-4 text-orange-600 dark:text-orange-400" />
             <span>Broadcast Email</span>
@@ -262,7 +262,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
 
           <button
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold shadow-md transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold shadow-md transition active:scale-95"
           >
             <Download className="w-4 h-4" />
             <span>Export CSV</span>
@@ -337,7 +337,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
               setStatusFilter('ALL');
               setBranchFilter('ALL');
             }}
-            className="px-4 py-2 bg-orange-500/10 text-orange-400 rounded-xl font-bold text-xs hover:bg-orange-500/20 transition inline-block mt-2"
+            className="px-4 py-2 bg-orange-500/10 text-orange-400 rounded-xl font-bold text-xs hover:bg-orange-500/20 transition active:scale-95 inline-block mt-2"
           >
             Reset Filters
           </button>
@@ -372,7 +372,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                           <button
                             onClick={() => handleCopyClubId(m.club_id!)}
                             title="Click to copy Club ID"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-xs hover:bg-orange-500/20 transition"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-xs hover:bg-orange-500/20 transition active:scale-95"
                           >
                             <span>{m.club_id}</span>
                             {copiedId === m.club_id ? (
@@ -480,7 +480,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                 </div>
                 <button
                   onClick={() => setIsEmailModalOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition"
+                  className="p-2 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition active:scale-90"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -516,14 +516,14 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
               <div className="p-4 bg-slate-50 dark:bg-[#0f0f1a] border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <button
                   onClick={() => setIsEmailModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition active:scale-95"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSendEmailCampaign}
                   disabled={sendingEmail}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-md transition inline-flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-md transition active:scale-95 inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {sendingEmail ? (
                     <>

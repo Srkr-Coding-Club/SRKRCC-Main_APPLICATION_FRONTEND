@@ -43,7 +43,7 @@ export function ContentHubTab() {
 
           <button
             onClick={() => toast.info('Article Management', 'Use Django Admin or API to publish new technical write-ups.')}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Create Article</span>
@@ -84,7 +84,7 @@ export function ContentHubTab() {
 
           <button
             onClick={() => toast.info('Career Management', 'Use Django Admin or API to post verified placement drives.')}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-xs shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-xs shadow-sm transition active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Post Job</span>

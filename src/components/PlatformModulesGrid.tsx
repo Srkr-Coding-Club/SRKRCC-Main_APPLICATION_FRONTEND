@@ -215,7 +215,7 @@ function AccordionRow({ m, isOpen, enabled, onToggle }: { m: ModuleItem; isOpen:
   const Icon = m.icon;
   return (
     <div className="border-b border-black/[0.06] dark:border-white/[0.08]">
-      <button onClick={onToggle} className="w-full flex items-center gap-4 py-5 text-left">
+      <button onClick={onToggle} className="w-full flex items-center gap-4 py-5 text-left transition-transform duration-100 active:scale-[0.99]">
         <div
           className="w-11 h-11 rounded-full flex items-center justify-center border flex-shrink-0"
           style={{ background: `linear-gradient(135deg, ${m.accent}20, transparent)`, borderColor: `${m.accent}45`, color: m.accent }}

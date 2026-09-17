@@ -179,6 +179,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
     club_id_field_mapping?: import('@/lib/types').ClubIdFieldMapping;
     confirmation_email_enabled?: boolean;
     confirmation_email_template?: number | string | null;
+    attendance_enabled?: boolean;
+    attendance_start_date?: string | null;
+    attendance_days?: number;
+    attendance_sessions_per_day?: 1 | 2 | 3;
+    attendance_window_minutes?: number | null;
   }>({
     title: '',
     slug: '',
@@ -200,6 +205,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
     club_id_field_mapping: {},
     confirmation_email_enabled: false,
     confirmation_email_template: null,
+    attendance_enabled: false,
+    attendance_start_date: null,
+    attendance_days: 1,
+    attendance_sessions_per_day: 1,
+    attendance_window_minutes: null,
   });
 
   const [builderFields, setBuilderFields] = useState<FormField[]>([
@@ -589,6 +599,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
       club_id_field_mapping: form.club_id_field_mapping || {},
       confirmation_email_enabled: form.confirmation_email_enabled ?? false,
       confirmation_email_template: form.confirmation_email_template ?? null,
+      attendance_enabled: form.attendance_enabled ?? false,
+      attendance_start_date: form.attendance_start_date ?? null,
+      attendance_days: form.attendance_days ?? 1,
+      attendance_sessions_per_day: form.attendance_sessions_per_day ?? 1,
+      attendance_window_minutes: form.attendance_window_minutes ?? null,
     };
     const fields: FormField[] =
       form.fields && form.fields.length > 0
@@ -648,6 +663,14 @@ export function useAdminData(options?: UseAdminDataOptions) {
       club_id_field_mapping: formMeta.club_id_field_mapping || {},
       confirmation_email_enabled: formMeta.confirmation_email_enabled ?? false,
       confirmation_email_template: formMeta.confirmation_email_template || null,
+      attendance_enabled: formMeta.attendance_enabled ?? false,
+      attendance_start_date: formMeta.attendance_start_date || null,
+      attendance_days: formMeta.attendance_days ?? 1,
+      attendance_sessions_per_day: formMeta.attendance_sessions_per_day ?? 1,
+      attendance_window_minutes:
+        formMeta.attendance_window_minutes === undefined || formMeta.attendance_window_minutes === null
+          ? null
+          : formMeta.attendance_window_minutes,
       fields: builderFields.map((f, idx) => {
         const isRealDbId = typeof f.id === 'number' && f.id > 0 && f.id < 2000000000;
         return {
@@ -797,6 +820,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
         club_id_field_mapping: saved.club_id_field_mapping || {},
         confirmation_email_enabled: saved.confirmation_email_enabled ?? false,
         confirmation_email_template: saved.confirmation_email_template ?? null,
+        attendance_enabled: saved.attendance_enabled ?? false,
+        attendance_start_date: saved.attendance_start_date ?? null,
+        attendance_days: saved.attendance_days ?? 1,
+        attendance_sessions_per_day: saved.attendance_sessions_per_day ?? 1,
+        attendance_window_minutes: saved.attendance_window_minutes ?? null,
       };
 
       const updatedFields: FormField[] =

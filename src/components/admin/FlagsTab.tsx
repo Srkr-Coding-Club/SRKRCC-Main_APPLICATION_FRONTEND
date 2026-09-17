@@ -36,7 +36,7 @@ export function FlagsTab({ flags, onToggleFlag, isLoading = false }: FlagsTabPro
                 <p className="font-bold text-sm text-[#1A1A2E] dark:text-white">{f.name}</p>
                 <p className="text-xs text-slate-500">{f.description}</p>
               </div>
-              <button onClick={() => onToggleFlag(f.id)}>
+              <button onClick={() => onToggleFlag(f.id)} className="transition-transform duration-100 active:scale-90">
                 {f.is_enabled ? <ToggleRight className="w-8 h-8 text-emerald-500" /> : <ToggleLeft className="w-8 h-8 text-slate-400" />}
               </button>
             </div>

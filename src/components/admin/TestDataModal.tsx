@@ -20,7 +20,7 @@ export function TestDataModal({ isOpen, onClose, submittedTestData }: TestDataMo
             <CheckCircle2 className="w-5 h-5" />
             <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Preview Test Submission Payload</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white">
+          <button onClick={onClose} className="flex items-center justify-center min-h-9 min-w-9 p-2 rounded-lg text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-90">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -32,7 +32,7 @@ export function TestDataModal({ isOpen, onClose, submittedTestData }: TestDataMo
         <div className="pt-2 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded bg-[#FF7A00] hover:bg-[#E06B00] text-white text-xs font-bold transition-colors"
+            className="px-4 py-2 rounded bg-[#FF7A00] hover:bg-[#E06B00] text-white text-xs font-bold transition-colors active:scale-95"
           >
             Close Payload Dialog
           </button>

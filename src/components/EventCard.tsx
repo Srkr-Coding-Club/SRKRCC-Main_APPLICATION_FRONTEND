@@ -212,7 +212,7 @@ export default function EventCard({
           <div className="mt-auto pt-6">
             <Link
               href={event.form_slug ? `/forms/${event.form_slug}` : "/forms"}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95"
               style={{ backgroundColor: accent }}
             >
               <Ticket className="h-4 w-4" />

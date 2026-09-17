@@ -307,6 +307,16 @@ html {
   outline-offset: 2px;
 }
 
+/* Remove the ~300ms mobile tap delay on all interactive controls */
+button,
+a,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  touch-action: manipulation;
+}
+
 /* Prefers Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

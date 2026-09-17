@@ -326,10 +326,78 @@ export interface Form {
   club_id_field_mapping?: ClubIdFieldMapping;
   confirmation_email_enabled?: boolean;
   confirmation_email_template?: number | string | null;
+  /** QR-code attendance tracking — see apps/forms/models.py's attendance_* fields. */
+  attendance_enabled?: boolean;
+  attendance_start_date?: string | null;
+  attendance_days?: number;
+  attendance_sessions_per_day?: 1 | 2 | 3;
+  attendance_window_minutes?: number | null;
   fields?: FormField[];
   created_at?: string;
   updated_at?: string;
   response_count?: number;
+}
+
+// ---------------------------------------------------------------------------
+// QR-code attendance types — see apps/attendance/serializers.py & views.py
+// ---------------------------------------------------------------------------
+
+/** GET /api/forms/<id>/attendance/sessions/ — one row per scannable session. */
+export interface AttendanceSession {
+  id: number;
+  form: number;
+  day_index: number;
+  session_label: 'MORNING' | 'AFTERNOON' | 'EVENING';
+  session_label_display: string;
+  date: string;
+  opens_at: string | null;
+  closes_at: string | null;
+}
+
+/** GET /api/forms/<id>/attendance/my-badge/ — the caller's own badge. */
+export interface AttendanceBadge {
+  token: string;
+  response_id: number;
+  revoked: boolean;
+}
+
+/** POST /api/attendance/scan/ response body. */
+export interface AttendanceScanResult {
+  success: boolean;
+  new_scan: boolean;
+  already_recorded: boolean;
+  display_name: string;
+  response_id: number;
+  session_id: number;
+  scanned_at: string;
+}
+
+/** Structured error body returned by /api/attendance/scan/ on 400/404. */
+export interface AttendanceScanError {
+  error: string;
+  code?: 'BADGE_NOT_FOUND' | 'BADGE_REVOKED' | 'SESSION_NOT_FOUND' | 'FORM_MISMATCH' | 'OUTSIDE_SCAN_WINDOW';
+}
+
+/** GET /api/forms/<id>/attendance/report/ */
+export interface AttendanceSessionSummary {
+  id: number;
+  day_index: number;
+  session_label: 'MORNING' | 'AFTERNOON' | 'EVENING';
+  date: string;
+  attended_count: number;
+  total_registrants: number;
+  percentage: number;
+}
+
+export interface AttendanceRegistrantRow {
+  response_id: number;
+  display_name: string;
+  sessions: Record<number, boolean>;
+}
+
+export interface AttendanceReport {
+  sessions: AttendanceSessionSummary[];
+  registrants: AttendanceRegistrantRow[];
 }
 
 /** Maps club-member profile attributes to this form's own field IDs (see FormBuilderTab's Automation card). */

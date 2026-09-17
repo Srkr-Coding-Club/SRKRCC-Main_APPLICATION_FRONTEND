@@ -34,7 +34,7 @@ export default function ThemeToggle({ className = '' }: ThemeToggleProps) {
   return (
     <button
       onClick={toggleDarkMode}
-      className={`relative w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors ${className}`}
+      className={`relative w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition active:scale-95 duration-100 ${className}`}
       aria-label="Toggle theme"
     >
       <AnimatePresence mode="wait" initial={false}>

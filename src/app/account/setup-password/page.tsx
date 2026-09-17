@@ -192,7 +192,7 @@ function SetupPasswordContent() {
             <button
               type="button"
               onClick={() => router.push('/account/setup-password')}
-              className="w-full py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs transition shadow-sm"
+              className="w-full py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs transition active:scale-[0.98] shadow-sm"
             >
               Request a New Setup Link
             </button>
@@ -237,7 +237,7 @@ function SetupPasswordContent() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-9 min-w-9 p-2 text-slate-400 hover:text-slate-200 transition-transform duration-100 active:scale-90"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -262,7 +262,7 @@ function SetupPasswordContent() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-9 min-w-9 p-2 text-slate-400 hover:text-slate-200 transition-transform duration-100 active:scale-90"
               >
                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -294,7 +294,7 @@ function SetupPasswordContent() {
           <button
             type="submit"
             disabled={isSubmitting || !isPasswordStrong || !passwordsMatch}
-            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-md shadow-orange-500/10"
+            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50 shadow-md shadow-orange-500/10"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
             <span>Set Password & Activate</span>
@@ -348,7 +348,7 @@ function SetupPasswordContent() {
           <button
             type="submit"
             disabled={isRequesting || !requestEmail}
-            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-md shadow-orange-500/10"
+            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50 shadow-md shadow-orange-500/10"
           >
             {isRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
             <span>Send Setup Link</span>

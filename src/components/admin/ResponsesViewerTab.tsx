@@ -165,7 +165,7 @@ function ConfirmationEmailCell({
           onClick={() => onResend(response.id)}
           disabled={resending}
           title={response.confirmation_email ? 'Resend confirmation email' : 'Send confirmation email'}
-          className="text-slate-400 hover:text-[#FF7A00] disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded-lg text-slate-400 hover:text-[#FF7A00] disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-90"
         >
           <RotateCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
         </button>
@@ -222,7 +222,7 @@ function ResponseDrawerContent({
               <button
                 onClick={() => onResend(response.id)}
                 disabled={resending}
-                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0"
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-95 shrink-0"
               >
                 <RotateCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
                 {response.confirmation_email ? 'Resend' : 'Send Now'}
@@ -407,8 +407,27 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
     }
   };
 
-  const handleBulkDelete = () => {
-    toast.info('Bulk Delete Not Available', 'Deleting responses isn’t supported from this view yet — use Django Admin to remove them.');
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    if (!window.confirm(`Permanently delete ${count} response${count === 1 ? '' : 's'}? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      const result = await fetchApi<{ deleted_count: number }>(
+        `/forms/${selectedSlug}/responses/bulk-delete/`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ response_ids: Array.from(selectedIds) }),
+        }
+      );
+      toast.success('Responses Deleted', `Deleted ${result.deleted_count} response${result.deleted_count === 1 ? '' : 's'}.`);
+      setSelectedIds(new Set());
+      await loadResponses();
+    } catch (err: any) {
+      toast.error('Delete Failed', err?.message || 'Could not delete the selected responses.');
+    }
   };
 
   // --- No form selected ---
@@ -475,7 +494,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
 
           <button
             onClick={() => setShowChart(!showChart)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${showChart ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition active:scale-95 ${showChart ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white'}`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
             Timeline
@@ -493,22 +512,22 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
             <span className="text-xs font-bold text-orange-400">{selectedIds.size} selected</span>
-            <button onClick={handleBulkExport} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white">
+            <button onClick={handleBulkExport} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-95">
               <Download className="w-3 h-3" /> Export
             </button>
             <button
               onClick={() => setShowEmailEditor(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300"
+              className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-transform duration-100 active:scale-95"
             >
               <Mail className="w-3 h-3" /> Email
             </button>
             <button
               onClick={handleBulkDelete}
-              className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300"
+              className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-transform duration-100 active:scale-95"
             >
               <Trash2 className="w-3 h-3" /> Delete
             </button>
-            <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-slate-500 hover:text-slate-600 dark:text-slate-300">Clear</button>
+            <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-slate-500 hover:text-slate-600 dark:text-slate-300 transition-transform duration-100 active:scale-95">Clear</button>
           </div>
         )}
 
@@ -545,7 +564,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                           if (selectedIds.size === allIds.length) setSelectedIds(new Set());
                           else setSelectedIds(new Set(allIds));
                         }}
-                        className="text-slate-500 hover:text-orange-400"
+                        className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 hover:text-orange-400 transition-transform duration-100 active:scale-90"
                       >
                         {selectedIds.size === data.results.length
                           ? <CheckSquare className="w-4 h-4" />
@@ -577,11 +596,11 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                     return (
                       <tr
                         key={resp.id}
-                        className={`${rowBg} ${gap ? 'bg-rose-500/5' : ''} hover:bg-slate-800/20 transition cursor-pointer`}
+                        className={`${rowBg} ${gap ? 'bg-rose-500/5' : ''} hover:bg-slate-800/20 active:bg-slate-200 dark:active:bg-slate-800/40 transition cursor-pointer`}
                         onClick={() => setDrawerResponse(resp)}
                       >
                         <td className="sticky left-0 z-10 bg-white dark:bg-[#151722] px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => toggleRow(resp.id)} className="text-slate-500 hover:text-orange-400">
+                          <button onClick={() => toggleRow(resp.id)} className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 hover:text-orange-400 transition-transform duration-100 active:scale-90">
                             {isSelected ? <CheckSquare className="w-4 h-4 text-orange-500" /> : <Square className="w-4 h-4" />}
                           </button>
                         </td>
@@ -635,7 +654,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition"
+              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition active:scale-90"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -646,7 +665,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition"
+              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition active:scale-90"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

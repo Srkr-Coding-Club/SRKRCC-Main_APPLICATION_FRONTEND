@@ -163,7 +163,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
             type="button"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-50"
+            className="flex items-center justify-center min-h-9 min-w-9 p-2 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-50 transition-transform duration-100 active:scale-90"
           >
             <X className="w-5 h-5" />
           </button>
@@ -291,14 +291,14 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 transition-transform duration-100 active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-lg text-xs font-bold bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+              className="px-5 py-2 rounded-lg text-xs font-bold bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-transform duration-100 active:scale-95"
             >
               {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {isSubmitting ? 'Saving...' : 'Save Changes'}

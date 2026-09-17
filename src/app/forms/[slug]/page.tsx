@@ -3,10 +3,11 @@
 import React, { useState, useEffect,useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Form, FormField } from '@/lib/types';
+import { Form, FormField, CrossFieldRule, AttendanceBadge } from '@/lib/types';
+import { QRCodeSVG } from 'qrcode.react';
 import { fetchApi } from '@/lib/api-client';
 import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
-import { getConstraintHint, validateSubmission, validateFieldValue } from '@/lib/formValidation';
+import { getConstraintHint, validateSubmission, validateFieldValue, getCrossFieldError } from '@/lib/formValidation';
 import { computeLayout, isFieldRequired } from '@/lib/formConditional';
 import { useToast } from '@/context/ToastContext';
 import {
@@ -25,6 +26,8 @@ import {
   Sparkles,
   Check,
   ChevronDown,
+  Star,
+  QrCode,
 } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import {
@@ -372,6 +375,7 @@ function ModernSelect({
           shadow-[0_1px_2px_rgba(0,0,0,0.03)]
           outline-none
           transition-all duration-200
+          active:scale-[0.99]
           ${
             isOpen
               ? "border-[#FF7A00] ring-4 ring-[#FF7A00]/10"
@@ -434,6 +438,7 @@ function ModernSelect({
               px-3 py-2.5
               text-left text-sm
               transition-colors duration-150
+              active:scale-[0.98]
               ${
                 !value
                   ? "bg-[#FF7A00]/10 text-[#D85F00] dark:text-[#FF9A4A]"
@@ -465,6 +470,7 @@ function ModernSelect({
                   px-3 py-2.5
                   text-left text-sm
                   transition-all duration-150
+                  active:scale-[0.98]
                   ${
                     selected
                       ? "bg-[#FF7A00]/10 font-semibold text-[#D85F00] dark:text-[#FF9A4A]"
@@ -484,6 +490,242 @@ function ModernSelect({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+interface SignaturePadProps {
+  id: string;
+  value: string;
+  onChange: (dataUrl: string) => void;
+  onBlur?: () => void;
+  hasError?: boolean;
+  'aria-invalid'?: boolean;
+  'aria-describedby'?: string;
+}
+
+/**
+ * SIGNATURE field — a canvas the user can draw on with mouse or touch.
+ * The answer value stored via `onChange` is a PNG data URL, cleared to ''
+ * by the Clear button (treated as empty by `isEmpty()` for required checks).
+ */
+function SignaturePad({
+  id,
+  value,
+  onChange,
+  onBlur,
+  hasError = false,
+  'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
+}: SignaturePadProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawingRef = useRef(false);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const [hasDrawn, setHasDrawn] = useState(!!value);
+
+  // Keep the canvas in sync with an externally-set value (prefill / draft restore).
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    setHasDrawn(!!value);
+    if (value) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+      img.src = value;
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const getPoint = (e: React.MouseEvent | React.TouchEvent): { x: number; y: number } | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if ('touches' in e) {
+      const t = e.touches[0] || e.changedTouches[0];
+      if (!t) return null;
+      return { x: (t.clientX - rect.left) * scaleX, y: (t.clientY - rect.top) * scaleY };
+    }
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  };
+
+  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    const point = getPoint(e);
+    if (!point) return;
+    drawingRef.current = true;
+    lastPointRef.current = point;
+  };
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!drawingRef.current) return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    const point = getPoint(e);
+    if (!canvas || !ctx || !point || !lastPointRef.current) return;
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+    lastPointRef.current = point;
+    if (!hasDrawn) setHasDrawn(true);
+  };
+
+  const endDraw = () => {
+    if (!drawingRef.current) return;
+    drawingRef.current = false;
+    lastPointRef.current = null;
+    const canvas = canvasRef.current;
+    if (canvas) onChange(canvas.toDataURL('image/png'));
+    onBlur?.();
+  };
+
+  const handleClear = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawn(false);
+    onChange('');
+    onBlur?.();
+  };
+
+  return (
+    <div className="space-y-2">
+      <div
+        className={`relative rounded-xl border overflow-hidden bg-white dark:bg-[#101117] ${
+          hasError ? 'border-rose-400 dark:border-rose-500/60' : 'border-slate-200 dark:border-slate-800'
+        }`}
+      >
+        <canvas
+          ref={canvasRef}
+          id={id}
+          width={600}
+          height={200}
+          className="w-full h-[200px] cursor-crosshair touch-none"
+          aria-invalid={ariaInvalid ?? hasError}
+          aria-describedby={ariaDescribedBy}
+          onMouseDown={startDraw}
+          onMouseMove={draw}
+          onMouseUp={endDraw}
+          onMouseLeave={endDraw}
+          onTouchStart={startDraw}
+          onTouchMove={draw}
+          onTouchEnd={endDraw}
+        />
+        {!hasDrawn && (
+          <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-slate-400 dark:text-slate-600">
+            Sign here
+          </p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={handleClear}
+        className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] transition active:scale-95"
+      >
+        Clear
+      </button>
+    </div>
+  );
+}
+
+/**
+ * True if `f`'s crossField rules or conditional_logic reference `targetId` —
+ * used by handleInputChange to find which OTHER fields might have a stale
+ * error once `targetId`'s value changes (its required_if trigger, its
+ * comparison value, or the condition that shows/requires it).
+ */
+function fieldReferencesTarget(f: FormField, targetId: number | string): boolean {
+  const cross = f.validation_rules?.crossField as CrossFieldRule[] | undefined;
+  if (Array.isArray(cross) && cross.some((rule) => String(rule.field) === String(targetId))) return true;
+
+  const cond: any = f.conditional_logic;
+  if (cond && typeof cond === 'object') {
+    const stack: any[] = Array.isArray(cond.rules) ? [...cond.rules] : [cond];
+    while (stack.length) {
+      const node = stack.pop();
+      if (!node || typeof node !== 'object') continue;
+      if (Array.isArray(node.rules)) {
+        stack.push(...node.rules);
+        continue;
+      }
+      const ref = node.field ?? node.if;
+      if (ref !== undefined && ref !== null && String(ref) === String(targetId)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * "Your Attendance Pass" card — fetched from GET /api/forms/<id>/attendance/my-badge/
+ * once the registrant has a completed response on an attendance_enabled form. The
+ * `token` is rendered as a QR code volunteers scan at check-in (see
+ * AttendanceScannerTab / POST /api/attendance/scan/ on the admin side).
+ */
+function AttendanceBadgeCard({ formId, registrantName }: { formId: number | string; registrantName?: string }) {
+  const [badge, setBadge] = useState<AttendanceBadge | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBadge() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetchApi<AttendanceBadge>(`/forms/${formId}/attendance/my-badge/`);
+        if (!cancelled) setBadge(res);
+      } catch (err: any) {
+        if (!cancelled) setError(err?.message || 'Could not load your attendance pass.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    if (formId) loadBadge();
+    return () => {
+      cancelled = true;
+    };
+  }, [formId]);
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-6 text-center">
+        <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <p className="text-xs text-slate-400">Loading your attendance pass…</p>
+      </div>
+    );
+  }
+
+  if (error || !badge) return null;
+
+  return (
+    <div className="rounded-xl border border-orange-200 dark:border-orange-900/50 bg-gradient-to-b from-orange-50/60 to-white dark:from-orange-950/20 dark:to-[#151722] p-6 sm:p-8 text-center space-y-4">
+      <div className="flex items-center justify-center gap-2 text-[#FF7A00]">
+        <QrCode className="w-5 h-5" />
+        <h3 className="text-sm font-black uppercase tracking-widest">Your Attendance Pass</h3>
+      </div>
+      <div className="inline-block p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+        <QRCodeSVG value={badge.token} size={192} level="M" includeMargin={false} />
+      </div>
+      {registrantName && (
+        <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{registrantName}</p>
+      )}
+      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+        Show this QR code at check-in for each session. It stays the same for every day — no need to reload or
+        re-download it.
+      </p>
     </div>
   );
 }
@@ -656,23 +898,45 @@ export default function FormDetailSubmissionPage() {
     const fieldId = field.id;
     if (hasSubmitted && !canEditResponse) return; // Prevent edits when locked
 
-    setFormData((prev) => {
-      const next = { ...prev, [String(fieldId)]: value };
-      try {
-        if (slug && !hasSubmitted) localStorage.setItem(`srkrcc_form_draft_${slug}`, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
+    const nextFormData = { ...formData, [String(fieldId)]: value };
+    setFormData(nextFormData);
+    try {
+      if (slug && !hasSubmitted) localStorage.setItem(`srkrcc_form_draft_${slug}`, JSON.stringify(nextFormData));
+    } catch {}
+
+    const allFields = (form?.fields as FormField[]) || [];
+
     // Once an error is already showing for this field, re-check on every
     // keystroke so it can clear (or update) the moment the value is fixed —
     // matches Formik's validateOnChange-after-error behavior.
-    if (errors[String(fieldId)] || errors[fieldId]) {
-      const message = validateFieldValue(field, value);
+    const selfFlagged = !!(errors[String(fieldId)] || errors[fieldId]);
+
+    // Any OTHER field whose crossField/required_if rules or conditional_logic
+    // reference this field may now be stale (e.g. a "required when X is
+    // answered" error that should clear, or a comparison that now fails).
+    // Only re-check fields already touched or currently showing an error —
+    // never flag a field the user hasn't reached yet.
+    const dependents = allFields.filter((f) => {
+      if (String(f.id) === String(fieldId)) return false;
+      const alreadyFlagged = !!(touched[String(f.id)] || errors[String(f.id)] || errors[f.id]);
+      return alreadyFlagged && fieldReferencesTarget(f, fieldId);
+    });
+
+    if (selfFlagged || dependents.length) {
+      const nextLayout = computeLayout(allFields, nextFormData);
       setErrors((prev) => {
         const next = { ...prev };
-        delete next[String(fieldId)];
-        delete next[fieldId];
-        if (message) next[String(fieldId)] = message;
+        const revalidate = (f: FormField) => {
+          const key = String(f.id);
+          const val = nextFormData[key] ?? nextFormData[f.id as any];
+          const required = isFieldRequired(f, nextLayout);
+          const message = validateFieldValue(f, val, required) || getCrossFieldError(f, allFields, nextFormData, nextLayout);
+          delete next[key];
+          delete next[f.id as any];
+          if (message) next[key] = message;
+        };
+        if (selfFlagged) revalidate(field);
+        for (const dep of dependents) revalidate(dep);
         return next;
       });
     }
@@ -683,7 +947,10 @@ export default function FormDetailSubmissionPage() {
   const handleFieldBlur = (field: FormField, value: any) => {
     const fieldId = String(field.id);
     setTouched((prev) => (prev[fieldId] ? prev : { ...prev, [fieldId]: true }));
-    const message = validateFieldValue(field, value);
+    const required = isFieldRequired(field, layout);
+    const message =
+      validateFieldValue(field, value, required) ||
+      getCrossFieldError(field, (form?.fields as FormField[]) || [], formData, layout);
     setErrors((prev) => {
       const next = { ...prev };
       delete next[field.id];
@@ -915,7 +1182,7 @@ export default function FormDetailSubmissionPage() {
             <button
               type="button"
               onClick={() => setShowLoginModal(false)}
-              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition active:scale-95"
             >
               Continue in preview mode
             </button>
@@ -948,6 +1215,16 @@ export default function FormDetailSubmissionPage() {
             <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
               Thank you for submitting your response for <strong className="text-[#1A1A2E] dark:text-white">{form.title}</strong>. A confirmation has been recorded under your verified account.
             </p>
+
+            {form.attendance_enabled && typeof form.id === 'number' && (
+              <div className="pt-2 max-w-md mx-auto text-left">
+                <AttendanceBadgeCard
+                  formId={form.id}
+                  registrantName={currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser?.username}
+                />
+              </div>
+            )}
+
             <div className="pt-4">
               <Link
                 href="/forms"
@@ -1014,6 +1291,13 @@ export default function FormDetailSubmissionPage() {
                         </div>
                       </div>
                     )
+                  )}
+
+                  {hasSubmitted && form.attendance_enabled && typeof form.id === 'number' && (
+                    <AttendanceBadgeCard
+                      formId={form.id}
+                      registrantName={currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser?.username}
+                    />
                   )}
                 </div>
               ) : (
@@ -1528,6 +1812,210 @@ export default function FormDetailSubmissionPage() {
                       </div>
                     )}
 
+                    {/* RATING Field */}
+                    {field.type === 'RATING' && (() => {
+                      const min = field.min_value ?? 1;
+                      const max = field.max_value ?? 5;
+                      const current = Number(fieldVal) || 0;
+                      const stars: number[] = [];
+                      for (let i = min; i <= max; i++) stars.push(i);
+                      return (
+                        <div
+                          className="flex items-center gap-2 pt-1"
+                          role="radiogroup"
+                          aria-invalid={isErr}
+                          aria-describedby={errorId}
+                        >
+                          {stars.map((i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => handleInputChange(field, i)}
+                              onBlur={() => handleFieldBlur(field, i)}
+                              aria-label={`${i} star${i === 1 ? '' : 's'}`}
+                              aria-pressed={current >= i}
+                              className="p-1 transition-transform duration-100 active:scale-90"
+                            >
+                              <Star
+                                className={`w-7 h-7 transition-colors ${
+                                  current >= i
+                                    ? 'fill-[#FF7A00] text-[#FF7A00]'
+                                    : 'text-slate-300 dark:text-slate-700'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
+                    {/* LINEAR_SCALE Field */}
+                    {field.type === 'LINEAR_SCALE' && (() => {
+                      const min = field.min_value ?? 1;
+                      const max = field.max_value ?? 5;
+                      const current = fieldVal === '' || fieldVal === undefined || fieldVal === null ? null : Number(fieldVal);
+                      const nums: number[] = [];
+                      for (let i = min; i <= max; i++) nums.push(i);
+                      return (
+                        <div
+                          className="flex flex-wrap items-center gap-2 pt-1"
+                          role="radiogroup"
+                          aria-invalid={isErr}
+                          aria-describedby={errorId}
+                        >
+                          {nums.map((i) => {
+                            const selected = current === i;
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => handleInputChange(field, i)}
+                                onBlur={() => handleFieldBlur(field, i)}
+                                aria-pressed={selected}
+                                className={`h-10 w-10 rounded-lg border text-sm font-bold transition-all active:scale-90 ${
+                                  selected
+                                    ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
+                                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-[#FF7A00]/50'
+                                }`}
+                              >
+                                {i}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+
+                    {/* MATRIX_RADIO Field */}
+                    {field.type === 'MATRIX_RADIO' && (() => {
+                      const rows = field.rows || [];
+                      const cols = field.options || [];
+                      const matrixVal: Record<string, string> =
+                        formData[field.id] && typeof formData[field.id] === 'object' && !Array.isArray(formData[field.id])
+                          ? formData[field.id]
+                          : {};
+                      return (
+                        <div
+                          className="overflow-x-auto pt-1"
+                          role="group"
+                          aria-invalid={isErr}
+                          aria-describedby={errorId}
+                        >
+                          <table className="w-full text-sm border-collapse">
+                            <thead>
+                              <tr>
+                                <th className="text-left p-2" />
+                                {cols.map((c) => (
+                                  <th key={c} className="p-2 text-center font-semibold text-slate-600 dark:text-slate-300">
+                                    {c}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map((row) => (
+                                <tr key={row} className="border-t border-slate-100 dark:border-slate-800">
+                                  <td className="p-2 font-medium text-slate-700 dark:text-slate-300">{row}</td>
+                                  {cols.map((c) => {
+                                    const selected = matrixVal[row] === c;
+                                    return (
+                                      <td key={c} className="p-2 text-center">
+                                        <input
+                                          type="radio"
+                                          name={`field-${field.id}-${row}`}
+                                          checked={selected}
+                                          onChange={() => {
+                                            const next = { ...matrixVal, [row]: c };
+                                            handleInputChange(field, next);
+                                          }}
+                                          onBlur={() => handleFieldBlur(field, matrixVal)}
+                                          className="h-4 w-4 accent-[#FF7A00] cursor-pointer"
+                                        />
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+
+                    {/* MATRIX_CHECKBOX Field */}
+                    {field.type === 'MATRIX_CHECKBOX' && (() => {
+                      const rows = field.rows || [];
+                      const cols = field.options || [];
+                      const matrixVal: Record<string, string[]> =
+                        formData[field.id] && typeof formData[field.id] === 'object' && !Array.isArray(formData[field.id])
+                          ? formData[field.id]
+                          : {};
+                      return (
+                        <div
+                          className="overflow-x-auto pt-1"
+                          role="group"
+                          aria-invalid={isErr}
+                          aria-describedby={errorId}
+                        >
+                          <table className="w-full text-sm border-collapse">
+                            <thead>
+                              <tr>
+                                <th className="text-left p-2" />
+                                {cols.map((c) => (
+                                  <th key={c} className="p-2 text-center font-semibold text-slate-600 dark:text-slate-300">
+                                    {c}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map((row) => {
+                                const cell: string[] = Array.isArray(matrixVal[row]) ? matrixVal[row] : [];
+                                return (
+                                  <tr key={row} className="border-t border-slate-100 dark:border-slate-800">
+                                    <td className="p-2 font-medium text-slate-700 dark:text-slate-300">{row}</td>
+                                    {cols.map((c) => {
+                                      const selected = cell.includes(c);
+                                      return (
+                                        <td key={c} className="p-2 text-center">
+                                          <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            onChange={(e) => {
+                                              const nextCell = e.target.checked
+                                                ? [...cell, c]
+                                                : cell.filter((x) => x !== c);
+                                              const next = { ...matrixVal, [row]: nextCell };
+                                              handleInputChange(field, next);
+                                            }}
+                                            onBlur={() => handleFieldBlur(field, matrixVal)}
+                                            className="h-4 w-4 accent-[#FF7A00] cursor-pointer"
+                                          />
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+
+                    {/* SIGNATURE Field */}
+                    {field.type === 'SIGNATURE' && (
+                      <SignaturePad
+                        id={`field-${field.id}`}
+                        value={typeof fieldVal === 'string' ? fieldVal : ''}
+                        onChange={(dataUrl) => handleInputChange(field, dataUrl)}
+                        onBlur={() => handleFieldBlur(field, formData[field.id])}
+                        hasError={isErr}
+                        aria-invalid={isErr}
+                        aria-describedby={errorId}
+                      />
+                    )}
+
                     {/* Character counter / constraint hint */}
                     {(field.type === 'TEXT' || field.type === 'PARAGRAPH') && field.validation_rules?.maxLength ? (
                       <p className="text-[11px] text-slate-400 text-right">
@@ -1572,7 +2060,7 @@ export default function FormDetailSubmissionPage() {
                       <button
                         type="button"
                         onClick={() => setShowLoginModal(true)}
-                        className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition"
+                        className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98]"
                       >
                         <Lock className="w-4 h-4" />
                         <span>Sign In to Fill Form</span>
@@ -1606,7 +2094,7 @@ export default function FormDetailSubmissionPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting || isClosed || isBeforeOpen}
-                      className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <span>
                         {isSubmitting

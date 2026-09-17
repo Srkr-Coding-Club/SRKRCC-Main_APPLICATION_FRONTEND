@@ -22,6 +22,7 @@ export function hasConstraintOptions(type: FormField['type']): boolean {
     'TEXT', 'PARAGRAPH', 'EMAIL', 'NUMBER', 'PHONE', 'URL',
     'CHECKBOX', 'DATE', 'TIME', 'RADIO', 'DROPDOWN',
     'FILE', 'MULTI_FILE', 'RATING', 'LINEAR_SCALE',
+    'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE',
   ].includes(type);
 }
 
@@ -79,6 +80,20 @@ export function getConstraintHint(field: FormField): string | null {
       if (r.allowedFileTypes) parts.push(`accepted: ${r.allowedFileTypes}`);
       if (r.maxFileSizeMB) parts.push(`max ${r.maxFileSizeMB}MB`);
       if (r.maxFiles) parts.push(`up to ${r.maxFiles} files`);
+      break;
+    case 'RATING':
+    case 'LINEAR_SCALE':
+      if (r.minValue != null && r.maxValue != null) parts.push(`rule: ${r.minValue}-${r.maxValue}`);
+      if (r.integerOnly === false) parts.push('decimals allowed');
+      break;
+    case 'MATRIX_RADIO':
+      if (r.allRowsRequired) parts.push('every row required');
+      break;
+    case 'MATRIX_CHECKBOX':
+      if (r.allRowsRequired) parts.push('every row required');
+      if (r.minPerRow != null && r.maxPerRow != null) parts.push(`${r.minPerRow}-${r.maxPerRow} per row`);
+      else if (r.maxPerRow != null) parts.push(`up to ${r.maxPerRow} per row`);
+      else if (r.minPerRow != null) parts.push(`at least ${r.minPerRow} per row`);
       break;
   }
   return parts.length ? parts.join(' • ') : null;
@@ -159,6 +174,35 @@ function fieldTypeErrors(field: FormField, value: any): string[] {
       else {
         if ((r.integerOnly ?? true) && !Number.isInteger(n)) out.push('Must be a whole number.');
         if (n < lo || n > hi) out.push(`Choose a value between ${lo} and ${hi}.`);
+      }
+      break;
+    }
+    // Mirrors backend field_types.py::_validate_matrix — unknown row / unknown
+    // column checks, plus "one selection per row" for MATRIX_RADIO.
+    case 'MATRIX_RADIO':
+    case 'MATRIX_CHECKBOX': {
+      const rows = (field.rows || []).map((rr) => String(rr).trim());
+      const cols = (field.options || []).map((c) => String(c).trim());
+      const multi = field.type === 'MATRIX_CHECKBOX';
+      const matrixVal: Record<string, any> = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+      const matchesCol = (v: string) => cols.some((c) => c === v || c.toLowerCase() === v.toLowerCase());
+      const matchesRow = (v: string) => rows.some((rr) => rr === v || rr.toLowerCase() === v.toLowerCase());
+      for (const rowKey of Object.keys(matrixVal)) {
+        const rk = String(rowKey).trim();
+        if (rows.length && !matchesRow(rk)) {
+          out.push(`'${rowKey}' is not a row of this question.`);
+          continue;
+        }
+        const cell = matrixVal[rowKey];
+        if (!multi && Array.isArray(cell) && cell.length > 1) {
+          out.push(`Row '${rowKey}' allows only one selection.`);
+        }
+        const cellValues = Array.isArray(cell) ? cell : [cell];
+        for (const cv of cellValues) {
+          if (cv === undefined || cv === null || cv === '') continue;
+          const cvStr = String(cv).trim();
+          if (cols.length && !matchesCol(cvStr)) out.push(`'${cv}' is not a column of this question.`);
+        }
       }
       break;
     }
@@ -261,6 +305,37 @@ function ruleErrors(field: FormField, value: any): string[] {
     if (r.exactSelected != null && arr.length !== r.exactSelected) push(`Select exactly ${r.exactSelected} option(s).`);
   }
 
+  // matrix — mirrors backend rules.py::_required_rows / _all_rows_required / _min_per_row / _max_per_row
+  if (field.type === 'MATRIX_RADIO' || field.type === 'MATRIX_CHECKBOX') {
+    const matrixVal: Record<string, any> | null = value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+    if (matrixVal) {
+      const cellIsAnswered = (v: any) => !(v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0));
+      const answered = new Set(
+        Object.entries(matrixVal).filter(([, v]) => cellIsAnswered(v)).map(([k]) => String(k).trim().toLowerCase()),
+      );
+      if (Array.isArray(r.requiredRows) && r.requiredRows.length) {
+        const missing = r.requiredRows.filter((row) => !answered.has(String(row).trim().toLowerCase()));
+        if (missing.length) push(`These rows require an answer: ${missing.join(', ')}.`);
+      }
+      if (r.allRowsRequired) {
+        const rows = (field.rows || []).map((row) => String(row));
+        const missing = rows.filter((row) => !answered.has(row.trim().toLowerCase()));
+        if (missing.length) push(`Every row requires an answer; missing: ${missing.join(', ')}.`);
+      }
+      const cellCount = (cell: any) => (Array.isArray(cell) ? cell.length : cell !== null && cell !== undefined && cell !== '' ? 1 : 0);
+      if (r.minPerRow != null) {
+        for (const [k, cell] of Object.entries(matrixVal)) {
+          if (cellCount(cell) < r.minPerRow) { push(`Row '${k}' needs at least ${r.minPerRow} selection(s).`); break; }
+        }
+      }
+      if (r.maxPerRow != null) {
+        for (const [k, cell] of Object.entries(matrixVal)) {
+          if (cellCount(cell) > r.maxPerRow) { push(`Row '${k}' allows at most ${r.maxPerRow} selection(s).`); break; }
+        }
+      }
+    }
+  }
+
   // files
   if (field.type === 'FILE' || field.type === 'MULTI_FILE') {
     const files = toFiles(value);
@@ -284,11 +359,53 @@ function ruleErrors(field: FormField, value: any): string[] {
 // Per-field (light) — kept for on-change hints
 // ---------------------------------------------------------------------------
 
-export function validateFieldValue(field: FormField, value: any): string | null {
+export function validateFieldValue(field: FormField, value: any, requiredOverride?: boolean): string | null {
   if (field.type === 'SECTION') return null;
-  if (isEmpty(value)) return field.is_required ? `${field.label} is required.` : null;
+  const required = requiredOverride ?? field.is_required;
+  if (isEmpty(value)) return required ? `${field.label} is required.` : null;
   const errs = [...fieldTypeErrors(field, value), ...ruleErrors(field, value)];
   return errs[0] ?? null;
+}
+
+/**
+ * Single-field cross-field check — the same crossField logic `validateSubmission`
+ * applies across the whole form, scoped to one field so it can be re-run cheaply
+ * whenever the field it depends on changes (see page.tsx::handleInputChange).
+ */
+export function getCrossFieldError(
+  field: FormField,
+  fields: FormField[],
+  valuesByStrId: Record<string, any>,
+  layout?: Layout,
+): string | null {
+  const cross = field.validation_rules?.crossField as CrossFieldRule[] | undefined;
+  if (!Array.isArray(cross) || !cross.length) return null;
+  const key = String(field.id);
+  if (layout && !layout.visible.has(key)) return null;
+  const byId = new Map<string, FormField>(fields.map((f) => [String(f.id), f]));
+
+  for (const rule of cross) {
+    const other = byId.get(String(rule.field));
+    if (!other) continue;
+    if (layout && !layout.visible.has(String(rule.field))) continue;
+    const thisVal = valuesByStrId[key];
+    const otherVal = valuesByStrId[String(rule.field)];
+    if (rule.op === 'required_if') {
+      const trig = rule.equals;
+      const matches = trig == null || trig === '' ? !isEmpty(otherVal) : String(otherVal).trim().toLowerCase() === String(trig).trim().toLowerCase();
+      if (matches && isEmpty(thisVal)) {
+        return rule.message || `'${field.label}' is required when '${other.label}' is answered.`;
+      }
+      continue;
+    }
+    if (isEmpty(thisVal) || isEmpty(otherVal)) continue;
+    const opMap: Record<string, string> = { eq: 'equals', ne: 'not_equals', lt: 'lt', lte: 'lte', gt: 'gt', gte: 'gte' };
+    const ok = evaluateOperator(opMap[rule.op] || 'equals', thisVal, otherVal);
+    if (!ok) {
+      return rule.message || `'${field.label}' fails its comparison with '${other.label}'.`;
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------

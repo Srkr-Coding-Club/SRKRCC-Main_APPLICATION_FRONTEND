@@ -169,7 +169,7 @@ return (
           <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
             <Link
               href={`/forms/${form.slug}`}
-              className="flex items-center gap-1 rounded-full bg-[#FF7A00] px-4 py-2 font-medium text-white transition-all hover:bg-[#E06B00]"
+              className="flex items-center gap-1 rounded-full bg-[#FF7A00] px-4 py-2 font-medium text-white transition-all hover:bg-[#E06B00] active:scale-95"
             >
               <ArrowRight className="h-4 w-4" />
               {isUpcoming ? "View Schedule" : "Fill Form"}

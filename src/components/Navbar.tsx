@@ -187,7 +187,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 >
                   <Link
                     href={item.href}
-                    className={`relative z-10 flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold transition-colors duration-200 ${
+                    className={`relative z-10 flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold transition duration-200 active:scale-95 ${
                       hasPill
                         ? 'text-white'
                         : 'text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white'
@@ -262,7 +262,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 {(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD') && (
                   <Link
                     href="/admin"
-                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border border-orange-500/30 transition"
+                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border border-orange-500/30 transition active:scale-95 duration-100"
                   >
                     Admin Room
                   </Link>
@@ -270,7 +270,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
 
                 <Link
                   href="/profile"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#1A1A2E] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] transition shadow-sm"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#1A1A2E] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] transition shadow-sm active:scale-95 duration-100"
                   aria-label="User Profile"
                 >
                   <User className="w-3.5 h-3.5 text-[#FF7A00]" />
@@ -292,7 +292,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                       setLoginModalOpen(true);
                     }
                   }}
-                  className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition-colors"
+                  className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-block"
                 >
                   Login
                 </Link>
@@ -311,7 +311,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
-              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5"
+              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
             >
@@ -351,7 +351,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                   <Link
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="font-poppins font-bold text-2xl text-[#1A1A2E] dark:text-white"
+                    className="font-poppins font-bold text-2xl text-[#1A1A2E] dark:text-white inline-block transition-transform duration-100 active:scale-95"
                   >
                     {item.label}
                   </Link>
@@ -362,7 +362,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                           key={child.label}
                           href={child.href}
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center gap-2 text-sm font-medium text-[#1A1A2E]/55 dark:text-white/45"
+                          className="flex items-center gap-2 text-sm font-medium text-[#1A1A2E]/55 dark:text-white/45 transition-transform duration-100 active:scale-95"
                         >
                           <span className="w-1 h-1 rounded-full bg-[#FF7A00]" />
                           {child.label}
@@ -381,7 +381,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                     <Link
                       href="/profile"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white flex items-center justify-center gap-2"
+                      className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white flex items-center justify-center gap-2 transition-transform duration-100 active:scale-95"
                     >
                       <User className="w-4 h-4 text-[#FF7A00]" />
                       <span>{currentUser?.first_name || currentUser?.username || 'My Profile'}</span>
@@ -390,7 +390,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                       <Link
                         href="/admin"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex-1 text-center py-3 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md transition"
+                        className="flex-1 text-center py-3 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md transition active:scale-95"
                       >
                         Admin Room
                       </Link>
@@ -408,7 +408,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                     setLoginModalOpen(true);
                   }
                 }}
-                    className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white"
+                    className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white transition-transform duration-100 active:scale-95"
                   >
                     Login
                   </Link>
@@ -443,7 +443,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 type="button"
                 onClick={() => setLoginModalOpen(false)}
                 aria-label="Close sign in dialog"
-                className="absolute right-3 top-3 z-10 rounded-full bg-black/10 p-2 text-hero-foreground transition-colors hover:bg-black/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                className="absolute right-3 top-3 z-10 flex min-h-10 min-w-10 items-center justify-center rounded-full bg-black/10 p-2 text-hero-foreground transition hover:bg-black/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 active:scale-95 duration-100"
               >
                 <X className="size-4" />
               </button>

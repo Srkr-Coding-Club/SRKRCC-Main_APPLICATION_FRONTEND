@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Search, UserPlus, Eye } from 'lucide-react';
-import { useToast } from '@/context/ToastContext';
 import { getStoredUser } from '@/lib/auth';
 import { DetailDrawer } from './DetailDrawer';
 
@@ -126,7 +125,6 @@ export function UsersTab({
   onMembershipStatusChange,
   isLoading = false,
 }: UsersTabProps) {
-  const { toast } = useToast();
   const [viewedUser, setViewedUser] = useState<UserRecord | null>(null);
   // Only a full ADMIN may grant ADMIN/CLUB_LEAD (the backend enforces this too —
   // see UserDetailView.perform_update — this just keeps the dropdown from
@@ -148,7 +146,7 @@ export function UsersTab({
 
         <button
           onClick={onOpenCreateModal}
-          className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition"
+          className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition active:scale-95"
         >
           <UserPlus className="w-4 h-4" />
           <span>+ Create New User</span>
@@ -263,16 +261,10 @@ export function UsersTab({
                     <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                       <button
                         onClick={() => setViewedUser(user)}
-                        className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                        className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95"
                       >
                         <Eye className="w-3 h-3" />
                         View
-                      </button>
-                      <button
-                        onClick={() => toast.info('Not Available Yet', `Scoped role assignment for ${user.name} isn't implemented yet.`)}
-                        className="text-xs font-bold px-3 py-1 rounded bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 transition"
-                      >
-                        + Scoped Role
                       </button>
                     </td>
                   </tr>

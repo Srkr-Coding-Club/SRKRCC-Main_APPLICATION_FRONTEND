@@ -359,7 +359,7 @@ function SignupContent() {
               <button
                 type="submit"
                 disabled={isLoading || success}
-                className="w-full inline-flex items-center justify-center space-x-2 py-3.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center space-x-2 py-3.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition active:scale-[0.98] disabled:opacity-50"
               >
                 {success ? (
                   <>

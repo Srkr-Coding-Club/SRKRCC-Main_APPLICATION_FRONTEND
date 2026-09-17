@@ -99,7 +99,7 @@ export function AuditLogsTab({ filteredAuditLogs, isLoading = false }: AuditLogs
                         <button
                           type="button"
                           onClick={() => toggleExpanded(l.id)}
-                          className="ml-2 text-[11px] font-bold text-orange-500 hover:text-orange-400 underline"
+                          className="ml-2 text-[11px] font-bold text-orange-500 hover:text-orange-400 underline transition-transform duration-100 active:scale-95 inline-block"
                         >
                           {isExpanded ? 'Show less' : 'Show more'}
                         </button>

@@ -171,6 +171,7 @@ export default function HeroSection() {
       {/* Scroll cue */}
       <motion.button
         {...settle(0.55)}
+        whileTap={{ scale: 0.9 }}
         onClick={scrollDown}
         aria-label="Scroll to content"
         className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full p-2 text-[#1A1A2E]/40 transition-colors hover:text-[#FF7A00] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] dark:text-white/35"

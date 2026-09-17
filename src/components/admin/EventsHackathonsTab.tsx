@@ -43,7 +43,7 @@ export function EventsHackathonsTab() {
 
           <button
             onClick={() => toast.info('Hackathon Management', 'Use Django Admin or API to provision new Hackathon sprints.')}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Create Hackathon</span>
@@ -92,7 +92,7 @@ export function EventsHackathonsTab() {
 
           <button
             onClick={() => toast.info('Event Management', 'Use Django Admin or API to schedule new workshop events.')}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-xs shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-xs shadow-sm transition active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Create Event</span>

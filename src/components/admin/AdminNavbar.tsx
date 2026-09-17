@@ -21,6 +21,7 @@ import {
   Activity,
   Database,
   ListChecks,
+  QrCode,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
@@ -70,6 +71,7 @@ const navItems: NavItem[] = [
     children: [
       { label: 'Forms Builder', shortLabel: 'Builder', href: '/admin/builder', desc: 'Drag & drop form canvas', icon: Plus },
       { label: 'Forms Registry', shortLabel: 'Forms', href: '/admin/forms', desc: 'Manage, close & bulk actions', icon: FileText },
+      { label: 'Attendance Scanner', shortLabel: 'Attendance', href: '/admin/attendance/scan', desc: 'QR check-in scanning & reports', icon: QrCode },
       ],
   },
   {
@@ -206,7 +208,7 @@ export default function AdminNavbar() {
                     }}
                     aria-haspopup={item.hasDropdown ? 'true' : undefined}
                     aria-expanded={item.hasDropdown ? isDropdownOpen : undefined}
-                    className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors duration-200 ${
+                    className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition duration-200 active:scale-95 ${
                       hasPill
                         ? 'text-white'
                         : 'text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white'
@@ -246,7 +248,7 @@ export default function AdminNavbar() {
                                   key={child.label}
                                   href={child.href}
                                   onClick={() => setClickedDropdown(null)}
-                                  className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition-colors"
+                                  className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition active:scale-[0.97]"
                                 >
                                   <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-[#FF7A00] transition-colors">
                                     <ChildIcon className="w-4 h-4" />
@@ -280,7 +282,7 @@ export default function AdminNavbar() {
 
             <Link
               href="/profile"
-              className="text-[12px] font-semibold text-[#1A1A2E]/70 dark:text-white/60 hover:text-[#FF7A00] transition-colors truncate max-w-[140px]"
+              className="text-[12px] font-semibold text-[#1A1A2E]/70 dark:text-white/60 hover:text-[#FF7A00] transition truncate max-w-[140px] active:scale-95 inline-block"
               title={currentUser?.email}
             >
               {currentUser?.first_name || currentUser?.username || currentUser?.email?.split('@')[0] || 'Profile'}
@@ -288,7 +290,7 @@ export default function AdminNavbar() {
 
             <Link
               href="/"
-              className="flex items-center gap-1.5 text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition-colors"
+              className="flex items-center gap-1.5 text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Main Site
@@ -302,7 +304,7 @@ export default function AdminNavbar() {
             <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
-              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5"
+              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
             >
@@ -321,13 +323,13 @@ export default function AdminNavbar() {
         <div className="w-full border-b border-black/[0.04] dark:border-white/[0.06] bg-[var(--background)]/60">
           <div className="max-w-[1600px] mx-auto px-5 sm:px-8 py-2">
             <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#1A1A2E]/45 dark:text-white/40">
-              <Link href="/admin" className="hover:text-[#FF7A00] transition-colors">
+              <Link href="/admin" className="hover:text-[#FF7A00] transition active:scale-95 inline-block">
                 Admin
               </Link>
               <span className="text-[#1A1A2E]/25 dark:text-white/20">/</span>
               {activeChild ? (
                 <>
-                  <Link href={activeNavItem.href} className="hover:text-[#FF7A00] transition-colors">
+                  <Link href={activeNavItem.href} className="hover:text-[#FF7A00] transition active:scale-95 inline-block">
                     {activeNavItem.label}
                   </Link>
                   <span className="text-[#1A1A2E]/25 dark:text-white/20">/</span>
@@ -368,7 +370,7 @@ export default function AdminNavbar() {
                     <Link
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 font-poppins font-bold text-xl ${
+                      className={`flex items-center gap-3 font-poppins font-bold text-xl transition-transform duration-100 active:scale-95 ${
                         isActive ? 'text-[#FF7A00]' : 'text-[#1A1A2E] dark:text-white'
                       }`}
                     >
@@ -382,7 +384,7 @@ export default function AdminNavbar() {
                             key={child.label}
                             href={child.href}
                             onClick={() => setMobileMenuOpen(false)}
-                            className="flex items-center gap-2 text-sm font-medium text-[#1A1A2E]/55 dark:text-white/45"
+                            className="flex items-center gap-2 text-sm font-medium text-[#1A1A2E]/55 dark:text-white/45 transition-transform duration-100 active:scale-95"
                           >
                             <span className="w-1 h-1 rounded-full bg-[#FF7A00]" />
                             {child.label}
@@ -402,7 +404,7 @@ export default function AdminNavbar() {
               <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex-1 flex items-center justify-center gap-2 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white"
+                className="flex-1 flex items-center justify-center gap-2 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white transition-transform duration-100 active:scale-95"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to Main Site
