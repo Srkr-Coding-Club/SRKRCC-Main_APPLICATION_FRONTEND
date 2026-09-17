@@ -17,7 +17,7 @@ import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
 import LoginCard from '@/components/LoginCard';
-import { getStoredUser, isAuthenticated, loginUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
+import { getStoredUser, isAuthenticated, loginUser, fetchAndSyncCurrentUser, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 
 interface NavChild {
   label: string;
@@ -68,8 +68,19 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const [isAuth, setIsAuth] = useState(false);
 
   useEffect(() => {
-    setIsAuth(isAuthenticated());
-    setCurrentUser(getStoredUser());
+    const syncAuth = () => {
+      setIsAuth(isAuthenticated());
+      setCurrentUser(getStoredUser());
+    };
+
+    syncAuth();
+    window.addEventListener(AUTH_CHANGE_EVENT, syncAuth);
+    window.addEventListener('storage', syncAuth);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGE_EVENT, syncAuth);
+      window.removeEventListener('storage', syncAuth);
+    };
   }, [pathname]);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import {
   motion,
@@ -12,6 +12,7 @@ import {
 } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import PillButton from './PillButton';
+import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 
 /* ------------------------------------------------------------------ */
 /* Logo worn like a seal — gradient ring, page-coloured core so it     */
@@ -50,6 +51,34 @@ function LogoSeal({ depthX, depthY }: { depthX: MotionValue<number>; depthY: Mot
 export default function HeroSection() {
   const reduce = useReducedMotion();
   const canHover = useRef(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuth, setIsAuth] = useState(false);
+
+  useEffect(() => {
+    const syncAuth = () => {
+      setIsAuth(isAuthenticated());
+      setCurrentUser(getStoredUser());
+    };
+
+    syncAuth();
+    window.addEventListener(AUTH_CHANGE_EVENT, syncAuth);
+    window.addEventListener('storage', syncAuth);
+
+    let cancelled = false;
+    fetchAndSyncCurrentUser().then((user) => {
+      if (cancelled) return;
+      if (user) {
+        setIsAuth(true);
+        setCurrentUser(user);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(AUTH_CHANGE_EVENT, syncAuth);
+      window.removeEventListener('storage', syncAuth);
+    };
+  }, []);
 
   useEffect(() => {
     canHover.current =
@@ -152,12 +181,31 @@ export default function HeroSection() {
         </motion.div>
 
         <motion.div {...settle(0.3)} className="mt-9 flex flex-wrap items-center justify-center gap-4">
-          <PillButton href="/signup" variant="solid" icon="arrow">
-            Join the Club
-          </PillButton>
-          <PillButton href="/events" variant="outline" icon="code">
-            Explore Events
-          </PillButton>
+          {isAuth ? (
+            <>
+              {currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD' ? (
+                <PillButton href="/admin" variant="solid" icon="arrow">
+                  Admin Control Room
+                </PillButton>
+              ) : (
+                <PillButton href="/profile" variant="solid" icon="arrow">
+                  Go to Profile
+                </PillButton>
+              )}
+              <PillButton href="/events" variant="outline" icon="code">
+                Explore Events
+              </PillButton>
+            </>
+          ) : (
+            <>
+              <PillButton href="/signup" variant="solid" icon="arrow">
+                Join the Club
+              </PillButton>
+              <PillButton href="/events" variant="outline" icon="code">
+                Explore Events
+              </PillButton>
+            </>
+          )}
         </motion.div>
 
         <motion.p

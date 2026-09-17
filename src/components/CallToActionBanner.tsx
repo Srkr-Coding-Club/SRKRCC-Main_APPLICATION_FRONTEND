@@ -1,12 +1,32 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import PillButton from './PillButton';
 import BrainLogo from './BrainLogo';
+import { getStoredUser, isAuthenticated, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 
 export default function CallToActionBanner() {
   const reduce = useReducedMotion();
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuth, setIsAuth] = useState(false);
+
+  useEffect(() => {
+    const syncAuth = () => {
+      setIsAuth(isAuthenticated());
+      setCurrentUser(getStoredUser());
+    };
+
+    syncAuth();
+    window.addEventListener(AUTH_CHANGE_EVENT, syncAuth);
+    window.addEventListener('storage', syncAuth);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGE_EVENT, syncAuth);
+      window.removeEventListener('storage', syncAuth);
+    };
+  }, []);
+
   return (
     <section id="join" className="relative py-20 sm:py-28 bg-[var(--background)] transition-colors duration-300 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -43,15 +63,25 @@ export default function CallToActionBanner() {
               <div className="max-w-xl">
                 <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-[#FF7A00]">
                   <span>&lt;/&gt;</span>
-                  <span>Join the community</span>
+                  <span>{isAuth ? 'Member Portal' : 'Join the community'}</span>
                 </div>
 
                 <h2 className="mt-3 text-3xl sm:text-5xl font-extrabold font-poppins tracking-tight text-[#1A1A2E] dark:text-white leading-[1.05]">
-                  Ready to level up your <span className="ember-text">coding journey?</span>
+                  {isAuth ? (
+                    <>
+                      Keep building your <span className="ember-text">coding journey</span>
+                    </>
+                  ) : (
+                    <>
+                      Ready to level up your <span className="ember-text">coding journey?</span>
+                    </>
+                  )}
                 </h2>
 
                 <p className="mt-4 text-slate-500 dark:text-slate-400 text-sm sm:text-base leading-relaxed">
-                  Join SRKR Coding Club today and be part of a community that builds the future — one commit at a time.
+                  {isAuth
+                    ? 'Explore upcoming hackathons, solve CodeQuest challenges, and collaborate with fellow builders.'
+                    : 'Join SRKR Coding Club today and be part of a community that builds the future — one commit at a time.'}
                 </p>
 
                 <div className="mt-5 inline-flex items-center gap-2 font-mono text-xs text-slate-500 dark:text-slate-400">
@@ -59,17 +89,38 @@ export default function CallToActionBanner() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                   </span>
-                  Applications open &middot; 500+ members already building
+                  {isAuth && currentUser
+                    ? `Logged in as ${currentUser.first_name || currentUser.username} (${currentUser.role})`
+                    : 'Applications open · 500+ members already building'}
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-4 flex-shrink-0">
-                <PillButton href="/signup" variant="solid">
-                  Join Us Now
-                </PillButton>
-                <PillButton href="/events" variant="outline">
-                  Explore Events
-                </PillButton>
+                {isAuth ? (
+                  <>
+                    {currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD' ? (
+                      <PillButton href="/admin" variant="solid">
+                        Admin Control Room
+                      </PillButton>
+                    ) : (
+                      <PillButton href="/profile" variant="solid">
+                        Go to Profile
+                      </PillButton>
+                    )}
+                    <PillButton href="/events" variant="outline">
+                      Explore Events
+                    </PillButton>
+                  </>
+                ) : (
+                  <>
+                    <PillButton href="/signup" variant="solid">
+                      Join Us Now
+                    </PillButton>
+                    <PillButton href="/events" variant="outline">
+                      Explore Events
+                    </PillButton>
+                  </>
+                )}
               </div>
             </div>
           </div>

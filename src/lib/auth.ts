@@ -45,18 +45,28 @@ export function getStoredUser(): AuthUser | null {
   }
 }
 
+export const AUTH_CHANGE_EVENT = 'srkrcc_auth_change';
+
+export function notifyAuthChange() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+  }
+}
+
 export function setStoredUser(user: AuthUser) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(USER_KEY, JSON.stringify(user));
   if (user.role) {
     document.cookie = `${ROLE_COOKIE}=${encodeURIComponent(user.role)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
   }
+  notifyAuthChange();
 }
 
 export function clearAuthSession() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(USER_KEY);
   document.cookie = `${ROLE_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  notifyAuthChange();
   
   // Call server BFF route to clear HttpOnly cookies
   fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});

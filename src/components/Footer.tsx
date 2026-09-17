@@ -25,8 +25,8 @@ const QUICK_LINKS = [
 const RESOURCES = [
   { label: 'IconCoders', href: '/iconcoders' },
   { label: 'Codequest', href: '/codequest' },
+  { label: 'Hackathons', href: '/hackathons' },
   { label: 'Forms', href: '/forms' },
-  { label: 'Admin', href: '/admin' },
 ];
 
 export default function Footer() {
