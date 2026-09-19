@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import {
   User,
   ChevronDown,
-  X,
   Sparkles,
   Terminal,
   Trophy,
@@ -16,8 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
-import LoginCard from '@/components/LoginCard';
-import { getStoredUser, isAuthenticated, loginUser, fetchAndSyncCurrentUser, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
+import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 
 interface NavChild {
   label: string;
@@ -84,18 +82,27 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   }, [pathname]);
 
   useEffect(() => {
+    let cancelled = false;
+    const syncFromServer = () => {
+      fetchAndSyncCurrentUser().then((user) => {
+        if (cancelled) return;
+        setIsAuth(!!user);
+        setCurrentUser(user);
+      });
+    };
+
     // The optimistic read above trusts localStorage + a plain role cookie, which
     // can outlive the real server session (expired/invalidated elsewhere) and
     // keep showing a signed-in navbar for a user who isn't actually authenticated.
-    // Validate once on mount and correct the state if the server disagrees.
-    let cancelled = false;
-    fetchAndSyncCurrentUser().then((user) => {
-      if (cancelled) return;
-      setIsAuth(!!user);
-      setCurrentUser(user);
-    });
+    // Validate on mount, and again whenever this tab regains focus — otherwise a
+    // role change made elsewhere (e.g. an admin promoting this member to
+    // CLUB_LEAD) never reaches an already-open tab until a hard refresh.
+    syncFromServer();
+    const unsubscribe = subscribeToAuthResync(syncFromServer);
+
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, []);
 
@@ -114,7 +121,6 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -124,21 +130,11 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen || loginModalOpen ? 'hidden' : '';
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [mobileMenuOpen, loginModalOpen]);
-
-  useEffect(() => {
-    if (!loginModalOpen) return;
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setLoginModalOpen(false);
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [loginModalOpen]);
+  }, [mobileMenuOpen]);
 
   const activeNavItem = visibleNavItems.find(
     (item) => pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false),
@@ -297,12 +293,6 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               <>
                 <Link
                   href="/login"
-                  onClick={(event) => {
-                    if (pathname === '/') {
-                      event.preventDefault();
-                      setLoginModalOpen(true);
-                    }
-                  }}
                   className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-block"
                 >
                   Login
@@ -412,13 +402,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 <div className="flex items-center gap-4">
                   <Link
                     href="/login"
-                    onClick={(event) => {
-                  setMobileMenuOpen(false);
-                  if (pathname === '/') {
-                    event.preventDefault();
-                    setLoginModalOpen(true);
-                  }
-                }}
+                    onClick={() => setMobileMenuOpen(false)}
                     className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white transition-transform duration-100 active:scale-95"
                   >
                     Login
@@ -435,41 +419,6 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {loginModalOpen && (
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Sign in"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setLoginModalOpen(false);
-            }}
-          >
-            <div className="relative w-full max-w-4xl">
-              <button
-                type="button"
-                onClick={() => setLoginModalOpen(false)}
-                aria-label="Close sign in dialog"
-                className="absolute right-3 top-3 z-10 flex min-h-10 min-w-10 items-center justify-center rounded-full bg-black/10 p-2 text-hero-foreground transition hover:bg-black/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 active:scale-95 duration-100"
-              >
-                <X className="size-4" />
-              </button>
-              <LoginCard
-                onSubmit={async (values) => {
-                  const result = await loginUser(values.email, values.password);
-                  setCurrentUser(result.user);
-                  setIsAuth(true);
-                  setLoginModalOpen(false);
-                }}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

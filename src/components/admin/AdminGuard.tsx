@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, LogIn, ArrowLeft, Loader2, RefreshCw, UserCheck, Home, LogOut } from 'lucide-react';
-import { getStoredUser, fetchAndSyncCurrentUser, clearAuthSession, AuthUser } from '@/lib/auth';
+import { getStoredUser, fetchAndSyncCurrentUser, subscribeToAuthResync, clearAuthSession, AuthUser } from '@/lib/auth';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -14,15 +14,17 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
-  const checkPermissions = useCallback(async () => {
+  const checkPermissions = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
+
     // localStorage and the non-HttpOnly srkrcc_user_role cookie are both editable from
     // devtools, so they're used only for the optimistic "who am I" display below while
     // the real check runs — never to decide whether protected content renders. Access
     // is always gated on the authoritative server response.
-    const localUser = getStoredUser();
-    setCurrentUser(localUser);
-
-    setCheckingServer(true);
+    if (!silent) {
+      setCurrentUser(getStoredUser());
+      setCheckingServer(true);
+    }
     try {
       const serverUser = await fetchAndSyncCurrentUser();
       if (serverUser) {
@@ -35,17 +37,34 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         setIsAdmin(false);
       }
     } catch {
-      // Fail closed: a network error verifying the session is not proof of admin access.
-      setIsAuth(false);
-      setIsAdmin(false);
+      // Fail closed on the initial (loud) check: a network error verifying the
+      // session is not proof of admin access. A silent background recheck
+      // failing is more likely a transient blip from switching tabs, so it
+      // leaves existing access alone rather than yanking it away mid-task —
+      // the next successful check (or the next full page load) will still
+      // catch a real revocation.
+      if (!silent) {
+        setIsAuth(false);
+        setIsAdmin(false);
+      }
     } finally {
-      setCheckingServer(false);
-      setMounted(true);
+      if (!silent) {
+        setCheckingServer(false);
+        setMounted(true);
+      }
     }
   }, []);
 
   useEffect(() => {
     checkPermissions();
+    // Silently re-check on focus too — this is the actual access gate, so a
+    // role change made elsewhere while this tab sat open (promoted to admin,
+    // or demoted away from it) should take effect the moment the tab is
+    // looked at again, not only at the next hard refresh. Silent so it
+    // doesn't blank an already-admitted admin's screen with the loading
+    // gateway just because they alt-tabbed back.
+    const unsubscribe = subscribeToAuthResync(() => checkPermissions({ silent: true }));
+    return unsubscribe;
   }, [checkPermissions]);
 
   const handleSwitchAccount = () => {
