@@ -94,9 +94,25 @@ export interface Problem {
   solved_count?: number;
   tags?: string[];
   constraints?: string;
+  sample_input?: string;
+  sample_output?: string;
   /** Where to actually solve it — a LeetCode/GFG/etc. problem page. No in-house judge exists. */
   external_url?: string;
   external_platform?: string;
+}
+
+export interface CodeQuestSubmission {
+  id: number;
+  problem: number;
+  problem_title: string;
+  scheduled_date: string;
+  user: number;
+  user_name: string;
+  user_email: string;
+  code: string;
+  language: string;
+  is_correct: boolean;
+  created_at: string;
 }
 
 export interface JobListing {
