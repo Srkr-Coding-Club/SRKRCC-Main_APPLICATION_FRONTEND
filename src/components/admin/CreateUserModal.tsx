@@ -14,7 +14,7 @@ interface CreateUserModalProps {
     rollNumber: string;
     branch: string;
     year: string;
-    role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
     password: string;
   };
   setNewUser: React.Dispatch<React.SetStateAction<{
@@ -23,7 +23,7 @@ interface CreateUserModalProps {
     rollNumber: string;
     branch: string;
     year: string;
-    role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
     password: string;
   }>>;
 }
