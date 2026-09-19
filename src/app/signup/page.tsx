@@ -196,7 +196,7 @@ function SignupContent() {
         roll_number: sanitizeRollNumberInput(formData.rollNumber),
         branch: formData.branch,
         year: Number(formData.year),
-        role: 'MEMBER',
+        role: formData.isAffiliate ? 'AFFILIATE' : 'NON_AFFILIATE',
         club_id: formData.isAffiliate ? sanitizeAffiliateIdInput(formData.affiliateId) : undefined,
       });
 
