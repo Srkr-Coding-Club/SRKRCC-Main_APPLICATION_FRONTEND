@@ -15,6 +15,7 @@ interface CreateUserModalProps {
     branch: string;
     year: string;
     role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    clubId: string;
     password: string;
   };
   setNewUser: React.Dispatch<React.SetStateAction<{
@@ -24,6 +25,7 @@ interface CreateUserModalProps {
     branch: string;
     year: string;
     role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    clubId: string;
     password: string;
   }>>;
 }
@@ -157,7 +159,8 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
                 onChange={(e) => setNewUser({ ...newUser, role: e.target.value as any })}
                 className="w-full px-3.5 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
               >
-                <option value="MEMBER">MEMBER</option>
+                <option value="AFFILIATE">AFFILIATE</option>
+                <option value="NON_AFFILIATE">NON_AFFILIATE</option>
                 <option value="VOLUNTEER">VOLUNTEER</option>
               </select>
               <p className="mt-1 text-[11px] text-slate-400">
@@ -165,6 +168,27 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
               </p>
             </div>
           </div>
+
+          {newUser.role === 'AFFILIATE' && (
+            <div>
+              <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
+                Affiliate ID (Club ID) *
+              </label>
+              <input
+                type="text"
+                required
+                autoCapitalize="characters"
+                spellCheck={false}
+                placeholder="25SCC277"
+                value={newUser.clubId}
+                onChange={(e) => setNewUser({ ...newUser, clubId: e.target.value.toUpperCase() })}
+                className="w-full px-3.5 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 font-mono tracking-wide"
+              />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Required for Affiliate — this member won't be created without a valid, unclaimed Club ID.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
