@@ -22,6 +22,7 @@ import {
   Database,
   ListChecks,
   QrCode,
+  Code,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
@@ -88,6 +89,7 @@ const navItems: NavItem[] = [
     ],
   },
   { label: 'Audit Logs', shortLabel: 'Audit', href: '/admin/audit-logs', icon: History },
+    {label:'CodeQuest',shortLabel:'CodeQuest',href:'/admin/codequest',icon:Code},
 ];
 
 export default function AdminNavbar() {
