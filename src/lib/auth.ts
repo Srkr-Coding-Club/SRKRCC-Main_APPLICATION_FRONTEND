@@ -6,7 +6,7 @@ export interface AuthUser {
   username: string;
   first_name?: string;
   last_name?: string;
-  role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
   club_id?: string;
   membership_status?: string;
   roll_number?: string;
@@ -200,7 +200,7 @@ export async function loginUser(email: string, password: string): Promise<{ user
     id: 1,
     email,
     username: email.split('@')[0],
-    role: data.role || 'MEMBER',
+    role: data.role || 'NON_AFFILIATE',
   };
 
   setStoredUser(user);

@@ -89,7 +89,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   }
 
   if (!isAuth || !isAdmin) {
-    const roleName = currentUser?.role || 'MEMBER';
+    const roleName = currentUser?.role || 'NON_AFFILIATE';
     const email = currentUser?.email || 'Unknown';
 
     return (

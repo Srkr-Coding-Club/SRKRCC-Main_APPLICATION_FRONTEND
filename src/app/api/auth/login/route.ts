@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { access, refresh, user } = data;
-    const role = user?.role || 'MEMBER';
+    const role = user?.role || 'NON_AFFILIATE';
     const isHttps = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
     const isProduction = process.env.NODE_ENV === 'production';
     const secure = isProduction && isHttps;
