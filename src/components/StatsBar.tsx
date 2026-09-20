@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import gsap from 'gsap';
 import { UserCheck, CalendarDays, Code2, Trophy, LucideIcon } from 'lucide-react';
 
@@ -90,12 +90,16 @@ function CornerBrackets() {
 /* ------------------------------------------------------------------ */
 /* Single impact stat card with a GSAP count-up number                 */
 /* ------------------------------------------------------------------ */
-function ImpactCard({ stat, delay }: { stat: Stat; delay: number }) {
+function ImpactCard({ stat, delay, reduce }: { stat: Stat; delay: number; reduce: boolean }) {
   const numRef = useRef<HTMLSpanElement>(null);
   const Icon = stat.icon;
 
   useEffect(() => {
     if (!numRef.current) return;
+    if (reduce) {
+      numRef.current.textContent = stat.value.toString();
+      return;
+    }
     const counter = { val: 0 };
     const tween = gsap.to(counter, {
       val: stat.value,
@@ -109,16 +113,16 @@ function ImpactCard({ stat, delay }: { stat: Stat; delay: number }) {
     return () => {
       tween.kill();
     };
-  }, [stat.value, delay]);
+  }, [stat.value, delay, reduce]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.6, delay }}
+      transition={{ duration: reduce ? 0 : 0.6, delay: reduce ? 0 : delay }}
       whileHover={{ y: -4 }}
-      className="group relative rounded-2xl p-6 sm:p-7 overflow-hidden border bg-[var(--card-bg)] transition-colors duration-300"
+      className="group relative rounded-2xl p-4 sm:p-7 overflow-hidden border bg-[var(--card-bg)] transition-colors duration-300"
       style={{ borderColor: `${stat.accent}30` }}
     >
       {/* corner glow, brightens on hover */}
@@ -128,33 +132,35 @@ function ImpactCard({ stat, delay }: { stat: Stat; delay: number }) {
       />
 
       {/* icon badge */}
-      <div className="relative w-14 h-14 flex items-center justify-center mb-6">
+      <div className="relative w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center mb-4 sm:mb-6">
         <div className="absolute inset-0 rounded-full border" style={{ borderColor: `${stat.accent}45` }} />
         <div className="absolute inset-[3px] rounded-full border border-dashed" style={{ borderColor: `${stat.accent}30` }} />
-        <Icon className="w-6 h-6 relative z-10" style={{ color: stat.accent }} strokeWidth={1.75} />
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" style={{ color: stat.accent }} strokeWidth={1.75} />
       </div>
 
       {/* count-up number */}
       <div className="flex items-baseline gap-0.5 font-poppins">
-        <span ref={numRef} className="text-4xl sm:text-5xl font-extrabold" style={{ color: stat.accent }}>
+        <span ref={numRef} className="text-3xl sm:text-5xl font-extrabold" style={{ color: stat.accent }}>
           0
         </span>
-        <span className="text-2xl sm:text-3xl font-extrabold" style={{ color: stat.accent }}>
+        <span className="text-xl sm:text-3xl font-extrabold" style={{ color: stat.accent }}>
           {stat.suffix}
         </span>
       </div>
 
       <div className="mt-3 mb-3 h-px w-10 rounded-full" style={{ background: stat.accent }} />
 
-      <h3 className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: stat.accent }}>
+      <h3 className="text-[11px] sm:text-xs font-bold uppercase tracking-widest mb-2" style={{ color: stat.accent }}>
         {stat.label}
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{stat.description}</p>
+      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{stat.description}</p>
     </motion.div>
   );
 }
 
 export default function StatsBar() {
+  const reduce = useReducedMotion();
+
   return (
     <section className="relative py-20 sm:py-28 overflow-hidden bg-[var(--background)] transition-colors duration-300">
       <div className="absolute inset-0 bg-blueprint-grid opacity-30 [mask-image:radial-gradient(ellipse_70%_65%_at_50%_40%,#000_15%,transparent_100%)] pointer-events-none" />
@@ -164,10 +170,10 @@ export default function StatsBar() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: reduce ? 0 : 0.6 }}
           className="text-center mb-14 sm:mb-20"
         >
           <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-[#FF7A00] mb-4">
@@ -187,18 +193,18 @@ export default function StatsBar() {
         </motion.div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {STATS.map((stat, i) => (
-            <ImpactCard key={stat.label} stat={stat} delay={i * 0.1} />
+            <ImpactCard key={stat.label} stat={stat} delay={i * 0.1} reduce={!!reduce} />
           ))}
         </div>
 
         {/* Footer tagline */}
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={reduce ? { opacity: 1 } : { opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
+          transition={{ duration: reduce ? 0 : 0.6, delay: reduce ? 0 : 0.4 }}
           className="mt-14 sm:mt-16 flex items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500"
         >
           <span className="hidden sm:block h-px w-10 bg-current opacity-30" />

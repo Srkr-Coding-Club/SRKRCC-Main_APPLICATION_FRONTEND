@@ -2,9 +2,10 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { Hackathon } from '@/lib/types';
-import { Trophy } from 'lucide-react';
+import { Trophy, Info } from 'lucide-react';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
+import SectionHeading from '@/components/SectionHeading';
 import HackathonCard from '@/components/HackathonCard';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
@@ -16,15 +17,15 @@ export const metadata: Metadata = {
     'Form teams, build cutting-edge software solutions, and compete for prize pools in SRKR Coding Club hackathons.',
 };
 
-async function getHackathons(): Promise<Hackathon[]> {
+async function getHackathons(): Promise<{ hackathons: Hackathon[]; usingFallback: boolean }> {
   try {
     const fetched = await fetchApi<Hackathon[]>('/hackathons/');
-    if (fetched && fetched.length > 0) return fetched;
+    if (fetched && fetched.length > 0) return { hackathons: fetched, usingFallback: false };
   } catch (error) {
     // Fallback to flagship hackathon catalog
   }
 
-  return [
+  const fallbackHackathons: Hackathon[] = [
     {
       id: 1,
       title: 'IconCoders Flagship Hackathon 2025',
@@ -55,6 +56,8 @@ async function getHackathons(): Promise<Hackathon[]> {
       team_size: '1 - 3 Members',
     },
   ];
+
+  return { hackathons: fallbackHackathons, usingFallback: true };
 }
 
 export default async function HackathonsPage() {
@@ -69,10 +72,10 @@ export default async function HackathonsPage() {
     );
   }
 
-  const hackathons = await getHackathons();
+  const { hackathons, usingFallback } = await getHackathons();
 
   return (
-    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <PageHero
           icon={<Trophy className="h-4 w-4 text-[#FF7A00]" />}
@@ -81,10 +84,25 @@ export default async function HackathonsPage() {
           description="Form your hackathon squad, build real-world software prototypes, present to industry judges, and win prize pools!"
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {hackathons.map((h) => (
-            <HackathonCard key={h.id} hackathon={h} />
-          ))}
+        {usingFallback && (
+          <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-2.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+            <Info className="h-4 w-4 shrink-0" />
+            <span>Showing sample data — live data is temporarily unavailable.</span>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          <SectionHeading
+            icon={Trophy}
+            title={`Upcoming Hackathons (${hackathons.length})`}
+            description="Form a squad, build a prototype, and pitch to judges for a shot at the prize pool."
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {hackathons.map((h) => (
+              <HackathonCard key={h.id} hackathon={h} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

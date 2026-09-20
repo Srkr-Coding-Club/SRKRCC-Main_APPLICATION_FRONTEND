@@ -16,10 +16,12 @@ import {
   FileText,
   ShieldCheck,
   LogOut,
+  AlertCircle,
 } from 'lucide-react';
 import AuthLayout from '@/components/AuthLayout';
-import { loginUser, getStoredUser, isAuthenticated, clearAuthSession, AuthUser } from '@/lib/auth';
+import { loginUser, getStoredUser, isAuthenticated, clearAuthSession, fetchAndSyncCurrentUser, AuthUser, LoginError } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
+import { normalizeEmail, validateEmail } from '@/lib/validation/auth';
 
 export interface LoginCardProps {
   className?: string;
@@ -38,29 +40,41 @@ export default function LoginCard({
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | null>(null);
   const [setupRequired, setSetupRequired] = useState(false);
   const [isSendingSetup, setIsSendingSetup] = useState(false);
   const [setupSent, setSetupSent] = useState(false);
 
   useEffect(() => {
+    // Trust localStorage optimistically for the first paint, but validate against
+    // the server — a locally-cached "signed in" artifact can outlive the real
+    // session (expired/invalidated elsewhere), which previously showed "Already
+    // Signed In" and blocked a legitimate re-login attempt.
+    let cancelled = false;
     if (isAuthenticated()) {
       setLoggedInUser(getStoredUser());
+      fetchAndSyncCurrentUser().then((user) => {
+        if (!cancelled) setLoggedInUser(user);
+      });
     }
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleContinueAsExisting = () => {
     if (!loggedInUser) return;
-    if (nextUrl) {
-      router.push(nextUrl);
-    } else if (loggedInUser.role === 'ADMIN' || loggedInUser.role === 'CLUB_LEAD') {
-      router.push('/admin');
-    } else {
-      router.push('/profile');
-    }
+    const targetUrl = (nextUrl && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/signup'))
+      ? nextUrl
+      : (loggedInUser.role === 'ADMIN' || loggedInUser.role === 'CLUB_LEAD')
+        ? '/admin'
+        : '/';
+    window.location.replace(targetUrl);
   };
 
   const handleSwitchAccount = () => {
@@ -68,6 +82,7 @@ export default function LoginCard({
     setLoggedInUser(null);
     setEmail('');
     setPassword('');
+    setFieldErrors({});
     setSetupRequired(false);
     setSetupSent(false);
   };
@@ -95,38 +110,60 @@ export default function LoginCard({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.warning('Missing Details', 'Please enter your email and password.');
+
+    // Same email rules the signup form applies, so a typo is caught here rather
+    // than coming back as an ambiguous "incorrect email or password".
+    const emailError = validateEmail(email);
+    const passwordError = password ? undefined : 'Password is required.';
+    if (emailError || passwordError) {
+      setFieldErrors({ email: emailError, password: passwordError });
+      toast.warning('Check Your Details', emailError || passwordError!);
+      document.getElementById(emailError ? 'login-email' : 'login-password')?.focus();
       return;
     }
+
+    const normalizedEmail = normalizeEmail(email);
+    setFieldErrors({});
     setIsLoading(true);
 
     try {
+      let loggedUser = loggedInUser;
       if (onSubmitProp) {
-        await onSubmitProp({ email, password });
-        setSuccess(true);
-        toast.success('Signed In', 'Welcome back!');
+        await onSubmitProp({ email: normalizedEmail, password });
+        loggedUser = getStoredUser();
       } else {
-        const { user } = await loginUser(email, password);
-        setSuccess(true);
-        toast.success('Signed In', `Welcome back, ${user.first_name || user.email}!`);
-
-        setTimeout(() => {
-          if (nextUrl) {
-            router.push(nextUrl);
-          } else if (user.role === 'ADMIN' || user.role === 'CLUB_LEAD') {
-            router.push('/admin');
-          } else {
-            router.push('/profile');
-          }
-        }, 500);
+        const { user } = await loginUser(normalizedEmail, password);
+        loggedUser = user;
       }
-    } catch (err: any) {
-      if (err?.code === 'PASSWORD_SETUP_REQUIRED') {
+      setSuccess(true);
+      toast.success('Signed In', `Welcome back, ${loggedUser?.first_name || loggedUser?.email || ''}!`);
+      setRedirecting(true);
+
+      const targetUrl = (nextUrl && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/signup'))
+        ? nextUrl
+        : (loggedUser?.role === 'ADMIN' || loggedUser?.role === 'CLUB_LEAD')
+          ? '/admin'
+          : '/';
+
+      setTimeout(() => {
+        window.location.replace(targetUrl);
+      }, 350);
+    } catch (err) {
+      const loginError = err as LoginError;
+      if (loginError?.code === 'PASSWORD_SETUP_REQUIRED') {
         setSetupRequired(true);
         toast.warning('Password Setup Required', 'Your account was restored from backup. Please set up your password to activate it.');
       } else {
-        toast.error('Sign In Failed', err?.message || 'Login failed. Please check your credentials.');
+        const message = loginError?.message || 'Login failed. Please check your credentials.';
+        toast.error('Sign In Failed', message);
+        // Prefer the API's own per-field messages; fall back to pinning the
+        // generic credential failure under the password field, which is the one
+        // the member can act on without leaking whether the email is registered.
+        setFieldErrors(
+          loginError?.fieldErrors && Object.keys(loginError.fieldErrors).length > 0
+            ? loginError.fieldErrors
+            : { password: message },
+        );
       }
     } finally {
       setIsLoading(false);
@@ -183,7 +220,7 @@ export default function LoginCard({
             <button
               type="button"
               onClick={handleContinueAsExisting}
-              className="flex-1 py-2 px-3 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm"
+              className="flex-1 py-2 px-3 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm"
             >
               <span>Continue as {loggedInUser.first_name || loggedInUser.username || 'User'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -191,7 +228,7 @@ export default function LoginCard({
             <button
               type="button"
               onClick={handleSwitchAccount}
-              className="py-2 px-3 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center gap-1 transition"
+              className="py-2 px-3 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center gap-1 transition active:scale-95"
             >
               <LogOut className="w-3.5 h-3.5" />
               Switch
@@ -220,7 +257,7 @@ export default function LoginCard({
               type="button"
               onClick={handleRequestSetup}
               disabled={isSendingSetup}
-              className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-50 shadow-sm"
+              className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50 shadow-sm"
             >
               {isSendingSetup ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
               <span>Send Password Setup Link</span>
@@ -229,7 +266,9 @@ export default function LoginCard({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      {/* noValidate: the browser's own bubble would pre-empt our inline,
+          field-anchored messages and phrase them differently from signup. */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
         {nextUrl && !loggedInUser && (
           <div className="p-2.5 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs text-[#FF7A00]">
             <span className="font-bold">Sign in required</span> to continue to <code className="font-mono text-[11px]">{nextUrl}</code>.
@@ -237,24 +276,45 @@ export default function LoginCard({
         )}
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-[#1A1A2E] dark:text-white">Email</label>
+          <label htmlFor="login-email" className="block text-xs font-semibold text-[#1A1A2E] dark:text-white">Email</label>
           <div className="relative">
             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
+              id="login-email"
               type="email"
-              required
+              autoComplete="email"
+              inputMode="email"
+              maxLength={254}
               placeholder="student@srkr.ac.in"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
+              onChange={(e) => {
+                setEmail(e.target.value.replace(/\s/g, ''));
+                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+              }}
+              onBlur={() => {
+                if (email) setFieldErrors((prev) => ({ ...prev, email: validateEmail(email) }));
+              }}
               disabled={isLoading || success}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
+              className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
+                fieldErrors.email
+                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
+                  : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:ring-[#FF7A00]'
+              }`}
             />
           </div>
+          {fieldErrors.email && (
+            <p id="login-email-error" role="alert" className="text-xs text-rose-500 font-semibold flex items-start gap-1">
+              <AlertCircle className="w-3.5 h-3.5 mt-px flex-shrink-0" />
+              <span>{fieldErrors.email}</span>
+            </p>
+          )}
         </div>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="block text-xs font-semibold text-[#1A1A2E] dark:text-white">Password</label>
+            <label htmlFor="login-password" className="block text-xs font-semibold text-[#1A1A2E] dark:text-white">Password</label>
             <Link href="/account/setup-password" className="text-xs font-semibold text-[#FF7A00] hover:text-[#E06B00]">
               Forgot / Set Up?
             </Link>
@@ -262,28 +322,45 @@ export default function LoginCard({
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
+              id="login-password"
               type={showPassword ? 'text' : 'password'}
-              required
+              autoComplete="current-password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={Boolean(fieldErrors.password)}
+              aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+              }}
               disabled={isLoading || success}
-              className="w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
+              className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
+                fieldErrors.password
+                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
+                  : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:ring-[#FF7A00]'
+              }`}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-3.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-transform duration-100 active:scale-90"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+          {fieldErrors.password && (
+            <p id="login-password-error" role="alert" className="text-xs text-rose-500 font-semibold flex items-start gap-1">
+              <AlertCircle className="w-3.5 h-3.5 mt-px flex-shrink-0" />
+              <span>{fieldErrors.password}</span>
+            </p>
+          )}
         </div>
 
         <button
           type="submit"
           disabled={isLoading || success}
-          className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition active:scale-[0.98] disabled:opacity-50"
         >
           {isLoading ? (
             <>
@@ -293,7 +370,8 @@ export default function LoginCard({
           ) : success ? (
             <>
               <CheckCircle2 className="w-4 h-4" />
-              <span>Signed in</span>
+              <span>{redirecting ? 'Signed in — redirecting…' : 'Signed in'}</span>
+              {redirecting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             </>
           ) : (
             <>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useToast, ToastItem } from '@/context/ToastContext';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
@@ -8,20 +8,52 @@ const ToastCard: React.FC<{ toast: ToastItem; onDismiss: (id: string) => void }>
   const [progress, setProgress] = useState(100);
   const duration = toast.duration || 4000;
 
-  useEffect(() => {
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
-      setProgress(remaining);
-      if (elapsed >= duration) {
-        clearInterval(interval);
-        onDismiss(toast.id);
-      }
-    }, 50);
+  // Remaining time (ms) as of the last time the timer was (re)started — used
+  // so hover/focus can pause the countdown and resume from where it left off.
+  const remainingRef = useRef(duration);
+  const runStartRef = useRef(Date.now());
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    return () => clearInterval(interval);
-  }, [toast.id, duration, onDismiss]);
+  const clearTimers = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    timeoutRef.current = null;
+    intervalRef.current = null;
+  };
+
+  const startTimers = () => {
+    runStartRef.current = Date.now();
+    const remainingAtStart = remainingRef.current;
+    timeoutRef.current = setTimeout(() => {
+      onDismiss(toast.id);
+    }, remainingAtStart);
+    intervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - runStartRef.current;
+      const remaining = Math.max(0, remainingAtStart - elapsed);
+      setProgress((remaining / duration) * 100);
+    }, 50);
+  };
+
+  const pauseTimers = () => {
+    const elapsed = Date.now() - runStartRef.current;
+    remainingRef.current = Math.max(0, remainingRef.current - elapsed);
+    clearTimers();
+  };
+
+  useEffect(() => {
+    startTimers();
+    return clearTimers;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toast.id, duration]);
+
+  const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    // Only resume once focus has actually left the toast (not just moved
+    // between two focusable elements inside it).
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+      startTimers();
+    }
+  };
 
   const config = {
     success: {
@@ -58,7 +90,11 @@ const ToastCard: React.FC<{ toast: ToastItem; onDismiss: (id: string) => void }>
 
   return (
     <div
-      role="alert"
+      role={toast.type === 'error' || toast.type === 'warning' ? 'alert' : 'status'}
+      onMouseEnter={pauseTimers}
+      onMouseLeave={startTimers}
+      onFocus={pauseTimers}
+      onBlur={handleBlur}
       className={`relative overflow-hidden w-full max-w-sm rounded-xl bg-[#151722]/95 backdrop-blur-xl border ${config.borderColor} shadow-2xl p-4 transition-all duration-300 transform translate-y-0 opacity-100 flex items-start gap-3`}
     >
       <div className={`p-2 rounded-lg bg-white/5 ${config.iconColor} flex-shrink-0 mt-0.5`}>
@@ -76,7 +112,7 @@ const ToastCard: React.FC<{ toast: ToastItem; onDismiss: (id: string) => void }>
 
       <button
         onClick={() => onDismiss(toast.id)}
-        className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition flex-shrink-0"
+        className="p-2 min-h-8 min-w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition active:scale-90 flex-shrink-0"
         aria-label="Dismiss notification"
       >
         <X className="w-4 h-4" />

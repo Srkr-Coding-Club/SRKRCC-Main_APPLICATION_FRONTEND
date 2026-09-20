@@ -1,19 +1,21 @@
 'use client';
 
-import React from 'react';
-import { UserPlus, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { UserPlus, X, Loader2 } from 'lucide-react';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 interface CreateUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => void | Promise<void>;
   newUser: {
     name: string;
     email: string;
     rollNumber: string;
     branch: string;
     year: string;
-    role: 'MEMBER' | 'CONTRIBUTOR' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    clubId: string;
     password: string;
   };
   setNewUser: React.Dispatch<React.SetStateAction<{
@@ -22,28 +24,70 @@ interface CreateUserModalProps {
     rollNumber: string;
     branch: string;
     year: string;
-    role: 'MEMBER' | 'CONTRIBUTOR' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+    clubId: string;
     password: string;
   }>>;
 }
 
 export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser }: CreateUserModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, isOpen);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-[#151722] rounded-xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        className="bg-white dark:bg-[#151722] rounded-xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6"
+      >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center space-x-2">
             <UserPlus className="w-5 h-5 text-[#FF7A00]" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Create New User Account</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="flex items-center justify-center min-h-9 min-w-9 p-2 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white transition-transform duration-100 active:scale-90">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
               Full Name *
@@ -115,15 +159,36 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
                 onChange={(e) => setNewUser({ ...newUser, role: e.target.value as any })}
                 className="w-full px-3.5 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
               >
-                <option value="MEMBER">MEMBER</option>
-                <option value="CONTRIBUTOR">CONTRIBUTOR</option>
+                <option value="AFFILIATE">AFFILIATE</option>
+                <option value="NON_AFFILIATE">NON_AFFILIATE</option>
                 <option value="VOLUNTEER">VOLUNTEER</option>
-                <option value="JUDGE">JUDGE</option>
-                <option value="CLUB_LEAD">CLUB_LEAD</option>
-                <option value="ADMIN">ADMIN</option>
               </select>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Judge, Club Lead, or Admin can be granted afterward from the Users tab.
+              </p>
             </div>
           </div>
+
+          {newUser.role === 'AFFILIATE' && (
+            <div>
+              <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
+                Affiliate ID (Club ID) *
+              </label>
+              <input
+                type="text"
+                required
+                autoCapitalize="characters"
+                spellCheck={false}
+                placeholder="25SCC277"
+                value={newUser.clubId}
+                onChange={(e) => setNewUser({ ...newUser, clubId: e.target.value.toUpperCase() })}
+                className="w-full px-3.5 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 font-mono tracking-wide"
+              />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Required for Affiliate — this member won't be created without a valid, unclaimed Club ID.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
@@ -143,15 +208,18 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 transition-transform duration-100 active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-lg text-xs font-bold bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm"
+              disabled={isSubmitting}
+              className="px-5 py-2 rounded-lg text-xs font-bold bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-transform duration-100 active:scale-95"
             >
-              Save User Account
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {isSubmitting ? 'Saving...' : 'Save User Account'}
             </button>
           </div>
         </form>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api-client';
 import { BlogPost } from '@/lib/types';
@@ -15,7 +16,10 @@ import {
   Flame,
   Search,
 } from 'lucide-react';
-import { useToast } from '@/context/ToastContext';
+import { isModuleEnabled } from '@/lib/moduleFlags';
+import ModuleUnavailable from '@/components/ModuleUnavailable';
+import PageHero from '@/components/PageHero';
+import SectionHeading from '@/components/SectionHeading';
 
 const FALLBACK_BLOGS: BlogPost[] = [
   {
@@ -109,8 +113,10 @@ function getAuthorName(author: any): string {
 }
 
 export default function BlogsPage() {
-  const { toast } = useToast();
   const [blogs, setBlogs] = useState<BlogPost[]>(FALLBACK_BLOGS);
+  // Defaults to enabled (matches moduleFlags.ts's fail-open convention) so there's
+  // no flash of "unavailable" while the flag request is in flight.
+  const [moduleEnabled, setModuleEnabled] = useState(true);
 
   useEffect(() => {
     async function loadBlogs() {
@@ -124,43 +130,43 @@ export default function BlogsPage() {
       }
     }
     loadBlogs();
+    isModuleEnabled('blogs').then(setModuleEnabled);
   }, []);
+
+  if (!moduleEnabled) {
+    return (
+      <ModuleUnavailable
+        moduleName="Blogs"
+        icon={BookOpen}
+        description="The blogs section is paused right now. Check back for new articles soon."
+      />
+    );
+  }
 
   const featuredPost = blogs[0];
   const remainingBlogs = blogs.slice(1);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        
-        {/* Header Hero Banner */}
-        <div className="relative rounded-xl bg-gradient-to-r from-[#1A1A2E] via-[#8B2E3B] to-[#FF7A00] p-8 sm:p-12 text-white shadow-lg overflow-hidden">
-          <div className="absolute -right-10 -bottom-10 w-80 h-80 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
 
-          <div className="relative z-10 max-w-2xl space-y-4">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-md text-xs font-bold bg-white/10 text-white border border-white/20">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>SRKRCC Tech Publication</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-              Engineering Insights & Student Stories
-            </h1>
-
-            <p className="text-sm sm:text-base text-slate-200 leading-relaxed max-w-xl">
-              Explore deep dives into web development, systems architecture, competitive algorithms, and real campus placement success stories.
-            </p>
-          </div>
-        </div>
+        <PageHero
+          icon={<Sparkles className="h-4 w-4 text-[#FF7A00]" />}
+          eyebrow="SRKRCC TECH PUBLICATION"
+          title="Engineering Insights & Student Stories"
+          description="Explore deep dives into web development, systems architecture, competitive algorithms, and real campus placement success stories."
+        />
 
         {/* Featured Story */}
         {featuredPost && (
           <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0">
             <div className="lg:col-span-7 h-64 sm:h-80 lg:h-full relative overflow-hidden bg-slate-900">
-              <img
+              <Image
                 src={featuredPost.image_url || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80'}
                 alt={featuredPost.title}
-                className="w-full h-full object-cover transform hover:scale-105 transition duration-500"
+                fill
+                sizes="(min-width: 1024px) 58vw, 100vw"
+                className="object-cover transform hover:scale-105 transition duration-500"
               />
               <div className="absolute top-4 left-4">
                 <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[#8B2E3B] text-white shadow">
@@ -208,10 +214,12 @@ export default function BlogsPage() {
                 </div>
 
                 <button
-                  onClick={() => toast.info('Article Reader', `Opening "${featuredPost.title}"`)}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition"
+                  disabled
+                  aria-disabled="true"
+                  title="Full articles aren't published yet"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-[#FF7A00]/40 text-white/80 font-bold text-xs shadow-sm cursor-not-allowed"
                 >
-                  <span>Read Article</span>
+                  <span>Coming Soon</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -221,13 +229,11 @@ export default function BlogsPage() {
 
         {/* Blogs Grid Section */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-            <h3 className="text-xl font-bold text-[#1A1A2E] dark:text-white flex items-center space-x-2">
-              <Sparkles className="w-5 h-5 text-[#FF7A00]" />
-              <span>Latest Published Articles ({remainingBlogs.length})</span>
-            </h3>
-            <span className="text-xs font-medium text-slate-500">Updated weekly by club mentors</span>
-          </div>
+          <SectionHeading
+            icon={Sparkles}
+            title={`Latest Published Articles (${remainingBlogs.length})`}
+            action={<span className="text-xs font-medium text-slate-500">Updated weekly by club mentors</span>}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {remainingBlogs.map((post) => (
@@ -239,10 +245,12 @@ export default function BlogsPage() {
                   {/* Cover Image */}
                   {(post.image_url || post.cover_image) && (
                     <div className="relative h-48 w-full overflow-hidden bg-slate-900">
-                      <img
-                        src={post.image_url || post.cover_image}
+                      <Image
+                        src={post.image_url || post.cover_image || ''}
                         alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-90"
+                        fill
+                        sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                        className="object-cover group-hover:scale-105 transition duration-500 opacity-90"
                       />
                       <span className="absolute top-3 left-4 text-[11px] font-bold uppercase tracking-wider text-white bg-[#8B2E3B] px-2.5 py-0.5 rounded shadow">
                         {post.category || 'Tutorial'}
@@ -253,7 +261,7 @@ export default function BlogsPage() {
                   {/* Body Content */}
                   <div className="p-6 space-y-3">
                     <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-                      <span>{post.published_at ? new Date(post.published_at).toLocaleDateString() : 'Recently Published'}</span>
+                      <span>{post.published_at ? new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently Published'}</span>
                       <span>{post.read_time || '5 min read'}</span>
                     </div>
 
@@ -286,10 +294,12 @@ export default function BlogsPage() {
                   </div>
 
                   <button
-                    onClick={() => toast.info('Article Reader', `Opening "${post.title}"`)}
-                    className="text-xs font-bold text-[#FF7A00] hover:text-[#E06B00] flex items-center space-x-1"
+                    disabled
+                    aria-disabled="true"
+                    title="Full articles aren't published yet"
+                    className="text-xs font-bold text-[#FF7A00]/50 flex items-center space-x-1 cursor-not-allowed"
                   >
-                    <span>Read</span>
+                    <span>Coming Soon</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>

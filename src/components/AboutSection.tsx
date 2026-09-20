@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 /* ------------------------------------------------------------------ */
 /* Word-by-word masked reveal for display headings — a single viewport  */
@@ -19,6 +20,11 @@ const revealWord = {
   visible: { y: '0%', transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
+const revealWordReduced = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const } },
+};
+
 function RevealLine({
   words,
   baseDelay = 0,
@@ -26,6 +32,7 @@ function RevealLine({
   words: { text: string; className?: string }[];
   baseDelay?: number;
 }) {
+  const reduce = useReducedMotion();
   return (
     <motion.span
       className="block"
@@ -33,11 +40,14 @@ function RevealLine({
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       variants={revealContainer}
-      transition={{ delayChildren: baseDelay }}
+      transition={{ delayChildren: reduce ? baseDelay * 0.3 : baseDelay }}
     >
       {words.map((w, i) => (
         <span key={i} className="inline-block overflow-hidden mr-[0.26em] pb-[0.08em] align-bottom">
-          <motion.span className={`inline-block ${w.className || ''}`} variants={revealWord}>
+          <motion.span
+            className={`inline-block ${w.className || ''}`}
+            variants={reduce ? revealWordReduced : revealWord}
+          >
             {w.text}
           </motion.span>
         </span>
@@ -73,10 +83,11 @@ function KnowMoreCTA() {
 /* Learn / Build / Collaborate micro index                             */
 /* ------------------------------------------------------------------ */
 function MicroSteps() {
+  const reduce = useReducedMotion();
   const steps = ['Learn', 'Build', 'Collaborate'];
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: reduce ? 0 : 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6, delay: 0.4 }}
@@ -96,6 +107,7 @@ function MicroSteps() {
 }
 
 export default function AboutSection() {
+  const reduce = useReducedMotion();
   return (
     <section className="relative py-24 sm:py-32 overflow-hidden bg-[var(--background)] transition-colors duration-300">
       {/* Backdrop — dot-grid, distinct from the hero's line grid */}
@@ -104,7 +116,7 @@ export default function AboutSection() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Meta row */}
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: reduce ? 0 : -8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
@@ -130,7 +142,7 @@ export default function AboutSection() {
             </h2>
 
             <motion.p
-              initial={{ opacity: 0, y: 14 }}
+              initial={{ opacity: 0, y: reduce ? 0 : 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.3 }}
@@ -142,7 +154,7 @@ export default function AboutSection() {
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
+              initial={{ opacity: 0, y: reduce ? 0 : 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.35 }}
@@ -155,7 +167,7 @@ export default function AboutSection() {
 
           {/* Right — image in a gradient-bordered frame */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
+            initial={{ opacity: 0, scale: reduce ? 1 : 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
@@ -171,12 +183,13 @@ export default function AboutSection() {
               className="relative z-10 p-[2px] rounded-[10px]"
               style={{ background: 'linear-gradient(135deg, #FFA500, #FF7A00 45%, #8B2E3B 85%)' }}
             >
-              <div className="relative overflow-hidden rounded-[10px] bg-[var(--card-bg)]">
-                <img
+              <div className="relative h-[340px] sm:h-[420px] lg:h-[460px] overflow-hidden rounded-[10px] bg-[var(--card-bg)]">
+                <Image
                   src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1000&q=80"
                   alt="SRKR Coding Club members collaborating on a project"
-                  loading="lazy"
-                  className="w-full h-[340px] sm:h-[420px] lg:h-[460px] object-cover"
+                  fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="object-cover"
                 />
                 <div
                   aria-hidden="true"

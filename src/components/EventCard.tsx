@@ -10,7 +10,6 @@ import {
   MapPin,
   Users,
   UserCheck,
-  ArrowRight,
 } from "lucide-react";
 
 import { Event } from "@/lib/types";
@@ -121,7 +120,7 @@ export default function EventCard({
   };
 
   return (
-    <div ref={wrapperRef} className="h-full w-[300px] shrink-0 sm:w-[340px]">
+    <div ref={wrapperRef} className="h-full w-[300px] shrink-0">
       {" "}
       <SpotlightCard
         spotlightColor={accent}
@@ -209,23 +208,15 @@ export default function EventCard({
               </div>
             )}
           </div>
-          {/* Buttons */}
-          <div className="mt-auto flex items-center gap-3 pt-6">
+          {/* Button */}
+          <div className="mt-auto pt-6">
             <Link
-              href={`/events/${event.slug}/reserve`}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5"
+              href={event.form_slug ? `/forms/${event.form_slug}` : "/forms"}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95"
               style={{ backgroundColor: accent }}
             >
               <Ticket className="h-4 w-4" />
-              Reserve Seat
-            </Link>
-
-            <Link
-              href={`/events/${event.slug}/rsvp`}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2.5 text-[13px] font-semibold text-slate-700 transition-colors duration-200 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:text-white dark:hover:bg-white/5"
-            >
-              RSVP
-              <ArrowRight className="h-4 w-4" />
+              Register Now
             </Link>
           </div>
         </div>

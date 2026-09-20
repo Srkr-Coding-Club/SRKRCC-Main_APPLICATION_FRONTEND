@@ -15,13 +15,18 @@ import {
   ChevronRight,
   BarChart3,
   AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  RotateCw,
 } from 'lucide-react';
-import { Form, FormField, ResponseDetail, PaginatedResponse } from '@/lib/types';
+import { Form, FormField, ResponseDetail, PaginatedResponse, ConfirmationEmailStatus } from '@/lib/types';
 import { starsDisplay, downloadCSV, groupByDay } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
 import { useToast } from '@/context/ToastContext';
 import { DetailDrawer } from './DetailDrawer';
 import { ChartSkeleton } from '@/components/ui/LoadingSkeleton';
+import EmailTemplateEditor, { EmailRecipient } from './EmailTemplateEditor';
 
 const ResponseTimelineChart = dynamic(
   () => import('./ResponseTimelineChart'),
@@ -56,18 +61,47 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
   if (type === 'FILE' || type === 'MULTI_FILE') {
     const files = Array.isArray(value) ? value : [value];
     return (
-      <div className="space-y-0.5">
-        {files.map((f, i) => (
-          <a
-            key={i}
-            href={String(f)}
-            download
-            className="flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 font-semibold truncate max-w-[140px]"
-          >
-            <Download className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{String(f).split('/').pop() || `File ${i + 1}`}</span>
-          </a>
-        ))}
+      <div className="flex flex-wrap gap-2">
+        {files.map((f, i) => {
+          // Answer entry is either a bare string (legacy / absolute URL) or
+          // { name, size, type?, url? }. url is a data: URI for inline captures.
+          const url: string = typeof f === 'string' ? f : (f?.url || '');
+          const name: string = typeof f === 'string'
+            ? (f.split('/').pop() || `File ${i + 1}`)
+            : (f?.name || `File ${i + 1}`);
+          const isImg = typeof f === 'object' && typeof f?.type === 'string'
+            ? f.type.startsWith('image/')
+            : /^data:image\//.test(url) || /\.(png|jpe?g|gif|webp|svg)$/i.test(name);
+
+          if (!url) {
+            return (
+              <span key={i} className="flex items-center gap-1 text-[11px] text-slate-500 italic" title="File contents were not stored">
+                <Download className="w-3 h-3 flex-shrink-0 opacity-40" />
+                <span className="truncate max-w-[140px] not-italic">{name}</span>
+                <span>(no file)</span>
+              </span>
+            );
+          }
+          return (
+            <a
+              key={i}
+              href={url}
+              download={name}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex flex-col items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 font-semibold max-w-[120px]"
+              title={name}
+            >
+              {isImg ? (
+                <img src={url} alt={name} className="w-16 h-16 object-cover rounded border border-slate-300 dark:border-slate-700 bg-white" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span className="truncate max-w-[120px]">{name}</span>
+            </a>
+          );
+        })}
       </div>
     );
   }
@@ -88,7 +122,66 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
   );
 }
 
-function ResponseDrawerContent({ response, form }: { response: ResponseDetail; form: Form }) {
+function ConfirmationEmailBadge({ status }: { status: ConfirmationEmailStatus | null | undefined }) {
+  if (!status) {
+    return <span className="text-slate-400 italic text-[11px]">Not sent</span>;
+  }
+  const config = {
+    SENT: { icon: CheckCircle2, cls: 'text-emerald-600 dark:text-emerald-400', label: 'Sent' },
+    PENDING: { icon: Clock, cls: 'text-amber-600 dark:text-amber-400', label: 'Pending' },
+    RETRYING: { icon: Clock, cls: 'text-amber-600 dark:text-amber-400', label: 'Retrying' },
+    FAILED: { icon: XCircle, cls: 'text-rose-600 dark:text-rose-400', label: 'Failed' },
+  }[status.status] ?? { icon: Clock, cls: 'text-slate-500', label: status.status };
+  const Icon = config.icon;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold ${config.cls}`}
+      title={status.error_message || status.recipient_email || undefined}
+    >
+      <Icon className="w-3 h-3" /> {config.label}
+    </span>
+  );
+}
+
+function ConfirmationEmailCell({
+  response,
+  formConfirmationEnabled,
+  onResend,
+  resending,
+}: {
+  response: ResponseDetail;
+  formConfirmationEnabled: boolean;
+  onResend: (id: number) => void;
+  resending: boolean;
+}) {
+  if (!formConfirmationEnabled && !response.confirmation_email) {
+    return <span className="text-slate-400 text-[11px]">—</span>;
+  }
+  return (
+    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      <ConfirmationEmailBadge status={response.confirmation_email} />
+      {formConfirmationEnabled && (
+        <button
+          onClick={() => onResend(response.id)}
+          disabled={resending}
+          title={response.confirmation_email ? 'Resend confirmation email' : 'Send confirmation email'}
+          className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded-lg text-slate-400 hover:text-[#FF7A00] disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-90"
+        >
+          <RotateCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ResponseDrawerContent({
+  response, form, onResend, resending,
+}: {
+  response: ResponseDetail;
+  form: Form;
+  onResend: (id: number) => void;
+  resending: boolean;
+}) {
   return (
     <div className="space-y-6">
       {/* Meta */}
@@ -114,6 +207,29 @@ function ResponseDrawerContent({ response, form }: { response: ResponseDetail; f
             </div>
           ))}
         </div>
+        {(form.confirmation_email_enabled || response.confirmation_email) && (
+          <div className="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Confirmation Email</div>
+              <div className="mt-1"><ConfirmationEmailBadge status={response.confirmation_email} /></div>
+              {response.confirmation_email?.error_message && (
+                <p className="text-[10px] text-rose-500 mt-1 max-w-[220px] truncate" title={response.confirmation_email.error_message}>
+                  {response.confirmation_email.error_message}
+                </p>
+              )}
+            </div>
+            {form.confirmation_email_enabled && (
+              <button
+                onClick={() => onResend(response.id)}
+                disabled={resending}
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-95 shrink-0"
+              >
+                <RotateCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
+                {response.confirmation_email ? 'Resend' : 'Send Now'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {/* Answers */}
       <div className="space-y-3">
@@ -141,12 +257,15 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [manualOnly, setManualOnly] = useState(false);
   const [showChart, setShowChart] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [drawerResponse, setDrawerResponse] = useState<ResponseDetail | null>(null);
+  const [showEmailEditor, setShowEmailEditor] = useState(false);
+  const [resendingIds, setResendingIds] = useState<Set<number>>(new Set());
 
   const selectedForm = forms.find((f) => f.slug === selectedSlug) ?? null;
   const fieldColumns: FormField[] = useMemo(
@@ -161,7 +280,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       const params = new URLSearchParams({
         page: String(page),
         page_size: '20',
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(dateFrom && { date_from: dateFrom }),
         ...(dateTo && { date_to: dateTo }),
         ...(manualOnly && { manual_only: 'true' }),
@@ -175,10 +294,16 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       toast.error('Failed to Load Responses', err?.message || 'Is the backend running?');
     }
     setLoading(false);
-  }, [selectedSlug, page, search, dateFrom, dateTo, manualOnly, toast]);
+  }, [selectedSlug, page, debouncedSearch, dateFrom, dateTo, manualOnly, toast]);
+
+  // Debounce the raw search input so we don't fire a request per keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => { loadResponses(); }, [loadResponses]);
-  useEffect(() => { setPage(1); }, [selectedSlug, search, dateFrom, dateTo, manualOnly]);
+  useEffect(() => { setPage(1); }, [selectedSlug, debouncedSearch, dateFrom, dateTo, manualOnly]);
 
   const timelineData = useMemo(() => {
     const timestamps = data?.results?.map((r) => r.submitted_at) ?? [];
@@ -223,10 +348,86 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         respondent: r.user?.email ?? 'Anonymous',
         is_manual_entry: r.is_manual_entry,
       };
-      r.answers.forEach((a) => { base[a.field_label] = a.value; });
+      r.answers.forEach((a) => {
+        // FILE answers hold {name,size,url} objects (url can be a huge data: URI)
+        // — export just the file name(s), never the blob.
+        if ((a.field_type === 'FILE' || a.field_type === 'MULTI_FILE') && a.value) {
+          const items = Array.isArray(a.value) ? a.value : [a.value];
+          base[a.field_label] = items
+            .map((f: any) => (typeof f === 'string' ? f : f?.name))
+            .filter(Boolean)
+            .join('; ');
+        } else {
+          base[a.field_label] = a.value;
+        }
+      });
       return base;
     });
     downloadCSV(flat, `responses-${selectedSlug}-${Date.now()}.csv`);
+  };
+
+  const selectedRecipients: EmailRecipient[] = useMemo(() => {
+    const rows = (data?.results ?? []).filter((r) => selectedIds.has(r.id));
+    const emails: EmailRecipient[] = rows
+      .map((r) => ({ email: r.user?.email || r.user_email || '', name: r.user?.name || r.user_name }))
+      .filter((r) => r.email.length > 0);
+    // De-dupe in case the same respondent submitted more than once.
+    const seen = new Set<string>();
+    return emails.filter((r) => (seen.has(r.email) ? false : (seen.add(r.email), true)));
+  }, [data, selectedIds]);
+
+  const handleResend = async (responseId: number) => {
+    setResendingIds((prev) => new Set(prev).add(responseId));
+    try {
+      const result = await fetchApi<{ success: boolean; status: string; recipient_email: string | null }>(
+        `/forms/submissions/${responseId}/resend-confirmation-email/`,
+        { method: 'POST' }
+      );
+      const updated: ConfirmationEmailStatus = {
+        status: (result.status as ConfirmationEmailStatus['status']) || 'SENT',
+        sent_at: new Date().toISOString(),
+        error_message: '',
+        recipient_email: result.recipient_email || '',
+      };
+      setData((prev) =>
+        prev
+          ? { ...prev, results: prev.results.map((r) => (r.id === responseId ? { ...r, confirmation_email: updated } : r)) }
+          : prev
+      );
+      setDrawerResponse((prev) => (prev && prev.id === responseId ? { ...prev, confirmation_email: updated } : prev));
+      toast.success('Confirmation Email Sent', result.recipient_email ? `Sent to ${result.recipient_email}.` : 'Sent successfully.');
+    } catch (err: any) {
+      toast.error('Send Failed', err?.message || 'Could not send the confirmation email.');
+    } finally {
+      setResendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(responseId);
+        return next;
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    if (!window.confirm(`Permanently delete ${count} response${count === 1 ? '' : 's'}? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      const result = await fetchApi<{ deleted_count: number }>(
+        `/forms/${selectedSlug}/responses/bulk-delete/`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ response_ids: Array.from(selectedIds) }),
+        }
+      );
+      toast.success('Responses Deleted', `Deleted ${result.deleted_count} response${result.deleted_count === 1 ? '' : 's'}.`);
+      setSelectedIds(new Set());
+      await loadResponses();
+    } catch (err: any) {
+      toast.error('Delete Failed', err?.message || 'Could not delete the selected responses.');
+    }
   };
 
   // --- No form selected ---
@@ -293,7 +494,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
 
           <button
             onClick={() => setShowChart(!showChart)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${showChart ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition active:scale-95 ${showChart ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white'}`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
             Timeline
@@ -311,16 +512,22 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
             <span className="text-xs font-bold text-orange-400">{selectedIds.size} selected</span>
-            <button onClick={handleBulkExport} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white">
+            <button onClick={handleBulkExport} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-95">
               <Download className="w-3 h-3" /> Export
             </button>
-            <button className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300">
+            <button
+              onClick={() => setShowEmailEditor(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-transform duration-100 active:scale-95"
+            >
               <Mail className="w-3 h-3" /> Email
             </button>
-            <button className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300">
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-transform duration-100 active:scale-95"
+            >
               <Trash2 className="w-3 h-3" /> Delete
             </button>
-            <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-slate-500 hover:text-slate-600 dark:text-slate-300">Clear</button>
+            <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-slate-500 hover:text-slate-600 dark:text-slate-300 transition-transform duration-100 active:scale-95">Clear</button>
           </div>
         )}
 
@@ -357,7 +564,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                           if (selectedIds.size === allIds.length) setSelectedIds(new Set());
                           else setSelectedIds(new Set(allIds));
                         }}
-                        className="text-slate-500 hover:text-orange-400"
+                        className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 hover:text-orange-400 transition-transform duration-100 active:scale-90"
                       >
                         {selectedIds.size === data.results.length
                           ? <CheckSquare className="w-4 h-4" />
@@ -368,6 +575,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                       Respondent
                     </th>
                     <th className="px-4 py-3 font-bold whitespace-nowrap">Submitted</th>
+                    <th className="px-4 py-3 font-bold whitespace-nowrap">Confirmation Email</th>
                     {fieldColumns.map((f) => (
                       <th key={f.id} className="px-4 py-3 font-bold whitespace-nowrap min-w-[120px]">
                         {f.label}
@@ -388,11 +596,11 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                     return (
                       <tr
                         key={resp.id}
-                        className={`${rowBg} ${gap ? 'bg-rose-500/5' : ''} hover:bg-slate-800/20 transition cursor-pointer`}
+                        className={`${rowBg} ${gap ? 'bg-rose-500/5' : ''} hover:bg-slate-800/20 active:bg-slate-200 dark:active:bg-slate-800/40 transition cursor-pointer`}
                         onClick={() => setDrawerResponse(resp)}
                       >
                         <td className="sticky left-0 z-10 bg-white dark:bg-[#151722] px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => toggleRow(resp.id)} className="text-slate-500 hover:text-orange-400">
+                          <button onClick={() => toggleRow(resp.id)} className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 hover:text-orange-400 transition-transform duration-100 active:scale-90">
                             {isSelected ? <CheckSquare className="w-4 h-4 text-orange-500" /> : <Square className="w-4 h-4" />}
                           </button>
                         </td>
@@ -414,6 +622,14 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                             dateStyle: 'medium',
                             timeStyle: 'short',
                           })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <ConfirmationEmailCell
+                            response={resp}
+                            formConfirmationEnabled={!!selectedForm?.confirmation_email_enabled}
+                            onResend={handleResend}
+                            resending={resendingIds.has(resp.id)}
+                          />
                         </td>
                         {fieldColumns.map((f) => {
                           const ans = getAnswerForField(resp, f.id);
@@ -438,7 +654,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition"
+              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition active:scale-90"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -449,7 +665,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition"
+              className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition active:scale-90"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -465,10 +681,27 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             onClose={() => setDrawerResponse(null)}
             title={`Response #${drawerResponse.id}`}
           >
-            <ResponseDrawerContent response={drawerResponse} form={selectedForm} />
+            <ResponseDrawerContent
+              response={drawerResponse}
+              form={selectedForm}
+              onResend={handleResend}
+              resending={resendingIds.has(drawerResponse.id)}
+            />
           </DetailDrawer>
         )}
       </AnimatePresence>
+
+      {/* Bulk Email Composer */}
+      <EmailTemplateEditor
+        open={showEmailEditor}
+        onClose={() => setShowEmailEditor(false)}
+        mode="send"
+        recipients={selectedRecipients}
+        onSent={() => {
+          setSelectedIds(new Set());
+          setShowEmailEditor(false);
+        }}
+      />
     </>
   );
 }

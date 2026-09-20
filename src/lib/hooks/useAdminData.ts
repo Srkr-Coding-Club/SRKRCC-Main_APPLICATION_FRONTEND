@@ -13,10 +13,18 @@ interface UserRecord {
   rollNumber: string;
   branch: string;
   year: string;
-  role: 'MEMBER' | 'CONTRIBUTOR' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  membershipStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI' | 'PENDING';
   scopedAssignments?: { type: 'EVENT' | 'HACKATHON'; targetTitle: string; role: string }[];
   isActive: boolean;
   joinedDate: string;
+  clubId?: string | null;
+  phoneNumber?: string | null;
+  githubProfile?: string | null;
+  linkedinProfile?: string | null;
+  registeredAt?: string | null;
+  createdFrom?: string;
+  referredBy?: string;
 }
 
 interface FormSubmissionRecord {
@@ -38,8 +46,94 @@ interface AuditLogRecord {
   details: string;
 }
 
-export function useAdminData() {
+/**
+ * Conditional rules and cross-field rules reference sibling fields by their id.
+ * A brand-new field only has a client-side placeholder id (e.g. a Date.now()
+ * number) until the form is first saved and the backend assigns a real id — so
+ * a rule wired against an unsaved field ends up pointing at a stale placeholder,
+ * which the publish gate then rejects ("references a field not on this form").
+ *
+ * After a save we know both id sets (old builder fields and the freshly saved
+ * fields, in the same order), so we can rewrite every rule ref old id -> real id.
+ */
+function remapFieldRefsInLogic(node: any, idMap: Map<string, number>): { node: any; changed: boolean } {
+  if (!node || typeof node !== 'object') return { node, changed: false };
+  let changed = false;
+
+  if (Array.isArray(node.rules)) {
+    const rules = node.rules.map((r: any) => {
+      const res = remapFieldRefsInLogic(r, idMap);
+      if (res.changed) changed = true;
+      return res.node;
+    });
+    return { node: { ...node, rules }, changed };
+  }
+
+  const ref = node.field ?? node.if;
+  if (ref !== undefined && ref !== null) {
+    const mapped = idMap.get(String(ref));
+    if (mapped !== undefined && mapped !== ref) {
+      changed = true;
+      const next = { ...node };
+      if ('field' in next) next.field = mapped;
+      if ('if' in next) next.if = mapped;
+      return { node: next, changed };
+    }
+  }
+  return { node, changed };
+}
+
+function remapFieldRefs(field: FormField, idMap: Map<string, number>): { field: FormField; changed: boolean } {
+  let changed = false;
+  let conditional_logic = field.conditional_logic;
+  let validation_rules = field.validation_rules;
+
+  if (conditional_logic && typeof conditional_logic === 'object') {
+    const res = remapFieldRefsInLogic(conditional_logic, idMap);
+    if (res.changed) { conditional_logic = res.node; changed = true; }
+  }
+
+  const cf = (validation_rules as any)?.crossField;
+  if (Array.isArray(cf)) {
+    const nextCf = cf.map((c: any) => {
+      const mapped = c && c.field != null ? idMap.get(String(c.field)) : undefined;
+      if (mapped !== undefined && mapped !== c.field) { changed = true; return { ...c, field: mapped }; }
+      return c;
+    });
+    if (changed) validation_rules = { ...(validation_rules as any), crossField: nextCf };
+  }
+
+  return { field: { ...field, conditional_logic, validation_rules }, changed };
+}
+
+/**
+ * Which of the admin data types a caller actually needs. Defaults to
+ * everything so existing callers that don't pass `options` keep their
+ * current fetch-everything behavior unchanged.
+ */
+export type AdminDataType = 'users' | 'flags' | 'forms' | 'audit' | 'submissions';
+
+const ALL_ADMIN_DATA_TYPES: AdminDataType[] = ['users', 'flags', 'forms', 'audit', 'submissions'];
+
+export interface UseAdminDataOptions {
+  /**
+   * Restrict `refetchAll` (the initial load + the 8s background poll) to
+   * only these data types, sparing pages that render a narrow slice of the
+   * admin data (e.g. the Flags page) from also fetching the full user list,
+   * all forms, all audit logs, and all submissions on every poll tick.
+   * Omit to fetch everything, as before.
+   */
+  include?: AdminDataType[];
+}
+
+export function useAdminData(options?: UseAdminDataOptions) {
   const { toast } = useToast();
+  const include = options?.include ?? ALL_ADMIN_DATA_TYPES;
+  const wantsUsers = include.includes('users');
+  const wantsFlags = include.includes('flags');
+  const wantsForms = include.includes('forms');
+  const wantsAudit = include.includes('audit');
+  const wantsSubmissions = include.includes('submissions');
 
   // Dynamic Flags State — fetched live from backend
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
@@ -54,7 +148,8 @@ export function useAdminData() {
     rollNumber: '',
     branch: 'CSE',
     year: '1st Year',
-    role: 'MEMBER' as UserRecord['role'],
+    role: 'NON_AFFILIATE' as UserRecord['role'],
+    clubId: '',
     password: '',
   });
 
@@ -77,7 +172,19 @@ export function useAdminData() {
     allow_response_editing?: boolean;
     enable_prefill?: boolean;
     max_responses_per_user?: number;
+    max_total_responses?: number | null;
+    prevent_duplicate_email_answers?: boolean;
     allow_edits_until?: string;
+    club_id_enabled?: boolean;
+    club_id_prefix?: string;
+    club_id_field_mapping?: import('@/lib/types').ClubIdFieldMapping;
+    confirmation_email_enabled?: boolean;
+    confirmation_email_template?: number | string | null;
+    attendance_enabled?: boolean;
+    attendance_start_date?: string | null;
+    attendance_days?: number;
+    attendance_sessions_per_day?: 1 | 2 | 3;
+    attendance_window_minutes?: number | null;
   }>({
     title: '',
     slug: '',
@@ -90,7 +197,20 @@ export function useAdminData() {
     allow_multiple_responses: false,
     allow_response_editing: true,
     enable_prefill: true,
+    max_responses_per_user: 1,
+    max_total_responses: null,
+    prevent_duplicate_email_answers: false,
     allow_edits_until: '',
+    club_id_enabled: false,
+    club_id_prefix: 'SCC',
+    club_id_field_mapping: {},
+    confirmation_email_enabled: false,
+    confirmation_email_template: null,
+    attendance_enabled: false,
+    attendance_start_date: null,
+    attendance_days: 1,
+    attendance_sessions_per_day: 1,
+    attendance_window_minutes: null,
   });
 
   const [builderFields, setBuilderFields] = useState<FormField[]>([
@@ -117,12 +237,13 @@ export function useAdminData() {
   const [formSubmissions, setFormSubmissions] = useState<FormSubmissionRecord[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
 
-  // Loading States
-  const [isLoadingForms, setIsLoadingForms] = useState(true);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(true);
-  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(true);
-  const [isLoadingFlags, setIsLoadingFlags] = useState(true);
+  // Loading States — a type this hook instance was never asked to `include`
+  // starts (and stays) non-loading, since it will never be fetched.
+  const [isLoadingForms, setIsLoadingForms] = useState(wantsForms);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(wantsUsers);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(wantsSubmissions);
+  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(wantsAudit);
+  const [isLoadingFlags, setIsLoadingFlags] = useState(wantsFlags);
   const [isLoadingBuilder, setIsLoadingBuilder] = useState(false);
 
   const refetchForms = async () => {
@@ -140,103 +261,123 @@ export function useAdminData() {
 
   const refetchAll = async (silent = false) => {
     if (!silent) {
-      setIsLoadingForms(true);
-      setIsLoadingUsers(true);
-      setIsLoadingFlags(true);
-      setIsLoadingAuditLogs(true);
-      setIsLoadingSubmissions(true);
+      if (wantsForms) setIsLoadingForms(true);
+      if (wantsUsers) setIsLoadingUsers(true);
+      if (wantsFlags) setIsLoadingFlags(true);
+      if (wantsAudit) setIsLoadingAuditLogs(true);
+      if (wantsSubmissions) setIsLoadingSubmissions(true);
     }
 
     try {
       const [fetchedUsers, fetchedFlags, fetchedForms, fetchedAudit, fetchedSubmissions] = await Promise.all([
-        fetchApi<any[]>('/auth/users/').catch(() => []),
-        fetchApi<FeatureFlag[]>('/feature-flags/').catch(() => []),
-        fetchApi<any>('/forms/').catch(() => []),
-        fetchApi<any[]>('/audit/').catch(() => []),
-        fetchApi<any>('/forms/submissions/').catch(() => []),
+        // page_size guards against a future paginated backend truncating this list
+        // (mirrors the same defensive page_size used by MembersTab's /auth/users/ fetch).
+        wantsUsers ? fetchApi<any>('/auth/users/?page_size=500').catch(() => []) : Promise.resolve([]),
+        wantsFlags ? fetchApi<FeatureFlag[]>('/feature-flags/').catch(() => []) : Promise.resolve([]),
+        wantsForms ? fetchApi<any>('/forms/').catch(() => []) : Promise.resolve([]),
+        wantsAudit ? fetchApi<any[]>('/audit/').catch(() => []) : Promise.resolve([]),
+        wantsSubmissions ? fetchApi<any>('/forms/submissions/').catch(() => []) : Promise.resolve([]),
       ]);
 
-      const usersArray = Array.isArray(fetchedUsers)
-        ? fetchedUsers
-        : (fetchedUsers as any)?.results || [];
-      if (usersArray.length > 0) {
-        setUsersList(
-          usersArray.map((u: any) => ({
-            id: u.id,
-            name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email,
-            email: u.email,
-            rollNumber: u.roll_number || 'N/A',
-            branch: u.branch || 'CSE',
-            year: u.year ? `${u.year}th Year` : '1st Year',
-            role: u.role || 'MEMBER',
-            isActive: u.is_active !== false,
-            joinedDate: u.date_joined ? u.date_joined.split('T')[0] : '2025-01-01',
-          }))
-        );
+      if (wantsUsers) {
+        const usersArray = Array.isArray(fetchedUsers)
+          ? fetchedUsers
+          : (fetchedUsers as any)?.results || [];
+        if (usersArray.length > 0) {
+          setUsersList(
+            usersArray.map((u: any) => ({
+              id: u.id,
+              name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email,
+              email: u.email,
+              rollNumber: u.roll_number || 'Not set',
+              branch: u.branch || 'CSE',
+              year: u.year ? `${u.year}th Year` : '1st Year',
+              role: u.role || 'NON_AFFILIATE',
+              membershipStatus: u.membership_status || 'ACTIVE',
+              isActive: u.is_active !== false,
+              joinedDate: u.date_joined ? u.date_joined.split('T')[0] : '2025-01-01',
+              clubId: u.club_id || null,
+              phoneNumber: u.phone_number || null,
+              githubProfile: u.github_profile || null,
+              linkedinProfile: u.linkedin_profile || null,
+              registeredAt: u.registered_at || null,
+              createdFrom: u.created_from || 'SELF_REGISTRATION',
+              referredBy: u.referred_by_display || u.referred_by_raw || '',
+            }))
+          );
+        }
       }
 
-      const flagsArray = Array.isArray(fetchedFlags)
-        ? fetchedFlags
-        : (fetchedFlags as any)?.results || [];
-      if (flagsArray.length > 0) {
-        setFlags(flagsArray);
+      if (wantsFlags) {
+        const flagsArray = Array.isArray(fetchedFlags)
+          ? fetchedFlags
+          : (fetchedFlags as any)?.results || [];
+        if (flagsArray.length > 0) {
+          setFlags(flagsArray);
+        }
       }
 
-      const formsArray = Array.isArray(fetchedForms)
-        ? fetchedForms
-        : (fetchedForms as any)?.results || [];
-      setPublishedForms(formsArray);
-
-      const auditArray = Array.isArray(fetchedAudit)
-        ? fetchedAudit
-        : (fetchedAudit as any)?.results || [];
-      if (auditArray.length > 0) {
-        setAuditLogs(
-          auditArray.map((a: any) => ({
-            id: a.id || Date.now(),
-            timestamp: a.timestamp || a.created_at?.replace('T', ' ').substring(0, 19) || new Date().toISOString().substring(0, 19),
-            actor: a.actor_name || a.actor_email || 'System',
-            action: a.action || 'System Mutation',
-            target: a.target || a.target_model || 'System',
-            details: typeof a.details === 'object' ? JSON.stringify(a.details) : String(a.details || ''),
-          }))
-        );
+      if (wantsForms) {
+        const formsArray = Array.isArray(fetchedForms)
+          ? fetchedForms
+          : (fetchedForms as any)?.results || [];
+        setPublishedForms(formsArray);
       }
 
-      const rawSubs = Array.isArray(fetchedSubmissions)
-        ? fetchedSubmissions
-        : (fetchedSubmissions as any)?.results || [];
+      if (wantsAudit) {
+        const auditArray = Array.isArray(fetchedAudit)
+          ? fetchedAudit
+          : (fetchedAudit as any)?.results || [];
+        if (auditArray.length > 0) {
+          setAuditLogs(
+            auditArray.map((a: any) => ({
+              id: a.id || Date.now(),
+              timestamp: a.timestamp || a.created_at?.replace('T', ' ').substring(0, 19) || new Date().toISOString().substring(0, 19),
+              actor: a.actor_name || a.actor_email || 'System',
+              action: a.action || 'System Mutation',
+              target: a.target || a.target_model || 'System',
+              details: typeof a.details === 'object' ? JSON.stringify(a.details) : String(a.details || ''),
+            }))
+          );
+        }
+      }
 
-      if (rawSubs.length > 0) {
-        setFormSubmissions(
-          rawSubs.map((s: any) => {
-            const ansMap: Record<string, any> = {};
-            if (s.answers && Array.isArray(s.answers)) {
-              s.answers.forEach((ans: any) => {
-                const key = ans.field_label || `Field ${ans.field}`;
-                ansMap[key] = ans.value;
-              });
-            }
-            return {
-              id: s.id,
-              formTitle: s.form_title || 'Form Submission',
-              submitterName: s.user?.name || s.user_name || s.user_email || 'Student',
-              submitterEmail: s.user?.email || s.user_email || 'student@srkr.ac.in',
-              submittedAt: s.submitted_at ? s.submitted_at.replace('T', ' ').substring(0, 16) : new Date().toISOString().substring(0, 16),
-              answers: ansMap,
-              isManualAdminEntry: s.is_manual_entry ?? false,
-            };
-          })
-        );
+      if (wantsSubmissions) {
+        const rawSubs = Array.isArray(fetchedSubmissions)
+          ? fetchedSubmissions
+          : (fetchedSubmissions as any)?.results || [];
+
+        if (rawSubs.length > 0) {
+          setFormSubmissions(
+            rawSubs.map((s: any) => {
+              const ansMap: Record<string, any> = {};
+              if (s.answers && Array.isArray(s.answers)) {
+                s.answers.forEach((ans: any) => {
+                  const key = ans.field_label || `Field ${ans.field}`;
+                  ansMap[key] = ans.value;
+                });
+              }
+              return {
+                id: s.id,
+                formTitle: s.form_title || 'Form Submission',
+                submitterName: s.user?.name || s.user_name || s.user_email || 'Student',
+                submitterEmail: s.user?.email || s.user_email || 'student@srkr.ac.in',
+                submittedAt: s.submitted_at ? s.submitted_at.replace('T', ' ').substring(0, 16) : new Date().toISOString().substring(0, 16),
+                answers: ansMap,
+                isManualAdminEntry: s.is_manual_entry ?? false,
+              };
+            })
+          );
+        }
       }
     } catch (err) {
       console.error('[Admin Data Fetch Error]:', err);
     } finally {
-      setIsLoadingForms(false);
-      setIsLoadingUsers(false);
-      setIsLoadingFlags(false);
-      setIsLoadingAuditLogs(false);
-      setIsLoadingSubmissions(false);
+      if (wantsForms) setIsLoadingForms(false);
+      if (wantsUsers) setIsLoadingUsers(false);
+      if (wantsFlags) setIsLoadingFlags(false);
+      if (wantsAudit) setIsLoadingAuditLogs(false);
+      if (wantsSubmissions) setIsLoadingSubmissions(false);
     }
   };
 
@@ -278,6 +419,7 @@ export function useAdminData() {
         role: newUser.role,
         roll_number: newUser.rollNumber,
         branch: newUser.branch,
+        club_id: newUser.role === 'AFFILIATE' ? newUser.clubId : undefined,
       };
       const created = await fetchApi<any>('/auth/register/', {
         method: 'POST',
@@ -293,6 +435,7 @@ export function useAdminData() {
         branch: newUser.branch,
         year: newUser.year,
         role: newUser.role,
+        membershipStatus: 'ACTIVE',
         isActive: true,
         joinedDate: new Date().toISOString().split('T')[0],
       };
@@ -305,7 +448,49 @@ export function useAdminData() {
   };
 
   const handleRoleChange = (userId: number, role: UserRecord['role']) => {
+    const user = usersList.find((u) => u.id === userId);
+    if (!user) return;
+    const previousRole = user.role;
+
+    // Optimistic — flip immediately for instant feedback, then best-effort persist.
     setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
+    fetchApi(`/auth/users/${userId}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    })
+      .then(() => {
+        toast.success('Role Updated', `${user.name} is now ${role}.`);
+      })
+      .catch((err: any) => {
+        // Roll the optimistic change back — it never actually persisted, so the
+        // UI must not keep claiming it did.
+        setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role: previousRole } : u)));
+        toast.error('Not Saved to Server', err?.message || `Could not update role for ${user.name}. Reverted.`);
+      });
+  };
+
+  const handleMembershipStatusChange = (userId: number, membershipStatus: UserRecord['membershipStatus']) => {
+    const user = usersList.find((u) => u.id === userId);
+    if (!user) return;
+    const previousStatus = user.membershipStatus;
+
+    // Optimistic — flip immediately for instant feedback, then best-effort persist.
+    setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, membershipStatus } : u)));
+    fetchApi(`/auth/users/${userId}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ membership_status: membershipStatus }),
+    })
+      .then(() => {
+        toast.success('Membership Status Updated', `${user.name} is now ${membershipStatus}.`);
+      })
+      .catch((err: any) => {
+        // Roll the optimistic change back — it never actually persisted, so the
+        // UI must not keep claiming it did.
+        setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, membershipStatus: previousStatus } : u)));
+        toast.error('Not Saved to Server', err?.message || `Could not update membership status for ${user.name}. Reverted.`);
+      });
   };
 
   const handleAddFieldFromPalette = (type: FormField['type'], label: string) => {
@@ -405,7 +590,22 @@ export function useAdminData() {
       open_at: form.open_at || '',
       close_at: form.close_at || '',
       allow_multiple_responses: form.allow_multiple_responses ?? false,
+      allow_response_editing: form.allow_response_editing ?? true,
+      enable_prefill: form.enable_prefill ?? true,
+      max_responses_per_user: form.max_responses_per_user ?? 1,
+      max_total_responses: form.max_total_responses ?? null,
+      prevent_duplicate_email_answers: form.prevent_duplicate_email_answers ?? false,
       allow_edits_until: form.allow_edits_until || '',
+      club_id_enabled: form.club_id_enabled ?? false,
+      club_id_prefix: form.club_id_prefix || 'SCC',
+      club_id_field_mapping: form.club_id_field_mapping || {},
+      confirmation_email_enabled: form.confirmation_email_enabled ?? false,
+      confirmation_email_template: form.confirmation_email_template ?? null,
+      attendance_enabled: form.attendance_enabled ?? false,
+      attendance_start_date: form.attendance_start_date ?? null,
+      attendance_days: form.attendance_days ?? 1,
+      attendance_sessions_per_day: form.attendance_sessions_per_day ?? 1,
+      attendance_window_minutes: form.attendance_window_minutes ?? null,
     };
     const fields: FormField[] =
       form.fields && form.fields.length > 0
@@ -456,7 +656,23 @@ export function useAdminData() {
       allow_multiple_responses: formMeta.allow_multiple_responses ?? false,
       allow_response_editing: formMeta.allow_response_editing ?? true,
       enable_prefill: formMeta.enable_prefill ?? true,
+      max_responses_per_user: formMeta.max_responses_per_user ?? 1,
+      max_total_responses: formMeta.max_total_responses ?? null,
+      prevent_duplicate_email_answers: formMeta.prevent_duplicate_email_answers ?? false,
       allow_edits_until: cleanEditsUntil ? cleanEditsUntil : null,
+      club_id_enabled: formMeta.club_id_enabled ?? false,
+      club_id_prefix: (formMeta.club_id_prefix || 'SCC').trim().toUpperCase(),
+      club_id_field_mapping: formMeta.club_id_field_mapping || {},
+      confirmation_email_enabled: formMeta.confirmation_email_enabled ?? false,
+      confirmation_email_template: formMeta.confirmation_email_template || null,
+      attendance_enabled: formMeta.attendance_enabled ?? false,
+      attendance_start_date: formMeta.attendance_start_date || null,
+      attendance_days: formMeta.attendance_days ?? 1,
+      attendance_sessions_per_day: formMeta.attendance_sessions_per_day ?? 1,
+      attendance_window_minutes:
+        formMeta.attendance_window_minutes === undefined || formMeta.attendance_window_minutes === null
+          ? null
+          : formMeta.attendance_window_minutes,
       fields: builderFields.map((f, idx) => {
         const isRealDbId = typeof f.id === 'number' && f.id > 0 && f.id < 2000000000;
         return {
@@ -526,6 +742,62 @@ export function useAdminData() {
         }
       }
 
+      // Rewrite conditional / cross-field rule refs that still point at the
+      // client-side placeholder ids of fields that just got their real db ids.
+      // builderFields (pre-save) and saved.fields (post-save) are in the same
+      // order, so we can pair them up to build the old-id -> real-id map.
+      if (saved.fields && saved.fields.length > 0) {
+        const idMap = new Map<string, number>();
+        const preSave = payload.fields; // same order as saved.fields
+        saved.fields.forEach((sf, i) => {
+          const realId = Number(sf?.id);
+          if (!Number.isFinite(realId)) return;
+          const pre = preSave[i];
+          if (pre && (pre as any).id != null) idMap.set(String((pre as any).id), realId);
+          const bf = builderFields[i];
+          if (bf?.id != null) idMap.set(String(bf.id), realId);
+        });
+
+        let anyRemapped = false;
+        const fixedFields = saved.fields.map((sf) => {
+          const res = remapFieldRefs(sf as FormField, idMap);
+          if (res.changed) anyRemapped = true;
+          return res.field;
+        });
+
+        if (anyRemapped) {
+          try {
+            const corrected = await fetchApi<Form>(`/forms/${saved.slug}/`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...payload,
+                slug: saved.slug,
+                fields: fixedFields.map((f, i) => ({
+                  id: f.id,
+                  label: f.label,
+                  type: f.type,
+                  placeholder: f.placeholder || '',
+                  description: f.description || '',
+                  is_required: !!f.is_required,
+                  options: f.options || [],
+                  rows: f.rows || [],
+                  min_value: f.min_value ?? null,
+                  max_value: f.max_value ?? null,
+                  conditional_logic: f.conditional_logic || {},
+                  validation_rules: f.validation_rules || {},
+                  order: i + 1,
+                })),
+              }),
+            });
+            saved = corrected;
+          } catch (remapErr) {
+            console.warn('[Save Form] conditional-ref remap re-save failed:', remapErr);
+            saved = { ...saved, fields: fixedFields };
+          }
+        }
+      }
+
       const updatedMeta = {
         id: saved.id,
         originalSlug: saved.slug,
@@ -541,7 +813,20 @@ export function useAdminData() {
         allow_multiple_responses: saved.allow_multiple_responses ?? false,
         allow_response_editing: saved.allow_response_editing ?? true,
         enable_prefill: saved.enable_prefill ?? true,
+        max_responses_per_user: saved.max_responses_per_user ?? 1,
+        max_total_responses: saved.max_total_responses ?? null,
+        prevent_duplicate_email_answers: saved.prevent_duplicate_email_answers ?? false,
         allow_edits_until: saved.allow_edits_until || '',
+        club_id_enabled: saved.club_id_enabled ?? false,
+        club_id_prefix: saved.club_id_prefix || 'SCC',
+        club_id_field_mapping: saved.club_id_field_mapping || {},
+        confirmation_email_enabled: saved.confirmation_email_enabled ?? false,
+        confirmation_email_template: saved.confirmation_email_template ?? null,
+        attendance_enabled: saved.attendance_enabled ?? false,
+        attendance_start_date: saved.attendance_start_date ?? null,
+        attendance_days: saved.attendance_days ?? 1,
+        attendance_sessions_per_day: saved.attendance_sessions_per_day ?? 1,
+        attendance_window_minutes: saved.attendance_window_minutes ?? null,
       };
 
       const updatedFields: FormField[] =
@@ -579,6 +864,25 @@ export function useAdminData() {
       return saved;
     } catch (err: any) {
       console.error('[Save Form Error]:', err);
+
+      // A 400 from the definition/publish gate is a real, actionable rejection —
+      // surface the per-field problems and do NOT fake a local "saved" form.
+      const body = err?.body;
+      const fieldErrors: any[] = Array.isArray(body?.errors) ? body.errors : [];
+      if (err?.status === 400 || fieldErrors.length) {
+        const detail =
+          fieldErrors.length
+            ? fieldErrors.slice(0, 4).map((e: any) => `• ${e.label ? `${e.label}: ` : ''}${e.message}`).join('\n') +
+              (fieldErrors.length > 4 ? `\n…and ${fieldErrors.length - 4} more` : '')
+            : body?.detail || err?.message || 'The form has validation problems.';
+        toast.error(
+          finalStatus === 'PUBLISHED' ? 'Cannot Publish — Fix These First' : 'Form Not Saved',
+          detail,
+        );
+        return null;
+      }
+
+      // Network / server error — keep the old offline-preview fallback.
       toast.error('Form Save Failed', err?.message || 'Unable to save form to server. Showing local preview.');
       const fallbackForm: Form = {
         id: formMeta.id || Date.now(),
@@ -746,6 +1050,7 @@ export function useAdminData() {
     setNewUser,
     handleCreateUser,
     handleRoleChange,
+    handleMembershipStatusChange,
 
     publishedForms,
     setPublishedForms,

@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import {
   User,
   ChevronDown,
-  X,
   Sparkles,
   Terminal,
   Trophy,
@@ -16,8 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
-import LoginCard from '@/components/LoginCard';
-import { getStoredUser, isAuthenticated, loginUser, AuthUser } from '@/lib/auth';
+import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 
 interface NavChild {
   label: string;
@@ -68,9 +66,45 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const [isAuth, setIsAuth] = useState(false);
 
   useEffect(() => {
-    setIsAuth(isAuthenticated());
-    setCurrentUser(getStoredUser());
+    const syncAuth = () => {
+      setIsAuth(isAuthenticated());
+      setCurrentUser(getStoredUser());
+    };
+
+    syncAuth();
+    window.addEventListener(AUTH_CHANGE_EVENT, syncAuth);
+    window.addEventListener('storage', syncAuth);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGE_EVENT, syncAuth);
+      window.removeEventListener('storage', syncAuth);
+    };
   }, [pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const syncFromServer = () => {
+      fetchAndSyncCurrentUser().then((user) => {
+        if (cancelled) return;
+        setIsAuth(!!user);
+        setCurrentUser(user);
+      });
+    };
+
+    // The optimistic read above trusts localStorage + a plain role cookie, which
+    // can outlive the real server session (expired/invalidated elsewhere) and
+    // keep showing a signed-in navbar for a user who isn't actually authenticated.
+    // Validate on mount, and again whenever this tab regains focus — otherwise a
+    // role change made elsewhere (e.g. an admin promoting this member to
+    // CLUB_LEAD) never reaches an already-open tab until a hard refresh.
+    syncFromServer();
+    const unsubscribe = subscribeToAuthResync(syncFromServer);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   const visibleNavItems: NavItem[] = navItems.map((item) =>
     item.children
@@ -87,7 +121,6 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -97,21 +130,11 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen || loginModalOpen ? 'hidden' : '';
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [mobileMenuOpen, loginModalOpen]);
-
-  useEffect(() => {
-    if (!loginModalOpen) return;
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setLoginModalOpen(false);
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [loginModalOpen]);
+  }, [mobileMenuOpen]);
 
   const activeNavItem = visibleNavItems.find(
     (item) => pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false),
@@ -171,7 +194,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 >
                   <Link
                     href={item.href}
-                    className={`relative z-10 flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold transition-colors duration-200 ${
+                    className={`relative z-10 flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold transition duration-200 active:scale-95 ${
                       hasPill
                         ? 'text-white'
                         : 'text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white'
@@ -209,7 +232,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                                 <Link
                                   key={child.label}
                                   href={child.href}
-                                  className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition-colors"
+                                  className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] active:bg-black/[0.06] dark:active:bg-white/[0.08] transition-colors"
                                 >
                                   {Icon && (
                                     <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-[#FF7A00] transition-colors">
@@ -246,7 +269,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 {(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD') && (
                   <Link
                     href="/admin"
-                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border border-orange-500/30 transition"
+                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border border-orange-500/30 transition active:scale-95 duration-100"
                   >
                     Admin Room
                   </Link>
@@ -254,7 +277,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
 
                 <Link
                   href="/profile"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#1A1A2E] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] transition shadow-sm"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#1A1A2E] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] transition shadow-sm active:scale-95 duration-100"
                   aria-label="User Profile"
                 >
                   <User className="w-3.5 h-3.5 text-[#FF7A00]" />
@@ -270,13 +293,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               <>
                 <Link
                   href="/login"
-                  onClick={(event) => {
-                    if (pathname === '/') {
-                      event.preventDefault();
-                      setLoginModalOpen(true);
-                    }
-                  }}
-                  className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition-colors"
+                  className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-block"
                 >
                   Login
                 </Link>
@@ -295,7 +312,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
-              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5"
+              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
             >
@@ -321,7 +338,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="md:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col justify-between p-6 pt-24 overflow-y-auto"
+            className="md:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col p-6 pt-24 overflow-y-auto"
           >
             <div className="flex flex-col gap-1">
               {visibleNavItems.map((item, i) => (
@@ -335,7 +352,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                   <Link
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="font-poppins font-bold text-2xl text-[#1A1A2E] dark:text-white"
+                    className="font-poppins font-bold text-2xl text-[#1A1A2E] dark:text-white inline-block transition-transform duration-100 active:scale-95"
                   >
                     {item.label}
                   </Link>
@@ -346,7 +363,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                           key={child.label}
                           href={child.href}
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center gap-2 text-sm font-medium text-[#1A1A2E]/55 dark:text-white/45"
+                          className="flex items-center gap-2 text-sm font-medium text-[#1A1A2E]/55 dark:text-white/45 transition-transform duration-100 active:scale-95"
                         >
                           <span className="w-1 h-1 rounded-full bg-[#FF7A00]" />
                           {child.label}
@@ -358,14 +375,14 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               ))}
             </div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="pt-6 flex flex-col gap-3">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mt-8 pt-6 border-t border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-3">
               {isAuth ? (
                 <>
                   <div className="flex items-center gap-3">
                     <Link
                       href="/profile"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white flex items-center justify-center gap-2"
+                      className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white flex items-center justify-center gap-2 transition-transform duration-100 active:scale-95"
                     >
                       <User className="w-4 h-4 text-[#FF7A00]" />
                       <span>{currentUser?.first_name || currentUser?.username || 'My Profile'}</span>
@@ -374,7 +391,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                       <Link
                         href="/admin"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex-1 text-center py-3 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md transition"
+                        className="flex-1 text-center py-3 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md transition active:scale-95"
                       >
                         Admin Room
                       </Link>
@@ -385,14 +402,8 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 <div className="flex items-center gap-4">
                   <Link
                     href="/login"
-                    onClick={(event) => {
-                  setMobileMenuOpen(false);
-                  if (pathname === '/') {
-                    event.preventDefault();
-                    setLoginModalOpen(true);
-                  }
-                }}
-                    className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white transition-transform duration-100 active:scale-95"
                   >
                     Login
                   </Link>
@@ -408,40 +419,6 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {loginModalOpen && (
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Sign in"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setLoginModalOpen(false);
-            }}
-          >
-            <div className="relative w-full max-w-4xl">
-              <button
-                type="button"
-                onClick={() => setLoginModalOpen(false)}
-                aria-label="Close sign in dialog"
-                className="absolute right-3 top-3 z-10 rounded-full bg-black/10 p-2 text-hero-foreground transition-colors hover:bg-black/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-              >
-                <X className="size-4" />
-              </button>
-              <LoginCard
-                onSubmit={async (values) => {
-                  const result = await loginUser(values.email, values.password);
-                  setCurrentUser(result.user);
-                  setIsAuth(true);
-                }}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

@@ -2,9 +2,12 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { Event } from '@/lib/types';
-import { Calendar } from 'lucide-react';
+import { Calendar, Info } from 'lucide-react';
+import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
+import SectionHeading from '@/components/SectionHeading';
 import EventsRow from '@/components/EventsRow';
+import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,15 +17,15 @@ export const metadata: Metadata = {
     'Join hands-on developer workshops, bootcamps, and technical tech-talks organized by the SRKR Coding Club.',
 };
 
-async function getEvents(): Promise<Event[]> {
+async function getEvents(): Promise<{ events: Event[]; usingFallback: boolean }> {
   try {
     const fetched = await fetchApi<Event[]>('/events/');
-    if (fetched && fetched.length > 0) return fetched;
+    if (fetched && fetched.length > 0) return { events: fetched, usingFallback: false };
   } catch (error) {
     // Fallback to curated event catalog
   }
 
-  return [
+  const fallbackEvents: Event[] = [
     {
       id: 1,
       title: 'Full Stack React & Next.js 15 Hands-on Workshop',
@@ -112,13 +115,26 @@ async function getEvents(): Promise<Event[]> {
       tags: ['Hackathon', 'IconCoders', 'Flagship'],
     },
   ];
+
+  return { events: fallbackEvents, usingFallback: true };
 }
 
 export default async function EventsPage() {
-  const events = await getEvents();
+  const enabled = await isModuleEnabled('events');
+  if (!enabled) {
+    return (
+      <ModuleUnavailable
+        moduleName="Events"
+        icon={Calendar}
+        description="The events hub is paused right now. Check back once the next event window opens."
+      />
+    );
+  }
+
+  const { events, usingFallback } = await getEvents();
 
   return (
-    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <PageHero
           icon={<Calendar className="h-4 w-4 text-[#FF7A00]" />}
@@ -127,7 +143,21 @@ export default async function EventsPage() {
           description="Explore upcoming technical workshops, expert guest seminars, competitive coding bootcamps, and official club gatherings."
         />
 
-        <EventsRow events={events} accent="#FF7A00" />
+        {usingFallback && (
+          <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-2.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+            <Info className="h-4 w-4 shrink-0" />
+            <span>Showing sample data — live data is temporarily unavailable.</span>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          <SectionHeading
+            icon={Calendar}
+            title={`Upcoming Events (${events.length})`}
+            description="Workshops, seminars, and gatherings happening across campus."
+          />
+          <EventsRow events={events} accent="#FF7A00" />
+        </div>
       </div>
     </div>
   );

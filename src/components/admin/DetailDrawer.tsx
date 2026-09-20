@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 interface DetailDrawerProps {
   isOpen: boolean;
@@ -22,6 +23,9 @@ interface DetailDrawerProps {
  * AnimatePresence MUST wrap this component at the parent level for exit animations to play.
  */
 export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerProps) {
+  const panelRef = useRef<HTMLElement>(null);
+  useFocusTrap(panelRef, isOpen);
+
   // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;
@@ -44,6 +48,11 @@ export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerP
     };
   }, [isOpen]);
 
+  // Defensive: a caller that renders this unconditionally (rather than the
+  // documented `{isOpen && <DetailDrawer .../>}` under AnimatePresence)
+  // must not end up with a permanently-open drawer covering the page.
+  if (!isOpen) return null;
+
   return (
     <>
       {/* Backdrop overlay */}
@@ -60,6 +69,7 @@ export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerP
 
       {/* Drawer panel */}
       <motion.aside
+        ref={panelRef}
         key="drawer-panel"
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -68,6 +78,7 @@ export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerP
         className="fixed right-0 top-0 z-50 h-full w-full max-w-[480px] bg-[#FAFAFC] dark:bg-[#0f0f1a] border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
@@ -76,7 +87,7 @@ export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerP
           )}
           <button
             onClick={onClose}
-            className="ml-auto p-1.5 rounded-lg text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white hover:bg-white/10 transition-colors"
+            className="ml-auto p-2 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white hover:bg-white/10 transition active:scale-90"
             aria-label="Close drawer"
           >
             <X className="w-4 h-4" />

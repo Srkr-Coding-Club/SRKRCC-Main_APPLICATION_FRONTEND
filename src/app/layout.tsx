@@ -76,6 +76,7 @@ export const metadata: Metadata = {
 
 import { ToastProvider } from '@/context/ToastContext';
 import { ToastContainer } from '@/components/ui/ToastContainer';
+import BackendHeartbeat from '@/components/BackendHeartbeat';
 
 export default async function RootLayout({
   children,
@@ -96,6 +97,7 @@ export default async function RootLayout({
           }}
         />
         <ToastProvider>
+          <BackendHeartbeat />
           <NavbarSwitcher moduleFlags={moduleFlags} />
           <main className="flex-grow">{children}</main>
           <Footer />

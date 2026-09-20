@@ -29,7 +29,7 @@ export default function PillButton({
     <Link
       href={href}
       onClick={onClick}
-      className={`group relative isolate inline-flex items-center gap-2 overflow-hidden rounded-full font-semibold transition-all duration-300 ${sizeClasses} ${
+      className={`group relative isolate inline-flex items-center gap-2 overflow-hidden rounded-full font-semibold transition-all duration-300 active:scale-95 ${sizeClasses} ${
         variant === 'solid'
           ? 'text-white bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] shadow-[0_0_0_1px_rgba(255,255,255,0.08)] hover:shadow-[0_0_28px_rgba(255,122,0,0.45)]'
           : 'text-[#1A1A2E] dark:text-white border border-[#8B2E3B]/40 dark:border-[#FF7A00]/40 hover:border-[#FF7A00] hover:shadow-[0_0_20px_rgba(255,122,0,0.25)]'

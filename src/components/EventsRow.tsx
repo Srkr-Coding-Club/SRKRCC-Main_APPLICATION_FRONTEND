@@ -11,7 +11,7 @@ interface EventsRowProps {
   accent?: string;
 }
 
-const CARD_WIDTH = 340; // match EventCard's sm width
+const CARD_WIDTH = 300; // match EventCard's fixed w-[300px] width
 const CARD_GAP = 20; // gap-5
 
 export default function EventsRow({ title, events, accent = '#FF7A00' }: EventsRowProps) {
@@ -56,10 +56,10 @@ export default function EventsRow({ title, events, accent = '#FF7A00' }: EventsR
     <div className="flex items-center justify-center gap-3">
       <button
         type="button"
-        aria-label="Previous"
+        aria-label="Previous event"
         onClick={goLeft}
         disabled={!canGoLeft}
-        className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 ${
+        className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
           canGoLeft
             ? 'text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white'
             : 'cursor-not-allowed text-slate-300 dark:text-slate-600'
@@ -79,10 +79,10 @@ export default function EventsRow({ title, events, accent = '#FF7A00' }: EventsR
 
       <button
         type="button"
-        aria-label="Next"
+        aria-label="Next event"
         onClick={goRight}
         disabled={!canGoRight}
-        className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 ${
+        className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
           canGoRight
             ? 'text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white'
             : 'cursor-not-allowed text-slate-300 dark:text-slate-600'

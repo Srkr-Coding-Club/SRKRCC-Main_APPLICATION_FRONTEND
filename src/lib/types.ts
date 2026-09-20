@@ -13,7 +13,7 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
-  role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
   club_id?: string;
   membership_status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI' | 'PENDING';
   roll_number?: string;
@@ -94,9 +94,25 @@ export interface Problem {
   solved_count?: number;
   tags?: string[];
   constraints?: string;
+  sample_input?: string;
+  sample_output?: string;
   /** Where to actually solve it — a LeetCode/GFG/etc. problem page. No in-house judge exists. */
   external_url?: string;
   external_platform?: string;
+}
+
+export interface CodeQuestSubmission {
+  id: number;
+  problem: number;
+  problem_title: string;
+  scheduled_date: string;
+  user: number;
+  user_name: string;
+  user_email: string;
+  code: string;
+  language: string;
+  is_correct: boolean;
+  created_at: string;
 }
 
 export interface JobListing {
@@ -129,19 +145,134 @@ export interface BlogPost {
   published_at?: string;
 }
 
+/**
+ * Canonical validation-rule shape — a strict superset of what the builder used to
+ * write. Mirrors `apps/forms/validation/schema.py::RULE_COMPAT` on the backend;
+ * both sides enforce the same keys.
+ */
+export type TextFormat =
+  | 'any' | 'alpha' | 'alphabetic' | 'alphanumeric' | 'numeric' | 'integer'
+  | 'decimal' | 'email' | 'phone' | 'url' | 'username' | 'slug' | 'date' | 'time';
+
+export type CrossFieldOp = 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte' | 'required_if';
+
+export interface CrossFieldRule {
+  op: CrossFieldOp;
+  /** the OTHER field's id this one is compared against */
+  field: number | string;
+  /** required_if only: the other field's value that triggers the requirement */
+  equals?: string;
+  message?: string;
+}
+
 export interface ValidationRules {
+  // text / paragraph
   minLength?: number;
   maxLength?: number;
+  exactLength?: number;
+  minWords?: number;
+  maxWords?: number;
   pattern?: string;
+  format?: TextFormat;
+  allowedChars?: string;
+  disallowedChars?: string;
+  startsWith?: string;
+  endsWith?: string;
+  contains?: string;
+  notContains?: string;
+  // number
   minValue?: number;
   maxValue?: number;
-  minSelected?: number;
-  maxSelected?: number;
+  exactValue?: number;
+  gt?: number;
+  gte?: number;
+  lt?: number;
+  lte?: number;
+  integerOnly?: boolean;
+  allowNegative?: boolean;
+  positiveOnly?: boolean;
+  step?: number;
+  // email
+  allowedDomains?: string[] | string;
+  blockedDomains?: string[] | string;
+  allowMultiple?: boolean;
+  normalizeCase?: boolean;
+  // phone
+  minDigits?: number;
+  maxDigits?: number;
+  numericOnly?: boolean;
+  // url
+  requireHttps?: boolean;
+  // date / time
   minDate?: string;
   maxDate?: string;
+  notBefore?: string;
+  notAfter?: string;
+  pastOnly?: boolean;
+  futureOnly?: boolean;
+  allowToday?: boolean;
+  minTime?: string;
+  maxTime?: string;
+  // choice
+  allowOther?: boolean;
+  minSelected?: number;
+  maxSelected?: number;
+  exactSelected?: number;
+  // file
   allowedFileTypes?: string;
+  blockedFileTypes?: string;
   maxFileSizeMB?: number;
+  minFileSizeKB?: number;
+  minFiles?: number;
+  maxFiles?: number;
+  // matrix
+  requiredRows?: string[];
+  allRowsRequired?: boolean;
+  minPerRow?: number;
+  maxPerRow?: number;
+  // cross-field + custom message
+  crossField?: CrossFieldRule[];
   patternError?: string;
+}
+
+export type ConditionalOperator =
+  | 'equals' | 'not_equals'
+  | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'not_between'
+  | 'contains' | 'not_contains' | 'starts_with' | 'ends_with'
+  | 'matches_regex' | 'not_matches_regex' | 'is_empty' | 'is_not_empty'
+  | 'selected' | 'not_selected' | 'includes' | 'not_includes'
+  | 'includes_any' | 'includes_all'
+  | 'before' | 'after' | 'on' | 'before_or_equal' | 'after_or_equal' | 'date_between';
+
+export type ConditionalAction = 'show' | 'hide' | 'require' | 'optional';
+
+export interface ConditionalLeaf {
+  field: number | string;
+  operator: ConditionalOperator;
+  value?: any;
+}
+export interface ConditionalGroup {
+  logic: 'AND' | 'OR';
+  rules: (ConditionalLeaf | ConditionalGroup)[];
+}
+export interface ConditionalLogic extends ConditionalGroup {
+  action?: ConditionalAction;
+}
+
+/** One entry of the backend's structured 400 body. */
+export interface SubmissionErrorItem {
+  field_id: number | null;
+  label?: string | null;
+  code: string;
+  message: string;
+  rule?: string;
+  context?: Record<string, any>;
+}
+export interface SubmissionErrorBody {
+  detail: string;
+  code: string;
+  errors: SubmissionErrorItem[];
+  warnings: SubmissionErrorItem[];
 }
 
 export type FieldType =
@@ -179,7 +310,8 @@ export interface FormField {
   min_value?: number;
   /** Maximum value for RATING / LINEAR_SCALE. */
   max_value?: number;
-  conditional_logic?: any;
+  /** Canonical shape {logic, rules, action}; legacy {if,equals} still accepted by the normalizer. */
+  conditional_logic?: ConditionalLogic | Record<string, any>;
   validation_rules?: ValidationRules;
   order: number;
   is_deleted?: boolean;
@@ -198,13 +330,108 @@ export interface Form {
   allow_response_editing?: boolean;
   enable_prefill?: boolean;
   max_responses_per_user?: number;
+  /** Auto-close the form once this many total (non-test) responses are received. Leave blank for unlimited. */
+  max_total_responses?: number | null;
+  /** Reject a submission if any EMAIL-type field's value has already been used to answer this same form. */
+  prevent_duplicate_email_answers?: boolean;
   allow_edits_until?: string;
   open_at?: string;
   close_at?: string;
+  club_id_enabled?: boolean;
+  club_id_prefix?: string;
+  club_id_field_mapping?: ClubIdFieldMapping;
+  confirmation_email_enabled?: boolean;
+  confirmation_email_template?: number | string | null;
+  /** QR-code attendance tracking — see apps/forms/models.py's attendance_* fields. */
+  attendance_enabled?: boolean;
+  attendance_start_date?: string | null;
+  attendance_days?: number;
+  attendance_sessions_per_day?: 1 | 2 | 3;
+  attendance_window_minutes?: number | null;
   fields?: FormField[];
   created_at?: string;
   updated_at?: string;
   response_count?: number;
+}
+
+// ---------------------------------------------------------------------------
+// QR-code attendance types — see apps/attendance/serializers.py & views.py
+// ---------------------------------------------------------------------------
+
+/** GET /api/forms/<id>/attendance/sessions/ — one row per scannable session. */
+export interface AttendanceSession {
+  id: number;
+  form: number;
+  day_index: number;
+  session_label: 'MORNING' | 'AFTERNOON' | 'EVENING';
+  session_label_display: string;
+  date: string;
+  opens_at: string | null;
+  closes_at: string | null;
+}
+
+/** GET /api/forms/<id>/attendance/my-badge/ — the caller's own badge. */
+export interface AttendanceBadge {
+  token: string;
+  response_id: number;
+  revoked: boolean;
+}
+
+/** POST /api/attendance/scan/ response body. */
+export interface AttendanceScanResult {
+  success: boolean;
+  new_scan: boolean;
+  already_recorded: boolean;
+  display_name: string;
+  response_id: number;
+  session_id: number;
+  scanned_at: string;
+}
+
+/** Structured error body returned by /api/attendance/scan/ on 400/404. */
+export interface AttendanceScanError {
+  error: string;
+  code?: 'BADGE_NOT_FOUND' | 'BADGE_REVOKED' | 'SESSION_NOT_FOUND' | 'FORM_MISMATCH' | 'OUTSIDE_SCAN_WINDOW';
+}
+
+/** GET /api/forms/<id>/attendance/report/ */
+export interface AttendanceSessionSummary {
+  id: number;
+  day_index: number;
+  session_label: 'MORNING' | 'AFTERNOON' | 'EVENING';
+  date: string;
+  attended_count: number;
+  total_registrants: number;
+  percentage: number;
+}
+
+export interface AttendanceRegistrantRow {
+  response_id: number;
+  display_name: string;
+  sessions: Record<number, boolean>;
+}
+
+export interface AttendanceReport {
+  sessions: AttendanceSessionSummary[];
+  registrants: AttendanceRegistrantRow[];
+}
+
+/** Maps club-member profile attributes to this form's own field IDs (see FormBuilderTab's Automation card). */
+export interface ClubIdFieldMapping {
+  email?: number | string;
+  full_name?: number | string;
+  phone_number?: number | string;
+  branch?: number | string;
+  roll_number?: number | string;
+}
+
+export interface EmailTemplateSummary {
+  id: number;
+  name: string;
+  display_title: string;
+  subject_template: string;
+  allowed_parameters: string[];
+  is_active: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -282,6 +509,13 @@ export interface ResponseUser {
 }
 
 /** Full response detail with user + enriched answers */
+export interface ConfirmationEmailStatus {
+  status: 'PENDING' | 'SENT' | 'FAILED' | 'RETRYING';
+  sent_at: string | null;
+  error_message: string;
+  recipient_email: string;
+}
+
 export interface ResponseDetail {
   id: number;
   form_id?: number;
@@ -295,6 +529,8 @@ export interface ResponseDetail {
   user_name?: string;
   user_email?: string;
   answers: AnswerDetail[];
+  confirmation_email_enabled?: boolean;
+  confirmation_email?: ConfirmationEmailStatus | null;
 }
 
 /** Paginated response from DRF PageNumberPagination */

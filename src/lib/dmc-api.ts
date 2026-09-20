@@ -35,7 +35,8 @@ export const dmcApi = {
   export: async (datasetId: string, req: ExportRequest): Promise<{ mode: 'sync'; blob: Blob; filename: string } | { mode: 'async'; jobId: number }> => {
     const isClient = typeof window !== 'undefined';
     const cleanEndpoint = `admin/dmc/datasets/${datasetId}/export/`;
-    const url = isClient ? `/api/proxy/${cleanEndpoint}` : `http://localhost:8000/api/${cleanEndpoint}`;
+    const apiBaseUrl = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+    const url = isClient ? `/api/proxy/${cleanEndpoint}` : `${apiBaseUrl}/${cleanEndpoint}`;
 
     const res = await fetch(url, {
       method: 'POST',

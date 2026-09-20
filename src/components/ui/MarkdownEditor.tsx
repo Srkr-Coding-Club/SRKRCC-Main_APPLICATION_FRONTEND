@@ -164,8 +164,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyFormat('**', '**', 'bold text')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Bold (Ctrl+B)"
+                aria-label="Bold (Ctrl+B)"
               >
                 <Bold className="w-3.5 h-3.5" />
               </button>
@@ -173,8 +174,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyFormat('*', '*', 'italic text')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Italic (Ctrl+I)"
+                aria-label="Italic (Ctrl+I)"
               >
                 <Italic className="w-3.5 h-3.5" />
               </button>
@@ -184,8 +186,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyLinePrefix('## ')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Heading 2"
+                aria-label="Heading 2"
               >
                 <Heading2 className="w-3.5 h-3.5" />
               </button>
@@ -193,8 +196,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyLinePrefix('### ')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Heading 3"
+                aria-label="Heading 3"
               >
                 <Heading3 className="w-3.5 h-3.5" />
               </button>
@@ -204,8 +208,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyLinePrefix('- ')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Bullet List"
+                aria-label="Bullet List"
               >
                 <List className="w-3.5 h-3.5" />
               </button>
@@ -213,8 +218,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyLinePrefix('1. ')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Numbered List"
+                aria-label="Numbered List"
               >
                 <ListOrdered className="w-3.5 h-3.5" />
               </button>
@@ -222,8 +228,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyLinePrefix('> ')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Quote Block"
+                aria-label="Quote Block"
               >
                 <Quote className="w-3.5 h-3.5" />
               </button>
@@ -233,8 +240,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyFormat('`', '`', 'code')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Inline Code"
+                aria-label="Inline Code"
               >
                 <Code className="w-3.5 h-3.5" />
               </button>
@@ -242,8 +250,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyFormat('[', '](https://)', 'link title')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Insert Link"
+                aria-label="Insert Link"
               >
                 <LinkIcon className="w-3.5 h-3.5" />
               </button>
@@ -251,8 +260,9 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => applyLinePrefix('---\n')}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Horizontal Divider"
+                aria-label="Horizontal Divider"
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
@@ -262,12 +272,13 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={() => setShowCheatsheet(!showCheatsheet)}
-                className={`p-1.5 rounded-lg transition ${
+                className={`p-2 rounded-lg transition ${
                   showCheatsheet
                     ? 'bg-orange-500/15 text-orange-500'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
                 title="Markdown Cheatsheet"
+                aria-label="Markdown Cheatsheet"
               >
                 <HelpCircle className="w-3.5 h-3.5" />
               </button>

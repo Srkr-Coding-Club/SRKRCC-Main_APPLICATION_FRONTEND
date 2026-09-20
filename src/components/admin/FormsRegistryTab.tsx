@@ -91,6 +91,7 @@ export function FormsRegistryTab({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [selectedFormId, setSelectedFormId] = useState<number | string | null>(forms[0]?.id ?? null);
   const [localFormOverrides, setLocalFormOverrides] = useState<Record<string, Partial<Form>>>({});
+  const [deletedFormSlugs, setDeletedFormSlugs] = useState<Set<string>>(new Set());
   const [slugCopied, setSlugCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const { toast } = useToast();
@@ -99,9 +100,15 @@ export function FormsRegistryTab({
   const [schedOpenAt, setSchedOpenAt] = useState('');
   const [schedCloseAt, setSchedCloseAt] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const activeForms = useMemo(
+    () => forms.filter((f) => !deletedFormSlugs.has(f.slug)),
+    [forms, deletedFormSlugs]
+  );
 
   const filteredForms = useMemo(() => {
-    return forms.map((f) => ({ ...f, ...(localFormOverrides[f.slug] || {}) })).filter((f) => {
+    return activeForms.map((f) => ({ ...f, ...(localFormOverrides[f.slug] || {}) })).filter((f) => {
       const matchSearch =
         f.title.toLowerCase().includes(search.toLowerCase()) ||
         f.slug.toLowerCase().includes(search.toLowerCase()) ||
@@ -109,9 +116,9 @@ export function FormsRegistryTab({
       const matchStatus = statusFilter === 'ALL' || f.status === statusFilter;
       return matchSearch && matchStatus;
     });
-  }, [forms, search, statusFilter, localFormOverrides]);
+  }, [activeForms, search, statusFilter, localFormOverrides]);
 
-  const selectedFormRaw = forms.find((f) => f.id === selectedFormId) || forms[0];
+  const selectedFormRaw = activeForms.find((f) => f.id === selectedFormId) || activeForms[0];
   const selectedForm = selectedFormRaw
     ? { ...selectedFormRaw, ...(localFormOverrides[selectedFormRaw.slug] || {}) }
     : null;
@@ -162,15 +169,30 @@ export function FormsRegistryTab({
     }
   };
 
+  const confirmedAction = (
+    action: 'publish' | 'unpublish' | 'close' | 'schedule' | 'reopen',
+    message: string,
+    extraData?: any
+  ) => {
+    if (confirm(message)) {
+      handleAction(action, extraData);
+    }
+  };
+
   const handleDelete = async () => {
     if (!selectedForm) return;
     if (confirm(`Permanently delete form "${selectedForm.title}"? This cannot be undone.`)) {
+      setIsDeleting(true);
       try {
         await fetchApi(`/forms/${selectedForm.slug}/`, { method: 'DELETE' });
         toast.success('Form Removed', `Form "${selectedForm.title}" deleted.`);
-        window.location.reload();
+        setDeletedFormSlugs((prev) => new Set(prev).add(selectedForm.slug));
+        setSelectedFormId(null);
+        if (onRefresh) onRefresh();
       } catch (err: any) {
         toast.error('Delete Failed', err?.message || `Could not delete "${selectedForm.title}".`);
+      } finally {
+        setIsDeleting(false);
       }
     }
   };
@@ -187,7 +209,7 @@ export function FormsRegistryTab({
                 <Clock className="w-5 h-5" />
                 <h3>Schedule Launch Window</h3>
               </div>
-              <button onClick={() => setShowScheduleModal(false)} className="text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white">
+              <button onClick={() => setShowScheduleModal(false)} className="flex items-center justify-center min-h-9 min-w-9 rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-90">
                 ✕
               </button>
             </div>
@@ -224,7 +246,7 @@ export function FormsRegistryTab({
                   setSchedOpenAt('');
                   setSchedCloseAt('');
                 }}
-                className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-500 hover:text-rose-400 transition"
+                className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-500 hover:text-rose-400 transition active:scale-95"
               >
                 Clear Dates
               </button>
@@ -233,7 +255,7 @@ export function FormsRegistryTab({
                 <button
                   type="button"
                   onClick={() => setShowScheduleModal(false)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95"
                 >
                   Cancel
                 </button>
@@ -255,7 +277,7 @@ export function FormsRegistryTab({
                       close_at: schedCloseAt ? new Date(schedCloseAt).toISOString() : null,
                     });
                   }}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition active:scale-95 disabled:opacity-60"
                 >
                   Save Schedule
                 </button>
@@ -290,7 +312,7 @@ export function FormsRegistryTab({
                   <button
                     onClick={onRefresh}
                     disabled={isLoading}
-                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+                    className="p-1.5 min-h-9 min-w-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition active:scale-90"
                     title="Refresh Forms"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-orange-500' : ''}`} />
@@ -298,7 +320,7 @@ export function FormsRegistryTab({
                 )}
                 <button
                   onClick={() => onSwitchSubtab('builder')}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow transition"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow transition active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>New Form</span>
@@ -324,7 +346,7 @@ export function FormsRegistryTab({
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap active:scale-95 ${
                     statusFilter === s
                       ? 'bg-orange-500 text-white'
                       : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white hover:bg-white/5'
@@ -334,10 +356,26 @@ export function FormsRegistryTab({
                 </button>
               ))}
             </div>
+
+            {/* Status Color Legend */}
+            <div className="flex items-center flex-wrap gap-x-3 gap-y-1 pt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Published
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Draft
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Scheduled
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500" /> Closed
+              </span>
+            </div>
           </div>
 
           {/* Forms Card List */}
-          <div className="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+          <div className="space-y-2.5 lg:max-h-[calc(100vh-280px)] lg:overflow-y-auto pr-1">
             {isLoading ? (
               /* Skeleton Loader Cards */
               <div className="space-y-3">
@@ -368,7 +406,7 @@ export function FormsRegistryTab({
                 <p className="text-xs font-bold text-slate-500 dark:text-slate-400">No forms found matching filters</p>
                 <button
                   onClick={() => { setSearch(''); setStatusFilter('ALL'); }}
-                  className="text-xs text-orange-400 underline"
+                  className="text-xs text-orange-400 underline transition-transform duration-100 active:scale-95 inline-block"
                 >
                   Reset filters
                 </button>
@@ -380,7 +418,7 @@ export function FormsRegistryTab({
                   <div
                     key={f.id}
                     onClick={() => setSelectedFormId(f.id)}
-                    className={`p-4 rounded-2xl border-l-4 transition-all cursor-pointer ${
+                    className={`p-4 rounded-2xl border-l-4 transition-all cursor-pointer active:scale-[0.98] ${
                       STATUS_BORDER[f.status] || 'border-l-slate-700'
                     } ${
                       isSelected
@@ -480,7 +518,7 @@ export function FormsRegistryTab({
                     <span className="text-xs font-mono text-slate-500 dark:text-slate-400 max-w-[150px] truncate">{selectedForm.slug}</span>
                     <button
                       onClick={() => copySlug(selectedForm.slug)}
-                      className="p-1 text-slate-500 dark:text-slate-400 hover:text-orange-400 transition"
+                      className="p-2 min-h-8 min-w-8 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-orange-400 transition active:scale-90"
                       title="Copy Slug"
                     >
                       <Copy className="w-3.5 h-3.5" />
@@ -514,7 +552,7 @@ export function FormsRegistryTab({
                       }
                       onSwitchSubtab('builder', selectedForm.slug);
                     }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 transition"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 transition active:scale-95"
                   >
                     <Edit3 className="w-3.5 h-3.5 text-orange-400" />
                     <span>Edit in Builder</span>
@@ -523,7 +561,7 @@ export function FormsRegistryTab({
                   {/* Manual Data Entry (Always enabled for live or closed) */}
                   <button
                     onClick={() => onOpenManualModal(selectedForm)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-bold border border-orange-500/30 transition"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-bold border border-orange-500/30 transition active:scale-95"
                   >
                     <UserPlus className="w-3.5 h-3.5" />
                     <span>Manual Entry</span>
@@ -535,14 +573,14 @@ export function FormsRegistryTab({
                       <button
                         onClick={() => handleAction('publish')}
                         disabled={actionLoading}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white text-xs font-bold shadow transition"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white text-xs font-bold shadow transition active:scale-95 disabled:opacity-60"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Publish Live</span>
                       </button>
                       <button
                         onClick={() => openScheduleModal(selectedForm)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition active:scale-95"
                       >
                         <Clock className="w-3.5 h-3.5" />
                         <span>Schedule Launch</span>
@@ -554,9 +592,9 @@ export function FormsRegistryTab({
                   {selectedForm.status === 'PUBLISHED' && (
                     <>
                       <button
-                        onClick={() => handleAction('unpublish')}
+                        onClick={() => confirmedAction('unpublish', 'Unpublish this form? It will be hidden from the public forms list and reverted to Draft.')}
                         disabled={actionLoading}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-bold border border-amber-500/30 transition"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-bold border border-amber-500/30 transition active:scale-95"
                         title="Undo publish and revert back to Draft"
                       >
                         <Undo2 className="w-3.5 h-3.5" />
@@ -564,15 +602,15 @@ export function FormsRegistryTab({
                       </button>
                       <button
                         onClick={() => openScheduleModal(selectedForm)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition active:scale-95"
                       >
                         <Clock className="w-3.5 h-3.5" />
                         <span>Reschedule Window</span>
                       </button>
                       <button
-                        onClick={() => handleAction('close')}
+                        onClick={() => confirmedAction('close', 'Close this form to new responses? Submitters will no longer be able to respond.')}
                         disabled={actionLoading}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-300 dark:border-slate-600 transition"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-300 dark:border-slate-600 transition active:scale-95"
                       >
                         <Lock className="w-3.5 h-3.5" />
                         <span>Close Form</span>
@@ -586,22 +624,22 @@ export function FormsRegistryTab({
                       <button
                         onClick={() => handleAction('publish')}
                         disabled={actionLoading}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white text-xs font-bold shadow transition"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white text-xs font-bold shadow transition active:scale-95 disabled:opacity-60"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Publish Immediately</span>
                       </button>
                       <button
                         onClick={() => openScheduleModal(selectedForm)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition active:scale-95"
                       >
                         <Clock className="w-3.5 h-3.5" />
                         <span>Modify Schedule</span>
                       </button>
                       <button
-                        onClick={() => handleAction('unpublish')}
+                        onClick={() => confirmedAction('unpublish', 'Cancel this scheduled launch? The form will revert to Draft and will not open automatically.')}
                         disabled={actionLoading}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 text-amber-400 text-xs font-bold border border-amber-500/30 transition"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 text-amber-400 text-xs font-bold border border-amber-500/30 transition active:scale-95"
                       >
                         <Undo2 className="w-3.5 h-3.5" />
                         <span>Cancel Schedule</span>
@@ -615,22 +653,22 @@ export function FormsRegistryTab({
                       <button
                         onClick={() => handleAction('publish')}
                         disabled={actionLoading}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] text-white text-xs font-bold shadow transition"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] text-white text-xs font-bold shadow transition active:scale-95 disabled:opacity-60"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Re-Publish Live</span>
                       </button>
                       <button
                         onClick={() => openScheduleModal(selectedForm)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-bold border border-blue-500/30 transition active:scale-95"
                       >
                         <Clock className="w-3.5 h-3.5" />
                         <span>Schedule Re-open</span>
                       </button>
                       <button
-                        onClick={() => handleAction('reopen', { status: 'DRAFT' })}
+                        onClick={() => confirmedAction('reopen', 'Reopen this form as a draft? It will need to be published again before it is publicly visible.', { status: 'DRAFT' })}
                         disabled={actionLoading}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-300 dark:border-slate-700 transition"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-300 dark:border-slate-700 transition active:scale-95"
                       >
                         <Undo2 className="w-3.5 h-3.5" />
                         <span>Re-open as Draft</span>
@@ -641,7 +679,7 @@ export function FormsRegistryTab({
                   {/* View Responses Button */}
                   <button
                     onClick={() => onSwitchSubtab('responses', selectedForm.slug)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 transition"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 transition active:scale-95"
                   >
                     <Inbox className="w-3.5 h-3.5 text-blue-400" />
                     <span>View Responses</span>
@@ -652,7 +690,7 @@ export function FormsRegistryTab({
                     <Link
                       href={`/forms/${selectedForm.slug}`}
                       target="_blank"
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30 transition"
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30 transition active:scale-95"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>View Live Form</span>
@@ -675,7 +713,7 @@ export function FormsRegistryTab({
 
                     <button
                       onClick={() => copyLiveLink(selectedForm.slug)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-bold border border-emerald-500/30 transition"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-bold border border-emerald-500/30 transition active:scale-95"
                     >
                       <Share2 className="w-3.5 h-3.5" />
                       <span>{linkCopied ? 'Link Copied!' : 'Copy Live Link'}</span>
@@ -734,7 +772,7 @@ export function FormsRegistryTab({
 
                     <button
                       onClick={() => handleAction('publish')}
-                      className="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition"
+                      className="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition active:scale-95"
                     >
                       Publish Live Now
                     </button>
@@ -808,7 +846,7 @@ export function FormsRegistryTab({
                           toast.error('Update Failed', err?.message || 'Unable to update policy.');
                         }
                       }}
-                      className="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition text-center"
+                      className="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition active:scale-[0.98] text-center"
                     >
                       {selectedForm.allow_multiple_responses ? 'Switch to Single (1 Limit)' : 'Allow Multiple Responses'}
                     </button>
@@ -861,7 +899,7 @@ export function FormsRegistryTab({
                           toast.error('Update Failed', err?.message || 'Unable to update policy.');
                         }
                       }}
-                      className="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition text-center"
+                      className="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition active:scale-[0.98] text-center"
                     >
                       {selectedForm.allow_response_editing !== false ? 'Lock Submissions (No Edits)' : 'Enable Response Editing'}
                     </button>
@@ -919,7 +957,7 @@ export function FormsRegistryTab({
                           toast.error('Update Failed', err?.message || 'Unable to update policy.');
                         }
                       }}
-                      className="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition text-center"
+                      className="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition active:scale-[0.98] text-center"
                     >
                       {selectedForm.enable_prefill !== false ? 'Disable Profile Auto-fill' : 'Enable Profile Auto-fill'}
                     </button>
@@ -959,7 +997,7 @@ export function FormsRegistryTab({
               <div className="border border-rose-500/20 rounded-2xl overflow-hidden pt-1">
                 <button
                   onClick={() => setDangerOpen(!dangerOpen)}
-                  className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-rose-400 hover:bg-rose-500/5 transition"
+                  className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-rose-400 hover:bg-rose-500/5 transition active:scale-[0.99]"
                 >
                   <span className="flex items-center gap-2">
                     <AlertTriangle className="w-3.5 h-3.5" />
@@ -972,18 +1010,23 @@ export function FormsRegistryTab({
                 {dangerOpen && (
                   <div className="px-4 pb-4 space-y-2 border-t border-rose-500/20">
                     <button
-                      onClick={() => handleAction('close')}
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-300 hover:bg-rose-500/10 font-semibold transition"
+                      onClick={() => confirmedAction('close', 'Close this form to new responses? Submitters will no longer be able to respond.')}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-300 hover:bg-rose-500/10 font-semibold transition active:scale-[0.98]"
                     >
                       <XCircle className="w-3 h-3 inline mr-1.5" />
                       Close Form to Responses
                     </button>
                     <button
                       onClick={handleDelete}
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-500 hover:bg-rose-500/10 font-semibold transition"
+                      disabled={isDeleting}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-500 hover:bg-rose-500/10 font-semibold transition active:scale-[0.98] disabled:opacity-60"
                     >
-                      <Trash2 className="w-3 h-3 inline mr-1.5" />
-                      Delete Form Permanently
+                      {isDeleting ? (
+                        <Loader2 className="w-3 h-3 inline mr-1.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3 inline mr-1.5" />
+                      )}
+                      {isDeleting ? 'Deleting...' : 'Delete Form Permanently'}
                     </button>
                   </div>
                 )}

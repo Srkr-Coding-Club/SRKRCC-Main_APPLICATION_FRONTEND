@@ -4,14 +4,14 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Instagram, Linkedin, Github, Youtube, ArrowUp } from 'lucide-react';
+import { Mail, Phone, MapPin, Instagram, Linkedin, Github, Twitter, ArrowUp } from 'lucide-react';
 import BrainLogo from './BrainLogo';
 
 const SOCIALS = [
-  { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
-  { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-  { icon: Github, href: 'https://github.com', label: 'GitHub' },
-  { icon: Youtube, href: 'https://youtube.com', label: 'YouTube' },
+  { icon: Instagram, href: 'https://instagram.com/srkr_coding_club', label: 'Instagram' },
+  { icon: Linkedin, href: 'https://www.linkedin.com/in/srkr-coding-club-549799293', label: 'LinkedIn' },
+  { icon: Github, href: 'https://github.com/Srkr-Coding-Club', label: 'GitHub' },
+  { icon: Twitter, href: 'https://twitter.com/srkrcodingclub', label: 'Twitter' },
 ];
 
 const QUICK_LINKS = [
@@ -25,8 +25,8 @@ const QUICK_LINKS = [
 const RESOURCES = [
   { label: 'IconCoders', href: '/iconcoders' },
   { label: 'Codequest', href: '/codequest' },
+  { label: 'Hackathons', href: '/hackathons' },
   { label: 'Forms', href: '/forms' },
-  { label: 'Admin', href: '/admin' },
 ];
 
 export default function Footer() {
@@ -73,7 +73,7 @@ export default function Footer() {
                   <span className="font-poppins font-extrabold text-[15px] bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
                     SRKR
                   </span>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-[#1A1A2E]/45 dark:text-white/40">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#1A1A2E]/45 dark:text-white/40">
                     Coding Club
                   </span>
                 </div>
@@ -93,7 +93,7 @@ export default function Footer() {
                     href={href}
                     target="_blank"
                     rel="noreferrer"
-                    className="group relative w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
+                    className="group relative w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
                     aria-label={label}
                   >
                     <span className="absolute inset-0 rounded-full blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300 bg-[#FF7A00] -z-10" />
@@ -143,15 +143,28 @@ export default function Footer() {
               <ul className="space-y-3 text-xs text-slate-600 dark:text-slate-400">
                 <li className="flex items-center gap-2.5">
                   <Mail className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
-                  <span className="break-all">srkrcodingclub@srkr.ac.in</span>
+                  <a
+                    href="mailto:srkrcodingclubofficial@gmail.com"
+                    className="break-all hover:text-[#FF7A00] transition-colors"
+                  >
+                    srkrcodingclubofficial@gmail.com
+                  </a>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
-                  <span>+91 12345 67890</span>
+                  <div className="flex flex-wrap items-center gap-x-1.5">
+                    <a href="tel:+918500216667" className="hover:text-[#FF7A00] transition-colors">
+                      +91 8500216667
+                    </a>
+                    <span>,</span>
+                    <a href="tel:+917997266366" className="hover:text-[#FF7A00] transition-colors">
+                      +91 7997266366
+                    </a>
+                  </div>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <MapPin className="w-4 h-4 text-[#FF7A00] flex-shrink-0 mt-0.5" />
-                  <span>SRKR Campus, Bhimavaram, Andhra Pradesh &ndash; 534204</span>
+                  <span>SRKR Engineering College, Bhimavaram, Andhra Pradesh &ndash; 534204</span>
                 </li>
               </ul>
             </div>
@@ -168,7 +181,7 @@ export default function Footer() {
               </span>
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="w-8 h-8 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
+                className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition active:scale-90"
                 aria-label="Back to top"
               >
                 <ArrowUp className="w-3.5 h-3.5" />

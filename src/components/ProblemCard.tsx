@@ -20,7 +20,7 @@ export default function ProblemCard({ problem }: ProblemCardProps) {
         <>
           <div className="flex flex-wrap gap-1.5">
             {problem.tags?.map((t) => (
-              <span key={t} className="text-[11px] font-mono px-2.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+              <span key={t} className="text-[11px] font-mono px-2.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
                 #{t}
               </span>
             ))}

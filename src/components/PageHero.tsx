@@ -60,6 +60,7 @@ export default function PageHero({
   const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const root = rootRef.current;
     if (!root) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const r = root.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width - 0.5;
     const py = (e.clientY - r.top) / r.height - 0.5;
@@ -161,7 +162,7 @@ export default function PageHero({
 
         <p
           data-hero-reveal
-          className="max-w-xl text-pretty text-sm leading-relaxed text-[#4A3B38] sm:text-base dark:text-slate-300/90"
+          className="max-w-xl text-pretty text-sm leading-relaxed text-[#4A3B38] sm:text-base dark:text-slate-200"
         >
           {description}
         </p>

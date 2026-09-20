@@ -8,7 +8,7 @@ import {
   Search, Settings, SlidersHorizontal, X, Info, AlertCircle,
   CheckCircle2, Circle, Minus, HelpCircle, ArrowUpDown, ArrowUp, ArrowDown,
   ExternalLink, Users, FileSpreadsheet, Trophy, Calendar, Code2, Briefcase,
-  Layers, ShieldAlert, Sparkles
+  Layers, ShieldAlert, Sparkles, Mail, Menu
 } from 'lucide-react';
 
 import { useDMCCatalog } from '@/hooks/dmc/useDMCCatalog';
@@ -20,6 +20,7 @@ import type {
   CanonicalValue, ColumnDefinition, DatasetDefinition,
   ExportFormat, FilterClause, FilterDefinition, SortClause
 } from '@/lib/types/dmc';
+import EmailTemplateEditor, { EmailRecipient } from '@/components/admin/EmailTemplateEditor';
 
 // ============================================================================
 // Group Icons mapping
@@ -84,7 +85,8 @@ function StateBadge({ cv, col }: { cv: CanonicalValue | undefined; col: ColumnDe
       CLUB_LEAD: 'bg-violet-100 text-violet-900 dark:bg-violet-500/20 dark:text-violet-300 border-violet-200 dark:border-violet-500/30',
       VOLUNTEER: 'bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-blue-300 border-blue-200 dark:border-blue-500/30',
       JUDGE: 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300 border-amber-200 dark:border-amber-500/30',
-      MEMBER: 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700',
+      AFFILIATE: 'bg-teal-100 text-teal-900 dark:bg-teal-500/20 dark:text-teal-300 border-teal-200 dark:border-teal-500/30',
+      NON_AFFILIATE: 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700',
       ACTIVE: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30',
       INACTIVE: 'bg-rose-100 text-rose-900 dark:bg-rose-500/20 dark:text-rose-300 border-rose-200 dark:border-rose-500/30',
       SUSPENDED: 'bg-red-100 text-red-900 dark:bg-red-500/20 dark:text-red-300 border-red-200 dark:border-red-500/30',
@@ -130,18 +132,42 @@ interface SidebarProps {
   active: DatasetDefinition | null;
   onSelect: (d: DatasetDefinition) => void;
   loading: boolean;
+  open: boolean;
+  onClose: () => void;
 }
 
-function Sidebar({ grouped, active, onSelect, loading }: SidebarProps) {
+function Sidebar({ grouped, active, onSelect, loading, open, onClose }: SidebarProps) {
   const groups = Object.keys(grouped);
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col h-full overflow-y-auto">
+    <aside
+      className={`${open ? 'flex' : 'hidden'} md:flex flex-col absolute md:static inset-y-0 left-0 z-40 w-64 shrink-0 h-full overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl md:shadow-none`}
+    >
       <div className="px-4 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40">
-        <div className="flex items-center gap-2">
-          <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">Datasets Explorer</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">Datasets Explorer</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="md:hidden flex items-center justify-center min-h-10 min-w-10 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0 transition-transform duration-100 active:scale-90"
+            aria-label="Close datasets menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Select a dataset to view and manage</p>
+        <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1 mt-2 text-[10px] text-slate-500 dark:text-slate-400">
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> OK
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Degraded
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Critical
+          </span>
+        </div>
       </div>
       <div className="flex-1 py-3 px-2 space-y-4">
         {loading ? (
@@ -165,7 +191,7 @@ function Sidebar({ grouped, active, onSelect, loading }: SidebarProps) {
                       <button
                         key={d.id}
                         onClick={() => onSelect(d)}
-                        className={`w-full text-left flex items-center justify-between px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150
+                        className={`w-full text-left flex items-center justify-between px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 active:scale-[0.98]
                           ${isActive
                             ? 'bg-blue-600 text-white shadow-sm font-semibold'
                             : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'}`}
@@ -220,10 +246,10 @@ function ColumnPanel({
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">Visible Columns</span>
         <div className="flex items-center gap-2">
-          <button onClick={showAll} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Select All</button>
+          <button onClick={showAll} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline transition-transform duration-100 active:scale-95">Select All</button>
           <span className="text-slate-300 dark:text-slate-600">|</span>
-          <button onClick={resetToDefaults} className="text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">Reset</button>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-1"><X className="w-3.5 h-3.5" /></button>
+          <button onClick={resetToDefaults} className="text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-transform duration-100 active:scale-95">Reset</button>
+          <button onClick={onClose} className="flex items-center justify-center min-h-8 min-w-8 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-1 transition-transform duration-100 active:scale-90"><X className="w-3.5 h-3.5" /></button>
         </div>
       </div>
       <div className="max-h-80 overflow-y-auto py-2">
@@ -265,10 +291,25 @@ function FilterBar({
   onFilterChange: (clauses: FilterClause[]) => void;
   onClearAll: () => void;
 }) {
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const addFilterMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showFilterMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addFilterMenuRef.current && !addFilterMenuRef.current.contains(e.target as Node)) {
+        setShowFilterMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilterMenu]);
+
   const addFilter = (filter: FilterDefinition) => {
     if (activeFilters.find(f => f.field === filter.key)) return;
     const def = filter.options[0];
     onFilterChange([...activeFilters, { field: filter.key, operator: filter.operators[0], value: def?.value ?? '' }]);
+    setShowFilterMenu(false);
   };
 
   const updateFilter = (idx: number, partial: Partial<FilterClause>) => {
@@ -318,26 +359,33 @@ function FilterBar({
                 placeholder="Type value..."
               />
             )}
-            <button onClick={() => removeFilter(idx)} className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 ml-1"><X className="w-3.5 h-3.5" /></button>
+            <button onClick={() => removeFilter(idx)} className="flex items-center justify-center min-h-8 min-w-8 p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 ml-1 transition-transform duration-100 active:scale-90"><X className="w-3.5 h-3.5" /></button>
           </div>
         );
       })}
       {availableFilters.length > 0 && (
-        <div className="relative group">
-          <button className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-dashed border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 hover:border-slate-400 bg-white dark:bg-slate-800 shadow-xs transition-colors">
+        <div className="relative" ref={addFilterMenuRef}>
+          <button
+            onClick={() => setShowFilterMenu(v => !v)}
+            aria-haspopup="true"
+            aria-expanded={showFilterMenu}
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-dashed border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 hover:border-slate-400 bg-white dark:bg-slate-800 shadow-xs transition-colors active:scale-95"
+          >
             <Filter className="w-3 h-3 text-blue-500" /> Add Filter
           </button>
-          <div className="absolute top-10 left-0 z-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl w-52 py-1 hidden group-hover:block">
-            {availableFilters.map(f => (
-              <button key={f.key} onClick={() => addFilter(f)} className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 transition">
-                {f.label}
-              </button>
-            ))}
-          </div>
+          {showFilterMenu && (
+            <div className="absolute top-10 left-0 z-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl w-52 py-1">
+              {availableFilters.map(f => (
+                <button key={f.key} onClick={() => addFilter(f)} className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 transition active:scale-[0.98]">
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {activeFilters.length > 0 && (
-        <button onClick={onClearAll} className="text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 ml-1">
+        <button onClick={onClearAll} className="text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 ml-1 transition-transform duration-100 active:scale-95">
           <X className="w-3 h-3" /> Clear All
         </button>
       )}
@@ -350,7 +398,7 @@ function FilterBar({
 // ============================================================================
 
 function ExportModal({
-  open, onClose, dataset, visibleKeys, activeFilters, search, sort,
+  open, onClose, dataset, visibleKeys, activeFilters, search, sort, selectedIds,
 }: {
   open: boolean;
   onClose: () => void;
@@ -359,6 +407,7 @@ function ExportModal({
   activeFilters: FilterClause[];
   search: string;
   sort: SortClause;
+  selectedIds: Set<string>;
 }) {
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [rowScope, setRowScope] = useState<'all_filtered' | 'selected'>('all_filtered');
@@ -376,7 +425,7 @@ function ExportModal({
         format,
         row_scope: rowScope,
         column_scope: 'visible',
-        selected_record_ids: [],
+        selected_record_ids: rowScope === 'selected' ? [...selectedIds] : [],
         visible_column_keys: visibleKeys,
         search,
         sort,
@@ -432,7 +481,7 @@ function ExportModal({
             <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <span className="text-base font-bold text-slate-900 dark:text-white">Export Dataset</span>
           </div>
-          <button onClick={onClose}><X className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" /></button>
+          <button onClick={onClose} className="flex items-center justify-center min-h-9 min-w-9 p-1.5 transition-transform duration-100 active:scale-90"><X className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" /></button>
         </div>
         <div className="p-6 space-y-5">
           {asyncJob ? (
@@ -451,7 +500,7 @@ function ExportModal({
                       key={fmt}
                       disabled={!enabled}
                       onClick={() => setFormat(fmt)}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all active:scale-95
                         ${format === fmt ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50 dark:bg-slate-800'}
                         ${!enabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
@@ -467,10 +516,11 @@ function ExportModal({
                     <button
                       key={s}
                       onClick={() => setRowScope(s)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all
+                      disabled={s === 'selected' && selectedIds.size === 0}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95
                         ${rowScope === s ? 'bg-blue-50 dark:bg-blue-600/20 border-blue-600 dark:border-blue-500 text-blue-700 dark:text-blue-300' : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400'}`}
                     >
-                      {s === 'all_filtered' ? 'All (Matching Filters)' : 'Selected Rows Only'}
+                      {s === 'all_filtered' ? 'All (Matching Filters)' : `Selected Rows Only (${selectedIds.size})`}
                     </button>
                   ))}
                 </div>
@@ -485,11 +535,11 @@ function ExportModal({
         </div>
         {!asyncJob && (
           <div className="px-6 pb-5 flex gap-3">
-            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">Cancel</button>
+            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-[0.98]">Cancel</button>
             <button
               onClick={handleExport}
               disabled={loading}
-              className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 active:scale-[0.98]"
             >
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               Start Export
@@ -506,7 +556,7 @@ function ExportModal({
 // ============================================================================
 
 function DataGrid({
-  records, columns, sort, onSort, loading, empty,
+  records, columns, sort, onSort, loading, empty, selectedIds, onToggleSelect, onToggleSelectAll,
 }: {
   records: import('@/lib/types/dmc').DMCRecord[];
   columns: ColumnDefinition[];
@@ -514,6 +564,9 @@ function DataGrid({
   onSort: (field: string) => void;
   loading: boolean;
   empty: boolean;
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: (ids: string[]) => void;
 }) {
   if (loading) {
     return (
@@ -533,11 +586,23 @@ function DataGrid({
     );
   }
 
+  const recordIds = records.map((r) => String(r.id?.value ?? ''));
+  const allOnPageSelected = recordIds.length > 0 && recordIds.every((id) => selectedIds.has(id));
+
   return (
     <div className="overflow-auto flex-1 bg-white dark:bg-slate-950">
       <table className="w-full text-sm border-collapse">
         <thead className="sticky top-0 z-10">
           <tr className="bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 shadow-xs">
+            <th className="px-4 py-3.5 w-10">
+              <input
+                type="checkbox"
+                checked={allOnPageSelected}
+                onChange={() => onToggleSelectAll(recordIds)}
+                className="w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer"
+                aria-label="Select all rows on this page"
+              />
+            </th>
             {columns.map(col => {
               const isActive = sort.field === col.key;
               return (
@@ -562,21 +627,35 @@ function DataGrid({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-slate-800/70">
-          {records.map((record, rowIdx) => (
-            <motion.tr
-              key={rowIdx}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.1 }}
-              className="hover:bg-blue-50/60 dark:hover:bg-slate-900/80 transition-colors"
-            >
-              {columns.map(col => (
-                <td key={col.key} className="px-4 py-3.5 max-w-[240px] truncate align-middle">
-                  <StateBadge cv={record[col.key]} col={col} />
+          {records.map((record, rowIdx) => {
+            const id = recordIds[rowIdx];
+            return (
+              <motion.tr
+                key={rowIdx}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.1 }}
+                className={`hover:bg-blue-50/60 dark:hover:bg-slate-900/80 transition-colors ${selectedIds.has(id) ? 'bg-blue-50/40 dark:bg-blue-950/20' : ''}`}
+              >
+                <td className="px-4 py-3.5 w-10">
+                  {id && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(id)}
+                      onChange={() => onToggleSelect(id)}
+                      className="w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer"
+                      aria-label="Select row"
+                    />
+                  )}
                 </td>
-              ))}
-            </motion.tr>
-          ))}
+                {columns.map(col => (
+                  <td key={col.key} className="px-4 py-3.5 max-w-[240px] truncate align-middle">
+                    <StateBadge cv={record[col.key]} col={col} />
+                  </td>
+                ))}
+              </motion.tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -599,7 +678,7 @@ function Pagination({ page, totalPages, total, pageSize, onPage }: { page: numbe
         <button
           onClick={() => onPage(page - 1)}
           disabled={page <= 1}
-          className="p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          className="p-1.5 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition active:scale-90"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -607,7 +686,7 @@ function Pagination({ page, totalPages, total, pageSize, onPage }: { page: numbe
         <button
           onClick={() => onPage(page + 1)}
           disabled={page >= totalPages}
-          className="p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          className="p-1.5 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition active:scale-90"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -630,11 +709,42 @@ export default function DataManagementCenter() {
   const [showColumnPanel, setShowColumnPanel] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showEmailEditor, setShowEmailEditor] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllOnPage = (ids: string[]) => {
+    setSelectedIds((prev) => {
+      const allSelected = ids.length > 0 && ids.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (allSelected) {
+        ids.forEach((id) => next.delete(id));
+      } else {
+        ids.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
 
   const { columns: allColumns, filters: filterDefs, loading: schemaLoading } = useDMCSchema(activeDataset?.id ?? null);
   const { visibleKeys, visibleColumns, toggleColumn, showAll, resetToDefaults, isVisible } = useDMCColumns(allColumns);
   const { records, total, page, totalPages, loading: queryLoading, error: queryError, fetch: runQuery, pageSize } = useDMCQuery({ datasetId: activeDataset?.id ?? null });
+
+  const hasEmailColumn = allColumns.some((c) => c.type === 'email');
+  const selectedRecipients: EmailRecipient[] = records
+    .filter((r) => selectedIds.has(String(r.id?.value ?? '')))
+    .map((r) => ({ email: String(r.email?.value ?? ''), name: r.name?.value ? String(r.name.value) : undefined }))
+    .filter((r) => !!r.email);
 
   // When dataset changes, reset everything and run query
   useEffect(() => {
@@ -644,6 +754,7 @@ export default function DataManagementCenter() {
     setActiveFilters([]);
     setSort({ field: activeDataset.default_sort_field, direction: activeDataset.default_sort_direction as 'asc' | 'desc' });
     setShowFilters(false);
+    setSelectedIds(new Set());
   }, [activeDataset]);
 
   // When schema loads, run initial query
@@ -653,11 +764,15 @@ export default function DataManagementCenter() {
     runQuery(1, '', { field: activeDataset.default_sort_field, direction: activeDataset.default_sort_direction as 'asc' | 'desc' }, [], visColKeys);
   }, [activeDataset, schemaLoading, allColumns]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Row selection is scoped to whichever records are currently loaded (selectedRecipients
+  // reads name/email straight out of `records`), so any change to what's loaded clears it
+  // rather than risk emailing a stale, no-longer-visible selection.
   const handleSearch = (val: string) => {
     setSearch(val);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
       setDebouncedSearch(val);
+      setSelectedIds(new Set());
       runQuery(1, val, sort, activeFilters, [...visibleKeys]);
     }, 350);
   };
@@ -667,15 +782,18 @@ export default function DataManagementCenter() {
       ? { field, direction: sort.direction === 'asc' ? 'desc' : 'asc' }
       : { field, direction: 'desc' };
     setSort(next);
+    setSelectedIds(new Set());
     runQuery(1, debouncedSearch, next, activeFilters, [...visibleKeys]);
   };
 
   const handleFilterChange = (clauses: FilterClause[]) => {
     setActiveFilters(clauses);
+    setSelectedIds(new Set());
     runQuery(1, debouncedSearch, sort, clauses, [...visibleKeys]);
   };
 
   const handlePage = (p: number) => {
+    setSelectedIds(new Set());
     runQuery(p, debouncedSearch, sort, activeFilters, [...visibleKeys]);
   };
 
@@ -687,9 +805,34 @@ export default function DataManagementCenter() {
   const hasDataset = !!activeDataset;
 
   return (
-    <div className="flex h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden" style={{ minHeight: '100vh' }}>
+    <div className="relative flex h-[calc(100vh-74px)] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
+      {/* Mobile datasets toggle — sidebar is hidden below md, so this is the only way in */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="md:hidden absolute top-3 left-3 z-30 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-md text-xs font-bold text-slate-700 dark:text-slate-300 transition-transform duration-100 active:scale-95"
+        aria-label="Open datasets menu"
+      >
+        <Menu className="w-4 h-4" /> Datasets
+      </button>
+
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden absolute inset-0 z-30 bg-black/50"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
-      <Sidebar grouped={grouped} active={activeDataset} onSelect={setActiveDataset} loading={catalogLoading} />
+      <Sidebar
+        grouped={grouped}
+        active={activeDataset}
+        onSelect={(d) => { setActiveDataset(d); setSidebarOpen(false); }}
+        loading={catalogLoading}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main panel */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white dark:bg-slate-950">
@@ -708,8 +851,8 @@ export default function DataManagementCenter() {
         ) : (
           <motion.div key={activeDataset.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full">
             {/* Toolbar */}
-            <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-5 py-3.5 shrink-0 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
+            <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-5 pt-14 pb-3.5 md:pt-3.5 shrink-0 shadow-xs">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-base font-bold text-slate-900 dark:text-white">{activeDataset.label}</h1>
@@ -720,20 +863,25 @@ export default function DataManagementCenter() {
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{activeDataset.description}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={handleRefresh} title="Refresh dataset" className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition">
+                  <button onClick={handleRefresh} title="Refresh dataset" className="p-2 min-h-10 min-w-10 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition active:scale-90">
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-500' : ''}`} />
                   </button>
+                  {hasEmailColumn && selectedIds.size > 0 && (
+                    <button onClick={() => setShowEmailEditor(true)} className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm transition-colors active:scale-95">
+                      <Mail className="w-3.5 h-3.5" /> Email Selected ({selectedIds.size})
+                    </button>
+                  )}
                   {(activeDataset.capabilities.export_csv || activeDataset.capabilities.export_xlsx || activeDataset.capabilities.export_json) && (
-                    <button onClick={() => setShowExport(true)} className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors">
+                    <button onClick={() => setShowExport(true)} className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors active:scale-95">
                       <Download className="w-3.5 h-3.5" /> Export Data
                     </button>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center flex-wrap gap-2.5">
                 {/* Search */}
-                <div className="relative flex-1 max-w-xs">
+                <div className="relative flex-1 min-w-[140px] max-w-xs">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                   <input
                     value={search}
@@ -742,7 +890,7 @@ export default function DataManagementCenter() {
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                   />
                   {search && (
-                    <button onClick={() => handleSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <button onClick={() => handleSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-8 min-w-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-transform duration-100 active:scale-90">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -752,7 +900,7 @@ export default function DataManagementCenter() {
                 {filterDefs.length > 0 && (
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-colors shadow-xs
+                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-colors shadow-xs active:scale-95
                       ${showFilters || activeFilters.length > 0
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-300'
                         : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900'}`}
@@ -771,7 +919,7 @@ export default function DataManagementCenter() {
                 <div className="relative">
                   <button
                     onClick={() => setShowColumnPanel(!showColumnPanel)}
-                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-colors shadow-xs
+                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-colors shadow-xs active:scale-95
                       ${showColumnPanel
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-300'
                         : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900'}`}
@@ -824,6 +972,9 @@ export default function DataManagementCenter() {
               onSort={handleSort}
               loading={isLoading}
               empty={!isLoading && records.length === 0}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAllOnPage}
             />
 
             {/* Pagination Footer */}
@@ -843,6 +994,16 @@ export default function DataManagementCenter() {
         activeFilters={activeFilters}
         search={debouncedSearch}
         sort={sort}
+        selectedIds={selectedIds}
+      />
+
+      {/* Bulk Email Composer */}
+      <EmailTemplateEditor
+        open={showEmailEditor}
+        onClose={() => setShowEmailEditor(false)}
+        mode="send"
+        recipients={selectedRecipients}
+        onSent={() => setSelectedIds(new Set())}
       />
     </div>
   );

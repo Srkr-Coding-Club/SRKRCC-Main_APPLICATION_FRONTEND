@@ -61,7 +61,7 @@ export function ManualEntryModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-2 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition active:scale-90"
           >
             <X className="w-5 h-5" />
           </button>
@@ -91,7 +91,7 @@ export function ManualEntryModal({
         {/* Form Fields for Manual Entry */}
         <form onSubmit={handleFormSubmit} className="space-y-4 max-h-[58vh] overflow-y-auto pr-1">
           {activeFields.length === 0 ? (
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
               This form has no configured input fields.
             </div>
           ) : (
@@ -206,14 +206,14 @@ export function ManualEntryModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-400 hover:text-white transition"
+              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-400 hover:text-white transition active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white text-xs font-bold shadow transition flex items-center gap-1.5 disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] hover:brightness-110 text-white text-xs font-bold shadow transition active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{isSubmitting ? 'Recording...' : 'Record Manual Entry'}</span>

@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, LogIn, ArrowLeft, Loader2, RefreshCw, UserCheck, Home, LogOut } from 'lucide-react';
-import { getStoredUser, isAuthenticated, isAdminOrLead, fetchAndSyncCurrentUser, clearAuthSession, AuthUser } from '@/lib/auth';
+import { getStoredUser, fetchAndSyncCurrentUser, subscribeToAuthResync, clearAuthSession, AuthUser } from '@/lib/auth';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -14,23 +14,17 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
-  const checkPermissions = useCallback(async (forceServer = false) => {
-    const localUser = getStoredUser();
-    const localAuth = isAuthenticated();
-    const localAdmin = isAdminOrLead();
+  const checkPermissions = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
 
-    setIsAuth(localAuth);
-    setIsAdmin(localAdmin);
-    setCurrentUser(localUser);
-
-    // If already verified locally as admin/lead and not forcing a server check, we can allow immediate access
-    if (localAdmin && !forceServer) {
-      setMounted(true);
-      return;
+    // localStorage and the non-HttpOnly srkrcc_user_role cookie are both editable from
+    // devtools, so they're used only for the optimistic "who am I" display below while
+    // the real check runs — never to decide whether protected content renders. Access
+    // is always gated on the authoritative server response.
+    if (!silent) {
+      setCurrentUser(getStoredUser());
+      setCheckingServer(true);
     }
-
-    // Otherwise, check live permissions against the backend server (/auth/me/)
-    setCheckingServer(true);
     try {
       const serverUser = await fetchAndSyncCurrentUser();
       if (serverUser) {
@@ -43,15 +37,34 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         setIsAdmin(false);
       }
     } catch {
-      // Fall back to local evaluation
+      // Fail closed on the initial (loud) check: a network error verifying the
+      // session is not proof of admin access. A silent background recheck
+      // failing is more likely a transient blip from switching tabs, so it
+      // leaves existing access alone rather than yanking it away mid-task —
+      // the next successful check (or the next full page load) will still
+      // catch a real revocation.
+      if (!silent) {
+        setIsAuth(false);
+        setIsAdmin(false);
+      }
     } finally {
-      setCheckingServer(false);
-      setMounted(true);
+      if (!silent) {
+        setCheckingServer(false);
+        setMounted(true);
+      }
     }
   }, []);
 
   useEffect(() => {
     checkPermissions();
+    // Silently re-check on focus too — this is the actual access gate, so a
+    // role change made elsewhere while this tab sat open (promoted to admin,
+    // or demoted away from it) should take effect the moment the tab is
+    // looked at again, not only at the next hard refresh. Silent so it
+    // doesn't blank an already-admitted admin's screen with the loading
+    // gateway just because they alt-tabbed back.
+    const unsubscribe = subscribeToAuthResync(() => checkPermissions({ silent: true }));
+    return unsubscribe;
   }, [checkPermissions]);
 
   const handleSwitchAccount = () => {
@@ -76,7 +89,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   }
 
   if (!isAuth || !isAdmin) {
-    const roleName = currentUser?.role || 'MEMBER';
+    const roleName = currentUser?.role || 'NON_AFFILIATE';
     const email = currentUser?.email || 'Unknown';
 
     return (
@@ -121,9 +134,9 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
             {isAuth ? (
               <>
                 <button
-                  onClick={() => checkPermissions(true)}
+                  onClick={() => checkPermissions()}
                   disabled={checkingServer}
-                  className="w-full px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition disabled:opacity-50"
+                  className="w-full px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition active:scale-[0.98] disabled:opacity-50"
                 >
                   <RefreshCw className={`w-4 h-4 ${checkingServer ? 'animate-spin' : ''}`} />
                   Re-check My Permissions
@@ -131,14 +144,14 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleSwitchAccount}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     Switch Account
                   </button>
                   <Link
                     href="/profile"
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
                   >
                     <UserCheck className="w-3.5 h-3.5" />
                     My Profile

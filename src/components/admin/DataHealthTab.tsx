@@ -76,7 +76,7 @@ function WarningCard({
       </div>
       <button
         onClick={() => onFixClick(warning.action_link)}
-        className="flex items-center gap-1 text-xs font-bold text-orange-400 hover:text-orange-300 whitespace-nowrap"
+        className="flex items-center gap-1 text-xs font-bold text-orange-400 hover:text-orange-300 whitespace-nowrap transition-transform duration-100 active:scale-95"
       >
         Fix this <ArrowRight className="w-3 h-3" />
       </button>
@@ -135,7 +135,7 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
         </p>
         <button
           onClick={() => onSwitchSubtab('forms')}
-          className="mt-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition"
+          className="mt-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition active:scale-95"
         >
           Go to Builder →
         </button>
@@ -183,7 +183,7 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
         </div>
         <div className="p-5">
           {warnings.length === 0 ? (
-            <div className="flex items-center gap-3 text-sm text-emerald-400">
+            <div className="flex items-center gap-3 text-sm text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="w-5 h-5" />
               <span className="font-semibold">All systems healthy</span>
             </div>
@@ -210,7 +210,7 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
           </div>
           <button
             onClick={() => onSwitchSubtab('responses')}
-            className="text-xs text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-1"
+            className="text-xs text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-1 transition-transform duration-100 active:scale-95"
           >
             View Full Audit Log <ArrowRight className="w-3 h-3" />
           </button>

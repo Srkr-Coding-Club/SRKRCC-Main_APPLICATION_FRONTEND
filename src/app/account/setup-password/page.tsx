@@ -34,6 +34,7 @@ function SetupPasswordContent() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
 
@@ -87,6 +88,14 @@ function SetupPasswordContent() {
 
     if (!hasMinLength) {
       toast.warning('Password Too Short', 'Password must be at least 8 characters long.');
+      return;
+    }
+    if (!hasMixedCase) {
+      toast.warning('Password Too Weak', 'Password must contain both upper and lower case letters.');
+      return;
+    }
+    if (!hasNumberOrSpecial) {
+      toast.warning('Password Too Weak', 'Password must contain at least one number or symbol.');
       return;
     }
     if (!passwordsMatch) {
@@ -178,12 +187,12 @@ function SetupPasswordContent() {
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 space-y-3">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 space-y-3">
             <p>Setup tokens are single-use and expire within 24 hours for security. Please request a fresh link below.</p>
             <button
               type="button"
               onClick={() => router.push('/account/setup-password')}
-              className="w-full py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs transition shadow-sm"
+              className="w-full py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs transition active:scale-[0.98] shadow-sm"
             >
               Request a New Setup Link
             </button>
@@ -196,7 +205,7 @@ function SetupPasswordContent() {
         <form onSubmit={handleConfirmPassword} className="space-y-5">
           <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-white">
+              <span className="font-bold text-[#1A1A2E] dark:text-white">
                 Welcome, {memberInfo?.first_name || 'Member'}!
               </span>
               {memberInfo?.club_id && (
@@ -205,7 +214,7 @@ function SetupPasswordContent() {
                 </span>
               )}
             </div>
-            <p className="text-slate-300 text-[11px]">
+            <p className="text-slate-600 dark:text-slate-300 text-[11px]">
               Please choose a secure password to activate your account.
             </p>
           </div>
@@ -218,6 +227,7 @@ function SetupPasswordContent() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isSubmitting}
@@ -227,7 +237,7 @@ function SetupPasswordContent() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-9 min-w-9 p-2 text-slate-400 hover:text-slate-200 transition-transform duration-100 active:scale-90"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -240,33 +250,41 @@ function SetupPasswordContent() {
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? 'text' : 'password'}
                 required
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={isSubmitting}
                 placeholder="••••••••••••"
                 className="w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-9 min-w-9 p-2 text-slate-400 hover:text-slate-200 transition-transform duration-100 active:scale-90"
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
           {/* Password Requirements Gauge */}
-          <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] space-y-1">
-            <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-400' : 'text-slate-400'}`}>
+          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[11px] space-y-1">
+            <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>At least 8 characters</span>
             </div>
-            <div className={`flex items-center gap-1.5 ${hasMixedCase ? 'text-emerald-400' : 'text-slate-400'}`}>
+            <div className={`flex items-center gap-1.5 ${hasMixedCase ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Contains upper & lower case letters</span>
             </div>
-            <div className={`flex items-center gap-1.5 ${hasNumberOrSpecial ? 'text-emerald-400' : 'text-slate-400'}`}>
+            <div className={`flex items-center gap-1.5 ${hasNumberOrSpecial ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Contains number or symbol</span>
             </div>
             {password && confirmPassword && (
-              <div className={`flex items-center gap-1.5 ${passwordsMatch ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <div className={`flex items-center gap-1.5 ${passwordsMatch ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Passwords match</span>
               </div>
@@ -275,8 +293,8 @@ function SetupPasswordContent() {
 
           <button
             type="submit"
-            disabled={isSubmitting || !hasMinLength || !passwordsMatch}
-            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-md shadow-orange-500/10"
+            disabled={isSubmitting || !isPasswordStrong || !passwordsMatch}
+            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50 shadow-md shadow-orange-500/10"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
             <span>Set Password & Activate</span>
@@ -290,8 +308,8 @@ function SetupPasswordContent() {
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-7 h-7" />
           </div>
-          <h3 className="text-xl font-bold text-white">Password Established!</h3>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
+          <h3 className="text-xl font-bold text-[#1A1A2E] dark:text-white">Password Established!</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
             Your SRKR Coding Club account is now active. You can now sign in with your email and new password.
           </p>
           <Link
@@ -314,6 +332,7 @@ function SetupPasswordContent() {
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={requestEmail}
                 onChange={(e) => setRequestEmail(e.target.value)}
                 disabled={isRequesting}
@@ -329,7 +348,7 @@ function SetupPasswordContent() {
           <button
             type="submit"
             disabled={isRequesting || !requestEmail}
-            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-md shadow-orange-500/10"
+            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50 shadow-md shadow-orange-500/10"
           >
             {isRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
             <span>Send Setup Link</span>
@@ -343,9 +362,9 @@ function SetupPasswordContent() {
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
             <Mail className="w-7 h-7" />
           </div>
-          <h3 className="text-xl font-bold text-white">Check Your Inbox</h3>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
-            If an eligible account matching <strong className="text-white">{requestEmail}</strong> exists, a password setup link has been sent to your inbox.
+          <h3 className="text-xl font-bold text-[#1A1A2E] dark:text-white">Check Your Inbox</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+            If an eligible account matching <strong className="text-[#1A1A2E] dark:text-white">{requestEmail}</strong> exists, a password setup link has been sent to your inbox.
           </p>
           <div className="pt-2">
             <Link
@@ -363,7 +382,16 @@ function SetupPasswordContent() {
 
 export default function SetupPasswordPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#FAFAFC] dark:bg-[#0D0E15]">
+          <div className="flex items-center space-x-3 text-slate-500">
+            <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+            <span className="text-sm font-medium">Loading account setup...</span>
+          </div>
+        </div>
+      }
+    >
       <SetupPasswordContent />
     </Suspense>
   );
