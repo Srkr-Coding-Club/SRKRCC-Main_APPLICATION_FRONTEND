@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import { registerUser, loginUser } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
 
+const REGISTER_NUMBER_REGEX = /^[0-9]{2}[A-Za-z0-9]{8}$/;
+
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -40,6 +42,21 @@ export default function SignupPage() {
       toast.warning('Password Too Short', 'Password must be at least 6 characters long.');
       return;
     }
+
+    const cleanedRollNumber = formData.rollNumber.trim().toUpperCase();
+    if (!cleanedRollNumber) {
+      toast.warning('Register Number Required', 'Please enter your college register / roll number.');
+      return;
+    }
+
+    if (!REGISTER_NUMBER_REGEX.test(cleanedRollNumber)) {
+      toast.warning(
+        'Invalid Register Number',
+        'Please enter a valid 10-character Register Number (e.g. 21B91A0501).'
+      );
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -55,7 +72,7 @@ export default function SignupPage() {
         password: formData.password,
         first_name: firstName,
         last_name: lastName,
-        roll_number: formData.rollNumber,
+        roll_number: cleanedRollNumber,
         branch: formData.branch,
         year: yearNumber,
         role: formData.role,
@@ -162,10 +179,11 @@ export default function SignupPage() {
                   <input
                     type="text"
                     required
+                    maxLength={10}
                     placeholder="21B91A0501"
                     value={formData.rollNumber}
-                    onChange={(e) => handleChange('rollNumber', e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+                    onChange={(e) => handleChange('rollNumber', e.target.value.toUpperCase().replace(/\s+/g, ''))}
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-sm uppercase bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
                   />
                 </div>
               </div>
