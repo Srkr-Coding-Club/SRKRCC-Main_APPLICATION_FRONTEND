@@ -51,13 +51,21 @@ export default function LoginCard({
   const [setupSent, setSetupSent] = useState(false);
 
   useEffect(() => {
-    // Trust localStorage optimistically for the first paint, but validate against
-    // the server — a locally-cached "signed in" artifact can outlive the real
-    // session (expired/invalidated elsewhere), which previously showed "Already
-    // Signed In" and blocked a legitimate re-login attempt.
+    // Deliberately NOT showing the optimistic localStorage/cookie value here
+    // (unlike most of the app, where an optimistic read is fine while a live
+    // check runs in the background). This is the one place a stale "signed
+    // in" artifact is directly user-visible and actionable — "Already Signed
+    // In" as a wrong, momentary flash before self-correcting was confusing
+    // enough to be reported as a bug ("sometimes shows already logged in,
+    // then a refresh makes it go away"). A cached artifact can outlive the
+    // real session (expired/invalidated elsewhere, or a stale role cookie
+    // surviving a localStorage clear) — the banner and the submit button's
+    // "Sign in with different account" label now render ONLY after the
+    // server has confirmed the session, never off local cache alone, so
+    // there is nothing to "self-correct" — it's just right from the start,
+    // even if that means the banner appears a beat after the form does.
     let cancelled = false;
     if (isAuthenticated()) {
-      setLoggedInUser(getStoredUser());
       fetchAndSyncCurrentUser().then((user) => {
         if (!cancelled) setLoggedInUser(user);
       });

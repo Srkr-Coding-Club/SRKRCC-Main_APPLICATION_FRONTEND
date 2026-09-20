@@ -548,6 +548,12 @@ export function useAdminData(options?: UseAdminDataOptions) {
     setFormMeta(defaultMeta);
     setBuilderFields(defaultFields);
     setSavedCheckpoint(null);
+    // Otherwise a previous form's test-fill answers (and its last test
+    // submission, if the admin opened that modal) would carry over into a
+    // brand-new form's preview — e.g. text typed for Form A's "Full Name"
+    // field silently pre-filling Form B's field of the same id/type.
+    setPreviewAnswers({});
+    setSubmittedTestData(null);
   };
 
   const handleResetBuilder = () => {
@@ -620,6 +626,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
       formMeta: JSON.parse(JSON.stringify(meta)),
       builderFields: JSON.parse(JSON.stringify(fields)),
     });
+    // Same reasoning as resetNewForm() — loading a different existing form
+    // into the builder must not carry over whatever was test-typed into the
+    // PREVIOUS form's preview.
+    setPreviewAnswers({});
+    setSubmittedTestData(null);
   };
 
   const handleSaveForm = async (

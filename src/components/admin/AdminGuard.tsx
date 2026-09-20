@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, LogIn, ArrowLeft, Loader2, RefreshCw, UserCheck, Home, LogOut } from 'lucide-react';
 import { getStoredUser, fetchAndSyncCurrentUser, subscribeToAuthResync, clearAuthSession, AuthUser } from '@/lib/auth';
+import AdminNavbar from './AdminNavbar';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -182,5 +183,14 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     );
   }
 
-  return <>{children}</>;
+  // AdminNavbar renders here, not in the root layout's NavbarSwitcher —
+  // that way its nav links, module names, and role badge are only ever
+  // shown once we've actually confirmed the viewer is an admin/club lead,
+  // never just because the URL starts with /admin.
+  return (
+    <>
+      <AdminNavbar />
+      {children}
+    </>
+  );
 }

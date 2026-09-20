@@ -64,6 +64,16 @@ function BuilderContent() {
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <FormBuilderTab
+          // Forces a full remount when switching which form is loaded into
+          // the builder (a different ?slug=, or "new"). Without this,
+          // FormBuilderTab's OWN internal state — scheduleOpenAt/
+          // scheduleCloseAt (each seeded once from formMeta.open_at/
+          // close_at via useState) and activeFieldId (seeded once from
+          // builderFields[0]) — only reads its initial value on first mount
+          // and never re-syncs when formMeta/builderFields props change
+          // underneath it, so it kept showing the PREVIOUS form's schedule
+          // and selected field after switching forms via the slug param.
+          key={formSlug || 'new'}
           isPreviewMode={isPreviewMode}
           setIsPreviewMode={setIsPreviewMode}
           formMeta={formMeta}

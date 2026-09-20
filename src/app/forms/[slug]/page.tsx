@@ -523,7 +523,15 @@ function SignaturePad({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const [hasDrawn, setHasDrawn] = useState(!!value);
 
-  // Keep the canvas in sync with an externally-set value (prefill / draft restore).
+  // Keep the canvas in sync with an externally-set value (prefill / draft
+  // restore). Was `[]` (mount-only) despite the comment above claiming it
+  // stays in sync — an existing response's signature loaded asynchronously
+  // (editing an already-submitted form) arrives well after this component's
+  // first render, so the canvas never drew it and `hasDrawn` never flipped
+  // to true, making a genuinely-signed field look empty and fail the
+  // required-field check. `[value]` is the fix; re-running per completed
+  // stroke (endDraw's own onChange feeding back into `value`) just redraws
+  // identical pixels from what's already on the canvas — harmless.
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -539,8 +547,7 @@ function SignaturePad({
     } else {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [value]);
 
   const getPoint = (e: React.MouseEvent | React.TouchEvent): { x: number; y: number } | null => {
     const canvas = canvasRef.current;
@@ -764,6 +771,17 @@ export default function FormDetailSubmissionPage() {
     [form?.fields, formData],
   );
 
+  // "Already submitted, can't edit it" only actually locks the form when this
+  // is a single-response form. When the form allows multiple responses, a
+  // prior submission must never block a new, independent one — the backend
+  // already enforces the real limit (max_responses_per_user) and reports it
+  // as its own submission error. `hasSubmitted && !canEditResponse` used to
+  // be read as "locked" everywhere in this file regardless of that flag, so
+  // a form configured to allow both multiple responses AND response editing
+  // (or even just multiple responses with editing off) silently could never
+  // accept a second submission — every input was blocked outright.
+  const isLockedToSingleExistingResponse = hasSubmitted && !canEditResponse && form?.allow_multiple_responses !== true;
+
   // Check user authentication & fetch fresh profile details
   useEffect(() => {
     const user = getStoredUser();
@@ -787,6 +805,28 @@ export default function FormDetailSubmissionPage() {
     async function loadForm() {
       if (!slug) return;
       setLoading(true);
+      // This page component is reused (not remounted) when navigating
+      // client-side between two different forms — e.g. submitting one form
+      // and clicking through to a "next form" link — since Next.js treats
+      // /forms/[slug] as the same page instance across dynamic-param
+      // changes. Without this reset, the PREVIOUS form's typed answers,
+      // validation errors, and "already submitted"/edit-mode state all
+      // carried over into the newly-loaded form: a just-submitted form's
+      // isSubmitted=true would make the next form open straight to the
+      // "submission complete" screen before the user ever saw it.
+      setForm(null);
+      setNotFound(false);
+      setFormData({});
+      setErrors({});
+      setTouched({});
+      setHasAttemptedSubmit(false);
+      setIsSubmitting(false);
+      setIsSubmitted(false);
+      setSubmissionError(null);
+      setExistingResponse(null);
+      setHasSubmitted(false);
+      setCanEditResponse(true);
+      setIsEditMode(false);
       try {
         const fetched = await fetchApi<Form>(`/forms/${slug}/`);
         if (fetched && fetched.title && fetched.fields) {
@@ -835,17 +875,25 @@ export default function FormDetailSubmissionPage() {
           setHasSubmitted(true);
           setExistingResponse(res.response);
           setCanEditResponse(res.can_edit);
-          setIsEditMode(true);
+          // Edit mode — pre-fill this response and PATCH it on submit — only
+          // makes sense for a single-response form. When the form allows
+          // multiple responses, having a PAST response must not silently
+          // turn every future submit into an edit of that one response: the
+          // user should get a fresh, blank form and be able to add another
+          // independent submission (up to the backend's own per-user cap).
+          setIsEditMode(!res.allow_multiple_responses);
 
-          // Pre-populate formData with previously submitted answers
-          const prefill: Record<string, any> = {};
-          if (res.response.answers && Array.isArray(res.response.answers)) {
-            res.response.answers.forEach((ans: any) => {
-              const fieldKey = ans.field_id !== undefined ? String(ans.field_id) : String(ans.field);
-              prefill[fieldKey] = ans.value;
-            });
+          if (!res.allow_multiple_responses) {
+            // Pre-populate formData with previously submitted answers
+            const prefill: Record<string, any> = {};
+            if (res.response.answers && Array.isArray(res.response.answers)) {
+              res.response.answers.forEach((ans: any) => {
+                const fieldKey = ans.field_id !== undefined ? String(ans.field_id) : String(ans.field);
+                prefill[fieldKey] = ans.value;
+              });
+            }
+            setFormData((prev) => ({ ...prefill, ...prev }));
           }
-          setFormData((prev) => ({ ...prefill, ...prev }));
         }
       } catch (err) {
         console.warn('[My Response Check Error]:', err);
@@ -896,7 +944,7 @@ export default function FormDetailSubmissionPage() {
 
   const handleInputChange = (field: FormField, value: any) => {
     const fieldId = field.id;
-    if (hasSubmitted && !canEditResponse) return; // Prevent edits when locked
+    if (isLockedToSingleExistingResponse) return; // Prevent edits when locked
 
     const nextFormData = { ...formData, [String(fieldId)]: value };
     setFormData(nextFormData);
@@ -1004,7 +1052,7 @@ export default function FormDetailSubmissionPage() {
       return;
     }
 
-    if (hasSubmitted && !canEditResponse) {
+    if (isLockedToSingleExistingResponse) {
       toast.error('Submission Locked', 'You have already submitted this form and edits are disabled.');
       return;
     }
@@ -1264,8 +1312,11 @@ export default function FormDetailSubmissionPage() {
                     </div>
                   </div>
 
-                  {/* Previous submission & Edit Mode banner */}
-                  {hasSubmitted && (
+                  {/* Previous submission & Edit Mode banner — single-response
+                      forms only. On a multi-response form this would show
+                      "Edit Mode Active" or "Edits Locked" for what's actually
+                      just a normal, independent new submission. */}
+                  {hasSubmitted && form?.allow_multiple_responses !== true && (
                     canEditResponse ? (
                       <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-start gap-3">
                         <Edit3 className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
@@ -2070,7 +2121,7 @@ export default function FormDetailSubmissionPage() {
                   );
                 }
 
-                if (hasSubmitted && !canEditResponse) {
+                if (isLockedToSingleExistingResponse) {
                   return (
                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <p className="text-xs text-amber-400 font-semibold flex items-center gap-1.5">

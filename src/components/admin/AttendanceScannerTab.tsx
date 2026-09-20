@@ -26,6 +26,33 @@ const QR_REGION_ID = 'attendance-qr-scanner-region';
 // for one physical scan.
 const SAME_TOKEN_COOLDOWN_MS = 3000;
 
+/**
+ * Turns a getUserMedia/html5-qrcode failure into a message that tells the
+ * volunteer what to actually do, instead of one generic string for every
+ * cause (permission denied vs. no camera vs. device already in use, etc.).
+ */
+function describeCameraError(err: unknown): string {
+  const name = (err as { name?: string } | undefined)?.name;
+  switch (name) {
+    case 'NotAllowedError':
+    case 'PermissionDeniedError':
+      return 'Camera permission was denied. Allow camera access for this site in your browser settings, then press "Start Camera" again.';
+    case 'NotFoundError':
+    case 'DevicesNotFoundError':
+      return 'No camera was found on this device.';
+    case 'NotReadableError':
+    case 'TrackStartError':
+      return 'The camera is already in use by another app or browser tab. Close it there and try again.';
+    case 'OverconstrainedError':
+    case 'ConstraintNotSatisfiedError':
+      return 'No camera on this device matches the required settings (e.g. a rear-facing camera).';
+    case 'SecurityError':
+      return 'Camera access requires a secure connection (HTTPS or localhost).';
+    default:
+      return 'Could not access the camera. Check browser permissions and that no other app is using it.';
+  }
+}
+
 function sessionLabelText(s: AttendanceSession): string {
   const label = s.session_label.charAt(0) + s.session_label.slice(1).toLowerCase();
   return `Day ${s.day_index + 1} · ${label} (${s.date})`;
@@ -214,12 +241,37 @@ export function AttendanceScannerTab() {
   // camera for every registrant — only the cooldown above throttles repeats.
   useEffect(() => {
     if (!cameraActive) return;
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      // getUserMedia is only exposed on secure origins (HTTPS or localhost).
+      // Without this check the library throws deep inside .start() with a
+      // confusing stack instead of a message that tells the volunteer what's
+      // actually wrong (e.g. testing over a plain-http LAN IP).
+      setCameraError(
+        'Camera access requires a secure connection (HTTPS or localhost). This page was not loaded securely.'
+      );
+      setCameraActive(false);
+      return;
+    }
+
     let cancelled = false;
     const instance = new Html5Qrcode(QR_REGION_ID);
     html5QrRef.current = instance;
     setCameraError(null);
 
-    instance
+    // React 18 StrictMode (see next.config.js) double-invokes this effect in
+    // dev: mount -> cleanup -> mount again, synchronously. `.start()` is
+    // async, so at cleanup time `instance.isScanning` is still false and the
+    // old code below skipped .stop() entirely, abandoning this instance
+    // mid-getUserMedia(). The second mount's instance then tried to open the
+    // SAME camera device while the first was still mid-flight, which most
+    // browsers reject as "device busy" almost instantly — so clicking
+    // "Start Camera" looked like it did nothing and never prompted for
+    // permission. Capturing the start() promise and chaining the cleanup's
+    // stop() onto it (instead of only checking isScanning synchronously)
+    // makes cleanup always wait for start to settle first, so only one
+    // instance ever holds the camera at a time.
+    const startPromise = instance
       .start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -232,24 +284,21 @@ export function AttendanceScannerTab() {
       )
       .catch((err) => {
         if (!cancelled) {
-          setCameraError(
-            'Could not access the camera. Check browser permissions and that no other app is using it.'
-          );
+          setCameraError(describeCameraError(err));
           setCameraActive(false);
           console.error('[AttendanceScanner] camera start failed:', err);
         }
+        throw err;
       });
 
     return () => {
       cancelled = true;
-      const running = html5QrRef.current;
-      html5QrRef.current = null;
-      if (running && running.isScanning) {
-        running
-          .stop()
-          .then(() => running.clear())
-          .catch(() => {});
-      }
+      if (html5QrRef.current === instance) html5QrRef.current = null;
+      startPromise
+        .then(() => {
+          if (instance.isScanning) return instance.stop().then(() => instance.clear());
+        })
+        .catch(() => {});
     };
   }, [cameraActive, handleDecoded]);
 
