@@ -92,6 +92,13 @@ export function isAdminOrLead(): boolean {
 const AUTH_RESYNC_MIN_INTERVAL_MS = 15_000;
 let lastAuthResyncAt = 0;
 
+// Every currently-mounted subscribeToAuthResync() caller registers its
+// callback here. The throttle above gates whether a resync happens at all
+// on a given focus/visibility event; once it opens, EVERY callback in this
+// set is invoked, not just the one belonging to whichever component's
+// listener happened to fire first.
+const authResyncSubscribers = new Set<() => void>();
+
 /**
  * Re-runs `onResync` whenever this tab regains focus or visibility.
  *
@@ -103,22 +110,30 @@ let lastAuthResyncAt = 0;
  * everything, even though the server was correct the whole time. Refocus is
  * the moment a "go check now" actually happens, so that's what re-triggers it.
  *
+ * The throttle window is shared across ALL subscribers combined (so rapid
+ * focus/blur churn doesn't hammer the endpoint once per mounted component),
+ * but when the window opens, every subscriber registered at that moment gets
+ * its callback invoked — not just the one whose event listener fired.
+ *
  * Returns an unsubscribe function for effect cleanup.
  */
 export function subscribeToAuthResync(onResync: () => void): () => void {
   if (typeof window === 'undefined') return () => {};
+
+  authResyncSubscribers.add(onResync);
 
   const trigger = () => {
     if (document.visibilityState === 'hidden') return;
     const now = Date.now();
     if (now - lastAuthResyncAt < AUTH_RESYNC_MIN_INTERVAL_MS) return;
     lastAuthResyncAt = now;
-    onResync();
+    authResyncSubscribers.forEach((callback) => callback());
   };
 
   window.addEventListener('focus', trigger);
   document.addEventListener('visibilitychange', trigger);
   return () => {
+    authResyncSubscribers.delete(onResync);
     window.removeEventListener('focus', trigger);
     document.removeEventListener('visibilitychange', trigger);
   };

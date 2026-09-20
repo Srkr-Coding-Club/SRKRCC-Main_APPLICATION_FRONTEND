@@ -292,7 +292,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
               rollNumber: u.roll_number || 'Not set',
               branch: u.branch || 'CSE',
               year: u.year ? `${u.year}th Year` : '1st Year',
-              role: u.role || 'MEMBER',
+              role: u.role || 'NON_AFFILIATE',
               membershipStatus: u.membership_status || 'ACTIVE',
               isActive: u.is_active !== false,
               joinedDate: u.date_joined ? u.date_joined.split('T')[0] : '2025-01-01',

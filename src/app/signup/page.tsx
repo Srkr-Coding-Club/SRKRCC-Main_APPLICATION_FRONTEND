@@ -429,8 +429,9 @@ function SignupContent() {
               </div>
 
               {/* Affiliate toggle — replaces the old "Register As" role picker.
-                  Everyone self-registers as a MEMBER; the only thing that varies
-                  is whether they were already handed a Club ID offline. */}
+                  This checkbox sets the account's role directly: checked sends
+                  AFFILIATE (and requires the Club ID handed out offline),
+                  unchecked sends NON_AFFILIATE. */}
               <div
                 className={`rounded-xl border transition-colors ${
                   formData.isAffiliate
