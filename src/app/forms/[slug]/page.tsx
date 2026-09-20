@@ -3,8 +3,7 @@
 import React, { useState, useEffect,useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Form, FormField, CrossFieldRule, AttendanceBadge } from '@/lib/types';
-import { QRCodeSVG } from 'qrcode.react';
+import { Form, FormField, CrossFieldRule } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
 import { getConstraintHint, validateSubmission, validateFieldValue, getCrossFieldError } from '@/lib/formValidation';
@@ -27,7 +26,6 @@ import {
   Check,
   ChevronDown,
   Star,
-  QrCode,
 } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import {
@@ -675,68 +673,6 @@ function fieldReferencesTarget(f: FormField, targetId: number | string): boolean
   return false;
 }
 
-/**
- * "Your Attendance Pass" card — fetched from GET /api/forms/<id>/attendance/my-badge/
- * once the registrant has a completed response on an attendance_enabled form. The
- * `token` is rendered as a QR code volunteers scan at check-in (see
- * AttendanceScannerTab / POST /api/attendance/scan/ on the admin side).
- */
-function AttendanceBadgeCard({ formId, registrantName }: { formId: number | string; registrantName?: string }) {
-  const [badge, setBadge] = useState<AttendanceBadge | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadBadge() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetchApi<AttendanceBadge>(`/forms/${formId}/attendance/my-badge/`);
-        if (!cancelled) setBadge(res);
-      } catch (err: any) {
-        if (!cancelled) setError(err?.message || 'Could not load your attendance pass.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    if (formId) loadBadge();
-    return () => {
-      cancelled = true;
-    };
-  }, [formId]);
-
-  if (loading) {
-    return (
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-6 text-center">
-        <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-xs text-slate-400">Loading your attendance pass…</p>
-      </div>
-    );
-  }
-
-  if (error || !badge) return null;
-
-  return (
-    <div className="rounded-xl border border-orange-200 dark:border-orange-900/50 bg-gradient-to-b from-orange-50/60 to-white dark:from-orange-950/20 dark:to-[#151722] p-6 sm:p-8 text-center space-y-4">
-      <div className="flex items-center justify-center gap-2 text-[#FF7A00]">
-        <QrCode className="w-5 h-5" />
-        <h3 className="text-sm font-black uppercase tracking-widest">Your Attendance Pass</h3>
-      </div>
-      <div className="inline-block p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-        <QRCodeSVG value={badge.token} size={192} level="M" includeMargin={false} />
-      </div>
-      {registrantName && (
-        <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{registrantName}</p>
-      )}
-      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-        Show this QR code at check-in for each session. It stays the same for every day — no need to reload or
-        re-download it.
-      </p>
-    </div>
-  );
-}
-
 export default function FormDetailSubmissionPage() {
   const { toast } = useToast();
   const params = useParams();
@@ -1264,13 +1200,10 @@ export default function FormDetailSubmissionPage() {
               Thank you for submitting your response for <strong className="text-[#1A1A2E] dark:text-white">{form.title}</strong>. A confirmation has been recorded under your verified account.
             </p>
 
-            {form.attendance_enabled && typeof form.id === 'number' && (
-              <div className="pt-2 max-w-md mx-auto text-left">
-                <AttendanceBadgeCard
-                  formId={form.id}
-                  registrantName={currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser?.username}
-                />
-              </div>
+            {form.attendance_enabled && (
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Your attendance QR badge is now on your profile — go to Profile → Registered Events to view it.
+              </p>
             )}
 
             <div className="pt-4">
@@ -1344,11 +1277,10 @@ export default function FormDetailSubmissionPage() {
                     )
                   )}
 
-                  {hasSubmitted && form.attendance_enabled && typeof form.id === 'number' && (
-                    <AttendanceBadgeCard
-                      formId={form.id}
-                      registrantName={currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser?.username}
-                    />
+                  {hasSubmitted && form.attendance_enabled && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      Your attendance QR badge is on your profile — go to Profile → Registered Events to view it.
+                    </p>
                   )}
                 </div>
               ) : (

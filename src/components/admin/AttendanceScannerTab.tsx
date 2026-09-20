@@ -27,12 +27,30 @@ const QR_REGION_ID = 'attendance-qr-scanner-region';
 const SAME_TOKEN_COOLDOWN_MS = 3000;
 
 /**
- * Turns a getUserMedia/html5-qrcode failure into a message that tells the
- * volunteer what to actually do, instead of one generic string for every
- * cause (permission denied vs. no camera vs. device already in use, etc.).
+ * Pulls the underlying DOMException name (NotAllowedError, NotFoundError,
+ * ...) out of a getUserMedia failure. html5-qrcode's Html5Qrcode.start()
+ * does NOT reject with the original DOMException — its internal
+ * camera-factory catch reject()s with
+ * `Html5QrcodeStrings.errorGettingUserMedia(error)`, which is
+ * `"Error getting userMedia, error = ".concat(error)`: a plain STRING
+ * produced by coercing the DOMException with String.prototype.concat (see
+ * node_modules/html5-qrcode/esm/html5-qrcode.js and esm/strings.js). So
+ * `err` here is usually a string like "Error getting userMedia, error =
+ * NotAllowedError: Permission denied", not an object with a `.name` —
+ * reading `err.name` directly (as this used to) is always undefined and
+ * silently falls through to the generic message below. A later failure
+ * path (camera.render(), after permission is already granted) DOES reject
+ * with the real Error/DOMException object, so both shapes are handled here.
  */
 function describeCameraError(err: unknown): string {
-  const name = (err as { name?: string } | undefined)?.name;
+  const text =
+    typeof err === 'string' ? err : err instanceof Error ? `${err.name}: ${err.message}` : String(err ?? '');
+  // Matches "NotAllowedError" etc. wherever it appears — as a real
+  // DOMException's .name (composed above) or inside html5-qrcode's
+  // stringified rejection. A generic `Error` alone never matches (the "+"
+  // requires at least one letter before "Error"), so unrecognized failures
+  // correctly fall through to the default message below.
+  const name = /\b([A-Za-z]+Error)\b/.exec(text)?.[1];
   switch (name) {
     case 'NotAllowedError':
     case 'PermissionDeniedError':

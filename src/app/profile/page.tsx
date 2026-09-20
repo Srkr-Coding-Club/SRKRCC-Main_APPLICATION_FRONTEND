@@ -23,23 +23,27 @@ import {
   ArrowRight,
   Sparkles,
   LayoutGrid,
+  QrCode,
 } from 'lucide-react';
 import BrainLogo from '@/components/BrainLogo';
 import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated, AuthUser } from '@/lib/auth';
 import { fetchApi } from '@/lib/api-client';
 import { ordinalYear } from '@/lib/utils';
 import { EditProfileModal } from '@/components/EditProfileModal';
+import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
 
 export const dynamic = 'force-dynamic';
 
 interface RegisteredEventItem {
   id: number;
+  form_id?: number;
   form_slug?: string;
   title: string;
   track: string;
   date: string;
   status: string;
   badgeBg: string;
+  attendance_enabled?: boolean;
 }
 
 interface BadgeItem {
@@ -87,6 +91,7 @@ function ProfileContent() {
   const [refreshError, setRefreshError] = useState(false);
   const [refreshAttempt, setRefreshAttempt] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [qrBadgeEvent, setQrBadgeEvent] = useState<RegisteredEventItem | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -451,6 +456,16 @@ function ProfileContent() {
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {evt.attendance_enabled && evt.form_id && (
+                        <button
+                          type="button"
+                          onClick={() => setQrBadgeEvent(evt)}
+                          className="px-3 py-1.5 rounded-md text-xs font-bold bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-[#FF7A00] transition inline-flex items-center gap-1.5"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          <span>View QR Badge</span>
+                        </button>
+                      )}
                       {evt.form_slug && (
                         <Link
                           href={`/forms/${evt.form_slug}`}
@@ -530,6 +545,14 @@ function ProfileContent() {
         onClose={() => setIsEditModalOpen(false)}
         profile={profile}
         onSaved={handleProfileUpdated}
+      />
+
+      <AttendanceBadgeModal
+        isOpen={qrBadgeEvent !== null}
+        onClose={() => setQrBadgeEvent(null)}
+        formId={qrBadgeEvent?.form_id ?? null}
+        eventTitle={qrBadgeEvent?.title}
+        registrantName={user.name}
       />
     </div>
   );
