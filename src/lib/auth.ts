@@ -6,7 +6,7 @@ export interface AuthUser {
   username: string;
   first_name?: string;
   last_name?: string;
-  role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
   club_id?: string;
   membership_status?: string;
   roll_number?: string;
@@ -86,6 +86,59 @@ export function isAdminOrLead(): boolean {
   return role === 'ADMIN' || role === 'CLUB_LEAD';
 }
 
+// Shared across every subscribeToAuthResync() caller so switching back to a tab
+// with several of them mounted (Navbar + HeroSection, say) triggers one
+// resync, not one per component.
+const AUTH_RESYNC_MIN_INTERVAL_MS = 15_000;
+let lastAuthResyncAt = 0;
+
+// Every currently-mounted subscribeToAuthResync() caller registers its
+// callback here. The throttle above gates whether a resync happens at all
+// on a given focus/visibility event; once it opens, EVERY callback in this
+// set is invoked, not just the one belonging to whichever component's
+// listener happened to fire first.
+const authResyncSubscribers = new Set<() => void>();
+
+/**
+ * Re-runs `onResync` whenever this tab regains focus or visibility.
+ *
+ * Several components (Navbar, HeroSection, AdminGuard, …) call
+ * `fetchAndSyncCurrentUser()` once on mount to show the right role-gated UI.
+ * That single fetch means a role change made elsewhere — an admin promoting
+ * this member to CLUB_LEAD, say — never reaches an already-open tab: it kept
+ * showing the pre-promotion role/menu until a hard refresh remounted
+ * everything, even though the server was correct the whole time. Refocus is
+ * the moment a "go check now" actually happens, so that's what re-triggers it.
+ *
+ * The throttle window is shared across ALL subscribers combined (so rapid
+ * focus/blur churn doesn't hammer the endpoint once per mounted component),
+ * but when the window opens, every subscriber registered at that moment gets
+ * its callback invoked — not just the one whose event listener fired.
+ *
+ * Returns an unsubscribe function for effect cleanup.
+ */
+export function subscribeToAuthResync(onResync: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+
+  authResyncSubscribers.add(onResync);
+
+  const trigger = () => {
+    if (document.visibilityState === 'hidden') return;
+    const now = Date.now();
+    if (now - lastAuthResyncAt < AUTH_RESYNC_MIN_INTERVAL_MS) return;
+    lastAuthResyncAt = now;
+    authResyncSubscribers.forEach((callback) => callback());
+  };
+
+  window.addEventListener('focus', trigger);
+  document.addEventListener('visibilitychange', trigger);
+  return () => {
+    authResyncSubscribers.delete(onResync);
+    window.removeEventListener('focus', trigger);
+    document.removeEventListener('visibilitychange', trigger);
+  };
+}
+
 /**
  * Validates session against the server /auth/me/ endpoint and updates stored user and role cookies.
  */
@@ -130,6 +183,13 @@ export async function fetchAndSyncCurrentUser(): Promise<AuthUser | null> {
   }
 }
 
+/** A failed sign-in, carrying the API's per-field messages and status code. */
+export interface LoginError extends Error {
+  code?: string;
+  fieldErrors?: { email?: string; password?: string };
+  status?: number;
+}
+
 /**
  * Log in securely via Next.js BFF Route: POST /api/auth/login
  * Tokens are securely stored exclusively in HttpOnly cookies by the server.
@@ -143,8 +203,10 @@ export async function loginUser(email: string, password: string): Promise<{ user
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    const err: any = new Error(errorData.error || 'Invalid email or password.');
+    const err: LoginError = new Error(errorData.error || 'Incorrect email or password.');
     err.code = errorData.code;
+    err.fieldErrors = errorData.fieldErrors || undefined;
+    err.status = res.status;
     throw err;
   }
 
@@ -153,11 +215,17 @@ export async function loginUser(email: string, password: string): Promise<{ user
     id: 1,
     email,
     username: email.split('@')[0],
-    role: data.role || 'MEMBER',
+    role: data.role || 'NON_AFFILIATE',
   };
 
   setStoredUser(user);
   return { user };
+}
+
+/** A failed registration, carrying the API's per-field messages. */
+export interface RegistrationError extends Error {
+  fieldErrors?: Record<string, unknown>;
+  status?: number;
 }
 
 /**
@@ -176,15 +244,25 @@ export async function registerUser(payload: Record<string, any>): Promise<any> {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    const body = await res.json().catch(() => ({}));
     const message =
-      err.email?.[0] ||
-      err.username?.[0] ||
-      err.password?.[0] ||
-      err.club_id?.[0] ||
-      err.detail ||
+      body.email?.[0] ||
+      body.password?.[0] ||
+      body.first_name?.[0] ||
+      body.last_name?.[0] ||
+      body.roll_number?.[0] ||
+      body.branch?.[0] ||
+      body.year?.[0] ||
+      body.club_id?.[0] ||
+      body.detail ||
+      body.non_field_errors?.[0] ||
       'Registration failed. Please check your details.';
-    throw new Error(message);
+    // The raw DRF body rides along so the signup form can anchor each message
+    // to the input that caused it instead of flattening everything to a toast.
+    const err: RegistrationError = new Error(message);
+    err.fieldErrors = body && typeof body === 'object' ? body : {};
+    err.status = res.status;
+    throw err;
   }
 
   return await res.json();

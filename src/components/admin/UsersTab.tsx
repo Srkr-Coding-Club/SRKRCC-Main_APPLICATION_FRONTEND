@@ -13,7 +13,7 @@ interface UserRecord {
   rollNumber: string;
   branch: string;
   year: string;
-  role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
   membershipStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI' | 'PENDING';
   scopedAssignments?: { type: 'EVENT' | 'HACKATHON'; targetTitle: string; role: string }[];
   isActive: boolean;
@@ -27,7 +27,7 @@ interface UserRecord {
   referredBy?: string;
 }
 
-const ALL_ROLES: UserRecord['role'][] = ['MEMBER', 'VOLUNTEER', 'JUDGE', 'CLUB_LEAD', 'ADMIN'];
+const ALL_ROLES: UserRecord['role'][] = ['AFFILIATE', 'NON_AFFILIATE', 'VOLUNTEER', 'JUDGE', 'CLUB_LEAD', 'ADMIN'];
 const ELEVATED_ROLES = new Set<UserRecord['role']>(['ADMIN', 'CLUB_LEAD']);
 const ALL_MEMBERSHIP_STATUSES: UserRecord['membershipStatus'][] = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'ALUMNI', 'PENDING'];
 

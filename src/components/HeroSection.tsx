@@ -12,7 +12,7 @@ import {
 } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import PillButton from './PillButton';
-import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
+import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 
 /* ------------------------------------------------------------------ */
 /* Logo worn like a seal — gradient ring, page-coloured core so it     */
@@ -65,16 +65,24 @@ export default function HeroSection() {
     window.addEventListener('storage', syncAuth);
 
     let cancelled = false;
-    fetchAndSyncCurrentUser().then((user) => {
-      if (cancelled) return;
-      if (user) {
-        setIsAuth(true);
-        setCurrentUser(user);
-      }
-    });
+    const syncFromServer = () => {
+      fetchAndSyncCurrentUser().then((user) => {
+        if (cancelled) return;
+        if (user) {
+          setIsAuth(true);
+          setCurrentUser(user);
+        }
+      });
+    };
+    // Re-validate on focus too — otherwise a role change made elsewhere (e.g. an
+    // admin promoting this member) never reaches an already-open tab until a
+    // hard refresh remounts everything.
+    syncFromServer();
+    const unsubscribe = subscribeToAuthResync(syncFromServer);
 
     return () => {
       cancelled = true;
+      unsubscribe();
       window.removeEventListener(AUTH_CHANGE_EVENT, syncAuth);
       window.removeEventListener('storage', syncAuth);
     };
