@@ -65,7 +65,7 @@ export function validateEmail(value: string): string | undefined {
 
 // --- Roll number -------------------------------------------------------------
 
-const ROLL_NUMBER_REGEX = /^[A-Z0-9]{10}$/;
+const ROLL_NUMBER_REGEX = /^[0-9]{2}[A-Z0-9]{8}$/;
 export const ROLL_NUMBER_LENGTH = 10;
 
 /** Uppercases, drops non-alphanumerics and caps length, for use while typing. */
@@ -80,7 +80,7 @@ export function validateRollNumber(value: string): string | undefined {
     return `Roll number must be exactly ${ROLL_NUMBER_LENGTH} characters (you have ${roll.length}).`;
   }
   if (!ROLL_NUMBER_REGEX.test(roll)) {
-    return 'Roll number must be letters and digits only, e.g. 21B91A0501.';
+    return 'Roll number must start with a 2-digit year followed by 8 alphanumeric characters (e.g. 21B91A0501).';
   }
   return undefined;
 }
