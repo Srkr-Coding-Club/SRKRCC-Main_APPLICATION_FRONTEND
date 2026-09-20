@@ -85,6 +85,26 @@ export function validateRollNumber(value: string): string | undefined {
   return undefined;
 }
 
+// --- Phone number --------------------------------------------------------------
+
+const PHONE_NUMBER_REGEX = /^\d{10}$/;
+export const PHONE_NUMBER_LENGTH = 10;
+
+/** Strips everything but digits and caps length, for use while typing. */
+export function sanitizePhoneNumberInput(value: string): string {
+  return value.replace(/\D/g, '').slice(0, PHONE_NUMBER_LENGTH);
+}
+
+/** Optional field — an empty value is valid (nothing to validate). */
+export function validatePhoneNumber(value: string): string | undefined {
+  const phone = value.replace(/\D/g, '');
+  if (!phone) return undefined;
+  if (phone.length !== PHONE_NUMBER_LENGTH || !PHONE_NUMBER_REGEX.test(phone)) {
+    return `Phone number must be exactly ${PHONE_NUMBER_LENGTH} digits, numbers only.`;
+  }
+  return undefined;
+}
+
 // --- Affiliate (Club) ID -----------------------------------------------------
 
 /** `<2-digit year><3-letter prefix><3+ digit sequence>`, e.g. 25SCC277. */
