@@ -496,7 +496,11 @@ interface SignaturePadProps {
   id: string;
   value: string;
   onChange: (dataUrl: string) => void;
-  onBlur?: () => void;
+  // Takes the just-finalized value directly rather than the caller re-reading
+  // its own `formData` after `onChange` — that read raced the (batched, not
+  // yet re-rendered) state update and always saw the pre-stroke value, so the
+  // field falsely flashed "required" immediately after every signature.
+  onBlur?: (value: string) => void;
   hasError?: boolean;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
@@ -593,8 +597,9 @@ function SignaturePad({
     drawingRef.current = false;
     lastPointRef.current = null;
     const canvas = canvasRef.current;
-    if (canvas) onChange(canvas.toDataURL('image/png'));
-    onBlur?.();
+    const dataUrl = canvas ? canvas.toDataURL('image/png') : '';
+    if (canvas) onChange(dataUrl);
+    onBlur?.(dataUrl);
   };
 
   const handleClear = () => {
@@ -603,7 +608,7 @@ function SignaturePad({
     if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasDrawn(false);
     onChange('');
-    onBlur?.();
+    onBlur?.('');
   };
 
   return (
@@ -1992,7 +1997,7 @@ export default function FormDetailSubmissionPage() {
                         id={`field-${field.id}`}
                         value={typeof fieldVal === 'string' ? fieldVal : ''}
                         onChange={(dataUrl) => handleInputChange(field, dataUrl)}
-                        onBlur={() => handleFieldBlur(field, formData[field.id])}
+                        onBlur={(dataUrl) => handleFieldBlur(field, dataUrl)}
                         hasError={isErr}
                         aria-invalid={isErr}
                         aria-describedby={errorId}

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { isSafeHref } from '@/lib/urlSafety';
 
 interface MarkdownRendererProps {
   content: string;
@@ -63,15 +64,19 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       const linkMatch = remaining.match(/^\[([^\]]+)\]\(([^)]+)\)/);
       if (linkMatch) {
         tokens.push(
-          <a
-            key={keyIdx++}
-            href={linkMatch[2]}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-500 hover:text-orange-600 underline font-semibold transition"
-          >
-            {linkMatch[1]}
-          </a>
+          isSafeHref(linkMatch[2]) ? (
+            <a
+              key={keyIdx++}
+              href={linkMatch[2]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-500 hover:text-orange-600 underline font-semibold transition"
+            >
+              {linkMatch[1]}
+            </a>
+          ) : (
+            <span key={keyIdx++}>{linkMatch[1]}</span>
+          )
         );
         remaining = remaining.slice(linkMatch[0].length);
         continue;

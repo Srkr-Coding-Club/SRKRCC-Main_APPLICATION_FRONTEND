@@ -19,7 +19,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import AuthLayout from '@/components/AuthLayout';
-import { loginUser, getStoredUser, isAuthenticated, clearAuthSession, fetchAndSyncCurrentUser, AuthUser, LoginError } from '@/lib/auth';
+import { loginUser, getStoredUser, isAuthenticated, clearAuthSession, fetchAndSyncCurrentUser, isSafeNextPath, AuthUser, LoginError } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
 import { normalizeEmail, validateEmail } from '@/lib/validation/auth';
 
@@ -77,7 +77,7 @@ export default function LoginCard({
 
   const handleContinueAsExisting = () => {
     if (!loggedInUser) return;
-    const targetUrl = (nextUrl && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/signup'))
+    const targetUrl = (isSafeNextPath(nextUrl) && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/signup'))
       ? nextUrl
       : (loggedInUser.role === 'ADMIN' || loggedInUser.role === 'CLUB_LEAD')
         ? '/admin'
@@ -147,7 +147,7 @@ export default function LoginCard({
       toast.success('Signed In', `Welcome back, ${loggedUser?.first_name || loggedUser?.email || ''}!`);
       setRedirecting(true);
 
-      const targetUrl = (nextUrl && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/signup'))
+      const targetUrl = (isSafeNextPath(nextUrl) && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/signup'))
         ? nextUrl
         : (loggedUser?.role === 'ADMIN' || loggedUser?.role === 'CLUB_LEAD')
           ? '/admin'

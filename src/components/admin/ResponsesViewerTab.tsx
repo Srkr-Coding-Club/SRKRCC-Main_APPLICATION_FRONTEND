@@ -23,6 +23,7 @@ import {
 import { Form, FormField, ResponseDetail, PaginatedResponse, ConfirmationEmailStatus } from '@/lib/types';
 import { starsDisplay, downloadCSV, groupByDay } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
+import { isSafeFileUrl } from '@/lib/urlSafety';
 import { useToast } from '@/context/ToastContext';
 import { DetailDrawer } from './DetailDrawer';
 import { ChartSkeleton } from '@/components/ui/LoadingSkeleton';
@@ -79,6 +80,18 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
                 <Download className="w-3 h-3 flex-shrink-0 opacity-40" />
                 <span className="truncate max-w-[140px] not-italic">{name}</span>
                 <span>(no file)</span>
+              </span>
+            );
+          }
+          if (!isSafeFileUrl(url)) {
+            // A respondent-controlled `javascript:`/`vbscript:` URL — form file
+            // answers are metadata-only on the backend (name/size/extension are
+            // validated, the url itself is not), so this is the last line of
+            // defense before it would otherwise run in an admin's session on click.
+            return (
+              <span key={i} className="flex items-center gap-1 text-[11px] text-rose-500 italic" title="Blocked unsafe file URL">
+                <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate max-w-[140px] not-italic">{name}</span>
               </span>
             );
           }

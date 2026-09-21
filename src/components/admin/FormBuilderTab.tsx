@@ -46,6 +46,8 @@ import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import EmailTemplateEditor from '@/components/admin/EmailTemplateEditor';
 import { IdCard, Mail as MailIcon, QrCode } from 'lucide-react';
+import { fetchApi } from '@/lib/api-client';
+import { EmailTemplateSummary } from '@/lib/types';
 
 interface TypeMeta {
   label: string;
@@ -174,6 +176,29 @@ export function FormBuilderTab({
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showEmailEditor, setShowEmailEditor] = useState(false);
   const [confirmationTemplateLabel, setConfirmationTemplateLabel] = useState<string>('');
+
+  // Hydrate the friendly template name for a form loaded with confirmation
+  // email already configured (opening an existing form in the builder, or
+  // right after this same form is saved and formMeta is replaced by the
+  // server response) — confirmationTemplateLabel otherwise only gets set via
+  // the "just picked/created a template" callback below, so every other case
+  // fell back to the opaque "Template #9" placeholder.
+  useEffect(() => {
+    const templateId = formMeta.confirmation_email_template;
+    if (!templateId || confirmationTemplateLabel) return;
+    let cancelled = false;
+    fetchApi<EmailTemplateSummary[]>('/auth/email-templates/')
+      .then((templates) => {
+        if (cancelled || !Array.isArray(templates)) return;
+        const match = templates.find((t) => t.id === templateId);
+        if (match) setConfirmationTemplateLabel(match.display_title || match.name);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formMeta.confirmation_email_template]);
   // Club ID field mapping stores real FormField ids; a brand-new, never-saved
   // field only has a client-side placeholder id (e.g. 'f2') until the form is
   // saved once and the backend assigns it a permanent numeric id.
@@ -321,7 +346,10 @@ export function FormBuilderTab({
     onFieldChange(field.id, 'validation_rules', { ...(field.validation_rules || {}), ...patch });
   };
 
-  const totalRequired = builderFields.filter((f) => f.is_required).length;
+  // SECTION headers are never answerable (validation always skips them) so a
+  // stray is_required=true on one — from data saved before this default was
+  // fixed, or a duplicated field — must not count toward this summary either.
+  const totalRequired = builderFields.filter((f) => f.is_required && f.type !== 'SECTION').length;
   const totalConditional = builderFields.filter((f) => !!normalizeConditional(f.conditional_logic)).length;
   const isCurrentlyPublished = formMeta.status === 'PUBLISHED';
 

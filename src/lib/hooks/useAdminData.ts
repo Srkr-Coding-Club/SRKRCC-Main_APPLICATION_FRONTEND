@@ -494,7 +494,10 @@ export function useAdminData(options?: UseAdminDataOptions) {
   };
 
   const handleAddFieldFromPalette = (type: FormField['type'], label: string) => {
-    setBuilderFields((prev) => [...prev, { id: Date.now().toString(), label, type, is_required: true, order: prev.length + 1 }]);
+    // A Section Header isn't answerable (validation always skips it, both here
+    // and server-side) — defaulting it to required is meaningless and only
+    // inflates the builder's "N Required" summary.
+    setBuilderFields((prev) => [...prev, { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: prev.length + 1 }]);
   };
 
   const handleRemoveField = (id: number | string) => {
@@ -514,7 +517,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
 
   const handleAddFieldAtIndex = (type: FormField['type'], label: string, index: number) => {
     setBuilderFields((prev) => {
-      const newField: FormField = { id: Date.now().toString(), label, type, is_required: true, order: 0 };
+      const newField: FormField = { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: 0 };
       const updated = [...prev];
       updated.splice(index, 0, newField);
       return updated.map((f, i) => ({ ...f, order: i + 1 }));

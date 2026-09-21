@@ -77,6 +77,15 @@ export function isAuthenticated(): boolean {
   return !!getStoredUser() || !!getCookie(ROLE_COOKIE);
 }
 
+/**
+ * Guards a post-login/signup `?next=` redirect target against open-redirect
+ * payloads (absolute URLs, protocol-relative `//host` paths) — only an
+ * in-app relative path is ever safe to hand to `window.location.replace`.
+ */
+export function isSafeNextPath(next: string | null | undefined): next is string {
+  return !!next && next.startsWith('/') && !next.startsWith('//');
+}
+
 export function isAdminOrLead(): boolean {
   const user = getStoredUser();
   if (user && user.role) {
