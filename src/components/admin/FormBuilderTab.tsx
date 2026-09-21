@@ -356,7 +356,7 @@ export function FormBuilderTab({
   return (
     <div className="space-y-6">
       {/* Top Controls Bar */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between bg-white dark:bg-[#151722] p-4 rounded-lg border border-slate-200 dark:border-slate-800 gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between glass-panel p-4 rounded-lg border border-slate-200 dark:border-slate-800 gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[#FF7A00] flex-shrink-0">
             <Layers className="w-5 h-5" />
@@ -393,13 +393,13 @@ export function FormBuilderTab({
             <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-md">
               <button
                 onClick={() => setViewportMode('desktop')}
-                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'desktop' ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow' : 'text-slate-400'}`}
+                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'desktop' ? 'glass-panel text-[#FF7A00] shadow' : 'text-slate-400'}`}
               >
                 <Monitor className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewportMode('mobile')}
-                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'mobile' ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow' : 'text-slate-400'}`}
+                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'mobile' ? 'glass-panel text-[#FF7A00] shadow' : 'text-slate-400'}`}
               >
                 <Smartphone className="w-4 h-4" />
               </button>
@@ -411,7 +411,7 @@ export function FormBuilderTab({
             className={`px-3.5 py-2 rounded-md text-xs font-bold border flex items-center space-x-1.5 transition-transform duration-100 active:scale-95 ${
               isPreviewMode
                 ? 'bg-slate-800 text-white border-slate-800'
-                : 'bg-white dark:bg-[#151722] text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                : 'glass-panel text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
@@ -425,7 +425,7 @@ export function FormBuilderTab({
                 onResetForm?.();
               }
             }}
-            className="px-3.5 py-2 rounded-md bg-white dark:bg-[#151722] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
+            className="px-3.5 py-2 rounded-md glass-panel hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
             title={formMeta.id ? "Reset form back to last saved checkpoint" : "Reset to blank form"}
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -445,7 +445,7 @@ export function FormBuilderTab({
           {formMeta.status === 'PUBLISHED' ? (
             <button
               onClick={() => onSaveForm('DRAFT')}
-              className="px-4 py-2 rounded-md bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
+              className="px-4 py-2 rounded-md glass-panel border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
               title="Revert to draft — students can no longer see or submit this form"
             >
               <span>Unpublish</span>
@@ -477,7 +477,7 @@ export function FormBuilderTab({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Field Palette — left side, click + to add a field to the form */}
           <div className="lg:col-span-4 lg:sticky lg:top-24 self-start">
-            <div className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="p-4 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-[#1A1A2E] dark:text-white">Add Fields</h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">Click a field to add it to the form.</p>
@@ -509,7 +509,7 @@ export function FormBuilderTab({
           {/* Canvas — right side */}
           <div className="lg:col-span-8 space-y-3">
             {/* Title & Description Card */}
-            <div className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-4">
               <input
                 type="text"
                 value={formMeta.title}
@@ -554,7 +554,7 @@ export function FormBuilderTab({
 
             {/* Automation Card — Club Member ID + confirmation email, wired into
                 Response submission on the backend (apps/forms/services.py). */}
-            <div className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-5">
+            <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-5">
               <div className="flex items-center gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#1A1A2E] dark:text-white">Automation</h3>
               </div>
@@ -1021,7 +1021,7 @@ function QuestionCard({
     return (
       <div
         onClick={onFocus}
-        className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 p-5 cursor-pointer"
+        className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 p-5 cursor-pointer"
       >
         <div className="flex items-center gap-3 border-b border-[#FF7A00] pb-3">
           {reorderControls}
@@ -1051,7 +1051,7 @@ function QuestionCard({
     return (
       <div
         onClick={onFocus}
-        className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50 cursor-pointer p-4 flex items-center gap-3"
+        className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50 cursor-pointer p-4 flex items-center gap-3"
       >
         {reorderControls}
         {numberBadge}
@@ -1068,7 +1068,7 @@ function QuestionCard({
   }
 
   return (
-    <div className="bg-white dark:bg-[#151722] rounded-lg border-l-4 border-l-[#FF7A00] border border-slate-200 dark:border-slate-800 p-5 space-y-3">
+    <div className="glass-panel rounded-lg border-l-4 border-l-[#FF7A00] border border-slate-200 dark:border-slate-800 p-5 space-y-3">
       <div className="flex items-start gap-3">
         <div className="mt-1.5">{reorderControls}</div>
         <div className="mt-1.5">{numberBadge}</div>
@@ -1092,7 +1092,7 @@ function QuestionCard({
           </button>
 
           {typeMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-20 p-1 max-h-80 overflow-y-auto">
+            <div className="absolute right-0 top-full mt-1 w-56 glass-panel border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-20 p-1 max-h-80 overflow-y-auto">
               {SELECTABLE_TYPES.map((t) => {
                 const m = getTypeMeta(t);
                 const TIcon = m.icon;
@@ -1202,7 +1202,7 @@ function QuestionCard({
               type="number"
               value={field.min_value ?? 1}
               onChange={(e) => onScaleRangeChange('min_value', e.target.value === '' ? undefined : Number(e.target.value))}
-              className="w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+              className="w-full px-2 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
             />
           </div>
           <div>
@@ -1213,7 +1213,7 @@ function QuestionCard({
               type="number"
               value={field.max_value ?? 5}
               onChange={(e) => onScaleRangeChange('max_value', e.target.value === '' ? undefined : Number(e.target.value))}
-              className="w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+              className="w-full px-2 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
             />
           </div>
         </div>
@@ -1348,7 +1348,7 @@ function ConditionalEditor({
     });
   };
 
-  const sel = 'w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]';
+  const sel = 'w-full px-2 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]';
 
   return (
     <div className="p-3 rounded bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs space-y-2 mt-2">
@@ -1434,7 +1434,7 @@ function CrossFieldEditor({ field, siblingFields, onChange }: {
 }) {
   const rules = (field.validation_rules?.crossField as any[]) || [];
   const rule = rules[0];
-  const sel = 'px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] border-slate-200 dark:border-slate-800';
+  const sel = 'px-2 py-1.5 rounded border text-xs glass-panel border-slate-200 dark:border-slate-800';
   const emit = (patch: any) => {
     const next = { op: patch.op ?? rule?.op ?? 'eq', field: patch.field ?? rule?.field ?? siblingFields[0]?.id, equals: patch.equals ?? rule?.equals };
     if (!next.field) { onChange({ crossField: undefined }); return; }
@@ -1487,7 +1487,7 @@ function ValidationPanel({ field, siblingFields, onChange }: {
             <div>
               <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Format</label>
               <select value={r.format || ''} onChange={(e) => onChange({ format: (e.target.value || undefined) as any })}
-                className="w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] border-slate-200 dark:border-slate-800">
+                className="w-full px-2 py-1.5 rounded border text-xs glass-panel border-slate-200 dark:border-slate-800">
                 {TEXT_FORMAT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
@@ -1728,7 +1728,7 @@ function LabeledInput({
         inputMode={isNumber ? 'decimal' : undefined}
         value={raw}
         onChange={handleChange}
-        className="w-full px-2.5 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+        className="w-full px-2.5 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
       />
     </div>
   );
@@ -1761,7 +1761,7 @@ function LivePreview({
 
   return (
     <div
-      className={`bg-white dark:bg-[#151722] rounded-lg p-6 sm:p-8 border border-slate-200 dark:border-slate-800 mx-auto space-y-6 ${
+      className={`glass-panel rounded-lg p-6 sm:p-8 border border-slate-200 dark:border-slate-800 mx-auto space-y-6 ${
         viewportMode === 'mobile' ? 'max-w-sm border-2 border-slate-700' : 'max-w-3xl'
       }`}
     >

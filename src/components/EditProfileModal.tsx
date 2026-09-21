@@ -247,7 +247,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
         aria-modal="true"
         aria-label="Edit Profile"
         tabIndex={-1}
-        className="bg-white dark:bg-[#151722] rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6"
+        className="glass-panel rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6"
       >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center space-x-2">

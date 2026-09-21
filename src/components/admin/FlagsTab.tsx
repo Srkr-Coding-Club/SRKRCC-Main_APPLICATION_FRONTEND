@@ -12,7 +12,7 @@ interface FlagsTabProps {
 
 export function FlagsTab({ flags, onToggleFlag, isLoading = false }: FlagsTabProps) {
   return (
-    <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+    <div className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
       <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Module Feature Flags & Visibility Windows</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {isLoading ? (

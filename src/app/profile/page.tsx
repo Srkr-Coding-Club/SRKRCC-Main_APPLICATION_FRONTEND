@@ -245,7 +245,7 @@ function ProfileContent() {
         )}
 
         {/* Top Profile Header Banner */}
-        <div className="bg-white dark:bg-[#151722] rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] p-1 shadow-lg flex items-center justify-center">
@@ -381,7 +381,7 @@ function ProfileContent() {
 
         {/* Dashboard Metrics Bar (Dynamic From DB) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-[#151722] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Codequest Streak</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-[#FF7A00] mt-1">{user.streak} Days</p>
@@ -391,7 +391,7 @@ function ProfileContent() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#151722] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Events Registered</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-[#1A1A2E] dark:text-white mt-1">{user.eventsCount}</p>
@@ -401,7 +401,7 @@ function ProfileContent() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#151722] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Projects Built</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">{user.projectsCount}</p>
@@ -411,7 +411,7 @@ function ProfileContent() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#151722] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Member Points</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400 mt-1">{user.points} XP</p>
@@ -441,7 +441,7 @@ function ProfileContent() {
                 {registeredEvents.map((evt) => (
                   <div
                     key={evt.id}
-                    className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
                     <div className="space-y-1">
                       <span className="text-xs font-mono font-bold text-[#FF7A00]">
@@ -483,7 +483,7 @@ function ProfileContent() {
                 ))}
               </div>
             ) : (
-              <div className="p-8 rounded-2xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 text-center space-y-3">
+              <div className="p-8 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 text-center space-y-3">
                 <FileText className="w-8 h-8 text-slate-400 mx-auto" />
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No active registrations yet</p>
                 <p className="text-xs text-slate-500">Discover upcoming workshops, hackathons, and algorithm challenges in the club portal.</p>
@@ -500,7 +500,7 @@ function ProfileContent() {
 
           {/* Sidebar Column: Dynamic Badges & Quick Links */}
           <div className="space-y-6">
-            <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
                 SRKRCC Member Badges
               </h3>

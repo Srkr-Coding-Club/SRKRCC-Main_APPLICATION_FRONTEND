@@ -453,7 +453,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         <select
           value={selectedSlug}
           onChange={(e) => setSelectedSlug(e.target.value)}
-          className="mt-2 px-4 py-2 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
+          className="mt-2 px-4 py-2 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
         >
           <option value="">Select a form…</option>
           {forms.map((f) => (
@@ -472,7 +472,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
           <select
             value={selectedSlug}
             onChange={(e) => { setSelectedSlug(e.target.value); setSelectedIds(new Set()); }}
-            className="flex-1 min-w-[200px] px-3 py-2 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
+            className="flex-1 min-w-[200px] px-3 py-2 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
           >
             <option value="">Select a form…</option>
             {forms.map((f) => (
@@ -488,15 +488,15 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
               placeholder="Search…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/60 w-48"
+              className="pl-9 pr-4 py-2 text-sm glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/60 w-48"
             />
           </div>
 
           {/* Date range */}
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-            className="py-2 px-3 text-sm bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 focus:outline-none focus:border-orange-500/60" />
+            className="py-2 px-3 text-sm glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 focus:outline-none focus:border-orange-500/60" />
           <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-            className="py-2 px-3 text-sm bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 focus:outline-none focus:border-orange-500/60" />
+            className="py-2 px-3 text-sm glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 focus:outline-none focus:border-orange-500/60" />
 
           {/* Toggles */}
           <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 cursor-pointer">
@@ -516,7 +516,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
 
         {/* Stats bar */}
         {data && (
-          <div className="flex items-center gap-4 px-4 py-2.5 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-4 px-4 py-2.5 rounded-xl glass-panel border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
             <span><span className="text-[#1A1A2E] dark:text-white font-bold">{data.count}</span> responses</span>
           </div>
         )}
@@ -546,7 +546,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
 
         {/* Timeline chart */}
         {showChart && (
-          <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+          <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-5">
             <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-4">Submissions Per Day — Last 30 Days</p>
             <ResponseTimelineChart data={timelineData} />
           </div>
@@ -565,7 +565,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">Share the form link with club members to start collecting.</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
                 <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase">
@@ -612,12 +612,12 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                         className={`${rowBg} ${gap ? 'bg-rose-500/5' : ''} hover:bg-slate-800/20 active:bg-slate-200 dark:active:bg-slate-800/40 transition cursor-pointer`}
                         onClick={() => setDrawerResponse(resp)}
                       >
-                        <td className="sticky left-0 z-10 bg-white dark:bg-[#151722] px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <td className="sticky left-0 z-10 glass-panel px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => toggleRow(resp.id)} className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 hover:text-orange-400 transition-transform duration-100 active:scale-90">
                             {isSelected ? <CheckSquare className="w-4 h-4 text-orange-500" /> : <Square className="w-4 h-4" />}
                           </button>
                         </td>
-                        <td className="sticky left-10 z-10 bg-white dark:bg-[#151722] px-4 py-3 border-r border-slate-200 dark:border-slate-800/60 font-semibold">
+                        <td className="sticky left-10 z-10 glass-panel px-4 py-3 border-r border-slate-200 dark:border-slate-800/60 font-semibold">
                           <div className="flex items-center gap-2">
                             {gap && <AlertCircle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />}
                             <div className="flex flex-col min-w-0">

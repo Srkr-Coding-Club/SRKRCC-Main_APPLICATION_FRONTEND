@@ -194,7 +194,7 @@ function JobStatCard({ statusGroup, value }: { statusGroup: StatusGroup; value: 
   const Icon = STAT_CARD_ICON[statusGroup];
   const accent = STAT_CARD_ACCENT[statusGroup];
   return (
-    <div className="relative rounded-xl border border-slate-300 dark:border-slate-700/60 bg-white dark:bg-[#151722] p-5 flex flex-col gap-2 transition-all">
+    <div className="relative rounded-xl border border-slate-300 dark:border-slate-700/60 glass-panel p-5 flex flex-col gap-2 transition-all">
       <div className="flex items-start justify-between">
         <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
           {STATUS_GROUP_LABEL[statusGroup]}
@@ -292,7 +292,7 @@ export function BackgroundJobsTab() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-6 space-y-4">
+      <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Background Jobs</h3>
           <div className="flex flex-wrap items-center gap-2">
@@ -303,14 +303,14 @@ export function BackgroundJobsTab() {
                 placeholder="Search by title, type, or creator…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                className="w-full pl-10 pr-4 py-2 text-xs glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
 
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as 'ALL' | JobType)}
-              className="px-3.5 py-2 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
+              className="px-3.5 py-2 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
             >
               {TYPE_FILTERS.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -322,7 +322,7 @@ export function BackgroundJobsTab() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'ALL' | StatusGroup)}
-              className="px-3.5 py-2 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
+              className="px-3.5 py-2 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
             >
               {STATUS_FILTERS.map((s) => (
                 <option key={s.value} value={s.value}>

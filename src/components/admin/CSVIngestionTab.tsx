@@ -272,7 +272,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
   return (
     <div className="space-y-6">
       {/* Top Header & Tab Selector */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
@@ -356,7 +356,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
 
           {/* STEP 1: INTAKE & PRESERVE */}
           {currentStep === 1 && (
-            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl text-center">
+            <div className="p-8 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl text-center">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -467,7 +467,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
           {/* STEP 2: DOMAIN TARGET SELECTION */}
           {currentStep === 2 && backupJob && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+              <div className="p-6 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
                   <div>
                     <h3 className="text-lg font-semibold text-[#1A1A2E] dark:text-white">What does this backup contain?</h3>
@@ -609,7 +609,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
           {/* STEP 3: COLUMN MAPPING */}
           {currentStep === 3 && analysis && backupJob && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+              <div className="p-6 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
                   <div>
                     <h3 className="text-lg font-semibold text-[#1A1A2E] dark:text-white">Column Mapping Configuration</h3>
@@ -708,7 +708,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
           {/* STEP 4: SCHEMA VALIDATION & 50% CONFIDENCE GAUGE */}
           {currentStep === 4 && analysis && backupJob && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+              <div className="p-6 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
                 <h3 className="text-lg font-semibold text-[#1A1A2E] dark:text-white mb-1">Domain Schema Validation</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
                   Evaluation against <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{analysis.domain_display}</span>{' '}
@@ -870,7 +870,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                 </div>
               ) : (
                 /* Preview State */
-                <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+                <div className="p-6 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
                     <div>
                       <h3 className="text-lg font-semibold text-[#1A1A2E] dark:text-white">Row-Level Ingestion Preview</h3>
@@ -1015,7 +1015,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
       {/* ========================================================================= */}
       {activeTab === 'history' && (
         <div className="space-y-4">
-          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+          <div className="p-6 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div className="relative flex-1 max-w-md w-full">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />

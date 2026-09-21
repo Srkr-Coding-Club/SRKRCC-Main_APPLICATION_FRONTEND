@@ -95,7 +95,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
     return (
       <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-20 px-4 flex items-center justify-center transition-colors duration-300">
-        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-[#151722] border border-rose-500/20 dark:border-rose-500/20 shadow-2xl space-y-6 text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl glass-panel border border-rose-500/20 dark:border-rose-500/20 shadow-2xl space-y-6 text-center">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-500 shadow-inner">
             <ShieldAlert className="w-8 h-8" />
           </div>

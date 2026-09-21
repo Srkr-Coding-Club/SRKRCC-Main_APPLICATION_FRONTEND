@@ -132,7 +132,7 @@ export function UsersTab({
   const canAssignElevatedRoles = getStoredUser()?.role === 'ADMIN';
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
           <input
@@ -154,7 +154,7 @@ export function UsersTab({
       </div>
 
       {/* Users Directory Table */}
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
             <thead className="bg-[#FAFAFC] dark:bg-[#0D0E15] text-xs uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">

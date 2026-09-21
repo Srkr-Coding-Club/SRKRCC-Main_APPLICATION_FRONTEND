@@ -326,7 +326,7 @@ export function AttendanceScannerTab() {
   return (
     <div className="space-y-6">
       {/* Header + form/session pickers */}
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 p-6 space-y-5">
+      <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-6 space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-md bg-slate-100 dark:bg-slate-800 text-[#FF7A00]">
@@ -343,7 +343,7 @@ export function AttendanceScannerTab() {
               onClick={() => setViewMode('scan')}
               className={`min-h-[44px] px-4 py-2 rounded-md text-xs font-bold flex items-center gap-1.5 transition active:scale-95 ${
                 viewMode === 'scan'
-                  ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow'
+                  ? 'glass-panel text-[#FF7A00] shadow'
                   : 'text-slate-500 dark:text-slate-400'
               }`}
             >
@@ -355,7 +355,7 @@ export function AttendanceScannerTab() {
               onClick={() => setViewMode('report')}
               className={`min-h-[44px] px-4 py-2 rounded-md text-xs font-bold flex items-center gap-1.5 transition active:scale-95 ${
                 viewMode === 'report'
-                  ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow'
+                  ? 'glass-panel text-[#FF7A00] shadow'
                   : 'text-slate-500 dark:text-slate-400'
               }`}
             >
@@ -406,7 +406,7 @@ export function AttendanceScannerTab() {
       {viewMode === 'scan' ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Camera */}
-          <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+          <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Camera</h4>
               <button
@@ -449,7 +449,7 @@ export function AttendanceScannerTab() {
           </div>
 
           {/* Latest result */}
-          <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+          <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Latest Scan Result</h4>
 
             {!resultBanner ? (

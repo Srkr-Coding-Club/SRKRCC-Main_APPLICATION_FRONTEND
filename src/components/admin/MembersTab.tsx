@@ -227,7 +227,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
   return (
     <div className="space-y-6">
       {/* Top Banner & Stats */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#151722] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-black text-[#1A1A2E] dark:text-white flex items-center gap-2">
@@ -279,14 +279,14 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
             placeholder="Search by Name, Email, Phone, or Club ID (e.g. 25SCC277)…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-xs bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+            className="w-full pl-10 pr-4 py-2.5 text-xs glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3.5 py-2.5 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
+          className="px-3.5 py-2.5 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
         >
           <option value="ALL">All Membership Statuses</option>
           <option value="ACTIVE">Active Members</option>
@@ -297,7 +297,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
         <select
           value={branchFilter}
           onChange={(e) => setBranchFilter(e.target.value)}
-          className="px-3.5 py-2.5 bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
+          className="px-3.5 py-2.5 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
         >
           <option value="ALL">All Branches</option>
           {uniqueBranches.map((b) => (
@@ -325,7 +325,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
           <p className="text-xs text-slate-500 dark:text-slate-400">Loading club members…</p>
         </div>
       ) : filteredMembers.length === 0 ? (
-        <div className="py-20 text-center text-slate-500 text-xs bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
+        <div className="py-20 text-center text-slate-500 text-xs glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
           <Users className="w-10 h-10 text-slate-600 mx-auto opacity-50" />
           <p className="font-bold text-sm text-[#1A1A2E] dark:text-white">No members matched your search filters</p>
           <p className="text-slate-400 max-w-sm mx-auto">
@@ -343,7 +343,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
           </button>
         </div>
       ) : (
-        <div className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
               <thead className="bg-slate-50 dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
@@ -464,7 +464,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden"
+              className="glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden"
             >
               <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">

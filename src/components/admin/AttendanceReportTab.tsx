@@ -43,7 +43,7 @@ export function AttendanceReportTab({ report, loading, formTitle }: AttendanceRe
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center">
+      <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center">
         <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         <p className="text-xs text-slate-400">Loading attendance report…</p>
       </div>
@@ -52,7 +52,7 @@ export function AttendanceReportTab({ report, loading, formTitle }: AttendanceRe
 
   if (!report) {
     return (
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center text-sm text-slate-400">
+      <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center text-sm text-slate-400">
         Select an attendance-enabled form to view its report.
       </div>
     );
@@ -65,7 +65,7 @@ export function AttendanceReportTab({ report, loading, formTitle }: AttendanceRe
         {report.sessions.map((s) => (
           <div
             key={s.id}
-            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-5 space-y-2"
+            className="rounded-xl border border-slate-200 dark:border-slate-800 glass-panel p-5 space-y-2"
           >
             <div className="flex items-center gap-1.5 text-slate-400">
               <CalendarDays className="w-3.5 h-3.5" />
@@ -94,7 +94,7 @@ export function AttendanceReportTab({ report, loading, formTitle }: AttendanceRe
       </div>
 
       {/* Per-registrant grid */}
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 p-6 pb-4">
           <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
             <Users className="w-4 h-4 text-[#FF7A00]" />

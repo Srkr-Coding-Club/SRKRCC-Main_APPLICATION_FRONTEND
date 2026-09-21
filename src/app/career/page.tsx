@@ -118,7 +118,7 @@ export default async function CareerPage() {
           {jobs.map((j) => (
             <div
               key={j.id}
-              className="bg-white dark:bg-[#151722] rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
+              className="glass-panel rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
             >
               <div className="space-y-4">
                 {/* Header Row */}

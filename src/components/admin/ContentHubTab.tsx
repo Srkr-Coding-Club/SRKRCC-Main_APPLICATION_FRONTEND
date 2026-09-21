@@ -31,7 +31,7 @@ export function ContentHubTab() {
   return (
     <div className="space-y-8">
       {/* Blogs & Tutorials Section */}
-      <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+      <div className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div>
             <h3 className="text-lg font-extrabold text-[#1A1A2E] dark:text-white flex items-center space-x-2">
@@ -72,7 +72,7 @@ export function ContentHubTab() {
       </div>
 
       {/* Career & Placements Section */}
-      <div className="bg-white dark:bg-[#151722] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+      <div className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div>
             <h3 className="text-lg font-extrabold text-[#1A1A2E] dark:text-white flex items-center space-x-2">

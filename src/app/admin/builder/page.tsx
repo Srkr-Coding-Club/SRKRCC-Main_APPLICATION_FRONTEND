@@ -51,7 +51,7 @@ function BuilderContent() {
   if (isLoadingBuilder) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] flex items-center justify-center py-20">
-        <div className="flex flex-col items-center gap-3 p-8 rounded-2xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 shadow-xl">
+        <div className="flex flex-col items-center gap-3 p-8 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 shadow-xl">
           <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Loading Form Schema...</p>
           <p className="text-xs text-slate-400">Fetching latest schema and field configurations</p>

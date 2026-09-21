@@ -42,7 +42,7 @@ export function AuditLogsTab({ filteredAuditLogs, isLoading = false }: AuditLogs
   }, [filteredAuditLogs, search]);
 
   return (
-    <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-6 space-y-4">
+    <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Mutation Audit Logs</h3>
         <div className="relative flex-1 min-w-[240px] max-w-sm">
@@ -52,7 +52,7 @@ export function AuditLogsTab({ filteredAuditLogs, isLoading = false }: AuditLogs
             placeholder="Search by actor, action, or target…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+            className="w-full pl-10 pr-4 py-2 text-xs glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
           />
         </div>
       </div>

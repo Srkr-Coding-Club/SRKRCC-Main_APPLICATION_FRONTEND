@@ -159,7 +159,7 @@ export default function BlogsPage() {
 
         {/* Featured Story */}
         {featuredPost && (
-          <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0">
+          <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0">
             <div className="lg:col-span-7 h-64 sm:h-80 lg:h-full relative overflow-hidden bg-slate-900">
               <Image
                 src={featuredPost.image_url || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80'}
@@ -239,7 +239,7 @@ export default function BlogsPage() {
             {remainingBlogs.map((post) => (
               <div
                 key={post.id}
-                className="bg-white dark:bg-[#151722] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
+                className="glass-panel rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
               >
                 <div>
                   {/* Cover Image */}

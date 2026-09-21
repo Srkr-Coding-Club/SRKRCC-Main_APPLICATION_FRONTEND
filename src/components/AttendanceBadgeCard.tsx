@@ -47,7 +47,7 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-6 text-center">
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 glass-panel p-6 text-center">
         <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
         <p className="text-xs text-slate-400">Loading your attendance pass…</p>
       </div>

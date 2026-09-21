@@ -61,7 +61,7 @@ function StageCard({ stage, index }: { stage: Stage; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px' }}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.05 * (index % 2) }}
-      className="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-7 sm:p-9 shadow-sm hover:shadow-md transition-shadow"
+      className="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 glass-panel p-7 sm:p-9 shadow-sm hover:shadow-md transition-shadow"
     >
       {/* Ghost numeral — background texture */}
       <span

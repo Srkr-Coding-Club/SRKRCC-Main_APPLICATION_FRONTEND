@@ -328,7 +328,7 @@ export function MarkdownEditor({
           />
         ) : (
           /* Live Markdown Preview Area */
-          <div className={`p-4 bg-white dark:bg-[#151722] ${minHeight} overflow-y-auto`}>
+          <div className={`p-4 glass-panel ${minHeight} overflow-y-auto`}>
             {value.trim() ? (
               <MarkdownRenderer content={value} />
             ) : (

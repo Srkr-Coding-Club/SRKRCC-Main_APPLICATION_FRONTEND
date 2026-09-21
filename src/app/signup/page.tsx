@@ -237,7 +237,7 @@ function SignupContent() {
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 sm:py-16 flex items-center justify-center transition-colors duration-300">
       <div className="max-w-2xl w-full mx-auto px-4">
-        <div className="bg-white dark:bg-[#151722] rounded-2xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-black/20 space-y-8">
+        <div className="glass-panel rounded-2xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-black/20 space-y-8">
 
           {/* Header */}
           <div className="text-center space-y-3">
@@ -487,7 +487,7 @@ function SignupContent() {
                         onChange={(e) => handleChange('affiliateId', sanitizeAffiliateIdInput(e.target.value))}
                         onBlur={() => markTouched('affiliateId')}
                         disabled={isLoading || success}
-                        className={`${inputClasses('affiliateId')} bg-white dark:bg-[#151722] font-mono tracking-wide`}
+                        className={`${inputClasses('affiliateId')} glass-panel font-mono tracking-wide`}
                       />
                     </div>
                     <FieldError id="signup-affiliate-error" message={visibleError('affiliateId')} />

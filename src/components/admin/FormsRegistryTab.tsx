@@ -203,7 +203,7 @@ export function FormsRegistryTab({
       {/* Schedule Modal */}
       {showScheduleModal && selectedForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#151722] rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+          <div className="glass-panel rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2 text-blue-500 font-bold text-base">
                 <Clock className="w-5 h-5" />
@@ -296,7 +296,7 @@ export function FormsRegistryTab({
         <div className="lg:col-span-5 space-y-4">
           
           {/* List Header & Search */}
-          <div className="bg-white dark:bg-[#151722] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="glass-panel p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400">
@@ -382,7 +382,7 @@ export function FormsRegistryTab({
                 {[1, 2, 3, 4].map((n) => (
                   <div
                     key={n}
-                    className="p-4 rounded-2xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 space-y-3 animate-pulse"
+                    className="p-4 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 space-y-3 animate-pulse"
                   >
                     <div className="flex items-center justify-between">
                       <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-3/5" />
@@ -401,7 +401,7 @@ export function FormsRegistryTab({
                 ))}
               </div>
             ) : filteredForms.length === 0 ? (
-              <div className="py-12 text-center bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2">
+              <div className="py-12 text-center glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2">
                 <FileText className="w-8 h-8 text-slate-600 mx-auto" />
                 <p className="text-xs font-bold text-slate-500 dark:text-slate-400">No forms found matching filters</p>
                 <button
@@ -423,7 +423,7 @@ export function FormsRegistryTab({
                     } ${
                       isSelected
                         ? 'bg-orange-500/10 border border-orange-500/40 shadow-lg scale-[1.01]'
-                        : 'bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 hover:border-slate-600/60'
+                        : 'glass-panel border border-slate-200 dark:border-slate-800 hover:border-slate-600/60'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -468,7 +468,7 @@ export function FormsRegistryTab({
         {/* ============================================================ */}
         <div className="lg:col-span-7">
           {isLoading ? (
-            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-6 animate-pulse">
+            <div className="glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-6 animate-pulse">
               <div className="border-b border-slate-100 dark:border-slate-800 pb-5 space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-full w-24" />
@@ -491,7 +491,7 @@ export function FormsRegistryTab({
               </div>
             </div>
           ) : selectedForm ? (
-            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md p-6 space-y-6">
+            <div className="glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md p-6 space-y-6">
               
               {/* Form Title & Metadata Header */}
               <div className="border-b border-slate-100 dark:border-slate-800 pb-5 space-y-3">
@@ -722,23 +722,23 @@ export function FormsRegistryTab({
 
                   {/* Metrics Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-white dark:bg-[#151722] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="glass-panel p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Responses</span>
                       <div className="text-xl font-black text-[#1A1A2E] dark:text-white mt-1">{selectedForm.response_count ?? 0}</div>
                     </div>
-                    <div className="bg-white dark:bg-[#151722] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="glass-panel p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Schema Fields</span>
                       <div className="text-xl font-black text-orange-400 mt-1">
                         {selectedForm.fields?.filter((f) => f.type !== 'SECTION' && !f.is_deleted).length || 0}
                       </div>
                     </div>
-                    <div className="bg-white dark:bg-[#151722] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="glass-panel p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Opens</span>
                       <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-1.5 truncate">
                         {selectedForm.open_at ? new Date(selectedForm.open_at).toLocaleDateString('en-IN') : 'Always Open'}
                       </div>
                     </div>
-                    <div className="bg-white dark:bg-[#151722] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="glass-panel p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Deadline</span>
                       <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-1.5 truncate">
                         {selectedForm.close_at ? new Date(selectedForm.close_at).toLocaleDateString('en-IN') : 'No Deadline'}
@@ -800,7 +800,7 @@ export function FormsRegistryTab({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   {/* Submission Limit Control */}
-                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="p-3.5 rounded-xl glass-panel border border-slate-200 dark:border-slate-800 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-900 dark:text-white">Submission Limit</span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
@@ -853,7 +853,7 @@ export function FormsRegistryTab({
                   </div>
 
                   {/* Response Editing Control */}
-                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="p-3.5 rounded-xl glass-panel border border-slate-200 dark:border-slate-800 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-900 dark:text-white">Response Editing</span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
@@ -906,7 +906,7 @@ export function FormsRegistryTab({
                   </div>
 
                   {/* Auto-fill Profile Details Control */}
-                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 space-y-2 sm:col-span-2">
+                  <div className="p-3.5 rounded-xl glass-panel border border-slate-200 dark:border-slate-800 space-y-2 sm:col-span-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5 text-[#FF7A00]" />
@@ -1034,7 +1034,7 @@ export function FormsRegistryTab({
 
             </div>
           ) : (
-            <div className="py-24 text-center bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
+            <div className="py-24 text-center glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
               <FileText className="w-12 h-12 text-slate-700 mx-auto" />
               <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Select a form from the directory</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">

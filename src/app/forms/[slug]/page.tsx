@@ -414,10 +414,7 @@ function ModernSelect({
             z-50
             overflow-hidden
             rounded-xl
-            border border-slate-200
-            dark:border-slate-800
-            bg-white
-            dark:bg-[#151722]
+            glass-panel-solid
             p-1.5
             shadow-[0_12px_35px_rgba(0,0,0,0.12)]
             dark:shadow-[0_15px_40px_rgba(0,0,0,0.4)]
@@ -1108,7 +1105,7 @@ export default function FormDetailSubmissionPage() {
   if (notFound || !form) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-20 px-4 text-center">
-        <div className="max-w-md mx-auto p-8 rounded-2xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+        <div className="max-w-md mx-auto p-8 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
           <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
             <FileText className="w-6 h-6" />
           </div>
@@ -1138,7 +1135,7 @@ export default function FormDetailSubmissionPage() {
       {/* Login Required Modal Dialog */}
       {showLoginModal && !currentUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#151722] rounded-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 text-center relative overflow-hidden">
+          <div className="glass-panel rounded-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 text-center relative overflow-hidden">
             <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-[#FF7A00] flex items-center justify-center mx-auto border border-orange-500/20">
               <Lock className="w-7 h-7" />
             </div>
@@ -1185,7 +1182,7 @@ export default function FormDetailSubmissionPage() {
         <div>
           <Link
             href="/forms"
-            className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#FF7A00] px-4 py-2 rounded-lg bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 shadow-sm transition"
+            className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#FF7A00] px-4 py-2 rounded-lg glass-panel border border-slate-200 dark:border-slate-800 shadow-sm transition"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Forms Center</span>
@@ -1194,7 +1191,7 @@ export default function FormDetailSubmissionPage() {
 
         {/* Success Confirmation Card */}
         {isSubmitted ? (
-          <div className="bg-white dark:bg-[#151722] rounded-xl p-8 sm:p-12 border border-emerald-200 dark:border-emerald-900/50 shadow-md text-center space-y-4">
+          <div className="glass-panel rounded-xl p-8 sm:p-12 border border-emerald-200 dark:border-emerald-900/50 shadow-md text-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-500 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-10 h-10" />
             </div>
@@ -1222,7 +1219,7 @@ export default function FormDetailSubmissionPage() {
           </div>
         ) : (
           /* Form Content Card — shadow-input styling to match Aceternity's signup-form card */
-          <div className="bg-white dark:bg-black rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] dark:bg-[#151722] space-y-8">
+          <div className="glass-panel rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] space-y-8">
 
             {/* Header */}
             <div className="border-b border-slate-100 dark:border-slate-800 pb-6 space-y-4">

@@ -223,7 +223,7 @@ export function CodeQuestTab() {
   return (
     <>
       <div className="space-y-6">
-        <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#151722] sm:flex-row sm:items-center sm:justify-between">
+        <header className="flex flex-col gap-4 rounded-2xl glass-panel p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-[#FF7A00]">
               <Code2 className="h-4 w-4" /> CodeQuest operations
@@ -268,7 +268,7 @@ export function CodeQuestTab() {
           />
           <Stat icon={Users} value={accepted} label="Accepted solutions" />
         </section>
-        <section className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#151722]">
+        <section className="rounded-2xl glass-panel">
           <div className="flex flex-col gap-3 border-b border-slate-200 p-5 dark:border-slate-800 sm:flex-row">
             <label className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -364,7 +364,7 @@ export function CodeQuestTab() {
             )}
           </div>
         </section>
-        <section className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#151722]">
+        <section className="rounded-2xl glass-panel">
           <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
             <div>
               <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
@@ -454,7 +454,7 @@ function Stat({
   label: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#151722]">
+    <div className="rounded-xl glass-panel p-4">
       <Icon className="mb-3 h-5 w-5 text-[#FF7A00]" />
       <p className="text-2xl font-extrabold text-[#1A1A2E] dark:text-white">
         {value}
@@ -525,7 +525,7 @@ function Editor({
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
       <form
         onSubmit={submit}
-        className="mx-auto my-8 max-w-3xl rounded-2xl bg-white shadow-2xl dark:bg-[#151722]"
+        className="mx-auto my-8 max-w-3xl rounded-2xl glass-panel shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
           <div>
@@ -661,7 +661,7 @@ function SubmissionDetail({
 }) {
   return (
     <div className="fixed inset-0 z-[70] overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="mx-auto my-12 max-w-3xl rounded-2xl bg-white shadow-2xl dark:bg-[#151722]">
+      <div className="mx-auto my-12 max-w-3xl rounded-2xl glass-panel shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
           <div>
             <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">

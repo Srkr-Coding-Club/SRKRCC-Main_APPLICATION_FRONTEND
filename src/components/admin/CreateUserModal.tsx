@@ -75,7 +75,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className="bg-white dark:bg-[#151722] rounded-xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6"
+        className="glass-panel rounded-xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6"
       >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center space-x-2">

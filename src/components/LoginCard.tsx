@@ -305,7 +305,7 @@ export default function LoginCard({
                 if (email) setFieldErrors((prev) => ({ ...prev, email: validateEmail(email) }));
               }}
               disabled={isLoading || success}
-              className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
+              className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
                 fieldErrors.email
                   ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
                   : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:ring-[#FF7A00]'
@@ -342,7 +342,7 @@ export default function LoginCard({
                 if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
               }}
               disabled={isLoading || success}
-              className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
+              className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
                 fieldErrors.password
                   ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
                   : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:ring-[#FF7A00]'

@@ -14,7 +14,7 @@ export function TestDataModal({ isOpen, onClose, submittedTestData }: TestDataMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-[#151722] rounded-xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+      <div className="glass-panel rounded-xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center space-x-2 text-[#FF7A00]">
             <CheckCircle2 className="w-5 h-5" />
