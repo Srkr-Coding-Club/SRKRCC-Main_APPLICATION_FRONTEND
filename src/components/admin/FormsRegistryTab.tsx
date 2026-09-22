@@ -181,7 +181,13 @@ export function FormsRegistryTab({
 
   const handleDelete = async () => {
     if (!selectedForm) return;
-    if (confirm(`Permanently delete form "${selectedForm.title}"? This cannot be undone.`)) {
+    const responses = selectedForm.response_count ?? 0;
+    if (confirm(
+      `Permanently delete form "${selectedForm.title}"?\n\n` +
+      `This also deletes its ${responses} response(s), their answers, QR attendance badges and scan records.\n` +
+      `Events, hackathons and job listings linked to this form are kept, but lose their registration link.\n\n` +
+      `This cannot be undone.`
+    )) {
       setIsDeleting(true);
       try {
         await fetchApi(`/forms/${selectedForm.slug}/`, { method: 'DELETE' });

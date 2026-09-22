@@ -11,7 +11,6 @@ import {
   ArrowRight,
   DollarSign,
   CheckCircle2,
-  Info,
 } from 'lucide-react';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
@@ -26,52 +25,13 @@ export const metadata: Metadata = {
     'Discover campus placements, off-campus tech internships, and full-time hiring drives curated for SRKR Engineering College students.',
 };
 
-async function getJobs(): Promise<{ jobs: JobListing[]; usingFallback: boolean }> {
+async function getJobs(): Promise<JobListing[]> {
   try {
     const fetched = await fetchApi<JobListing[]>('/career/');
-    if (fetched && fetched.length > 0) return { jobs: fetched, usingFallback: false };
+    return fetched || [];
   } catch (error) {
-    // Fallback to career listings
+    return [];
   }
-
-  const fallbackJobs: JobListing[] = [
-    {
-      id: 1,
-      title: 'Full Stack Software Engineer Intern',
-      slug: 'full-stack-software-engineer-intern',
-      company_name: 'Tech Corp Solutions',
-      job_type: 'INTERNSHIP',
-      location: 'Hyderabad / Hybrid',
-      stipend: '₹40,000 / month',
-      deadline: '2025-06-30',
-      description: 'Looking for 3rd and 4th year CSE/IT students proficient in React, Node.js, and PostgreSQL for 6-month summer tech internship.',
-      form_slug: 'core-team-recruitment-2025',
-    },
-    {
-      id: 2,
-      title: 'Junior AI/ML Research Engineer',
-      slug: 'junior-aiml-research-engineer',
-      company_name: 'Innovate AI Labs',
-      job_type: 'FULL_TIME',
-      location: 'Bengaluru / Onsite',
-      stipend: '₹12.5 LPA Package',
-      deadline: '2025-07-15',
-      description: 'Full-time campus placement opening for graduating B.Tech students with hands-on experience in PyTorch and model deployment.',
-    },
-    {
-      id: 3,
-      title: 'UI/UX Product Design Apprentice',
-      slug: 'uiux-product-design-apprentice',
-      company_name: 'DesignCraft Studios',
-      job_type: 'INTERNSHIP',
-      location: 'Remote',
-      stipend: '₹25,000 / month',
-      deadline: '2025-06-25',
-      description: 'Work alongside lead product designers creating design systems, Figma wireframes, and interactive web prototypes.',
-    },
-  ];
-
-  return { jobs: fallbackJobs, usingFallback: true };
 }
 
 export default async function CareerPage() {
@@ -86,7 +46,7 @@ export default async function CareerPage() {
     );
   }
 
-  const { jobs, usingFallback } = await getJobs();
+  const jobs = await getJobs();
 
   return (
     <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
@@ -99,19 +59,20 @@ export default async function CareerPage() {
           description="Explore exclusive software engineering internships, campus recruitment drives, and referral applications for SRKRCC members."
         />
 
-        {usingFallback && (
-          <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-2.5 text-xs font-medium text-amber-700 dark:text-amber-400">
-            <Info className="h-4 w-4 shrink-0" />
-            <span>Showing sample data — live data is temporarily unavailable.</span>
-          </div>
-        )}
-
         <div className="space-y-6">
           <SectionHeading
             icon={Briefcase}
             title={`Open Opportunities (${jobs.length})`}
             description="Internships, placements, and referral drives currently open to members."
           />
+
+          {jobs.length === 0 && (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
+              <Briefcase className="h-8 w-8 text-slate-300 dark:text-slate-700" />
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No open opportunities right now.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon — new internships and placement drives are posted regularly.</p>
+            </div>
+          )}
 
           {/* Jobs Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

@@ -355,7 +355,7 @@ function SignupContent() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.rollNumber} className={labelClasses}>
-                    Roll Number <span className="text-[#FF7A00]">*</span>
+                    Roll Number <span className="text-slate-400 font-medium normal-case">(optional)</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">

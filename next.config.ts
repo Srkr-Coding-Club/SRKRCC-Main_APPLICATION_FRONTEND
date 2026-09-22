@@ -36,6 +36,37 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Overrides the blanket camera=() above for the two attendance-scanner
+        // routes (admin's and the volunteer-reachable one) — both call
+        // getUserMedia to open the camera. A same-origin Permissions-Policy
+        // denial happens at the browser API level, before the browser ever
+        // asks the user for camera permission, so without this override
+        // Html5Qrcode.start() always failed with a policy violation and the
+        // OS/browser permission prompt never had a chance to appear — it
+        // wasn't a permission problem, it was this header blocking the page
+        // from asking in the first place. Listed later in this array so it
+        // wins over the general rule above for these exact two paths.
+        source: '/(admin/attendance/scan|attendance/scan)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(self), microphone=(), geolocation=()',
+          },
+        ],
+      },
     ];
   },
   turbopack: {

@@ -73,9 +73,10 @@ export function sanitizeRollNumberInput(value: string): string {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, ROLL_NUMBER_LENGTH);
 }
 
+/** Optional field — an empty value is valid (nothing to validate). */
 export function validateRollNumber(value: string): string | undefined {
   const roll = sanitizeRollNumberInput(value);
-  if (!roll) return 'Roll number is required.';
+  if (!roll) return undefined;
   if (roll.length !== ROLL_NUMBER_LENGTH) {
     return `Roll number must be exactly ${ROLL_NUMBER_LENGTH} characters (you have ${roll.length}).`;
   }

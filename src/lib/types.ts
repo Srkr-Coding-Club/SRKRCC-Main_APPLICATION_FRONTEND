@@ -35,12 +35,21 @@ export interface Event {
   category: string;
   venue: string;
   capacity: number;
-  start_time: string;
-  end_time: string;
-  image_url?: string;
+  status?: 'LIVE' | 'CLOSED';
+  /** Nullable: the event may not have a finalized schedule yet ("Date to be announced"). */
+  start_time: string | null;
+  end_time: string | null;
+  visible_from?: string | null;
+  visible_until?: string | null;
+  is_hidden?: boolean;
+  poster_image?: string | null;
+  registration_form?: number | null;
   form_slug?: string;
-  speaker?: string;
-  tags?: string[];
+  form_title?: string;
+  /** When the linked form opens/closes to new submissions — distinct from start_time/end_time (when the event itself happens). */
+  registration_opens_at?: string | null;
+  registration_closes_at?: string | null;
+  registration_count?: number;
 }
 
 export interface Hackathon {
@@ -51,12 +60,18 @@ export interface Hackathon {
   theme: string;
   description: string;
   prize_pool: string;
+  status?: 'LIVE' | 'CLOSED';
   start_date: string;
   end_date: string;
-  image_url?: string;
+  visible_from?: string | null;
+  visible_until?: string | null;
+  is_hidden?: boolean;
+  banner_image?: string | null;
+  registration_form?: number | null;
   form_slug?: string;
-  tracks?: string[];
-  team_size?: string;
+  form_title?: string;
+  registration_count?: number;
+  team_count?: number;
 }
 
 /** IconCoders is an individual DSA-challenge competition — its own entity,
@@ -294,7 +309,8 @@ export type FieldType =
   | 'LINEAR_SCALE'
   | 'MATRIX_RADIO'
   | 'MATRIX_CHECKBOX'
-  | 'SIGNATURE';
+  | 'SIGNATURE'
+  | 'CLUB_ID';
 
 export interface FormField {
   id: number | string;
@@ -340,6 +356,7 @@ export interface Form {
   club_id_enabled?: boolean;
   club_id_prefix?: string;
   club_id_field_mapping?: ClubIdFieldMapping;
+  club_id_verification_enabled?: boolean;
   confirmation_email_enabled?: boolean;
   confirmation_email_template?: number | string | null;
   /** QR-code attendance tracking — see apps/forms/models.py's attendance_* fields. */
@@ -416,8 +433,27 @@ export interface AttendanceReport {
   registrants: AttendanceRegistrantRow[];
 }
 
+/** GET /api/forms/<id>/attendance/my-record/ — the caller's own session-by-session attendance. */
+export interface MyAttendanceSessionRow {
+  id: number;
+  day_index: number;
+  session_label: 'MORNING' | 'AFTERNOON' | 'EVENING';
+  session_label_display: string;
+  date: string;
+  opens_at: string | null;
+  attended: boolean;
+}
+
+export interface MyAttendanceRecord {
+  sessions: MyAttendanceSessionRow[];
+  attended_count: number;
+  total_sessions: number;
+  percentage: number;
+}
+
 /** Maps club-member profile attributes to this form's own field IDs (see FormBuilderTab's Automation card). */
 export interface ClubIdFieldMapping {
+  club_id?: number | string;
   email?: number | string;
   full_name?: number | string;
   phone_number?: number | string;

@@ -37,6 +37,7 @@ import {
   Table2,
   PenTool,
   Link2,
+  Phone,
 } from 'lucide-react';
 import { Form, FormField, ValidationRules } from '@/lib/types';
 import { hasConstraintOptions, hasActiveValidation, getConstraintHint } from '@/lib/formValidation';
@@ -59,13 +60,14 @@ interface TypeMeta {
   hasScale?: boolean;
 }
 
-// Partial because FormField['type'] also includes exotic types (PHONE, ...) used by the
-// ported response/CSV admin tools that this builder doesn't offer as addable fields.
+// Partial because FormField['type'] also includes types this builder doesn't
+// offer as addable fields (e.g. exotic ones used by ported response/CSV admin tools).
 const TYPE_META: Partial<Record<FormField['type'], TypeMeta>> = {
   TEXT: { label: 'Short Answer', icon: Type },
   PARAGRAPH: { label: 'Paragraph', icon: AlignLeft },
   EMAIL: { label: 'Email Address', icon: Mail },
-  NUMBER: { label: 'Number / Phone', icon: Hash },
+  PHONE: { label: 'Phone Number', icon: Phone },
+  NUMBER: { label: 'Number', icon: Hash },
   URL: { label: 'Website URL', icon: Link2 },
   DROPDOWN: { label: 'Dropdown', icon: List, hasOptions: true },
   RADIO: { label: 'Multiple Choice', icon: CheckCircle2, hasOptions: true },
@@ -79,6 +81,7 @@ const TYPE_META: Partial<Record<FormField['type'], TypeMeta>> = {
   MATRIX_RADIO: { label: 'Multiple Choice Grid', icon: Grid3x3, hasOptions: true, hasRows: true },
   MATRIX_CHECKBOX: { label: 'Checkbox Grid', icon: Table2, hasOptions: true, hasRows: true },
   SIGNATURE: { label: 'Signature', icon: PenTool },
+  CLUB_ID: { label: 'Club ID', icon: IdCard },
   SECTION: { label: 'Section Header', icon: SeparatorHorizontal },
 };
 
@@ -91,12 +94,12 @@ function getTypeMeta(type: FormField['type']): TypeMeta {
 }
 
 const SELECTABLE_TYPES: FormField['type'][] = [
-  'TEXT', 'PARAGRAPH', 'EMAIL', 'NUMBER', 'URL', 'DROPDOWN', 'RADIO', 'CHECKBOX', 'DATE', 'TIME', 'FILE', 'MULTI_FILE',
-  'RATING', 'LINEAR_SCALE', 'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE',
+  'TEXT', 'PARAGRAPH', 'EMAIL', 'PHONE', 'NUMBER', 'URL', 'DROPDOWN', 'RADIO', 'CHECKBOX', 'DATE', 'TIME', 'FILE', 'MULTI_FILE',
+  'RATING', 'LINEAR_SCALE', 'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE', 'CLUB_ID',
 ];
 
 const FIELD_GROUPS: { label: string; icon: React.ElementType; types: FormField['type'][] }[] = [
-  { label: 'Text Inputs', icon: Type, types: ['TEXT', 'PARAGRAPH', 'EMAIL', 'NUMBER', 'URL'] },
+  { label: 'Text Inputs', icon: Type, types: ['TEXT', 'PARAGRAPH', 'EMAIL', 'PHONE', 'NUMBER', 'URL', 'CLUB_ID'] },
   { label: 'Choice Fields', icon: List, types: ['DROPDOWN', 'RADIO', 'CHECKBOX'] },
   { label: 'Rating & Matrix', icon: Grid3x3, types: ['RATING', 'LINEAR_SCALE', 'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE'] },
   { label: 'Advanced', icon: Layers, types: ['DATE', 'TIME', 'FILE', 'MULTI_FILE', 'SECTION'] },
@@ -124,7 +127,8 @@ interface FormBuilderTabProps {
     allow_edits_until?: string;
     club_id_enabled?: boolean;
     club_id_prefix?: string;
-    club_id_field_mapping?: { email?: number | string; full_name?: number | string; phone_number?: number | string; branch?: number | string; roll_number?: number | string };
+    club_id_field_mapping?: { club_id?: number | string; email?: number | string; full_name?: number | string; phone_number?: number | string; branch?: number | string; roll_number?: number | string };
+    club_id_verification_enabled?: boolean;
     confirmation_email_enabled?: boolean;
     confirmation_email_template?: number | string | null;
     attendance_enabled?: boolean;
@@ -204,6 +208,7 @@ export function FormBuilderTab({
   // saved once and the backend assigns it a permanent numeric id.
   const formIsSaved = typeof formMeta.id === 'number' && formMeta.id > 0;
   const emailFields = builderFields.filter((f) => f.type === 'EMAIL' && typeof f.id === 'number' && f.id > 0);
+  const savedFormFields = builderFields.filter((f) => f.type !== 'SECTION' && typeof f.id === 'number' && f.id > 0);
   const [scheduleOpenAt, setScheduleOpenAt] = useState(formMeta.open_at || '');
   const [scheduleCloseAt, setScheduleCloseAt] = useState(formMeta.close_at || '');
   const prevIdsRef = useRef<Set<number | string>>(new Set(builderFields.map((f) => f.id)));
@@ -568,7 +573,7 @@ export function FormBuilderTab({
                   <input
                     type="checkbox"
                     checked={!!formMeta.club_id_enabled}
-                    onChange={(e) => setFormMeta({ ...formMeta, club_id_enabled: e.target.checked })}
+                    onChange={(e) => setFormMeta({ ...formMeta, club_id_enabled: e.target.checked, ...(e.target.checked ? { club_id_verification_enabled: false } : {}) })}
                     className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
                   />
                 </label>
@@ -634,7 +639,7 @@ export function FormBuilderTab({
                                 className="w-full px-2.5 py-2 rounded border text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                               >
                                 <option value="">None</option>
-                                {builderFields.filter((f) => f.type !== 'SECTION' && typeof f.id === 'number' && f.id > 0).map((f) => (
+                                {savedFormFields.map((f) => (
                                   <option key={f.id} value={f.id}>{f.label}</option>
                                 ))}
                               </select>
@@ -645,6 +650,85 @@ export function FormBuilderTab({
                           Each completed submission is matched by email to the club member directory. New members get a
                           permanent ID like &quot;{new Date().getFullYear().toString().slice(-2)}{formMeta.club_id_prefix || 'SCC'}001&quot; —
                           returning members (same email) always keep their existing one.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3 pb-5 border-b border-slate-100 dark:border-slate-800">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                    <ShieldCheck className="w-4 h-4 text-[#FF7A00]" />
+                    Verify Club ID on submission
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!formMeta.club_id_verification_enabled}
+                    onChange={(e) => setFormMeta({ ...formMeta, club_id_verification_enabled: e.target.checked, ...(e.target.checked ? { club_id_enabled: false } : {}) })}
+                    className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
+                  />
+                </label>
+
+                {formMeta.club_id_verification_enabled && (
+                  <div className="pl-6 space-y-3">
+                    {!formIsSaved ? (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        Save this form once first, then come back here to map the fields used for Club ID verification.
+                      </p>
+                    ) : savedFormFields.length === 0 ? (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        Add fields to this form before enabling Club ID verification.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Club ID Field *</label>
+                            <select
+                              value={formMeta.club_id_field_mapping?.club_id ?? ''}
+                              onChange={(e) => setFormMeta({ ...formMeta, club_id_field_mapping: { ...formMeta.club_id_field_mapping, club_id: e.target.value || undefined } })}
+                              className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                            >
+                              <option value="">Select field…</option>
+                              {savedFormFields.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Name Field</label>
+                            <select
+                              value={formMeta.club_id_field_mapping?.full_name ?? ''}
+                              onChange={(e) => setFormMeta({ ...formMeta, club_id_field_mapping: { ...formMeta.club_id_field_mapping, full_name: e.target.value || undefined } })}
+                              className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                            >
+                              <option value="">None</option>
+                              {savedFormFields.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {([
+                            ['email', 'Email Field'],
+                            ['phone_number', 'Phone Field'],
+                            ['branch', 'Branch Field'],
+                            ['roll_number', 'Roll Number Field'],
+                          ] as const).map(([key, labelText]) => (
+                            <div key={key}>
+                              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">{labelText}</label>
+                              <select
+                                value={formMeta.club_id_field_mapping?.[key] ?? ''}
+                                onChange={(e) => setFormMeta({ ...formMeta, club_id_field_mapping: { ...formMeta.club_id_field_mapping, [key]: e.target.value || undefined } })}
+                                className="w-full px-2.5 py-2 rounded border text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                              >
+                                <option value="">None</option>
+                                {savedFormFields.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          The submitted Club ID must exist in the member directory. Any mapped profile fields must also match that member&apos;s records.
                         </p>
                       </>
                     )}
@@ -1753,10 +1837,12 @@ function LivePreview({
   viewportMode,
   setIsPreviewMode,
 }: LivePreviewProps) {
-  // previewAnswers is keyed by label; rebuild it by field id for the shared
-  // conditional engine (same one the public form + backend use).
+  const valueFor = (field: FormField) => previewAnswers[String(field.id)];
+  const updateValue = (field: FormField, value: any) =>
+    setPreviewAnswers({ ...previewAnswers, [String(field.id)]: value });
+
   const previewValuesById: Record<string, any> = {};
-  builderFields.forEach((f) => { previewValuesById[String(f.id)] = previewAnswers[f.label]; });
+  builderFields.forEach((f) => { previewValuesById[String(f.id)] = valueFor(f); });
   const previewLayout = computeLayout(builderFields as any, previewValuesById);
 
   return (
@@ -1824,13 +1910,13 @@ function LivePreview({
               </label>
               {field.description && <p className="text-xs text-slate-400 -mt-1">{field.description}</p>}
 
-              {field.type === 'TEXT' && (
+              {(field.type === 'TEXT' || field.type === 'PHONE' || field.type === 'CLUB_ID') && (
                 <input
-                  type="text"
+                  type={field.type === 'PHONE' ? 'tel' : 'text'}
                   required={field.is_required}
-                  placeholder={field.placeholder || 'Enter short text...'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  placeholder={field.placeholder || (field.type === 'CLUB_ID' ? 'Enter your Club ID...' : field.type === 'PHONE' ? '+91 9876543210' : 'Enter short text...')}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1840,8 +1926,8 @@ function LivePreview({
                   rows={3}
                   required={field.is_required}
                   placeholder={field.placeholder || 'Enter detailed response...'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1851,8 +1937,8 @@ function LivePreview({
                   type="email"
                   required={field.is_required}
                   placeholder={field.placeholder || 'email@example.com'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1862,8 +1948,8 @@ function LivePreview({
                   type="number"
                   required={field.is_required}
                   placeholder={field.placeholder || 'Enter number...'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1871,8 +1957,8 @@ function LivePreview({
               {field.type === 'DROPDOWN' && (
                 <select
                   required={field.is_required}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 >
                   <option value="">Select option...</option>
@@ -1890,8 +1976,8 @@ function LivePreview({
                         type="radio"
                         name={`preview-${field.id}`}
                         value={opt}
-                        checked={previewAnswers[field.label] === opt}
-                        onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                        checked={valueFor(field) === opt}
+                        onChange={(e) => updateValue(field, e.target.value)}
                         className="w-4 h-4 text-[#FF7A00] focus:ring-[#FF7A00]"
                       />
                       <span>{opt}</span>
@@ -1907,11 +1993,11 @@ function LivePreview({
                       <input
                         type="checkbox"
                         value={opt}
-                        checked={Array.isArray(previewAnswers[field.label]) && previewAnswers[field.label].includes(opt)}
+                        checked={Array.isArray(valueFor(field)) && valueFor(field).includes(opt)}
                         onChange={(e) => {
-                          const curr = Array.isArray(previewAnswers[field.label]) ? previewAnswers[field.label] : [];
+                          const curr = Array.isArray(valueFor(field)) ? valueFor(field) : [];
                           const next = e.target.checked ? [...curr, opt] : curr.filter((i: string) => i !== opt);
-                          setPreviewAnswers({ ...previewAnswers, [field.label]: next });
+                          updateValue(field, next);
                         }}
                         className="w-4 h-4 text-[#FF7A00] rounded focus:ring-[#FF7A00]"
                       />
@@ -1925,8 +2011,8 @@ function LivePreview({
                 <input
                   type={field.type === 'DATE' ? 'date' : 'time'}
                   required={field.is_required}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1948,8 +2034,8 @@ function LivePreview({
                   type="url"
                   required={field.is_required}
                   placeholder={field.placeholder || 'https://...'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1957,7 +2043,7 @@ function LivePreview({
               {(field.type === 'RATING' || field.type === 'LINEAR_SCALE') && (() => {
                 const min = field.min_value ?? 1;
                 const max = field.max_value ?? 5;
-                const current = Number(previewAnswers[field.label]) || 0;
+                const current = Number(valueFor(field)) || 0;
                 const nums: number[] = [];
                 for (let i = min; i <= max; i++) nums.push(i);
                 return (
@@ -1966,7 +2052,7 @@ function LivePreview({
                       <button
                         key={i}
                         type="button"
-                        onClick={() => setPreviewAnswers({ ...previewAnswers, [field.label]: i })}
+                        onClick={() => updateValue(field, i)}
                         className={`h-9 w-9 rounded-lg border text-xs font-bold transition-transform duration-100 active:scale-90 ${
                           current === i
                             ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
@@ -1985,7 +2071,7 @@ function LivePreview({
                 const cols = field.options || [];
                 const multi = field.type === 'MATRIX_CHECKBOX';
                 const matrixVal: Record<string, any> =
-                  previewAnswers[field.label] && typeof previewAnswers[field.label] === 'object' ? previewAnswers[field.label] : {};
+                  valueFor(field) && typeof valueFor(field) === 'object' ? valueFor(field) : {};
                 return (
                   <div className="overflow-x-auto pt-1">
                     <table className="w-full text-xs border-collapse">
@@ -2017,7 +2103,7 @@ function LivePreview({
                                             ? (Array.isArray(cell) ? cell : []).filter((x: string) => x !== c)
                                             : [...(Array.isArray(cell) ? cell : []), c]
                                           : c;
-                                        setPreviewAnswers({ ...previewAnswers, [field.label]: { ...matrixVal, [row]: nextCell } });
+                                        updateValue(field, { ...matrixVal, [row]: nextCell });
                                       }}
                                       className="h-3.5 w-3.5 accent-[#FF7A00]"
                                     />

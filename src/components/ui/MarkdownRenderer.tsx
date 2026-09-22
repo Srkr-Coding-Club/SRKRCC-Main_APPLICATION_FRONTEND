@@ -8,6 +8,23 @@ interface MarkdownRendererProps {
   className?: string;
 }
 
+/** True if `line` looks like a GFM table separator row, e.g. `| --- | :---: | ---: |`. */
+function isTableSeparatorRow(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed.includes('-') || !trimmed.includes('|')) return false;
+  const cells = trimmed.replace(/^\|/, '').replace(/\|$/, '').split('|');
+  return cells.length > 0 && cells.every((c) => /^:?-+:?$/.test(c.trim()));
+}
+
+/** Splits a `| a | b |` row into trimmed cell strings, dropping the empty
+ * segments produced by leading/trailing pipes. */
+function splitTableRow(line: string): string[] {
+  let s = line.trim();
+  if (s.startsWith('|')) s = s.slice(1);
+  if (s.endsWith('|')) s = s.slice(0, -1);
+  return s.split('|').map((c) => c.trim());
+}
+
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
   if (!content || !content.trim()) return null;
 
@@ -60,6 +77,31 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
         continue;
       }
 
+      // Image: ![alt](url) — must be checked before the link pattern below,
+      // since "![alt](url)" would otherwise fall through un-matched on the
+      // leading "!" (it isn't "[", so the link regex never fires on it), then
+      // the next pass sees a bare "[alt](url)" and renders it as a clickable
+      // text link instead of an image — the exact bug this fixes.
+      const imageMatch = remaining.match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+      if (imageMatch) {
+        const [, alt, src] = imageMatch;
+        tokens.push(
+          isSafeHref(src) ? (
+            <img
+              key={keyIdx++}
+              src={src}
+              alt={alt}
+              loading="lazy"
+              className="max-w-full h-auto rounded-lg my-2 border border-slate-200 dark:border-slate-800"
+            />
+          ) : (
+            <span key={keyIdx++} className="text-rose-500 text-xs italic">[blocked image: unsafe URL]</span>
+          )
+        );
+        remaining = remaining.slice(imageMatch[0].length);
+        continue;
+      }
+
       // Link: [label](url)
       const linkMatch = remaining.match(/^\[([^\]]+)\]\(([^)]+)\)/);
       if (linkMatch) {
@@ -106,8 +148,14 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
         continue;
       }
 
-      // Plain text character chunk
-      const nextSpecial = remaining.search(/[`\[\*_]/);
+      // Plain text character chunk — "!" is included here (even though it has
+      // no rendering of its own) so a chunk never swallows the "!" that
+      // belongs to a following "![alt](url)" image marker. Without it, this
+      // scan finds the "[" one character later, the chunk ends up including
+      // "...text!" with the "!" glued onto its end, and by the time control
+      // returns to the top of the loop "remaining" starts with "[alt](url)"
+      // — the image branch above never gets to see the "!" it requires.
+      const nextSpecial = remaining.search(/[`\[\*_!]/);
       if (nextSpecial === -1) {
         tokens.push(<span key={keyIdx++}>{remaining}</span>);
         break;
@@ -154,6 +202,51 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     if (/^(\*\*\*|---|___)$/.test(trimmed)) {
       flushList();
       elements.push(<hr key={`hr-${i}`} className="my-4 border-slate-200 dark:border-slate-800" />);
+      continue;
+    }
+
+    // GFM Table — a row containing "|" whose very next line is a separator
+    // row (| --- | --- |) is a table header; every following "|"-row is a
+    // body row until a blank line or a line that stops containing "|".
+    if (trimmed.includes('|') && i + 1 < lines.length && isTableSeparatorRow(lines[i + 1])) {
+      flushList();
+      const headerCells = splitTableRow(trimmed);
+      let cursor = i + 2; // skip header row + separator row
+      const bodyRows: string[][] = [];
+      while (cursor < lines.length && lines[cursor].trim().includes('|')) {
+        bodyRows.push(splitTableRow(lines[cursor]));
+        cursor++;
+      }
+      elements.push(
+        <div key={`table-${i}`} className="my-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+          <table className="min-w-full text-sm border-collapse">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-900/60">
+                {headerCells.map((cell, ci) => (
+                  <th
+                    key={ci}
+                    className="px-3 py-2 text-left font-bold text-slate-900 dark:text-white border-b-2 border-slate-200 dark:border-slate-700 whitespace-nowrap"
+                  >
+                    {renderInline(cell)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {bodyRows.map((row, ri) => (
+                <tr key={ri} className="border-b border-slate-100 dark:border-slate-800 last:border-0 even:bg-slate-50/50 dark:even:bg-slate-900/30">
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="px-3 py-2 text-slate-600 dark:text-slate-300 align-top">
+                      {renderInline(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      i = cursor - 1; // -1 because the outer for-loop's i++ advances past it
       continue;
     }
 

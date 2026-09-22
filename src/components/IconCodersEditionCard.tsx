@@ -32,7 +32,7 @@ export default function IconCodersEditionCard({
         className={`relative h-full w-full rounded-2xl outline-none transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)] focus-visible:[transform:rotateY(180deg)] ${flipped ? '[transform:rotateY(180deg)]' : ''}`}
       >
         {/* ---------- FRONT (image) ---------- */}
-        <div className="absolute inset-0 overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white shadow-[0_14px_40px_-20px_rgba(139,46,59,0.28)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] dark:border-white/10 dark:bg-[#161622]">
+        <div className="glass-panel absolute inset-0 overflow-hidden rounded-2xl border border-[#E5E5E5] shadow-[0_14px_40px_-20px_rgba(139,46,59,0.28)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] dark:border-white/10">
           <Image
             src={challenge.image_url || fallbackImage}
             alt={challenge.title}
@@ -76,7 +76,7 @@ export default function IconCodersEditionCard({
         </div>
 
         {/* ---------- BACK (details) ---------- */}
-        <div className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white/85 p-5 backdrop-blur-xl [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] dark:border-white/10 dark:bg-[#161622]/85">
+        <div className="glass-panel absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-[#E5E5E5] p-5 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] dark:border-white/10">
           <div
             className="absolute inset-x-0 top-0 h-0.5"
             style={{ background: `linear-gradient(90deg, ${accent}66, ${accent}, ${accent}66)` }}

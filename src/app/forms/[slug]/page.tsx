@@ -177,6 +177,8 @@ function matchUserDetailToField(field: FormField, user: AuthUser | null): any {
   const placeholder = (field.placeholder || '').toLowerCase().trim();
   const type = field.type;
 
+  if (type === 'CLUB_ID' && user.club_id) return user.club_id;
+
   // 1. Full Name / Student Name
   const isName = (
     label === 'name' ||
@@ -1191,7 +1193,15 @@ export default function FormDetailSubmissionPage() {
 
         {/* Success Confirmation Card */}
         {isSubmitted ? (
-          <div className="glass-panel rounded-xl p-8 sm:p-12 border border-emerald-200 dark:border-emerald-900/50 shadow-md text-center space-y-4">
+          <div className="relative glass-panel rounded-xl p-8 sm:p-12 border border-emerald-200 dark:border-emerald-900/50 shadow-md text-center space-y-4">
+            {/* Glow behind the glass panel — without it, a translucent panel
+                over this page's plain background has nothing colorful behind
+                it to actually blur, so it reads as flat/opaque instead of
+                glassy (same fix applied to the admin create-event panels). */}
+            <div
+              className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-70 blur-2xl"
+              style={{ background: 'radial-gradient(circle at 50% 20%, #10b98144, transparent 70%)' }}
+            />
             <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-500 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-10 h-10" />
             </div>
@@ -1219,7 +1229,17 @@ export default function FormDetailSubmissionPage() {
           </div>
         ) : (
           /* Form Content Card — shadow-input styling to match Aceternity's signup-form card */
-          <div className="glass-panel rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] space-y-8">
+          <div className="relative glass-panel rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] space-y-8">
+            {/* Glow behind the glass panel — see the matching comment on the
+                success card above for why this is needed at all. */}
+            <div
+              className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-70 blur-2xl hidden md:block"
+              style={{ background: 'radial-gradient(circle at 50% 10%, #FF7A0033, transparent 70%)' }}
+            />
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-0.5 rounded-t-2xl"
+              style={{ background: 'linear-gradient(90deg, #8B2E3B66, #FF7A00, #8B2E3B66)' }}
+            />
 
             {/* Header */}
             <div className="border-b border-slate-100 dark:border-slate-800 pb-6 space-y-4">
@@ -1240,10 +1260,10 @@ export default function FormDetailSubmissionPage() {
               {/* Authentication Status Banner */}
               {currentUser ? (
                 <div className="space-y-3">
-                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
                       <UserCheck className="w-4 h-4 flex-shrink-0" />
-                      <span>Submitting as verified user: <strong className="text-white">{currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser.username || currentUser.email}</strong> ({currentUser.email})</span>
+                      <span>Submitting as verified user: <strong className="text-emerald-900 dark:text-white">{currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser.username || currentUser.email}</strong> ({currentUser.email})</span>
                     </div>
                   </div>
 
@@ -1253,25 +1273,25 @@ export default function FormDetailSubmissionPage() {
                       just a normal, independent new submission. */}
                   {hasSubmitted && form?.allow_multiple_responses !== true && (
                     canEditResponse ? (
-                      <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-start gap-3">
-                        <Edit3 className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 flex items-start gap-3">
+                        <Edit3 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
-                          <p className="font-bold text-blue-300">
+                          <p className="font-bold text-blue-800 dark:text-blue-300">
                             Response Edit Mode Active
                           </p>
-                          <p className="text-blue-300/80">
+                          <p className="text-blue-700/80 dark:text-blue-300/80">
                             You previously submitted this form on {existingResponse?.submitted_at ? new Date(existingResponse.submitted_at).toLocaleString('en-IN') : 'earlier'}. You can update your answers below and click <strong>Update Response</strong> to save your changes.
                           </p>
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-                        <Lock className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
+                        <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
-                          <p className="font-bold text-amber-300">
+                          <p className="font-bold text-amber-800 dark:text-amber-300">
                             Response Already Submitted (Edits Locked)
                           </p>
-                          <p className="text-amber-300/80">
+                          <p className="text-amber-700/80 dark:text-amber-300/80">
                             You submitted your response on {existingResponse?.submitted_at ? new Date(existingResponse.submitted_at).toLocaleString('en-IN') : 'earlier'}. Further changes are closed.
                           </p>
                         </div>
@@ -1286,7 +1306,7 @@ export default function FormDetailSubmissionPage() {
                   )}
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <Lock className="w-5 h-5 text-[#FF7A00] flex-shrink-0" />
                     <div className="text-xs">
@@ -1304,11 +1324,11 @@ export default function FormDetailSubmissionPage() {
               )}
 
               {submissionError && (
-                <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs text-rose-300">
-                    <p className="font-bold text-rose-400">Submission Notice</p>
-                    <p className="mt-0.5 text-rose-300/80">{submissionError}</p>
+                <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-rose-800 dark:text-rose-300">
+                    <p className="font-bold text-rose-700 dark:text-rose-400">Submission Notice</p>
+                    <p className="mt-0.5 text-rose-700/80 dark:text-rose-300/80">{submissionError}</p>
                   </div>
                 </div>
               )}
@@ -1324,11 +1344,11 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'DRAFT') {
                   return (
-                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-amber-300">
+                    <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-amber-800 dark:text-amber-300">
                         <p className="font-bold">Draft Preview Mode</p>
-                        <p className="mt-0.5 text-amber-400/80">This form has not been published yet. Responses submitted here are for testing only.</p>
+                        <p className="mt-0.5 text-amber-700/80 dark:text-amber-400/80">This form has not been published yet. Responses submitted here are for testing only.</p>
                       </div>
                     </div>
                   );
@@ -1336,11 +1356,11 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'CLOSED' || isAfterClose) {
                   return (
-                    <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-rose-300">
+                    <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-500 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-rose-800 dark:text-rose-300">
                         <p className="font-bold">Submissions Closed</p>
-                        <p className="mt-0.5 text-rose-300/80">
+                        <p className="mt-0.5 text-rose-700/80 dark:text-rose-300/80">
                           {closeTime
                             ? `The deadline for this form ended on ${new Date(form.close_at!).toLocaleString('en-IN')}.`
                             : 'This form has been closed to new responses by club leadership.'}
@@ -1352,11 +1372,11 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'SCHEDULED' && isBeforeOpen) {
                   return (
-                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-3">
-                      <Calendar className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-blue-300">
+                    <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 flex items-start gap-3">
+                      <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-blue-800 dark:text-blue-300">
                         <p className="font-bold">Scheduled Launch Window</p>
-                        <p className="mt-0.5 text-blue-300/80">
+                        <p className="mt-0.5 text-blue-700/80 dark:text-blue-300/80">
                           Submissions will automatically open on{' '}
                           <strong>{new Date(form.open_at!).toLocaleString('en-IN')}</strong>. Please check back then.
                         </p>
@@ -1367,11 +1387,11 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'SCHEDULED' && !isBeforeOpen && !isAfterClose) {
                   return (
-                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-emerald-300">
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-emerald-800 dark:text-emerald-300">
                         <p className="font-bold">Scheduled Window Live</p>
-                        <p className="mt-0.5 text-emerald-300/80">
+                        <p className="mt-0.5 text-emerald-700/80 dark:text-emerald-300/80">
                           This form is open for submissions
                           {form.close_at && ` until ${new Date(form.close_at).toLocaleString('en-IN')}`}.
                         </p>
@@ -1439,11 +1459,11 @@ export default function FormDetailSubmissionPage() {
                     )}
 
                     {/* TEXT Field */}
-                    {field.type === 'TEXT' && (
+                    {(field.type === 'TEXT' || field.type === 'CLUB_ID') && (
                       <SpotlightInput
                         id={`field-${field.id}`}
                         type="text"
-                        placeholder={field.placeholder || 'Enter response...'}
+                        placeholder={field.placeholder || (field.type === 'CLUB_ID' ? 'Enter your Club ID...' : 'Enter response...')}
                         value={fieldVal}
                         maxLength={field.validation_rules?.maxLength}
                         onChange={(e) => handleInputChange(field, e.target.value)}

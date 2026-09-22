@@ -19,6 +19,7 @@ export default function AdminUsersPage() {
     handleCreateUser,
     handleRoleChange,
     handleMembershipStatusChange,
+    handleRollNumberChange,
   } = useAdminData({ include: ['users'] }); // this page only renders the user list/roles — skip fetching forms, flags, audit logs, and submissions
 
   return (
@@ -32,6 +33,7 @@ export default function AdminUsersPage() {
           onOpenCreateModal={() => setShowCreateUserModal(true)}
           onRoleChange={handleRoleChange}
           onMembershipStatusChange={handleMembershipStatusChange}
+          onRollNumberChange={handleRollNumberChange}
         />
 
         <CreateUserModal

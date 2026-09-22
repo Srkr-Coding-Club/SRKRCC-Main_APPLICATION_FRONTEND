@@ -119,11 +119,10 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
 
             <div>
               <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
-                Roll Number *
+                Roll Number <span className="normal-case font-medium text-slate-400">(optional)</span>
               </label>
               <input
                 type="text"
-                required
                 placeholder="22B91A0501"
                 value={newUser.rollNumber}
                 onChange={(e) => setNewUser({ ...newUser, rollNumber: e.target.value })}

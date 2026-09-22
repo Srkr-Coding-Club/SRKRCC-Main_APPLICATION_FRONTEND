@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { clearSessionCookies } from '@/lib/server/authCookies';
 
 const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
@@ -26,9 +27,7 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ success: true, message: 'Logged out successfully' });
 
-  response.cookies.delete('srkrcc_access_token');
-  response.cookies.delete('srkrcc_refresh_token');
-  response.cookies.delete('srkrcc_user_role');
+  clearSessionCookies(response);
 
   return response;
 }

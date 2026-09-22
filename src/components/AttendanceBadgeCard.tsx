@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { QrCode } from 'lucide-react';
+import { QrCode, CheckCircle2, Circle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { fetchApi } from '@/lib/api-client';
-import { AttendanceBadge } from '@/lib/types';
+import { AttendanceBadge, MyAttendanceRecord } from '@/lib/types';
 
 interface AttendanceBadgeCardProps {
   formId: number | string;
@@ -17,11 +17,16 @@ interface AttendanceBadgeCardProps {
  * `token` is rendered as a QR code volunteers scan at check-in (see
  * AttendanceScannerTab / POST /api/attendance/scan/ on the admin side).
  *
+ * Also fetches GET /api/forms/<id>/attendance/my-record/ and renders a
+ * session-by-session attended/not-attended list beneath the QR code — the
+ * registrant's own performance for this event, not just their check-in pass.
+ *
  * Viewed from Profile → Registered Events → select event, so the container
  * (AttendanceBadgeModal) is responsible for gating when this mounts.
  */
 export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeCardProps) {
   const [badge, setBadge] = useState<AttendanceBadge | null>(null);
+  const [record, setRecord] = useState<MyAttendanceRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,8 +36,16 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
       setLoading(true);
       setError(null);
       try {
-        const res = await fetchApi<AttendanceBadge>(`/forms/${formId}/attendance/my-badge/`);
-        if (!cancelled) setBadge(res);
+        const [badgeRes, recordRes] = await Promise.all([
+          fetchApi<AttendanceBadge>(`/forms/${formId}/attendance/my-badge/`),
+          // Sessions may not exist yet (e.g. the form was just switched on) —
+          // that's not fatal to showing the QR pass itself, so it fails quietly.
+          fetchApi<MyAttendanceRecord>(`/forms/${formId}/attendance/my-record/`).catch(() => null),
+        ]);
+        if (!cancelled) {
+          setBadge(badgeRes);
+          setRecord(recordRes);
+        }
       } catch (err: any) {
         if (!cancelled) setError(err?.message || 'Could not load your attendance pass.');
       } finally {
@@ -68,21 +81,60 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
   if (!badge) return null;
 
   return (
-    <div className="rounded-xl border border-orange-200 dark:border-orange-900/50 bg-gradient-to-b from-orange-50/60 to-white dark:from-orange-950/20 dark:to-[#151722] p-6 sm:p-8 text-center space-y-4">
-      <div className="flex items-center justify-center gap-2 text-[#FF7A00]">
-        <QrCode className="w-5 h-5" />
-        <h3 className="text-sm font-black uppercase tracking-widest">Your Attendance Pass</h3>
+    <div className="space-y-4">
+      <div className="rounded-xl border border-orange-200 dark:border-orange-900/50 bg-gradient-to-b from-orange-50/60 to-white dark:from-orange-950/20 dark:to-[#151722] p-6 sm:p-8 text-center space-y-4">
+        <div className="flex items-center justify-center gap-2 text-[#FF7A00]">
+          <QrCode className="w-5 h-5" />
+          <h3 className="text-sm font-black uppercase tracking-widest">Your Attendance Pass</h3>
+        </div>
+        <div className="inline-block p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <QRCodeSVG value={badge.token} size={192} level="M" includeMargin={false} />
+        </div>
+        {registrantName && (
+          <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{registrantName}</p>
+        )}
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+          Show this QR code at check-in for each session. It stays the same for every day — no need to reload or
+          re-download it.
+        </p>
       </div>
-      <div className="inline-block p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-        <QRCodeSVG value={badge.token} size={192} level="M" includeMargin={false} />
-      </div>
-      {registrantName && (
-        <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{registrantName}</p>
+
+      {record && record.total_sessions > 0 && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 glass-panel p-5 text-left space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Your Attendance
+            </h4>
+            <span className="text-xs font-bold text-[#1A1A2E] dark:text-white">
+              {record.attended_count}/{record.total_sessions} sessions · {record.percentage}%
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {record.sessions.map((s) => (
+              <div
+                key={s.id}
+                className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+                  s.attended
+                    ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-slate-50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  {s.attended ? (
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  ) : (
+                    <Circle className="w-4 h-4 flex-shrink-0 opacity-50" />
+                  )}
+                  Day {s.day_index + 1} · {s.session_label_display}
+                </span>
+                <span className="text-[11px] opacity-80">
+                  {new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
-      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-        Show this QR code at check-in for each session. It stays the same for every day — no need to reload or
-        re-download it.
-      </p>
     </div>
   );
 }

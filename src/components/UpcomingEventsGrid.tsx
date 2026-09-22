@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import Link from 'next/link';
 import PillButton from './PillButton';
 import { fetchApi } from '@/lib/api-client';
 import { Event } from '@/lib/types';
@@ -17,6 +18,9 @@ interface EventItem {
   location: string;
   accent: string;
   formSlug?: string;
+  closed: boolean;
+  /** When the linked form stops accepting submissions — distinct from `date`/`time` above (when the event itself happens). */
+  registrationClosesLabel: string | null;
 }
 
 // Cycled by index onto whichever events come back from the API (which carries
@@ -42,10 +46,8 @@ const FALLBACK_EVENTS: Event[] = [
     capacity: 150,
     start_time: '2025-05-20T09:30:00Z',
     end_time: '2025-05-20T16:30:00Z',
-    image_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80',
-    speaker: 'Rahul Sharma (Senior Lead)',
+    poster_image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80',
     form_slug: 'hands-on-nextjs-workshop-2025',
-    tags: ['React', 'Next.js 15', 'Tailwind CSS'],
   },
   {
     id: 2,
@@ -57,9 +59,7 @@ const FALLBACK_EVENTS: Event[] = [
     capacity: 100,
     start_time: '2025-05-28T10:00:00Z',
     end_time: '2025-05-28T13:00:00Z',
-    image_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
-    speaker: 'Karthik Raju (AI Wing Lead)',
-    tags: ['AI/ML', 'PyTorch', 'LLMs'],
+    poster_image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 3,
@@ -71,25 +71,29 @@ const FALLBACK_EVENTS: Event[] = [
     capacity: 500,
     start_time: '2025-06-01T10:00:00Z',
     end_time: '2025-06-01T12:30:00Z',
-    image_url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80',
-    speaker: 'SRKRCC Executive Board',
+    poster_image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80',
     form_slug: 'iconcoders-2025-registration',
-    tags: ['Hackathon', 'IconCoders', 'Flagship'],
   },
 ];
 
 function mapEventToItem(event: Event, index: number): EventItem {
-  const start = new Date(event.start_time);
+  const start = event.start_time ? new Date(event.start_time) : null;
   return {
     id: event.slug || String(event.id),
     title: event.title,
-    poster: event.image_url || FALLBACK_POSTERS[index % FALLBACK_POSTERS.length],
+    poster: event.poster_image || FALLBACK_POSTERS[index % FALLBACK_POSTERS.length],
     badge: (event.category || 'Event').toUpperCase(),
-    date: start.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
-    time: start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+    date: start ? start.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Date TBA',
+    time: start ? start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '',
     location: event.venue,
     accent: ACCENT_PALETTE[index % ACCENT_PALETTE.length],
     formSlug: event.form_slug,
+    closed: event.status === 'CLOSED',
+    registrationClosesLabel: event.registration_closes_at
+      ? new Date(event.registration_closes_at).toLocaleDateString('en-US', { day: '2-digit', month: 'short' }) +
+        ' · ' +
+        new Date(event.registration_closes_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      : null,
   };
 }
 
@@ -267,26 +271,47 @@ export default function UpcomingEventsGrid() {
                     Event {String(index + 1).padStart(2, '0')} / {String(events.length).padStart(2, '0')}
                   </span>
                   <h3 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold font-poppins text-[#1A1A2E] dark:text-white leading-tight">
-                    {evt.title}
+                    <Link href={`/events/${evt.id}`} className="hover:text-[#FF7A00] transition-colors">
+                      {evt.title}
+                    </Link>
                   </h3>
 
                   <div className="mt-5 space-y-3 text-sm text-slate-500 dark:text-slate-400 font-medium">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: evt.accent }} />
                       <span>{evt.date}</span>
-                      <span className="text-slate-300 dark:text-slate-700">|</span>
-                      <Clock className="w-4 h-4 flex-shrink-0" style={{ color: evt.accent }} />
-                      <span>{evt.time}</span>
+                      {evt.time && (
+                        <>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <Clock className="w-4 h-4 flex-shrink-0" style={{ color: evt.accent }} />
+                          <span>{evt.time}</span>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 flex-shrink-0" style={{ color: evt.accent }} />
                       <span>{evt.location}</span>
                     </div>
+                    {evt.registrationClosesLabel && !evt.closed && (
+                      <p className="text-xs">
+                        <span className="font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Registration Closes:</span>{' '}
+                        {evt.registrationClosesLabel}
+                      </p>
+                    )}
                   </div>
 
-                  <div className="mt-7">
-                    <PillButton href={evt.formSlug ? `/forms/${evt.formSlug}` : '/forms'} variant="solid">
-                      Register Now
+                  <div className="mt-7 flex flex-wrap items-center gap-3">
+                    {evt.closed ? (
+                      <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-white/5 px-6 py-3 text-sm font-semibold text-slate-400">
+                        Registration Closed
+                      </span>
+                    ) : (
+                      <PillButton href={evt.formSlug ? `/forms/${evt.formSlug}` : '/forms'} variant="solid">
+                        Register Now
+                      </PillButton>
+                    )}
+                    <PillButton href={`/events/${evt.id}`} variant="outline">
+                      View Details
                     </PillButton>
                   </div>
                 </div>

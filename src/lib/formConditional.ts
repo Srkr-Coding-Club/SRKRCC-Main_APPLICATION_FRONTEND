@@ -24,13 +24,15 @@ const OPERATOR_ALIASES: Record<string, string> = {
 const ENFORCED_ACTIONS = new Set(['show', 'hide', 'require', 'optional']);
 const DEFERRED_ACTIONS = new Set(['skip', 'skip_to_section', 'end_form', 'set_value', 'restrict_options', 'display_message']);
 
-export interface NLeaf { field: number | null; operator: string; value: any; }
+export interface NLeaf { field: number | string | null; operator: string; value: any; }
 export interface NGroup { logic: 'AND' | 'OR'; rules: (NLeaf | NGroup)[]; }
 export interface NConditional extends NGroup { action: string; }
 
-function coerceRef(raw: any): number | null {
+function coerceRef(raw: any): number | string | null {
   const n = Number(raw);
-  return Number.isInteger(n) ? n : null;
+  if (Number.isInteger(n)) return n;
+  if (typeof raw === 'string' && raw.trim()) return raw.trim();
+  return null;
 }
 
 function normalizeNode(node: any): NLeaf | NGroup | null {
@@ -183,7 +185,7 @@ export function isEmpty(value: any): boolean {
 // value, instead of appearing on first render.
 const EMPTY_OK_OPERATORS = new Set(['is_empty', 'is_not_empty']);
 
-function evalNode(node: NLeaf | NGroup, values: Map<number, any>): boolean | null {
+function evalNode(node: NLeaf | NGroup, values: Map<number | string, any>): boolean | null {
   if ('rules' in node) {
     const results = node.rules.map((r) => evalNode(r, values)).filter((r): r is boolean => r !== null);
     if (!results.length) return null;
@@ -212,11 +214,11 @@ export function computeLayout(fields: FormField[], valuesByStrId: Record<string,
     if (n) norm.set(String(f.id), n);
   }
 
-  const numValues = new Map<number, any>();
+  const currentValues = new Map<number | string, any>();
   for (const f of active) {
     const v = valuesByStrId[String(f.id)];
     const n = Number(f.id);
-    if (Number.isInteger(n)) numValues.set(n, v);
+    currentValues.set(Number.isInteger(n) ? n : String(f.id), v);
   }
 
   const visible = new Set<string>(active.map((f) => String(f.id)));
@@ -225,10 +227,10 @@ export function computeLayout(fields: FormField[], valuesByStrId: Record<string,
   const maxPasses = active.length + 1;
   for (let pass = 0; pass < maxPasses; pass++) {
     let changed = false;
-    const effective = new Map<number, any>();
-    for (const [k, v] of numValues) {
+    const effective = new Map<number | string, any>();
+    for (const [k, v] of currentValues) {
       // Only visible fields feed conditions.
-      const f = active.find((x) => Number(x.id) === k);
+      const f = active.find((x) => String(x.id) === String(k));
       if (f && visible.has(String(f.id))) effective.set(k, v);
     }
 

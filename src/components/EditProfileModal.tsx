@@ -80,7 +80,7 @@ function validateProfileUrl(value: string, label: string): string | undefined {
   return undefined;
 }
 
-function validateForm(form: FormState): FormErrors {
+function validateForm(form: FormState, rollNumberLocked: boolean): FormErrors {
   const errors: FormErrors = {};
 
   if (!form.first_name.trim()) {
@@ -98,9 +98,10 @@ function validateForm(form: FormState): FormErrors {
   const phoneErr = validatePhoneNumber(form.phone_number);
   if (phoneErr) errors.phone_number = phoneErr;
 
-  if (!form.roll_number.trim()) {
-    errors.roll_number = 'Roll number is required.';
-  } else {
+  // Once set, roll_number is disabled in the UI (only an admin can change
+  // it from here on — see UserProfileDetailSerializer.validate_roll_number
+  // on the backend), so there's nothing to validate.
+  if (!rollNumberLocked) {
     const rollErr = validateRollNumber(form.roll_number);
     if (rollErr) errors.roll_number = rollErr;
   }
@@ -171,6 +172,13 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
 
   if (!isOpen) return null;
 
+  // A member can set their own roll number once; after that, only an admin
+  // (via the Users tab) can change or clear it — see
+  // UserProfileDetailSerializer.validate_roll_number on the backend. Locked
+  // on the ORIGINAL value, not the in-progress form state, so it can't be
+  // bypassed by clearing the field client-side.
+  const rollNumberLocked = Boolean(initialForm.roll_number);
+
   const update = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
@@ -179,7 +187,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const validationErrors = validateForm(form);
+    const validationErrors = validateForm(form, rollNumberLocked);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -319,7 +327,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
 
             <div>
               <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
-                Roll Number
+                Roll Number {!rollNumberLocked && <span className="normal-case font-medium text-slate-400">(optional)</span>}
               </label>
               <input
                 type="text"
@@ -328,10 +336,20 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
                 placeholder="22B91A0501"
                 value={form.roll_number}
                 onChange={(e) => update('roll_number', sanitizeRollNumberInput(e.target.value))}
+                disabled={rollNumberLocked}
                 aria-invalid={Boolean(errors.roll_number)}
-                aria-describedby={errors.roll_number ? 'edit-profile-roll-number-error' : undefined}
-                className={`${inputClasses(Boolean(errors.roll_number))} font-mono tracking-wide`}
+                aria-describedby={errors.roll_number ? 'edit-profile-roll-number-error' : rollNumberLocked ? 'edit-profile-roll-number-locked' : undefined}
+                className={`${inputClasses(Boolean(errors.roll_number))} font-mono tracking-wide ${rollNumberLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
+              {rollNumberLocked ? (
+                <p id="edit-profile-roll-number-locked" className="mt-1 text-[11px] text-slate-400">
+                  Already set — contact an admin to change it.
+                </p>
+              ) : (
+                <p className="mt-1 text-[11px] text-slate-400">
+                  You can set this once — after saving, only an admin can change it.
+                </p>
+              )}
               <FieldError id="edit-profile-roll-number-error" message={errors.roll_number} />
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { setSessionCookies } from '@/lib/server/authCookies';
 
 const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
@@ -69,34 +70,7 @@ export async function POST(request: NextRequest) {
       role,
     });
 
-    // 1. Set HttpOnly Access Token Cookie (1 hour)
-    response.cookies.set('srkrcc_access_token', access, {
-      httpOnly: true,
-      secure,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60, // 1 hour
-    });
-
-    // 2. Set HttpOnly Refresh Token Cookie (7 days)
-    if (refresh) {
-      response.cookies.set('srkrcc_refresh_token', refresh, {
-        httpOnly: true,
-        secure,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60, // 7 days
-      });
-    }
-
-    // 3. Set Non-HttpOnly Role & User Cookie for UI/Client reading
-    response.cookies.set('srkrcc_user_role', role, {
-      httpOnly: false,
-      secure,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60,
-    });
+    setSessionCookies(response, { access, refresh }, secure, role);
 
     return response;
   } catch (error: any) {

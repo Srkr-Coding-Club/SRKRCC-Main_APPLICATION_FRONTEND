@@ -79,6 +79,36 @@ interface FullUserProfile {
   badges: BadgeItem[];
 }
 
+function StatCard({
+  label,
+  value,
+  valueClassName,
+  icon,
+  iconClassName,
+  glow,
+}: {
+  label: string;
+  value: string;
+  valueClassName: string;
+  icon: React.ReactNode;
+  iconClassName: string;
+  glow: string;
+}) {
+  return (
+    <div className="relative glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between overflow-hidden">
+      <div
+        className="pointer-events-none absolute -inset-4 -z-10 rounded-2xl opacity-70 blur-xl"
+        style={{ background: `radial-gradient(circle at 30% 20%, ${glow}, transparent 70%)` }}
+      />
+      <div>
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</p>
+        <p className={`text-2xl sm:text-3xl font-extrabold mt-1 ${valueClassName}`}>{value}</p>
+      </div>
+      <div className={`p-3 rounded-lg ${iconClassName}`}>{icon}</div>
+    </div>
+  );
+}
+
 function ProfileContent() {
   const { toast } = useToast();
   const router = useRouter();
@@ -245,7 +275,18 @@ function ProfileContent() {
         )}
 
         {/* Top Profile Header Banner */}
-        <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="relative glass-panel rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Glow behind the glass panel — without it, a translucent panel over
+              this page's plain background has nothing colorful behind it to
+              actually blur, so it reads as flat/opaque instead of glassy. */}
+          <div
+            className="pointer-events-none absolute -inset-6 -z-10 rounded-[32px] opacity-70 blur-2xl hidden sm:block"
+            style={{ background: 'radial-gradient(circle at 20% 20%, #FF7A0033, transparent 60%), radial-gradient(circle at 80% 80%, #8B2E3B33, transparent 60%)' }}
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-0.5 rounded-t-2xl"
+            style={{ background: 'linear-gradient(90deg, #8B2E3B66, #FF7A00, #FFA500, #8B2E3B66)' }}
+          />
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] p-1 shadow-lg flex items-center justify-center">
@@ -324,6 +365,19 @@ function ProfileContent() {
               </Link>
             )}
 
+            {/* VOLUNTEER can't reach /admin (AdminGuard is ADMIN/CLUB_LEAD only),
+                so this is the only in-app path to the scanner for that role —
+                ADMIN/CLUB_LEAD get it too since both routes work for them either way. */}
+            {(user.role === 'VOLUNTEER' || user.role === 'ADMIN' || user.role === 'CLUB_LEAD') && (
+              <Link
+                href="/attendance/scan"
+                className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95"
+              >
+                <QrCode className="w-4 h-4" />
+                <span>Scan Attendance</span>
+              </Link>
+            )}
+
             <button
               onClick={() => setIsEditModalOpen(true)}
               className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95"
@@ -367,6 +421,29 @@ function ProfileContent() {
           </div>
         )}
 
+        {/* Roll Number Reminder — roll number is optional at signup, so a
+            member can land here without one; nudge them to add it since
+            attendance/certificate matching relies on it. */}
+        {!loading && profile && !profile.roll_number && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left">
+            <div className="flex items-start gap-3">
+              <Hash className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="text-xs">
+                <p className="font-bold text-amber-600 dark:text-amber-400">Add Your Roll Number</p>
+                <p className="text-amber-700/80 dark:text-amber-300/70 mt-0.5">
+                  You haven't set your roll number yet — add it so event attendance and certificates can be matched to your official student record.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 transition active:scale-95 whitespace-nowrap"
+            >
+              Add Roll Number
+            </button>
+          </div>
+        )}
+
         {authError === 'admin_access_required' && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3 text-left">
             <ShieldAlert className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
@@ -381,45 +458,38 @@ function ProfileContent() {
 
         {/* Dashboard Metrics Bar (Dynamic From DB) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Codequest Streak</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-[#FF7A00] mt-1">{user.streak} Days</p>
-            </div>
-            <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]">
-              <Flame className="w-6 h-6" />
-            </div>
-          </div>
-
-          <div className="glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Events Registered</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-[#1A1A2E] dark:text-white mt-1">{user.eventsCount}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-[#8B2E3B] dark:text-rose-400">
-              <Calendar className="w-6 h-6" />
-            </div>
-          </div>
-
-          <div className="glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Projects Built</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">{user.projectsCount}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
-              <Code2 className="w-6 h-6" />
-            </div>
-          </div>
-
-          <div className="glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Member Points</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400 mt-1">{user.points} XP</p>
-            </div>
-            <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
-              <Award className="w-6 h-6" />
-            </div>
-          </div>
+          <StatCard
+            label="Codequest Streak"
+            value={`${user.streak} Days`}
+            valueClassName="text-[#FF7A00]"
+            icon={<Flame className="w-6 h-6" />}
+            iconClassName="bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]"
+            glow="#FF7A0033"
+          />
+          <StatCard
+            label="Events Registered"
+            value={String(user.eventsCount)}
+            valueClassName="text-[#1A1A2E] dark:text-white"
+            icon={<Calendar className="w-6 h-6" />}
+            iconClassName="bg-rose-50 dark:bg-rose-950/40 text-[#8B2E3B] dark:text-rose-400"
+            glow="#8B2E3B33"
+          />
+          <StatCard
+            label="Projects Built"
+            value={String(user.projectsCount)}
+            valueClassName="text-emerald-600 dark:text-emerald-400"
+            icon={<Code2 className="w-6 h-6" />}
+            iconClassName="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+            glow="#10b98133"
+          />
+          <StatCard
+            label="Member Points"
+            value={`${user.points} XP`}
+            valueClassName="text-purple-600 dark:text-purple-400"
+            icon={<Award className="w-6 h-6" />}
+            iconClassName="bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400"
+            glow="#a855f733"
+          />
         </div>
 
         {/* Registered Events & Activity Grid */}
@@ -428,7 +498,8 @@ function ProfileContent() {
           {/* Main Column: Registered Events */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white">
+              <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#FF7A00]" />
                 My Enrolled Events & Submissions ({registeredEvents.length})
               </h2>
               <Link href="/forms" className="text-xs font-bold text-[#FF7A00] hover:text-[#E06B00]">
@@ -438,52 +509,75 @@ function ProfileContent() {
 
             {registeredEvents.length > 0 ? (
               <div className="space-y-4">
-                {registeredEvents.map((evt) => (
-                  <div
-                    key={evt.id}
-                    className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                  >
-                    <div className="space-y-1">
-                      <span className="text-xs font-mono font-bold text-[#FF7A00]">
-                        {evt.track}
-                      </span>
-                      <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
-                        {evt.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Date / Schedule: {evt.date}
-                      </p>
-                    </div>
+                {registeredEvents.map((evt) => {
+                  const isConfirmed = evt.status === 'Seat Confirmed';
+                  const accent = isConfirmed ? '#10b981' : '#FF7A00';
+                  return (
+                    <div
+                      key={evt.id}
+                      className="relative glass-panel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+                    >
+                      <div
+                        className="pointer-events-none absolute -inset-4 -z-10 opacity-60 blur-xl"
+                        style={{ background: `radial-gradient(circle at 0% 0%, ${accent}22, transparent 65%)` }}
+                      />
+                      <div className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: accent }} />
+                      <div className="p-6 pl-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-start gap-4 min-w-0">
+                          <div
+                            className="hidden sm:flex p-3 rounded-lg flex-shrink-0"
+                            style={{ backgroundColor: `${accent}1A`, color: accent }}
+                          >
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div className="space-y-1 min-w-0">
+                            <span className="text-xs font-mono font-bold text-[#FF7A00]">
+                              {evt.track}
+                            </span>
+                            <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white truncate">
+                              {evt.title}
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Date / Schedule: {evt.date}
+                            </p>
+                          </div>
+                        </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {evt.attendance_enabled && evt.form_id && (
-                        <button
-                          type="button"
-                          onClick={() => setQrBadgeEvent(evt)}
-                          className="px-3 py-1.5 rounded-md text-xs font-bold bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-[#FF7A00] transition inline-flex items-center gap-1.5"
-                        >
-                          <QrCode className="w-3.5 h-3.5" />
-                          <span>View QR Badge</span>
-                        </button>
-                      )}
-                      {evt.form_slug && (
-                        <Link
-                          href={`/forms/${evt.form_slug}`}
-                          className="px-3 py-1.5 rounded-md text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
-                        >
-                          View Form
-                        </Link>
-                      )}
-                      <span className={`px-3 py-1.5 rounded-md text-xs font-bold border ${evt.badgeBg} inline-flex items-center space-x-1`}>
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>{evt.status}</span>
-                      </span>
+                        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                          {evt.attendance_enabled && evt.form_id && (
+                            <button
+                              type="button"
+                              onClick={() => setQrBadgeEvent(evt)}
+                              className="px-3 py-1.5 rounded-md text-xs font-bold bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-[#FF7A00] transition inline-flex items-center gap-1.5"
+                            >
+                              <QrCode className="w-3.5 h-3.5" />
+                              <span>View QR Badge</span>
+                            </button>
+                          )}
+                          {evt.form_slug && (
+                            <Link
+                              href={`/forms/${evt.form_slug}`}
+                              className="px-3 py-1.5 rounded-md text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
+                            >
+                              View Form
+                            </Link>
+                          )}
+                          <span className={`px-3 py-1.5 rounded-md text-xs font-bold border ${evt.badgeBg} inline-flex items-center space-x-1`}>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>{evt.status}</span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="p-8 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 text-center space-y-3">
+              <div className="relative p-8 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 text-center space-y-3 overflow-hidden">
+                <div
+                  className="pointer-events-none absolute -inset-6 -z-10 opacity-60 blur-2xl"
+                  style={{ background: 'radial-gradient(circle at 50% 0%, #FF7A0022, transparent 65%)' }}
+                />
                 <FileText className="w-8 h-8 text-slate-400 mx-auto" />
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No active registrations yet</p>
                 <p className="text-xs text-slate-500">Discover upcoming workshops, hackathons, and algorithm challenges in the club portal.</p>
@@ -500,11 +594,15 @@ function ProfileContent() {
 
           {/* Sidebar Column: Dynamic Badges & Quick Links */}
           <div className="space-y-6">
-            <div className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="relative glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 overflow-hidden">
+              <div
+                className="pointer-events-none absolute -inset-4 -z-10 opacity-60 blur-xl"
+                style={{ background: 'radial-gradient(circle at 100% 0%, #a855f733, transparent 70%)' }}
+              />
               <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
                 SRKRCC Member Badges
               </h3>
-              
+
               <div className="space-y-3">
                 {badges.map((badge) => (
                   <div

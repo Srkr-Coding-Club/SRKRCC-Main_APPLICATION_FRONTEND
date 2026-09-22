@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Search, UserPlus, Eye } from 'lucide-react';
+import { Search, UserPlus, Eye, Pencil, Check, X as XIcon } from 'lucide-react';
 import { getStoredUser } from '@/lib/auth';
+import { sanitizeRollNumberInput, validateRollNumber } from '@/lib/validation/auth';
 import { DetailDrawer } from './DetailDrawer';
 
 interface UserRecord {
@@ -53,7 +54,124 @@ function DrawerSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
-function UserDrawerContent({ user }: { user: UserRecord }) {
+/**
+ * Roll Number is the one Academic field an admin can edit from this drawer —
+ * unlike everything else here (read-only display), a member can only
+ * self-set their OWN roll number ONCE (see
+ * UserProfileDetailSerializer.validate_roll_number on the backend); after
+ * that, only an admin can add/correct/clear it, which is what this does.
+ */
+function EditableRollNumberField({
+  userId,
+  initialValue,
+  onSave,
+}: {
+  userId: number;
+  initialValue: string;
+  onSave: (userId: number, value: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [savedValue, setSavedValue] = useState(initialValue);
+  const [draft, setDraft] = useState(initialValue);
+  const [error, setError] = useState<string | undefined>();
+  const [saving, setSaving] = useState(false);
+
+  const startEditing = () => {
+    setDraft(savedValue);
+    setError(undefined);
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    const err = validateRollNumber(draft);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setSaving(true);
+    try {
+      const sanitized = sanitizeRollNumberInput(draft);
+      await onSave(userId, sanitized);
+      setSavedValue(sanitized);
+      setEditing(false);
+    } catch (err: any) {
+      setError(err?.message || 'Could not save. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div>
+        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Roll Number</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <p className="text-sm text-[#1A1A2E] dark:text-white break-words">
+            {savedValue || <span className="italic text-slate-400">Not set</span>}
+          </p>
+          <button
+            type="button"
+            onClick={startEditing}
+            aria-label="Edit roll number"
+            className="text-slate-400 hover:text-[#FF7A00] transition"
+          >
+            <Pencil className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Roll Number</p>
+      <div className="mt-1 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <input
+            type="text"
+            autoCapitalize="characters"
+            spellCheck={false}
+            autoFocus
+            disabled={saving}
+            value={draft}
+            onChange={(e) => {
+              setDraft(sanitizeRollNumberInput(e.target.value));
+              setError(undefined);
+            }}
+            className="w-full px-2 py-1 rounded border text-xs font-mono bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+          />
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            aria-label="Save roll number"
+            className="p-1 rounded text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-50 transition"
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            disabled={saving}
+            aria-label="Cancel"
+            className="p-1 rounded text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition"
+          >
+            <XIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        {error && <p className="text-[10px] text-rose-500">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+function UserDrawerContent({
+  user,
+  onRollNumberChange,
+}: {
+  user: UserRecord;
+  onRollNumberChange: (userId: number, value: string) => Promise<void>;
+}) {
   return (
     <div className="space-y-6">
       <DrawerSection title="Identity">
@@ -63,7 +181,11 @@ function UserDrawerContent({ user }: { user: UserRecord }) {
       </DrawerSection>
 
       <DrawerSection title="Academic">
-        <DrawerField label="Roll Number" value={user.rollNumber !== 'Not set' ? user.rollNumber : undefined} />
+        <EditableRollNumberField
+          userId={user.id}
+          initialValue={user.rollNumber !== 'Not set' ? user.rollNumber : ''}
+          onSave={onRollNumberChange}
+        />
         <DrawerField label="Branch" value={user.branch} />
         <DrawerField label="Year" value={user.year} />
       </DrawerSection>
@@ -113,6 +235,7 @@ interface UsersTabProps {
   onOpenCreateModal: () => void;
   onRoleChange: (userId: number, role: UserRecord['role']) => void;
   onMembershipStatusChange: (userId: number, status: UserRecord['membershipStatus']) => void;
+  onRollNumberChange: (userId: number, value: string) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -123,6 +246,7 @@ export function UsersTab({
   onOpenCreateModal,
   onRoleChange,
   onMembershipStatusChange,
+  onRollNumberChange,
   isLoading = false,
 }: UsersTabProps) {
   const [viewedUser, setViewedUser] = useState<UserRecord | null>(null);
@@ -283,7 +407,9 @@ export function UsersTab({
             onClose={() => setViewedUser(null)}
             title={viewedUser.name}
           >
-            <UserDrawerContent user={viewedUser} />
+            {/* key forces a remount (and fresh EditableRollNumberField local
+                state) when switching from one viewed user to another. */}
+            <UserDrawerContent key={viewedUser.id} user={viewedUser} onRollNumberChange={onRollNumberChange} />
           </DetailDrawer>
         )}
       </AnimatePresence>

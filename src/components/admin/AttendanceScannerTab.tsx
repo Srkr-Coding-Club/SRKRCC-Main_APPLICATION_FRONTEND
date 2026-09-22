@@ -107,7 +107,14 @@ type ScanResultBanner =
   | { kind: 'already'; displayName: string; scannedAt: string }
   | { kind: 'error'; message: string };
 
-export function AttendanceScannerTab() {
+interface AttendanceScannerTabProps {
+  /** Hides the Report tab — GET .../attendance/report/ is admin/club-lead only
+   * (an aggregate of every registrant), so a volunteer reaching this component
+   * via the /attendance/scan route would otherwise see a tab that just 403s. */
+  hideReportTab?: boolean;
+}
+
+export function AttendanceScannerTab({ hideReportTab = false }: AttendanceScannerTabProps = {}) {
   const { toast } = useToast();
 
   const [forms, setForms] = useState<Form[]>([]);
@@ -121,7 +128,13 @@ export function AttendanceScannerTab() {
   const [viewMode, setViewMode] = useState<'scan' | 'report'>('scan');
 
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  // 'unsupported' = browser has no Permissions API for 'camera' (Firefox, older
+  // Safari) — those browsers still show a native prompt on getUserMedia(), we
+  // just can't know the state ahead of time, so 'unsupported' renders like
+  // 'prompt' (Start Camera behaves normally, no proactive banner).
+  const [permissionState, setPermissionState] = useState<'unknown' | 'granted' | 'denied' | 'prompt' | 'unsupported'>('unknown');
   const [resultBanner, setResultBanner] = useState<ScanResultBanner | null>(null);
 
   const [report, setReport] = useState<AttendanceReport | null>(null);
@@ -132,6 +145,35 @@ export function AttendanceScannerTab() {
   const processingRef = useRef(false);
   const selectedSessionIdRef = useRef<number | ''>('');
   selectedSessionIdRef.current = selectedSessionId;
+
+  const startCamera = useCallback(async () => {
+    if (cameraActive || cameraStarting) return;
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Camera access requires a secure connection (HTTPS or localhost). This page was not loaded securely.');
+      return;
+    }
+
+    setCameraStarting(true);
+    setCameraError(null);
+    try {
+      // Request permission directly from the button event. Browsers can reject
+      // permission requests started later from an effect because the user
+      // activation has already ended, especially on mobile Safari.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      stream.getTracks().forEach((track) => track.stop());
+      setPermissionState('granted');
+      setCameraActive(true);
+    } catch (error) {
+      setPermissionState(error instanceof DOMException && error.name === 'NotAllowedError' ? 'denied' : 'unknown');
+      setCameraError(describeCameraError(error));
+    } finally {
+      setCameraStarting(false);
+    }
+  }, [cameraActive, cameraStarting]);
 
   // Load attendance-enabled forms.
   useEffect(() => {
@@ -253,24 +295,45 @@ export function AttendanceScannerTab() {
     [toast]
   );
 
+  // Proactively reads the browser's remembered camera decision for this
+  // origin, via the Permissions API — separate from actually opening the
+  // camera below. This is what lets the UI tell "browser already denied
+  // this, no dialog will ever appear again" apart from "no decision made
+  // yet, clicking Start Camera will show the native prompt" BEFORE the user
+  // clicks anything, instead of only finding out after a failed attempt.
+  // Chrome/Edge support querying {name:'camera'}; Firefox and older Safari
+  // throw/reject — those fall back to 'unsupported' and behave exactly as
+  // before (Start Camera still triggers the native prompt normally, this
+  // component just can't pre-announce the outcome).
+  useEffect(() => {
+    let permissionStatus: PermissionStatus | null = null;
+    const applyState = (state: PermissionState) => setPermissionState(state);
+
+    if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
+      setPermissionState('unsupported');
+      return;
+    }
+
+    navigator.permissions
+      .query({ name: 'camera' as PermissionName })
+      .then((status) => {
+        permissionStatus = status;
+        applyState(status.state);
+        status.onchange = () => applyState(status.state);
+      })
+      .catch(() => setPermissionState('unsupported'));
+
+    return () => {
+      if (permissionStatus) permissionStatus.onchange = null;
+    };
+  }, []);
+
   // Camera lifecycle — starts/stops the html5-qrcode scanner against the
   // #attendance-qr-scanner-region div. Kept running continuously between
   // scans (never stopped after a hit) so volunteers don't have to reopen the
   // camera for every registrant — only the cooldown above throttles repeats.
   useEffect(() => {
     if (!cameraActive) return;
-
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      // getUserMedia is only exposed on secure origins (HTTPS or localhost).
-      // Without this check the library throws deep inside .start() with a
-      // confusing stack instead of a message that tells the volunteer what's
-      // actually wrong (e.g. testing over a plain-http LAN IP).
-      setCameraError(
-        'Camera access requires a secure connection (HTTPS or localhost). This page was not loaded securely.'
-      );
-      setCameraActive(false);
-      return;
-    }
 
     let cancelled = false;
     const instance = new Html5Qrcode(QR_REGION_ID);
@@ -350,18 +413,20 @@ export function AttendanceScannerTab() {
               <ScanLine className="w-3.5 h-3.5" />
               Scan
             </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('report')}
-              className={`min-h-[44px] px-4 py-2 rounded-md text-xs font-bold flex items-center gap-1.5 transition active:scale-95 ${
-                viewMode === 'report'
-                  ? 'glass-panel text-[#FF7A00] shadow'
-                  : 'text-slate-500 dark:text-slate-400'
-              }`}
-            >
-              <ClipboardList className="w-3.5 h-3.5" />
-              Report
-            </button>
+            {!hideReportTab && (
+              <button
+                type="button"
+                onClick={() => setViewMode('report')}
+                className={`min-h-[44px] px-4 py-2 rounded-md text-xs font-bold flex items-center gap-1.5 transition active:scale-95 ${
+                  viewMode === 'report'
+                    ? 'glass-panel text-[#FF7A00] shadow'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <ClipboardList className="w-3.5 h-3.5" />
+                Report
+              </button>
+            )}
           </div>
         </div>
 
@@ -411,26 +476,58 @@ export function AttendanceScannerTab() {
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Camera</h4>
               <button
                 type="button"
-                onClick={() => setCameraActive((v) => !v)}
+                onClick={() => (cameraActive ? setCameraActive(false) : startCamera())}
+                disabled={cameraStarting}
                 className={`min-h-[44px] px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition active:scale-95 ${
                   cameraActive
                     ? 'bg-rose-500/10 text-rose-500 border border-rose-500/30'
-                    : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'
+                    : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 disabled:opacity-60'
                 }`}
               >
                 {cameraActive ? <CameraOff className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
-                {cameraActive ? 'Stop Camera' : 'Start Camera'}
+                {cameraStarting ? 'Requesting Camera…' : cameraActive ? 'Stop Camera' : 'Start Camera'}
               </button>
             </div>
 
-            <div
-              id={QR_REGION_ID}
-              className="w-full aspect-square rounded-xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center"
-            >
+            {/* Shown BEFORE any click — the browser already made this decision on a
+                previous visit and remembers it per-origin, so no click here will ever
+                trigger a fresh native prompt. Telling the volunteer that up front (with
+                the actual fix) beats letting them click Start Camera and land on the
+                same generic failure with no explanation of why no dialog appeared. */}
+            {permissionState === 'denied' && (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg border border-rose-500/30 bg-rose-500/10">
+                <CameraOff className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-rose-700 dark:text-rose-300 space-y-1">
+                  <p className="font-bold">Camera is blocked for this site in your browser.</p>
+                  <p>
+                    Your browser already remembers a "Block" decision for this site, so it will not show the
+                    permission popup again — clicking "Start Camera" won't help. Click the camera or lock icon in
+                    your address bar, set Camera to "Allow" — this banner updates itself, no reload needed.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Html5Qrcode injects its own video/canvas directly into the
+                #QR_REGION_ID div via raw DOM calls, outside React's
+                knowledge. React must never render any children INTO that
+                div — if it did, the moment cameraActive flips (this div's
+                content needs to swap between the placeholder text and
+                nothing), React would try to reconcile children the library
+                had already removed/replaced itself, and
+                `removeChild` throws "the node to be removed is not a
+                child of this node." The placeholder therefore lives as an
+                absolutely-positioned SIBLING overlay instead of a child, so
+                this div's children are permanently and exclusively owned by
+                the library, never by React. */}
+            <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800">
+              <div id={QR_REGION_ID} className="absolute inset-0" />
               {!cameraActive && (
-                <p className="text-xs text-slate-400 px-6 text-center">
-                  Camera is off. Press &quot;Start Camera&quot; and point it at a registrant&apos;s QR badge.
-                </p>
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-950 pointer-events-none">
+                  <p className="text-xs text-slate-400 px-6 text-center">
+                    Camera is off. Press &quot;Start Camera&quot; and point it at a registrant&apos;s QR badge.
+                  </p>
+                </div>
               )}
             </div>
 

@@ -6,6 +6,7 @@
 
 :root {
   --background: #FAFAFC;
+  --background-gradient: linear-gradient(135deg, #FAFAFC 0%, #F6F7FB 48%, #FFF8F0 100%);
   --foreground: #1A1A2E;
   --card-bg: #FFFFFF;
   --card-hover-bg: #F8F9FC;
@@ -36,6 +37,7 @@
 
 .dark {
   --background: #0D0E15;
+  --background-gradient: linear-gradient(135deg, #0D0E15 0%, #111521 52%, #1A1212 100%);
   --foreground: #F5F5F5;
   --card-bg: #151722;
   --card-hover-bg: #1B1E2C;
@@ -49,7 +51,8 @@
 
 body {
   color: var(--foreground);
-  background-color: var(--background);
+  background: var(--background-gradient);
+  background-attachment: fixed;
   font-family: var(--font-inter);
   min-height: 100vh;
   overflow-x: hidden;
@@ -91,28 +94,30 @@ html {
 
 /* Custom Glassmorphism & UI Card Utilities */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42));
+  box-shadow: 0 12px 32px rgba(26, 26, 46, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(125%);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
 }
 
 .dark .glass-panel {
-  background: rgba(21, 23, 34, 0.75);
+  background: linear-gradient(135deg, rgba(29, 32, 45, 0.78), rgba(15, 17, 27, 0.62));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Denser variant for popovers/dropdowns/modals that sit above other glass
    surfaces and need to stay legible rather than maximally see-through */
 .glass-panel-solid {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
 }
 
 .dark .glass-panel-solid {
-  background: rgba(21, 23, 34, 0.92);
+  background: rgba(21, 23, 34, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 

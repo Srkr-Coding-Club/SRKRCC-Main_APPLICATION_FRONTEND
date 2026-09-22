@@ -1,10 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FeatureFlag, Form, FormField } from '@/lib/types';
+import { FeatureFlag, Form, FormField, ValidationRules } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { buildAuthFetchOptions } from '@/lib/dataManagement';
 import { useToast } from '@/context/ToastContext';
+
+/**
+ * Sensible out-of-the-box validation for a newly-added field, so an admin
+ * gets working validation without having to discover and hand-configure the
+ * Response Validation panel. Only PHONE has one today — a phone number field
+ * with no digit constraint is effectively unvalidated (the builder's old
+ * "Number / Phone" button created a bare NUMBER field, whose only rules are
+ * numeric-value range checks, useless for enforcing a 10-digit phone number,
+ * and its baseline `Number(value)` check even rejects a phone typed with a
+ * '+' or spaces). Other types intentionally get no default — e.g. TEXT is
+ * general-purpose (names, addresses, free text), so guessing a format would
+ * be wrong as often as right; the admin picks one (e.g. "Alphabetic") from
+ * the same Response Validation panel.
+ */
+function defaultValidationRulesFor(type: FormField['type']): Partial<ValidationRules> | undefined {
+  if (type === 'PHONE') return { minDigits: 10, maxDigits: 10, numericOnly: true };
+  return undefined;
+}
 
 interface UserRecord {
   id: number;
@@ -178,6 +196,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     club_id_enabled?: boolean;
     club_id_prefix?: string;
     club_id_field_mapping?: import('@/lib/types').ClubIdFieldMapping;
+    club_id_verification_enabled?: boolean;
     confirmation_email_enabled?: boolean;
     confirmation_email_template?: number | string | null;
     attendance_enabled?: boolean;
@@ -204,6 +223,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     club_id_enabled: false,
     club_id_prefix: 'SCC',
     club_id_field_mapping: {},
+    club_id_verification_enabled: false,
     confirmation_email_enabled: false,
     confirmation_email_template: null,
     attendance_enabled: false,
@@ -493,11 +513,36 @@ export function useAdminData(options?: UseAdminDataOptions) {
       });
   };
 
+  // Unlike role/membership status above, a member can self-set their OWN roll
+  // number once via their profile — after that, only an admin can change or
+  // clear it (see UserProfileDetailSerializer.validate_roll_number on the
+  // backend). This is that admin path. Not optimistic like the two handlers
+  // above: it's free-text with server-side uniqueness/format validation, so
+  // the inline editor needs to know synchronously whether the save actually
+  // succeeded (to stay open and show the error) rather than find out via a
+  // toast after already closing.
+  const handleRollNumberChange = async (userId: number, rollNumber: string): Promise<void> => {
+    const user = usersList.find((u) => u.id === userId);
+    if (!user) return;
+    const displayValue = rollNumber || 'Not set';
+
+    await fetchApi(`/auth/users/${userId}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roll_number: rollNumber || null }),
+    });
+    setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, rollNumber: displayValue } : u)));
+    toast.success('Roll Number Updated', `${user.name}'s roll number is now ${displayValue}.`);
+  };
+
   const handleAddFieldFromPalette = (type: FormField['type'], label: string) => {
     // A Section Header isn't answerable (validation always skips it, both here
     // and server-side) — defaulting it to required is meaningless and only
     // inflates the builder's "N Required" summary.
-    setBuilderFields((prev) => [...prev, { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: prev.length + 1 }]);
+    setBuilderFields((prev) => [
+      ...prev,
+      { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: prev.length + 1, validation_rules: defaultValidationRulesFor(type) },
+    ]);
   };
 
   const handleRemoveField = (id: number | string) => {
@@ -517,7 +562,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
 
   const handleAddFieldAtIndex = (type: FormField['type'], label: string, index: number) => {
     setBuilderFields((prev) => {
-      const newField: FormField = { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: 0 };
+      const newField: FormField = { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: 0, validation_rules: defaultValidationRulesFor(type) };
       const updated = [...prev];
       updated.splice(index, 0, newField);
       return updated.map((f, i) => ({ ...f, order: i + 1 }));
@@ -608,6 +653,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
       club_id_enabled: form.club_id_enabled ?? false,
       club_id_prefix: form.club_id_prefix || 'SCC',
       club_id_field_mapping: form.club_id_field_mapping || {},
+      club_id_verification_enabled: form.club_id_verification_enabled ?? false,
       confirmation_email_enabled: form.confirmation_email_enabled ?? false,
       confirmation_email_template: form.confirmation_email_template ?? null,
       attendance_enabled: form.attendance_enabled ?? false,
@@ -677,6 +723,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
       club_id_enabled: formMeta.club_id_enabled ?? false,
       club_id_prefix: (formMeta.club_id_prefix || 'SCC').trim().toUpperCase(),
       club_id_field_mapping: formMeta.club_id_field_mapping || {},
+      club_id_verification_enabled: formMeta.club_id_verification_enabled ?? false,
       confirmation_email_enabled: formMeta.confirmation_email_enabled ?? false,
       confirmation_email_template: formMeta.confirmation_email_template || null,
       attendance_enabled: formMeta.attendance_enabled ?? false,
@@ -834,6 +881,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         club_id_enabled: saved.club_id_enabled ?? false,
         club_id_prefix: saved.club_id_prefix || 'SCC',
         club_id_field_mapping: saved.club_id_field_mapping || {},
+        club_id_verification_enabled: saved.club_id_verification_enabled ?? false,
         confirmation_email_enabled: saved.confirmation_email_enabled ?? false,
         confirmation_email_template: saved.confirmation_email_template ?? null,
         attendance_enabled: saved.attendance_enabled ?? false,
@@ -1065,6 +1113,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     handleCreateUser,
     handleRoleChange,
     handleMembershipStatusChange,
+    handleRollNumberChange,
 
     publishedForms,
     setPublishedForms,

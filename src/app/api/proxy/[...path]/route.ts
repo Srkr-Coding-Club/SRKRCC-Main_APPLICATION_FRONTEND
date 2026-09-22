@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { refreshTokens } from '@/lib/server/tokenRefresh';
+import { clearSessionCookies, setSessionCookies } from '@/lib/server/authCookies';
 
 const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
@@ -18,24 +20,16 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
 
     let newAccessToken: string | null = null;
     let newRefreshToken: string | null = null;
+    let refreshAttempted = false;
 
     // If access token is missing but refresh token exists, proactively refresh before contacting Django
     if (!accessToken && refreshToken) {
-      try {
-        const refreshRes = await fetch(`${DJANGO_API_URL}/auth/token/refresh/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh: refreshToken }),
-        });
-
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          newAccessToken = refreshData.access;
-          accessToken = newAccessToken || undefined;
-          newRefreshToken = refreshData.refresh || null;
-        }
-      } catch {
-        // Continue to attempt normal request
+      refreshAttempted = true;
+      const tokens = await refreshTokens(refreshToken);
+      if (tokens) {
+        newAccessToken = tokens.access;
+        accessToken = newAccessToken || undefined;
+        newRefreshToken = tokens.refresh || null;
       }
     }
 
@@ -80,29 +74,18 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     let response = await fetch(targetUrl, init);
 
     // If 401 and refresh token cookie exists and we haven't already refreshed, attempt transparent refresh server-side
-    if (response.status === 401 && !newAccessToken && refreshToken) {
-      try {
-        const refreshRes = await fetch(`${DJANGO_API_URL}/auth/token/refresh/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh: refreshToken }),
+    if (response.status === 401 && !refreshAttempted && refreshToken) {
+      refreshAttempted = true;
+      const tokens = await refreshTokens(refreshToken);
+      if (tokens) {
+        newAccessToken = tokens.access;
+        newRefreshToken = tokens.refresh || null;
+        headers['Authorization'] = `Bearer ${newAccessToken}`;
+        // Retry original request with refreshed token
+        response = await fetch(targetUrl, {
+          ...init,
+          headers,
         });
-
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          newAccessToken = refreshData.access;
-          newRefreshToken = refreshData.refresh || null;
-          if (newAccessToken) {
-            headers['Authorization'] = `Bearer ${newAccessToken}`;
-            // Retry original request with refreshed token
-            response = await fetch(targetUrl, {
-              ...init,
-              headers,
-            });
-          }
-        }
-      } catch {
-        // Fall through with original 401 response
       }
     }
 
@@ -124,29 +107,14 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
       headers: responseHeaders,
     });
 
-    // If a new access token was issued via transparent refresh, update the HttpOnly cookies
+    // Persist rotated tokens or remove an invalid session after the one allowed refresh attempt.
     if (newAccessToken) {
       const isHttps = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
       const isProduction = process.env.NODE_ENV === 'production';
       const secure = isProduction && isHttps;
-
-      nextResponse.cookies.set('srkrcc_access_token', newAccessToken, {
-        httpOnly: true,
-        secure,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60, // 1 hour
-      });
-
-      if (newRefreshToken) {
-        nextResponse.cookies.set('srkrcc_refresh_token', newRefreshToken, {
-          httpOnly: true,
-          secure,
-          sameSite: 'lax',
-          path: '/',
-          maxAge: 7 * 24 * 60 * 60, // 7 days
-        });
-      }
+      setSessionCookies(nextResponse, { access: newAccessToken, refresh: newRefreshToken || undefined }, secure);
+    } else if (refreshAttempted && response.status === 401) {
+      clearSessionCookies(nextResponse);
     }
 
     return nextResponse;

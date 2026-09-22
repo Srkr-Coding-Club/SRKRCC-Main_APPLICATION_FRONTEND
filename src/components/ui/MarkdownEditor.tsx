@@ -11,6 +11,8 @@ import {
   Quote,
   Code,
   Link as LinkIcon,
+  Image as ImageIcon,
+  Table as TableIcon,
   Minus,
   Eye,
   Edit3,
@@ -60,6 +62,31 @@ export function MarkdownEditor({
         start + prefix.length,
         start + prefix.length + selected.length
       );
+    }, 0);
+  };
+
+  /** Inserts a multi-line block (e.g. a table template) at the cursor,
+   * padded with blank lines so it doesn't run into surrounding text — unlike
+   * applyFormat/applyLinePrefix, which wrap/prefix the current selection or
+   * line rather than dropping in new standalone lines. */
+  const insertBlock = (block: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentVal = textarea.value;
+
+    const needsLeadingBreak = start > 0 && currentVal[start - 1] !== '\n';
+    const insertion = `${needsLeadingBreak ? '\n\n' : ''}${block}\n\n`;
+    const nextVal = currentVal.substring(0, start) + insertion + currentVal.substring(end);
+
+    onChange(nextVal);
+
+    setTimeout(() => {
+      textarea.focus();
+      const cursorPos = start + insertion.length;
+      textarea.setSelectionRange(cursorPos, cursorPos);
     }, 0);
   };
 
@@ -259,6 +286,28 @@ export function MarkdownEditor({
 
               <button
                 type="button"
+                onClick={() => applyFormat('![', '](https://)', 'image description')}
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                title="Insert Image"
+                aria-label="Insert Image"
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  insertBlock('| Column 1 | Column 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |')
+                }
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
+                title="Insert Table"
+                aria-label="Insert Table"
+              >
+                <TableIcon className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
                 onClick={() => applyLinePrefix('---\n')}
                 className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-500 transition"
                 title="Horizontal Divider"
@@ -312,6 +361,12 @@ export function MarkdownEditor({
             </div>
             <div>
               <span className="font-mono text-orange-400">`code`</span> → Code
+            </div>
+            <div>
+              <span className="font-mono text-orange-400">![alt](url)</span> → Image
+            </div>
+            <div>
+              <span className="font-mono text-orange-400">| a | b |</span> → Table
             </div>
           </div>
         )}

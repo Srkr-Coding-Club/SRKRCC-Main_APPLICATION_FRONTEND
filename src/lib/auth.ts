@@ -28,6 +28,16 @@ export interface AuthTokens {
 const USER_KEY = 'srkrcc_user';
 const ROLE_COOKIE = 'srkrcc_user_role';
 
+export function redirectToLogin() {
+  if (typeof window === 'undefined') return;
+  const next = `${window.location.pathname}${window.location.search}`;
+  const loginUrl = `/login?next=${encodeURIComponent(isSafeNextPath(next) ? next : '/')}`;
+  clearAuthSession();
+  if (window.location.pathname !== '/login') {
+    window.location.replace(loginUrl);
+  }
+}
+
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
