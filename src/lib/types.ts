@@ -7,6 +7,19 @@ export interface FeatureFlag {
   updated_at?: string;
 }
 
+export type AnnouncementType = 'INFO' | 'SUCCESS' | 'WARNING' | 'URGENT';
+
+export interface Announcement {
+  id: number;
+  title: string;
+  /** Markdown — rendered via MarkdownRenderer, same as Event/Hackathon descriptions. */
+  message: string;
+  type: AnnouncementType;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface User {
   id: number;
   username: string;

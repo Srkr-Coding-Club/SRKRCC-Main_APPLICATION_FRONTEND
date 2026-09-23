@@ -23,6 +23,7 @@ import {
   ListChecks,
   QrCode,
   Code,
+  Megaphone,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
@@ -85,6 +86,7 @@ const navItems: NavItem[] = [
       { label: 'Members', shortLabel: 'Members', href: '/admin/members', desc: 'Club member directory', icon: UserCheck },
       { label: 'Events & Hackathons', shortLabel: 'Events', href: '/admin/events', desc: 'Workshops & hackathon engine', icon: Trophy },
       { label: 'Content Hub', shortLabel: 'Content', href: '/admin/content', desc: 'Blogs & career postings', icon: BookOpen },
+      { label: 'Announcements', shortLabel: 'Announce', href: '/admin/announcements', desc: 'Landing page banner messages', icon: Megaphone },
       { label: 'Module Flags', shortLabel: 'Flags', href: '/admin/flags', desc: 'Feature toggles & windows', icon: Sliders },
     ],
   },

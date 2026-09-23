@@ -320,6 +320,23 @@ html {
   animation: blinkCursor 1s step-end infinite;
 }
 
+/* Announcement Ticker Marquee — track holds content twice back-to-back and
+   scrolls exactly -50%, so the loop point is seamless regardless of content
+   width (see AnnouncementBannerClient.tsx). */
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marqueeScroll linear infinite;
+}
+
+.animate-marquee:hover,
+.group:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
 /* Focus Visible for Accessibility */
 *:focus-visible {
   outline: 2px solid var(--brand-orange);

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 
+import AnnouncementBanner from '@/components/AnnouncementBanner';
 import HeroSection from '@/components/HeroSection';
 import StatsBar from '@/components/StatsBar';
 import AboutSection from '@/components/AboutSection';
@@ -19,6 +20,9 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-[var(--background)] transition-colors duration-300">
+      {/* Active announcements banner */}
+      <AnnouncementBanner />
+
       {/* 1. Hero Section */}
       <HeroSection />
 
