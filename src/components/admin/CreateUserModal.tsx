@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { UserPlus, X, Loader2 } from 'lucide-react';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { sanitizePhoneNumberInput } from '@/lib/validation/auth';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface CreateUserModalProps {
     rollNumber: string;
     branch: string;
     year: string;
+    phoneNumber: string;
     role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
     clubId: string;
     password: string;
@@ -24,6 +26,7 @@ interface CreateUserModalProps {
     rollNumber: string;
     branch: string;
     year: string;
+    phoneNumber: string;
     role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
     clubId: string;
     password: string;
@@ -129,6 +132,20 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
                 className="w-full px-3.5 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
+              Phone Number <span className="normal-case font-medium text-slate-400">(optional)</span>
+            </label>
+            <input
+              type="tel"
+              inputMode="numeric"
+              placeholder="9876543210"
+              value={newUser.phoneNumber}
+              onChange={(e) => setNewUser({ ...newUser, phoneNumber: sanitizePhoneNumberInput(e.target.value) })}
+              className="w-full px-3.5 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

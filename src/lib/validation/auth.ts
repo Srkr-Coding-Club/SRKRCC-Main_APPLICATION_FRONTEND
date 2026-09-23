@@ -247,7 +247,7 @@ export function getPasswordStrength(
 
 /** Field errors keyed by the signup form's own field names. */
 export type SignupFieldErrors = Partial<
-  Record<'fullName' | 'email' | 'rollNumber' | 'branch' | 'year' | 'affiliateId' | 'password' | 'confirmPassword', string>
+  Record<'fullName' | 'email' | 'rollNumber' | 'branch' | 'year' | 'phoneNumber' | 'affiliateId' | 'password' | 'confirmPassword', string>
 >;
 
 const API_FIELD_TO_FORM_FIELD: Record<string, keyof SignupFieldErrors> = {
@@ -258,6 +258,7 @@ const API_FIELD_TO_FORM_FIELD: Record<string, keyof SignupFieldErrors> = {
   roll_number: 'rollNumber',
   branch: 'branch',
   year: 'year',
+  phone_number: 'phoneNumber',
   club_id: 'affiliateId',
   password: 'password',
 };

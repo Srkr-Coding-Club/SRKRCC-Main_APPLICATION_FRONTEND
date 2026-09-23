@@ -166,6 +166,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     rollNumber: '',
     branch: 'CSE',
     year: '1st Year',
+    phoneNumber: '',
     role: 'NON_AFFILIATE' as UserRecord['role'],
     clubId: '',
     password: '',
@@ -439,6 +440,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         role: newUser.role,
         roll_number: newUser.rollNumber,
         branch: newUser.branch,
+        phone_number: newUser.phoneNumber || undefined,
         club_id: newUser.role === 'AFFILIATE' ? newUser.clubId : undefined,
       };
       const created = await fetchApi<any>('/auth/register/', {
@@ -454,6 +456,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         rollNumber: newUser.rollNumber,
         branch: newUser.branch,
         year: newUser.year,
+        phoneNumber: newUser.phoneNumber || null,
         role: newUser.role,
         membershipStatus: 'ACTIVE',
         isActive: true,

@@ -6,6 +6,7 @@ import {
   User,
   Mail,
   Hash,
+  Phone,
   Lock,
   ArrowRight,
   ShieldCheck,
@@ -31,6 +32,7 @@ import {
   normalizeEmail,
   sanitizeAffiliateIdInput,
   sanitizeNameInput,
+  sanitizePhoneNumberInput,
   sanitizeRollNumberInput,
   splitFullName,
   validateAffiliateId,
@@ -39,6 +41,7 @@ import {
   validatePassword,
   validatePasswordConfirmation,
   validatePasswordNotSimilarToIdentity,
+  validatePhoneNumber,
   validateRollNumber,
 } from '@/lib/validation/auth';
 
@@ -77,6 +80,7 @@ const FIELD_INPUT_ID: Record<FieldName, string> = {
   rollNumber: 'signup-roll-number',
   branch: 'signup-branch',
   year: 'signup-year',
+  phoneNumber: 'signup-phone-number',
   affiliateId: 'signup-affiliate-id',
   password: 'signup-password',
   confirmPassword: 'signup-confirm-password',
@@ -89,6 +93,7 @@ const FIELD_ORDER: FieldName[] = [
   'rollNumber',
   'branch',
   'year',
+  'phoneNumber',
   'affiliateId',
   'password',
   'confirmPassword',
@@ -119,6 +124,7 @@ function SignupContent() {
     rollNumber: '',
     branch: 'CSE',
     year: '2',
+    phoneNumber: '',
     isAffiliate: false,
     affiliateId: '',
     password: '',
@@ -139,6 +145,7 @@ function SignupContent() {
     errors.fullName = validateFullName(formData.fullName);
     errors.email = validateEmail(formData.email);
     errors.rollNumber = validateRollNumber(formData.rollNumber);
+    errors.phoneNumber = validatePhoneNumber(formData.phoneNumber);
     if (formData.isAffiliate) {
       errors.affiliateId = validateAffiliateId(formData.affiliateId);
     }
@@ -200,6 +207,7 @@ function SignupContent() {
         roll_number: sanitizeRollNumberInput(formData.rollNumber),
         branch: formData.branch,
         year: Number(formData.year),
+        phone_number: sanitizePhoneNumberInput(formData.phoneNumber) || undefined,
         role: formData.isAffiliate ? 'AFFILIATE' : 'NON_AFFILIATE',
         club_id: formData.isAffiliate ? sanitizeAffiliateIdInput(formData.affiliateId) : undefined,
       });
@@ -356,7 +364,7 @@ function SignupContent() {
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.rollNumber} className={labelClasses}>
                     Roll Number <span className="text-slate-400 font-medium normal-case">(optional)</span>
@@ -389,6 +397,31 @@ function SignupContent() {
                     </span>
                   </div>
                   <FieldError id="signup-roll-error" message={visibleError('rollNumber')} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor={FIELD_INPUT_ID.phoneNumber} className={labelClasses}>
+                    Phone Number <span className="text-slate-400 font-medium normal-case">(optional)</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <input
+                      id={FIELD_INPUT_ID.phoneNumber}
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="9876543210"
+                      value={formData.phoneNumber}
+                      aria-invalid={Boolean(visibleError('phoneNumber'))}
+                      aria-describedby={visibleError('phoneNumber') ? 'signup-phone-error' : undefined}
+                      onChange={(e) => handleChange('phoneNumber', sanitizePhoneNumberInput(e.target.value))}
+                      onBlur={() => markTouched('phoneNumber')}
+                      disabled={isLoading || success}
+                      className={inputClasses('phoneNumber')}
+                    />
+                  </div>
+                  <FieldError id="signup-phone-error" message={visibleError('phoneNumber')} />
                 </div>
 
                 <div className="space-y-1.5">
