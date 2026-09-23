@@ -15,7 +15,7 @@ import {
 } from '@/lib/validation/auth';
 
 // Kept in sync with the Branch options offered on the signup form.
-const BRANCH_OPTIONS = ['CSE', 'IT', 'AIML', 'AIDS', 'ECE', 'EEE', 'MECH', 'CIVIL'];
+const BRANCH_OPTIONS = ['CSE', 'IT', 'AIML', 'AIDS', 'CIC', 'CSBS', 'CSIT', 'CSD', 'ECE', 'EEE', 'MECH', 'CIVIL'];
 const YEAR_OPTIONS = [1, 2, 3, 4];
 
 interface EditableProfile {

@@ -457,7 +457,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         >
           <option value="">Select a form…</option>
           {forms.map((f) => (
-            <option key={f.id} value={f.slug}>{f.title}</option>
+            <option key={f.id} value={f.slug}>{f.title?.trim() || f.slug || 'Untitled form'}</option>
           ))}
         </select>
       </div>
@@ -476,7 +476,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
           >
             <option value="">Select a form…</option>
             {forms.map((f) => (
-              <option key={f.id} value={f.slug}>{f.title}</option>
+              <option key={f.id} value={f.slug}>{f.title?.trim() || f.slug || 'Untitled form'}</option>
             ))}
           </select>
 

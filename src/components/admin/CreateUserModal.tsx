@@ -145,7 +145,14 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
                 <option value="IT">IT</option>
                 <option value="AIML">AIML</option>
                 <option value="AIDS">AIDS</option>
+                <option value="CIC">CIC</option>
+                <option value="CSBS">CSBS</option>
+                <option value="CSIT">CSIT</option>
+                <option value="CSD">CSD</option>
                 <option value="ECE">ECE</option>
+                <option value="EEE">EEE</option>
+                <option value="MECH">MECH</option>
+                <option value="CIVIL">CIVIL</option>
               </select>
             </div>
 

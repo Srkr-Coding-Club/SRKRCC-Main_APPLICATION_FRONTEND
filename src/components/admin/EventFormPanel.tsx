@@ -300,7 +300,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
               <option value="">No form linked</option>
               {forms.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.title} ({f.status})
+                  {f.title?.trim() || f.slug || 'Untitled form'} ({f.status})
                 </option>
               ))}
             </select>

@@ -554,14 +554,6 @@ function ProfileContent() {
                               <span>View QR Badge</span>
                             </button>
                           )}
-                          {evt.form_slug && (
-                            <Link
-                              href={`/forms/${evt.form_slug}`}
-                              className="px-3 py-1.5 rounded-md text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
-                            >
-                              View Form
-                            </Link>
-                          )}
                           <span className={`px-3 py-1.5 rounded-md text-xs font-bold border ${evt.badgeBg} inline-flex items-center space-x-1`}>
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>{evt.status}</span>

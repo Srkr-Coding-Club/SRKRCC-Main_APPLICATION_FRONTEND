@@ -686,6 +686,18 @@ export function useAdminData(options?: UseAdminDataOptions) {
     targetStatus?: Form['status'],
     scheduleOptions?: { open_at?: string; close_at?: string }
   ) => {
+    // A whitespace-only title (e.g. a space typed then deleted) passes the
+    // backend's old "not empty string" check but renders as a blank row
+    // everywhere the form is listed (the admin's "Select a form" dropdown,
+    // the registration-form pickers). Catch it here with an immediate,
+    // specific message instead of a generic save failure — the backend now
+    // also rejects it (FormSerializer.validate_title) as a second line of
+    // defense for any caller that bypasses this UI.
+    if (!formMeta.title.trim()) {
+      toast.error('Title Required', 'Give this form a title before saving.');
+      return;
+    }
+
     const finalStatus = targetStatus || formMeta.status || 'DRAFT';
     const slug = formMeta.slug || formMeta.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
