@@ -160,16 +160,30 @@ export function subscribeToAuthResync(onResync: () => void): () => void {
 
 /**
  * Validates session against the server /auth/me/ endpoint and updates stored user and role cookies.
+ *
+ * The proxy this hits no longer refreshes tokens on its own (see the comment
+ * in src/app/api/proxy/[...path]/route.ts — an in-memory dedup there proved
+ * unreliable under real concurrent load and let a perfectly valid session get
+ * logged out). So a 401 here is retried once, after a refresh, the same way
+ * fetchApi already does — using refreshAccessToken()'s module-level
+ * `activeRefreshPromise`, which IS a reliable dedup because a single tab's JS
+ * is genuinely single-threaded.
  */
 export async function fetchAndSyncCurrentUser(): Promise<AuthUser | null> {
   if (typeof window === 'undefined') return null;
   if (!isAuthenticated()) return null;
 
   try {
-    const res = await fetch('/api/proxy/auth/me/', {
-      credentials: 'include',
-      cache: 'no-store',
-    });
+    const fetchMe = () => fetch('/api/proxy/auth/me/', { credentials: 'include', cache: 'no-store' });
+
+    let res = await fetchMe();
+    if (res.status === 401) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        res = await fetchMe();
+      }
+    }
+
     if (!res.ok) {
       // The server rejected the session outright (e.g. expired/invalidated),
       // but the localStorage user + role cookie can outlive it — clear them so
