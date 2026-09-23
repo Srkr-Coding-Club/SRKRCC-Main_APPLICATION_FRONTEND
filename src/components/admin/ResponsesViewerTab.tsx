@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
 import {
@@ -13,6 +13,8 @@ import {
   Square,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Check,
   BarChart3,
   AlertCircle,
   CheckCircle2,
@@ -37,6 +39,104 @@ const ResponseTimelineChart = dynamic(
 interface ResponsesViewerTabProps {
   forms: Form[];
   initialFormSlug?: string;
+}
+
+/**
+ * Custom-styled replacement for a native <select> of forms. A native select's
+ * dropdown popup is rendered by the OS/browser chrome, not by our CSS — on
+ * some browsers that popup came through as large blank rows instead of dark
+ * theme, showing a mostly-empty white box with only the hovered row legible.
+ * This renders the whole list ourselves (mirrors the ModernSelect pattern
+ * already used on the public form page), so it always matches the app's
+ * theme and never depends on how a given browser paints native option rows.
+ */
+function FormSelect({
+  value,
+  options,
+  placeholder,
+  onChange,
+  className = '',
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  placeholder: string;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = options.find((o) => o.value === value);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (v: string) => {
+    onChange(v);
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`flex w-full items-center justify-between gap-2 px-3 py-2 glass-panel border rounded-xl text-sm transition-colors ${
+          isOpen ? 'border-orange-500/60' : 'border-slate-300 dark:border-slate-700'
+        }`}
+      >
+        <span className={`truncate ${selected ? 'text-[#1A1A2E] dark:text-white' : 'text-slate-400'}`}>
+          {selected?.label || placeholder}
+        </span>
+        <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-72 overflow-y-auto rounded-xl glass-panel-solid p-1.5 shadow-[0_12px_35px_rgba(0,0,0,0.15)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.5)]"
+        >
+          <button
+            type="button"
+            role="option"
+            aria-selected={!value}
+            onClick={() => handleSelect('')}
+            className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+              !value
+                ? 'bg-[#FF7A00]/10 text-[#D85F00] dark:text-[#FF9A4A]'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.06]'
+            }`}
+          >
+            <span>{placeholder}</span>
+            {!value && <Check className="w-3.5 h-3.5" />}
+          </button>
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              role="option"
+              aria-selected={o.value === value}
+              onClick={() => handleSelect(o.value)}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                o.value === value
+                  ? 'bg-[#FF7A00]/10 font-semibold text-[#D85F00] dark:text-[#FF9A4A]'
+                  : 'text-[#1A1A2E] dark:text-slate-300 hover:bg-[#FF7A00]/[0.08]'
+              }`}
+            >
+              <span className="truncate">{o.label}</span>
+              {o.value === value && <Check className="ml-2 w-3.5 h-3.5 shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function renderCellValue(type: string, value: unknown): React.ReactNode {
@@ -280,6 +380,11 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
   const [showEmailEditor, setShowEmailEditor] = useState(false);
   const [resendingIds, setResendingIds] = useState<Set<number>>(new Set());
 
+  const formOptions = useMemo(
+    () => forms.map((f) => ({ value: f.slug, label: f.title?.trim() || f.slug || 'Untitled form' })),
+    [forms]
+  );
+
   const selectedForm = forms.find((f) => f.slug === selectedSlug) ?? null;
   const fieldColumns: FormField[] = useMemo(
     () => (selectedForm?.fields?.filter((f) => f.type !== 'SECTION') ?? []),
@@ -450,16 +555,13 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         <Inbox className="w-12 h-12 text-slate-700" />
         <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Select a form to view responses</h3>
         <p className="text-sm text-slate-500 dark:text-slate-400">Choose a form from the dropdown above.</p>
-        <select
+        <FormSelect
           value={selectedSlug}
-          onChange={(e) => setSelectedSlug(e.target.value)}
-          className="mt-2 px-4 py-2 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
-        >
-          <option value="">Select a form…</option>
-          {forms.map((f) => (
-            <option key={f.id} value={f.slug}>{f.title?.trim() || f.slug || 'Untitled form'}</option>
-          ))}
-        </select>
+          options={formOptions}
+          placeholder="Select a form…"
+          onChange={setSelectedSlug}
+          className="mt-2 w-72"
+        />
       </div>
     );
   }
@@ -469,16 +571,13 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       <div className="space-y-4">
         {/* Header controls */}
         <div className="flex flex-wrap items-center gap-3">
-          <select
+          <FormSelect
             value={selectedSlug}
-            onChange={(e) => { setSelectedSlug(e.target.value); setSelectedIds(new Set()); }}
-            className="flex-1 min-w-[200px] px-3 py-2 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500/60"
-          >
-            <option value="">Select a form…</option>
-            {forms.map((f) => (
-              <option key={f.id} value={f.slug}>{f.title?.trim() || f.slug || 'Untitled form'}</option>
-            ))}
-          </select>
+            options={formOptions}
+            placeholder="Select a form…"
+            onChange={(v) => { setSelectedSlug(v); setSelectedIds(new Set()); }}
+            className="flex-1 min-w-[200px]"
+          />
 
           {/* Search */}
           <div className="relative">
