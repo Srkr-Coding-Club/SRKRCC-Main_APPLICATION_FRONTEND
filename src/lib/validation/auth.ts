@@ -58,7 +58,7 @@ export function validateEmail(value: string): string | undefined {
   if (email.length > EMAIL_MAX_LENGTH) return 'Email address is too long.';
   if (!email.includes('@')) return 'Email must contain an @ sign.';
   if (!EMAIL_REGEX.test(email)) {
-    return 'Enter a valid email address, for example student@srkr.ac.in.';
+    return 'Enter a valid email address, for example you@example.com.';
   }
   return undefined;
 }

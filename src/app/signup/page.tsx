@@ -315,7 +315,7 @@ function SignupContent() {
 
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.email} className={labelClasses}>
-                    College Email <span className="text-[#FF7A00]">*</span>
+                    Email <span className="text-[#FF7A00]">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -327,7 +327,7 @@ function SignupContent() {
                       autoComplete="email"
                       inputMode="email"
                       maxLength={254}
-                      placeholder="student@srkr.ac.in"
+                      placeholder="you@example.com"
                       value={formData.email}
                       aria-invalid={Boolean(visibleError('email'))}
                       aria-describedby={visibleError('email') ? 'signup-email-error' : undefined}
