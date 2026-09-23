@@ -15,6 +15,7 @@ export default function AdminDashboardPage() {
         <AdminHeader />
         <DashboardTab
           userCount={usersList.length}
+          users={usersList}
           publishedForms={publishedForms}
           formSubmissions={formSubmissions}
           isLoading={isLoadingForms || isLoadingSubmissions}

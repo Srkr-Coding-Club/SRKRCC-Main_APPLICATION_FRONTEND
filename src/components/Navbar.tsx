@@ -211,7 +211,9 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                       layoutId="nav-pill"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       className="absolute inset-0 rounded-full -z-0"
-                      style={{ background: 'linear-gradient(120deg, #8B2E3B, #FF7A00)' }}
+                      // See AdminNavbar.tsx — #FF7A00 fails WCAG AA contrast against
+                      // white pill text (~2.6:1); #C2410C keeps it readable (~5:1).
+                      style={{ background: 'linear-gradient(120deg, #8B2E3B, #C2410C)' }}
                     />
                   )}
 

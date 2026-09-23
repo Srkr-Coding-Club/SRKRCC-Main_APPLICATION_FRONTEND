@@ -24,7 +24,7 @@ function defaultValidationRulesFor(type: FormField['type']): Partial<ValidationR
   return undefined;
 }
 
-interface UserRecord {
+export interface UserRecord {
   id: number;
   name: string;
   email: string;

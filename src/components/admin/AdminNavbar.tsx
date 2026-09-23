@@ -230,7 +230,11 @@ export default function AdminNavbar() {
                       layoutId="admin-nav-pill"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       className="absolute inset-0 rounded-full -z-0"
-                      style={{ background: 'linear-gradient(120deg, #8B2E3B, #FF7A00)' }}
+                      // #C2410C (not the brand's #FF7A00) — the lighter orange fails
+                      // WCAG AA contrast against the white pill label (~2.6:1); this
+                      // stop keeps white text readable (~5:1) at every point along the
+                      // gradient while staying visually on-brand (maroon → burnt orange).
+                      style={{ background: 'linear-gradient(120deg, #8B2E3B, #C2410C)' }}
                     />
                   )}
 
