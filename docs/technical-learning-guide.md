@@ -81,7 +81,7 @@ Configured in [next.config.ts](file:///c:/Users/chall/OneDrive/Desktop/SRKRCC-Ma
 - **`X-Frame-Options: SAMEORIGIN`**: Prevents clickjacking by blocking iframe embedding on untrusted domains.
 - **`X-Content-Type-Options: nosniff`**: Prevents browser MIME-type sniffing.
 - **`Referrer-Policy: strict-origin-when-cross-origin`**: Controls referrer leakage across origins.
-- **`Permissions-Policy: camera=(), microphone=(), geolocation=()`**: Restricts unnecessary device APIs.
+- **`Permissions-Policy: camera=(self), microphone=(), geolocation=()`**: Allows camera access on the same origin (for QR scanning features) while restricting unnecessary device APIs.
 
 ---
 
