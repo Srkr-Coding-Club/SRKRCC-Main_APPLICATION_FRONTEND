@@ -51,7 +51,7 @@ function BuilderContent() {
   if (isLoadingBuilder) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] flex items-center justify-center py-20">
-        <div className="flex flex-col items-center gap-3 p-8 rounded-2xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 shadow-xl">
+        <div className="flex flex-col items-center gap-3 p-8 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 shadow-xl">
           <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Loading Form Schema...</p>
           <p className="text-xs text-slate-400">Fetching latest schema and field configurations</p>
@@ -64,6 +64,16 @@ function BuilderContent() {
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <FormBuilderTab
+          // Forces a full remount when switching which form is loaded into
+          // the builder (a different ?slug=, or "new"). Without this,
+          // FormBuilderTab's OWN internal state — scheduleOpenAt/
+          // scheduleCloseAt (each seeded once from formMeta.open_at/
+          // close_at via useState) and activeFieldId (seeded once from
+          // builderFields[0]) — only reads its initial value on first mount
+          // and never re-syncs when formMeta/builderFields props change
+          // underneath it, so it kept showing the PREVIOUS form's schedule
+          // and selected field after switching forms via the slug param.
+          key={formSlug || 'new'}
           isPreviewMode={isPreviewMode}
           setIsPreviewMode={setIsPreviewMode}
           formMeta={formMeta}

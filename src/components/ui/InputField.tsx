@@ -14,7 +14,7 @@ function cn(...classes: Array<string | false | null | undefined>) {
 }
 
 const fieldBaseClass =
-  'block w-full rounded-md border bg-white dark:bg-[#0D0E15] px-3 py-2 text-sm ' +
+  'glass-panel block w-full rounded-xl border px-3 py-2 text-sm ' +
   'text-[#1A1A2E] dark:text-white border-slate-300 dark:border-slate-700 ' +
   'placeholder:text-slate-400 dark:placeholder:text-slate-500 ' +
   'focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00] ' +

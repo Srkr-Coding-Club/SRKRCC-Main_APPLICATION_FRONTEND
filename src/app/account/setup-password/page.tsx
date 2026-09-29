@@ -232,7 +232,7 @@ function SetupPasswordContent() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isSubmitting}
                 placeholder="••••••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
+                className="w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
               />
               <button
                 type="button"
@@ -257,7 +257,7 @@ function SetupPasswordContent() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={isSubmitting}
                 placeholder="••••••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
+                className="w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
               />
               <button
                 type="button"
@@ -337,7 +337,7 @@ function SetupPasswordContent() {
                 onChange={(e) => setRequestEmail(e.target.value)}
                 disabled={isRequesting}
                 placeholder="student@srkr.ac.in"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
               />
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">

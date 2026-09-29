@@ -40,7 +40,7 @@ function StatCard({
       className={`relative rounded-xl border p-5 flex flex-col gap-2 transition-all ${
         accent
           ? 'border-amber-500/40 bg-amber-500/5'
-          : 'border-slate-300 dark:border-slate-700/60 bg-white dark:bg-[#151722]'
+          : 'border-slate-300 dark:border-slate-700/60 glass-panel'
       }`}
     >
       <div className="flex items-start justify-between">
@@ -171,7 +171,7 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
       </div>
 
       {/* Warnings Panel */}
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <AlertTriangle className="w-4 h-4 text-amber-400" />
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">
@@ -202,7 +202,7 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
       </div>
 
       {/* Recent Activity Feed */}
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-slate-500 dark:text-slate-400" />

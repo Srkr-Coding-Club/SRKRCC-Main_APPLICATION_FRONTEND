@@ -23,7 +23,7 @@ export default function Card({
 }: CardProps) {
   return (
     <div
-      className={`bg-white dark:bg-[#151722] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group ${className}`}
+      className={`glass-panel rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group ${className}`}
     >
       <div>
         {image && (

@@ -1,20 +1,31 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Users, Flame, ArrowRight, Layers, Info, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Calendar, Users, Flame, ArrowRight, ArrowUpRight, Info, X } from 'lucide-react';
 import { Hackathon } from '@/lib/types';
+import { isSafeHref } from '@/lib/urlSafety';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 
 interface HackathonCardProps {
   hackathon: Hackathon;
   accent?: string;
 }
 
+function formatShortDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' });
+}
+
 export default function HackathonCard({ hackathon, accent = '#FF7A00' }: HackathonCardProps) {
   const fallbackImage =
     'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&q=70';
   const [flipped, setFlipped] = useState(false);
+  const router = useRouter();
+  const detailHref = `/hackathons/${hackathon.slug}`;
+  const banner = hackathon.banner_image && isSafeHref(hackathon.banner_image) ? hackathon.banner_image : fallbackImage;
 
   return (
     <div className="group relative isolate h-[330px] w-full [perspective:1400px]">
@@ -26,17 +37,16 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00' }: Hackath
 
       <div
         tabIndex={0}
-        className={`relative h-full w-full rounded-2xl outline-none transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)] focus-visible:[transform:rotateY(180deg)] ${flipped ? '[transform:rotateY(180deg)]' : ''}`}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest('a, button')) return;
+          router.push(detailHref);
+        }}
+        className={`relative h-full w-full cursor-pointer rounded-2xl outline-none transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)] focus-visible:[transform:rotateY(180deg)] ${flipped ? '[transform:rotateY(180deg)]' : ''}`}
       >
         {/* ---------- FRONT (image) ---------- */}
-        <div className="absolute inset-0 overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white shadow-[0_14px_40px_-20px_rgba(255,122,0,0.28)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] dark:border-white/10 dark:bg-[#161622]">
-          <Image
-            src={hackathon.image_url || fallbackImage}
-            alt={hackathon.title}
-            fill
-            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover"
-          />
+        <div className="glass-panel absolute inset-0 overflow-hidden rounded-2xl border border-[#E5E5E5] shadow-[0_14px_40px_-20px_rgba(255,122,0,0.28)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] dark:border-white/10">
+          {/* eslint-disable-next-line @next/next/no-img-element -- admin-supplied arbitrary host, not in next/image remotePatterns */}
+          <img src={banner} alt={hackathon.title} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A2E]/90 via-[#1A1A2E]/25 to-transparent" />
 
           <button
@@ -61,6 +71,11 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00' }: Hackath
                 Flagship
               </span>
             )}
+            {hackathon.status === 'CLOSED' && (
+              <span className="inline-flex items-center rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-md">
+                Closed
+              </span>
+            )}
           </div>
 
           <div className="absolute inset-x-0 bottom-0 p-4">
@@ -70,13 +85,13 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00' }: Hackath
 
             <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-white/80">
               <Calendar className="h-3.5 w-3.5" style={{ color: accent }} />
-              {hackathon.start_date} → {hackathon.end_date}
+              {formatShortDate(hackathon.start_date)} → {formatShortDate(hackathon.end_date)}
             </p>
           </div>
         </div>
 
         {/* ---------- BACK (details) ---------- */}
-        <div className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white/85 p-5 backdrop-blur-xl [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] dark:border-white/10 dark:bg-[#161622]/85">
+        <div className="glass-panel absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-[#E5E5E5] p-5 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] dark:border-white/10">
           <div
             className="absolute inset-x-0 top-0 h-0.5"
             style={{ background: `linear-gradient(90deg, ${accent}66, ${accent}, ${accent}66)` }}
@@ -99,52 +114,40 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00' }: Hackath
             Theme: {hackathon.theme}
           </p>
 
-          <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
-            {hackathon.description}
-          </p>
+          <div className="mt-1.5 flex-1 min-h-0 overflow-y-auto scrollbar-hide text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
+            <MarkdownRenderer content={hackathon.description} />
+          </div>
 
-          {hackathon.tracks && hackathon.tracks.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {hackathon.tracks.slice(0, 3).map((tr) => (
-                <span
-                  key={tr}
-                  className="rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-[#FF7A00] dark:border-orange-900/40 dark:bg-orange-950/30"
-                >
-                  {tr}
-                </span>
-              ))}
-              {hackathon.tracks.length > 3 && (
-                <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-slate-400">
-                  +{hackathon.tracks.length - 3}
-                </span>
-              )}
+          {typeof hackathon.team_count === 'number' && (
+            <div className="mt-2 flex items-center gap-2 text-[12px] text-[#1A1A2E] dark:text-slate-200">
+              <Users className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
+              <span className="font-medium">{hackathon.team_count} team{hackathon.team_count === 1 ? '' : 's'} registered</span>
             </div>
           )}
 
-          <div className="mt-3 grid gap-1.5 text-[12px] text-[#1A1A2E] dark:text-slate-200">
-            {hackathon.team_size && (
-              <div className="flex items-center gap-2">
-                <Users className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
-                <span className="font-medium">Team size: {hackathon.team_size}</span>
-              </div>
-            )}
-            {hackathon.tracks && (
-              <div className="flex items-center gap-2">
-                <Layers className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
-                <span className="font-medium">{hackathon.tracks.length} tracks</span>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-auto pt-4">
+          <div className="mt-auto flex items-center gap-2 pt-4">
             <Link
-              href={hackathon.form_slug ? `/forms/${hackathon.form_slug}` : '/forms'}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5"
-              style={{ backgroundColor: accent }}
+              href={detailHref}
+              aria-label={`View details for ${hackathon.title}`}
+              className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2.5 text-[12px] font-semibold text-slate-600 transition hover:text-slate-900 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
             >
-              Register Team
-              <ArrowRight className="h-3.5 w-3.5" />
+              Details
+              <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
+            {hackathon.status === 'CLOSED' ? (
+              <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2.5 text-[12px] font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500">
+                Registration Closed
+              </span>
+            ) : (
+              <Link
+                href={hackathon.form_slug ? `/forms/${hackathon.form_slug}` : '/forms'}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5"
+                style={{ backgroundColor: accent }}
+              >
+                Register Team
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </div>
         </div>
       </div>

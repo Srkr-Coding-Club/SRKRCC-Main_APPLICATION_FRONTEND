@@ -10,7 +10,7 @@ export function LoadingSkeleton({
   className?: string;
 }) {
   return (
-    <div className={`p-6 bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-pulse ${className}`}>
+    <div className={`p-6 glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-pulse ${className}`}>
       <div className="flex items-center space-x-3">
         <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800" />
         <div className="space-y-2 flex-1">
@@ -32,7 +32,7 @@ export function LoadingSkeleton({
 
 export function ChartSkeleton() {
   return (
-    <div className="p-6 bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-pulse">
+    <div className="p-6 glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-pulse">
       <div className="flex justify-between items-center">
         <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/4" />
         <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/6" />

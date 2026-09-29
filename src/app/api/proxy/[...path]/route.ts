@@ -2,6 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
+// This proxy deliberately does NOT attempt its own token refresh (it used to,
+// proactively when the access token cookie was missing and reactively on a
+// 401 — see git history). That relied on an in-memory Map in
+// src/lib/server/tokenRefresh.ts to dedupe concurrent refresh attempts for
+// the same refresh token, on the assumption that concurrent requests share
+// one Node.js process/module instance. Verified false under real concurrent
+// load (multiple fetchApi calls firing on one page load): of 6 simultaneous
+// requests hitting this route with a valid-but-unused refresh token, only 2
+// got a successful refresh — the other 4 got 401 and the user was logged out
+// even though their session was perfectly valid. Route handlers are not
+// guaranteed to share process-level memory (Next.js's dev server alone can
+// dispatch them across workers), so an in-memory dedup Map is not a reliable
+// cross-request lock.
+//
+// The fix: refreshing is now the CLIENT's job alone (src/lib/auth.ts
+// refreshAccessToken, called from fetchApi and fetchAndSyncCurrentUser),
+// guarded by a module-level `activeRefreshPromise` singleton. That guarantee
+// IS reliable, because a single browser tab's JS is genuinely single-threaded
+// — there is no equivalent multi-worker ambiguity. This proxy just forwards
+// whatever token exists (or none) and returns Django's response verbatim,
+// including a 401; the client is responsible for refreshing and retrying.
 async function handleProxy(request: NextRequest, params: { path: string[] }) {
   try {
     let subPath = (params.path || []).join('/');
@@ -12,34 +33,13 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     const search = request.nextUrl.search || '';
     const targetUrl = `${DJANGO_API_URL}/${normalizedPath}${search}`;
 
-    // Read HttpOnly access token and refresh token from request cookies
-    let accessToken = request.cookies.get('srkrcc_access_token')?.value;
+    // Read HttpOnly access token from request cookies — forwarded as-is, no
+    // refresh attempted here (see module comment above).
+    const accessToken = request.cookies.get('srkrcc_access_token')?.value;
     const refreshToken = request.cookies.get('srkrcc_refresh_token')?.value;
 
-    let newAccessToken: string | null = null;
-    let newRefreshToken: string | null = null;
-
-    // If access token is missing but refresh token exists, proactively refresh before contacting Django
-    if (!accessToken && refreshToken) {
-      try {
-        const refreshRes = await fetch(`${DJANGO_API_URL}/auth/token/refresh/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh: refreshToken }),
-        });
-
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          newAccessToken = refreshData.access;
-          accessToken = newAccessToken || undefined;
-          newRefreshToken = refreshData.refresh || null;
-        }
-      } catch {
-        // Continue to attempt normal request
-      }
-    }
-
-    // Short-circuit auth/me if user has neither access nor refresh token
+    // Short-circuit auth/me if user has neither access nor refresh token —
+    // saves a pointless round-trip to Django for a request that can only 401.
     if ((subPath === 'auth/me' || subPath === 'auth/me/') && !accessToken && !refreshToken) {
       return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
     }
@@ -77,34 +77,7 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
       }
     }
 
-    let response = await fetch(targetUrl, init);
-
-    // If 401 and refresh token cookie exists and we haven't already refreshed, attempt transparent refresh server-side
-    if (response.status === 401 && !newAccessToken && refreshToken) {
-      try {
-        const refreshRes = await fetch(`${DJANGO_API_URL}/auth/token/refresh/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh: refreshToken }),
-        });
-
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          newAccessToken = refreshData.access;
-          newRefreshToken = refreshData.refresh || null;
-          if (newAccessToken) {
-            headers['Authorization'] = `Bearer ${newAccessToken}`;
-            // Retry original request with refreshed token
-            response = await fetch(targetUrl, {
-              ...init,
-              headers,
-            });
-          }
-        }
-      } catch {
-        // Fall through with original 401 response
-      }
-    }
+    const response = await fetch(targetUrl, init);
 
     const responseBody = await response.arrayBuffer();
     const responseHeaders: Record<string, string> = {};
@@ -118,38 +91,15 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
       responseHeaders['content-disposition'] = respContentDisposition;
     }
 
-    const nextResponse = new NextResponse(responseBody, {
+    // No cookie writes here — this route never refreshes, so there is
+    // nothing rotated to persist and nothing to clear (a genuinely dead
+    // refresh token is discovered and cleared by /api/auth/refresh itself,
+    // the only place that ever calls Django's token/refresh/ endpoint).
+    return new NextResponse(responseBody, {
       status: response.status,
       statusText: response.statusText,
       headers: responseHeaders,
     });
-
-    // If a new access token was issued via transparent refresh, update the HttpOnly cookies
-    if (newAccessToken) {
-      const isHttps = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
-      const isProduction = process.env.NODE_ENV === 'production';
-      const secure = isProduction && isHttps;
-
-      nextResponse.cookies.set('srkrcc_access_token', newAccessToken, {
-        httpOnly: true,
-        secure,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60, // 1 hour
-      });
-
-      if (newRefreshToken) {
-        nextResponse.cookies.set('srkrcc_refresh_token', newRefreshToken, {
-          httpOnly: true,
-          secure,
-          sameSite: 'lax',
-          path: '/',
-          maxAge: 7 * 24 * 60 * 60, // 7 days
-        });
-      }
-    }
-
-    return nextResponse;
   } catch (error: any) {
     console.error('[BFF Proxy Error]:', error);
     return NextResponse.json(

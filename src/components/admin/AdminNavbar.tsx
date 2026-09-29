@@ -22,6 +22,8 @@ import {
   Database,
   ListChecks,
   QrCode,
+  Code,
+  Megaphone,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
@@ -84,10 +86,12 @@ const navItems: NavItem[] = [
       { label: 'Members', shortLabel: 'Members', href: '/admin/members', desc: 'Club member directory', icon: UserCheck },
       { label: 'Events & Hackathons', shortLabel: 'Events', href: '/admin/events', desc: 'Workshops & hackathon engine', icon: Trophy },
       { label: 'Content Hub', shortLabel: 'Content', href: '/admin/content', desc: 'Blogs & career postings', icon: BookOpen },
+      { label: 'Announcements', shortLabel: 'Announce', href: '/admin/announcements', desc: 'Landing page banner messages', icon: Megaphone },
       { label: 'Module Flags', shortLabel: 'Flags', href: '/admin/flags', desc: 'Feature toggles & windows', icon: Sliders },
     ],
   },
   { label: 'Audit Logs', shortLabel: 'Audit', href: '/admin/audit-logs', icon: History },
+    {label:'CodeQuest',shortLabel:'CodeQuest',href:'/admin/codequest',icon:Code},
 ];
 
 export default function AdminNavbar() {
@@ -226,7 +230,11 @@ export default function AdminNavbar() {
                       layoutId="admin-nav-pill"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       className="absolute inset-0 rounded-full -z-0"
-                      style={{ background: 'linear-gradient(120deg, #8B2E3B, #FF7A00)' }}
+                      // #C2410C (not the brand's #FF7A00) — the lighter orange fails
+                      // WCAG AA contrast against the white pill label (~2.6:1); this
+                      // stop keeps white text readable (~5:1) at every point along the
+                      // gradient while staying visually on-brand (maroon → burnt orange).
+                      style={{ background: 'linear-gradient(120deg, #8B2E3B, #C2410C)' }}
                     />
                   )}
 

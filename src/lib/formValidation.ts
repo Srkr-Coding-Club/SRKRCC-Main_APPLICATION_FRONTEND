@@ -62,6 +62,13 @@ export function getConstraintHint(field: FormField): string | null {
     case 'EMAIL':
       if (r.allowedDomains) parts.push(`@${(Array.isArray(r.allowedDomains) ? r.allowedDomains : [r.allowedDomains]).join(', @')}`);
       break;
+    case 'PHONE':
+      if (r.minDigits != null && r.maxDigits != null) {
+        parts.push(r.minDigits === r.maxDigits ? `exactly ${r.minDigits} digits` : `${r.minDigits}-${r.maxDigits} digits`);
+      } else if (r.maxDigits != null) parts.push(`up to ${r.maxDigits} digits`);
+      else if (r.minDigits != null) parts.push(`at least ${r.minDigits} digits`);
+      if (r.numericOnly) parts.push('digits only');
+      break;
     case 'CHECKBOX':
       if (r.exactSelected != null) parts.push(`choose exactly ${r.exactSelected}`);
       else if (r.minSelected != null && r.maxSelected != null) parts.push(`choose ${r.minSelected}-${r.maxSelected}`);

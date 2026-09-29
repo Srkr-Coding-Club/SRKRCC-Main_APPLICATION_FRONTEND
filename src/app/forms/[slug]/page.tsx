@@ -3,8 +3,7 @@
 import React, { useState, useEffect,useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Form, FormField, CrossFieldRule, AttendanceBadge } from '@/lib/types';
-import { QRCodeSVG } from 'qrcode.react';
+import { Form, FormField, CrossFieldRule } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
 import { getConstraintHint, validateSubmission, validateFieldValue, getCrossFieldError } from '@/lib/formValidation';
@@ -27,7 +26,6 @@ import {
   Check,
   ChevronDown,
   Star,
-  QrCode,
 } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import {
@@ -178,6 +176,8 @@ function matchUserDetailToField(field: FormField, user: AuthUser | null): any {
   const label = (field.label || '').toLowerCase().trim();
   const placeholder = (field.placeholder || '').toLowerCase().trim();
   const type = field.type;
+
+  if (type === 'CLUB_ID' && user.club_id) return user.club_id;
 
   // 1. Full Name / Student Name
   const isName = (
@@ -416,10 +416,7 @@ function ModernSelect({
             z-50
             overflow-hidden
             rounded-xl
-            border border-slate-200
-            dark:border-slate-800
-            bg-white
-            dark:bg-[#151722]
+            glass-panel-solid
             p-1.5
             shadow-[0_12px_35px_rgba(0,0,0,0.12)]
             dark:shadow-[0_15px_40px_rgba(0,0,0,0.4)]
@@ -498,7 +495,11 @@ interface SignaturePadProps {
   id: string;
   value: string;
   onChange: (dataUrl: string) => void;
-  onBlur?: () => void;
+  // Takes the just-finalized value directly rather than the caller re-reading
+  // its own `formData` after `onChange` — that read raced the (batched, not
+  // yet re-rendered) state update and always saw the pre-stroke value, so the
+  // field falsely flashed "required" immediately after every signature.
+  onBlur?: (value: string) => void;
   hasError?: boolean;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
@@ -523,7 +524,15 @@ function SignaturePad({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const [hasDrawn, setHasDrawn] = useState(!!value);
 
-  // Keep the canvas in sync with an externally-set value (prefill / draft restore).
+  // Keep the canvas in sync with an externally-set value (prefill / draft
+  // restore). Was `[]` (mount-only) despite the comment above claiming it
+  // stays in sync — an existing response's signature loaded asynchronously
+  // (editing an already-submitted form) arrives well after this component's
+  // first render, so the canvas never drew it and `hasDrawn` never flipped
+  // to true, making a genuinely-signed field look empty and fail the
+  // required-field check. `[value]` is the fix; re-running per completed
+  // stroke (endDraw's own onChange feeding back into `value`) just redraws
+  // identical pixels from what's already on the canvas — harmless.
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -539,8 +548,7 @@ function SignaturePad({
     } else {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [value]);
 
   const getPoint = (e: React.MouseEvent | React.TouchEvent): { x: number; y: number } | null => {
     const canvas = canvasRef.current;
@@ -588,8 +596,9 @@ function SignaturePad({
     drawingRef.current = false;
     lastPointRef.current = null;
     const canvas = canvasRef.current;
-    if (canvas) onChange(canvas.toDataURL('image/png'));
-    onBlur?.();
+    const dataUrl = canvas ? canvas.toDataURL('image/png') : '';
+    if (canvas) onChange(dataUrl);
+    onBlur?.(dataUrl);
   };
 
   const handleClear = () => {
@@ -598,7 +607,7 @@ function SignaturePad({
     if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasDrawn(false);
     onChange('');
-    onBlur?.();
+    onBlur?.('');
   };
 
   return (
@@ -668,68 +677,6 @@ function fieldReferencesTarget(f: FormField, targetId: number | string): boolean
   return false;
 }
 
-/**
- * "Your Attendance Pass" card — fetched from GET /api/forms/<id>/attendance/my-badge/
- * once the registrant has a completed response on an attendance_enabled form. The
- * `token` is rendered as a QR code volunteers scan at check-in (see
- * AttendanceScannerTab / POST /api/attendance/scan/ on the admin side).
- */
-function AttendanceBadgeCard({ formId, registrantName }: { formId: number | string; registrantName?: string }) {
-  const [badge, setBadge] = useState<AttendanceBadge | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadBadge() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetchApi<AttendanceBadge>(`/forms/${formId}/attendance/my-badge/`);
-        if (!cancelled) setBadge(res);
-      } catch (err: any) {
-        if (!cancelled) setError(err?.message || 'Could not load your attendance pass.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    if (formId) loadBadge();
-    return () => {
-      cancelled = true;
-    };
-  }, [formId]);
-
-  if (loading) {
-    return (
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-6 text-center">
-        <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-xs text-slate-400">Loading your attendance pass…</p>
-      </div>
-    );
-  }
-
-  if (error || !badge) return null;
-
-  return (
-    <div className="rounded-xl border border-orange-200 dark:border-orange-900/50 bg-gradient-to-b from-orange-50/60 to-white dark:from-orange-950/20 dark:to-[#151722] p-6 sm:p-8 text-center space-y-4">
-      <div className="flex items-center justify-center gap-2 text-[#FF7A00]">
-        <QrCode className="w-5 h-5" />
-        <h3 className="text-sm font-black uppercase tracking-widest">Your Attendance Pass</h3>
-      </div>
-      <div className="inline-block p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-        <QRCodeSVG value={badge.token} size={192} level="M" includeMargin={false} />
-      </div>
-      {registrantName && (
-        <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{registrantName}</p>
-      )}
-      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-        Show this QR code at check-in for each session. It stays the same for every day — no need to reload or
-        re-download it.
-      </p>
-    </div>
-  );
-}
-
 export default function FormDetailSubmissionPage() {
   const { toast } = useToast();
   const params = useParams();
@@ -764,6 +711,17 @@ export default function FormDetailSubmissionPage() {
     [form?.fields, formData],
   );
 
+  // "Already submitted, can't edit it" only actually locks the form when this
+  // is a single-response form. When the form allows multiple responses, a
+  // prior submission must never block a new, independent one — the backend
+  // already enforces the real limit (max_responses_per_user) and reports it
+  // as its own submission error. `hasSubmitted && !canEditResponse` used to
+  // be read as "locked" everywhere in this file regardless of that flag, so
+  // a form configured to allow both multiple responses AND response editing
+  // (or even just multiple responses with editing off) silently could never
+  // accept a second submission — every input was blocked outright.
+  const isLockedToSingleExistingResponse = hasSubmitted && !canEditResponse && form?.allow_multiple_responses !== true;
+
   // Check user authentication & fetch fresh profile details
   useEffect(() => {
     const user = getStoredUser();
@@ -787,6 +745,28 @@ export default function FormDetailSubmissionPage() {
     async function loadForm() {
       if (!slug) return;
       setLoading(true);
+      // This page component is reused (not remounted) when navigating
+      // client-side between two different forms — e.g. submitting one form
+      // and clicking through to a "next form" link — since Next.js treats
+      // /forms/[slug] as the same page instance across dynamic-param
+      // changes. Without this reset, the PREVIOUS form's typed answers,
+      // validation errors, and "already submitted"/edit-mode state all
+      // carried over into the newly-loaded form: a just-submitted form's
+      // isSubmitted=true would make the next form open straight to the
+      // "submission complete" screen before the user ever saw it.
+      setForm(null);
+      setNotFound(false);
+      setFormData({});
+      setErrors({});
+      setTouched({});
+      setHasAttemptedSubmit(false);
+      setIsSubmitting(false);
+      setIsSubmitted(false);
+      setSubmissionError(null);
+      setExistingResponse(null);
+      setHasSubmitted(false);
+      setCanEditResponse(true);
+      setIsEditMode(false);
       try {
         const fetched = await fetchApi<Form>(`/forms/${slug}/`);
         if (fetched && fetched.title && fetched.fields) {
@@ -835,17 +815,25 @@ export default function FormDetailSubmissionPage() {
           setHasSubmitted(true);
           setExistingResponse(res.response);
           setCanEditResponse(res.can_edit);
-          setIsEditMode(true);
+          // Edit mode — pre-fill this response and PATCH it on submit — only
+          // makes sense for a single-response form. When the form allows
+          // multiple responses, having a PAST response must not silently
+          // turn every future submit into an edit of that one response: the
+          // user should get a fresh, blank form and be able to add another
+          // independent submission (up to the backend's own per-user cap).
+          setIsEditMode(!res.allow_multiple_responses);
 
-          // Pre-populate formData with previously submitted answers
-          const prefill: Record<string, any> = {};
-          if (res.response.answers && Array.isArray(res.response.answers)) {
-            res.response.answers.forEach((ans: any) => {
-              const fieldKey = ans.field_id !== undefined ? String(ans.field_id) : String(ans.field);
-              prefill[fieldKey] = ans.value;
-            });
+          if (!res.allow_multiple_responses) {
+            // Pre-populate formData with previously submitted answers
+            const prefill: Record<string, any> = {};
+            if (res.response.answers && Array.isArray(res.response.answers)) {
+              res.response.answers.forEach((ans: any) => {
+                const fieldKey = ans.field_id !== undefined ? String(ans.field_id) : String(ans.field);
+                prefill[fieldKey] = ans.value;
+              });
+            }
+            setFormData((prev) => ({ ...prefill, ...prev }));
           }
-          setFormData((prev) => ({ ...prefill, ...prev }));
         }
       } catch (err) {
         console.warn('[My Response Check Error]:', err);
@@ -896,7 +884,7 @@ export default function FormDetailSubmissionPage() {
 
   const handleInputChange = (field: FormField, value: any) => {
     const fieldId = field.id;
-    if (hasSubmitted && !canEditResponse) return; // Prevent edits when locked
+    if (isLockedToSingleExistingResponse) return; // Prevent edits when locked
 
     const nextFormData = { ...formData, [String(fieldId)]: value };
     setFormData(nextFormData);
@@ -1004,7 +992,7 @@ export default function FormDetailSubmissionPage() {
       return;
     }
 
-    if (hasSubmitted && !canEditResponse) {
+    if (isLockedToSingleExistingResponse) {
       toast.error('Submission Locked', 'You have already submitted this form and edits are disabled.');
       return;
     }
@@ -1119,7 +1107,7 @@ export default function FormDetailSubmissionPage() {
   if (notFound || !form) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-20 px-4 text-center">
-        <div className="max-w-md mx-auto p-8 rounded-2xl bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+        <div className="max-w-md mx-auto p-8 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
           <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
             <FileText className="w-6 h-6" />
           </div>
@@ -1149,7 +1137,7 @@ export default function FormDetailSubmissionPage() {
       {/* Login Required Modal Dialog */}
       {showLoginModal && !currentUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#151722] rounded-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 text-center relative overflow-hidden">
+          <div className="glass-panel rounded-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 text-center relative overflow-hidden">
             <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-[#FF7A00] flex items-center justify-center mx-auto border border-orange-500/20">
               <Lock className="w-7 h-7" />
             </div>
@@ -1196,7 +1184,7 @@ export default function FormDetailSubmissionPage() {
         <div>
           <Link
             href="/forms"
-            className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#FF7A00] px-4 py-2 rounded-lg bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 shadow-sm transition"
+            className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#FF7A00] px-4 py-2 rounded-lg glass-panel border border-slate-200 dark:border-slate-800 shadow-sm transition"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Forms Center</span>
@@ -1205,7 +1193,15 @@ export default function FormDetailSubmissionPage() {
 
         {/* Success Confirmation Card */}
         {isSubmitted ? (
-          <div className="bg-white dark:bg-[#151722] rounded-xl p-8 sm:p-12 border border-emerald-200 dark:border-emerald-900/50 shadow-md text-center space-y-4">
+          <div className="relative glass-panel rounded-xl p-8 sm:p-12 border border-emerald-200 dark:border-emerald-900/50 shadow-md text-center space-y-4">
+            {/* Glow behind the glass panel — without it, a translucent panel
+                over this page's plain background has nothing colorful behind
+                it to actually blur, so it reads as flat/opaque instead of
+                glassy (same fix applied to the admin create-event panels). */}
+            <div
+              className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-70 blur-2xl"
+              style={{ background: 'radial-gradient(circle at 50% 20%, #10b98144, transparent 70%)' }}
+            />
             <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-500 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-10 h-10" />
             </div>
@@ -1216,13 +1212,10 @@ export default function FormDetailSubmissionPage() {
               Thank you for submitting your response for <strong className="text-[#1A1A2E] dark:text-white">{form.title}</strong>. A confirmation has been recorded under your verified account.
             </p>
 
-            {form.attendance_enabled && typeof form.id === 'number' && (
-              <div className="pt-2 max-w-md mx-auto text-left">
-                <AttendanceBadgeCard
-                  formId={form.id}
-                  registrantName={currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser?.username}
-                />
-              </div>
+            {form.attendance_enabled && (
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Your attendance QR badge is now on your profile — go to Profile → Registered Events to view it.
+              </p>
             )}
 
             <div className="pt-4">
@@ -1236,7 +1229,17 @@ export default function FormDetailSubmissionPage() {
           </div>
         ) : (
           /* Form Content Card — shadow-input styling to match Aceternity's signup-form card */
-          <div className="bg-white dark:bg-black rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] dark:bg-[#151722] space-y-8">
+          <div className="relative glass-panel rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] space-y-8">
+            {/* Glow behind the glass panel — see the matching comment on the
+                success card above for why this is needed at all. */}
+            <div
+              className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-70 blur-2xl hidden md:block"
+              style={{ background: 'radial-gradient(circle at 50% 10%, #FF7A0033, transparent 70%)' }}
+            />
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-0.5 rounded-t-2xl"
+              style={{ background: 'linear-gradient(90deg, #8B2E3B66, #FF7A00, #8B2E3B66)' }}
+            />
 
             {/* Header */}
             <div className="border-b border-slate-100 dark:border-slate-800 pb-6 space-y-4">
@@ -1257,35 +1260,38 @@ export default function FormDetailSubmissionPage() {
               {/* Authentication Status Banner */}
               {currentUser ? (
                 <div className="space-y-3">
-                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
                       <UserCheck className="w-4 h-4 flex-shrink-0" />
-                      <span>Submitting as verified user: <strong className="text-white">{currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser.username || currentUser.email}</strong> ({currentUser.email})</span>
+                      <span>Submitting as verified user: <strong className="text-emerald-900 dark:text-white">{currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser.username || currentUser.email}</strong> ({currentUser.email})</span>
                     </div>
                   </div>
 
-                  {/* Previous submission & Edit Mode banner */}
-                  {hasSubmitted && (
+                  {/* Previous submission & Edit Mode banner — single-response
+                      forms only. On a multi-response form this would show
+                      "Edit Mode Active" or "Edits Locked" for what's actually
+                      just a normal, independent new submission. */}
+                  {hasSubmitted && form?.allow_multiple_responses !== true && (
                     canEditResponse ? (
-                      <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-start gap-3">
-                        <Edit3 className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 flex items-start gap-3">
+                        <Edit3 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
-                          <p className="font-bold text-blue-300">
+                          <p className="font-bold text-blue-800 dark:text-blue-300">
                             Response Edit Mode Active
                           </p>
-                          <p className="text-blue-300/80">
+                          <p className="text-blue-700/80 dark:text-blue-300/80">
                             You previously submitted this form on {existingResponse?.submitted_at ? new Date(existingResponse.submitted_at).toLocaleString('en-IN') : 'earlier'}. You can update your answers below and click <strong>Update Response</strong> to save your changes.
                           </p>
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-                        <Lock className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
+                        <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
-                          <p className="font-bold text-amber-300">
+                          <p className="font-bold text-amber-800 dark:text-amber-300">
                             Response Already Submitted (Edits Locked)
                           </p>
-                          <p className="text-amber-300/80">
+                          <p className="text-amber-700/80 dark:text-amber-300/80">
                             You submitted your response on {existingResponse?.submitted_at ? new Date(existingResponse.submitted_at).toLocaleString('en-IN') : 'earlier'}. Further changes are closed.
                           </p>
                         </div>
@@ -1293,15 +1299,14 @@ export default function FormDetailSubmissionPage() {
                     )
                   )}
 
-                  {hasSubmitted && form.attendance_enabled && typeof form.id === 'number' && (
-                    <AttendanceBadgeCard
-                      formId={form.id}
-                      registrantName={currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser?.username}
-                    />
+                  {hasSubmitted && form.attendance_enabled && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      Your attendance QR badge is on your profile — go to Profile → Registered Events to view it.
+                    </p>
                   )}
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <Lock className="w-5 h-5 text-[#FF7A00] flex-shrink-0" />
                     <div className="text-xs">
@@ -1319,11 +1324,11 @@ export default function FormDetailSubmissionPage() {
               )}
 
               {submissionError && (
-                <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs text-rose-300">
-                    <p className="font-bold text-rose-400">Submission Notice</p>
-                    <p className="mt-0.5 text-rose-300/80">{submissionError}</p>
+                <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-rose-800 dark:text-rose-300">
+                    <p className="font-bold text-rose-700 dark:text-rose-400">Submission Notice</p>
+                    <p className="mt-0.5 text-rose-700/80 dark:text-rose-300/80">{submissionError}</p>
                   </div>
                 </div>
               )}
@@ -1339,11 +1344,11 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'DRAFT') {
                   return (
-                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-amber-300">
+                    <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-amber-800 dark:text-amber-300">
                         <p className="font-bold">Draft Preview Mode</p>
-                        <p className="mt-0.5 text-amber-400/80">This form has not been published yet. Responses submitted here are for testing only.</p>
+                        <p className="mt-0.5 text-amber-700/80 dark:text-amber-400/80">This form has not been published yet. Responses submitted here are for testing only.</p>
                       </div>
                     </div>
                   );
@@ -1351,11 +1356,11 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'CLOSED' || isAfterClose) {
                   return (
-                    <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-rose-300">
+                    <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-500 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-rose-800 dark:text-rose-300">
                         <p className="font-bold">Submissions Closed</p>
-                        <p className="mt-0.5 text-rose-300/80">
+                        <p className="mt-0.5 text-rose-700/80 dark:text-rose-300/80">
                           {closeTime
                             ? `The deadline for this form ended on ${new Date(form.close_at!).toLocaleString('en-IN')}.`
                             : 'This form has been closed to new responses by club leadership.'}
@@ -1367,11 +1372,11 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'SCHEDULED' && isBeforeOpen) {
                   return (
-                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-3">
-                      <Calendar className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-blue-300">
+                    <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 flex items-start gap-3">
+                      <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-blue-800 dark:text-blue-300">
                         <p className="font-bold">Scheduled Launch Window</p>
-                        <p className="mt-0.5 text-blue-300/80">
+                        <p className="mt-0.5 text-blue-700/80 dark:text-blue-300/80">
                           Submissions will automatically open on{' '}
                           <strong>{new Date(form.open_at!).toLocaleString('en-IN')}</strong>. Please check back then.
                         </p>
@@ -1382,11 +1387,11 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'SCHEDULED' && !isBeforeOpen && !isAfterClose) {
                   return (
-                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-emerald-300">
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-emerald-800 dark:text-emerald-300">
                         <p className="font-bold">Scheduled Window Live</p>
-                        <p className="mt-0.5 text-emerald-300/80">
+                        <p className="mt-0.5 text-emerald-700/80 dark:text-emerald-300/80">
                           This form is open for submissions
                           {form.close_at && ` until ${new Date(form.close_at).toLocaleString('en-IN')}`}.
                         </p>
@@ -1454,11 +1459,11 @@ export default function FormDetailSubmissionPage() {
                     )}
 
                     {/* TEXT Field */}
-                    {field.type === 'TEXT' && (
+                    {(field.type === 'TEXT' || field.type === 'CLUB_ID') && (
                       <SpotlightInput
                         id={`field-${field.id}`}
                         type="text"
-                        placeholder={field.placeholder || 'Enter response...'}
+                        placeholder={field.placeholder || (field.type === 'CLUB_ID' ? 'Enter your Club ID...' : 'Enter response...')}
                         value={fieldVal}
                         maxLength={field.validation_rules?.maxLength}
                         onChange={(e) => handleInputChange(field, e.target.value)}
@@ -2009,7 +2014,7 @@ export default function FormDetailSubmissionPage() {
                         id={`field-${field.id}`}
                         value={typeof fieldVal === 'string' ? fieldVal : ''}
                         onChange={(dataUrl) => handleInputChange(field, dataUrl)}
-                        onBlur={() => handleFieldBlur(field, formData[field.id])}
+                        onBlur={(dataUrl) => handleFieldBlur(field, dataUrl)}
                         hasError={isErr}
                         aria-invalid={isErr}
                         aria-describedby={errorId}
@@ -2070,7 +2075,7 @@ export default function FormDetailSubmissionPage() {
                   );
                 }
 
-                if (hasSubmitted && !canEditResponse) {
+                if (isLockedToSingleExistingResponse) {
                   return (
                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <p className="text-xs text-amber-400 font-semibold flex items-center gap-1.5">

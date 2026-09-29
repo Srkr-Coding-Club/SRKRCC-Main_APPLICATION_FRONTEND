@@ -1,4 +1,4 @@
-import { refreshAccessToken } from './auth';
+import { redirectToLogin, refreshAccessToken } from './auth';
 
 const API_BASE_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
@@ -43,13 +43,16 @@ export async function fetchApi<T>(
       signal: controller.signal,
     });
 
-    // Handle token expiration: attempt transparent refresh and replay
-    if (response.status === 401 && !isRetry && isClient) {
-      clearTimeout(timeout);
-      const refreshed = await refreshAccessToken();
-      if (refreshed) {
-        return fetchApi<T>(endpoint, options, true);
+    // Handle token expiration: attempt one transparent refresh and replay.
+    if (response.status === 401 && isClient) {
+      if (!isRetry) {
+        clearTimeout(timeout);
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+          return fetchApi<T>(endpoint, options, true);
+        }
       }
+      redirectToLogin();
     }
 
     if (!response.ok) {

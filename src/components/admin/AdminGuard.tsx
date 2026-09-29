@@ -4,7 +4,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, LogIn, ArrowLeft, Loader2, RefreshCw, UserCheck, Home, LogOut } from 'lucide-react';
-import { getStoredUser, fetchAndSyncCurrentUser, clearAuthSession, AuthUser } from '@/lib/auth';
+import { getStoredUser, fetchAndSyncCurrentUser, subscribeToAuthResync, clearAuthSession, AuthUser } from '@/lib/auth';
+import AdminNavbar from './AdminNavbar';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -14,15 +15,17 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
-  const checkPermissions = useCallback(async () => {
+  const checkPermissions = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
+
     // localStorage and the non-HttpOnly srkrcc_user_role cookie are both editable from
     // devtools, so they're used only for the optimistic "who am I" display below while
     // the real check runs — never to decide whether protected content renders. Access
     // is always gated on the authoritative server response.
-    const localUser = getStoredUser();
-    setCurrentUser(localUser);
-
-    setCheckingServer(true);
+    if (!silent) {
+      setCurrentUser(getStoredUser());
+      setCheckingServer(true);
+    }
     try {
       const serverUser = await fetchAndSyncCurrentUser();
       if (serverUser) {
@@ -35,17 +38,34 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         setIsAdmin(false);
       }
     } catch {
-      // Fail closed: a network error verifying the session is not proof of admin access.
-      setIsAuth(false);
-      setIsAdmin(false);
+      // Fail closed on the initial (loud) check: a network error verifying the
+      // session is not proof of admin access. A silent background recheck
+      // failing is more likely a transient blip from switching tabs, so it
+      // leaves existing access alone rather than yanking it away mid-task —
+      // the next successful check (or the next full page load) will still
+      // catch a real revocation.
+      if (!silent) {
+        setIsAuth(false);
+        setIsAdmin(false);
+      }
     } finally {
-      setCheckingServer(false);
-      setMounted(true);
+      if (!silent) {
+        setCheckingServer(false);
+        setMounted(true);
+      }
     }
   }, []);
 
   useEffect(() => {
     checkPermissions();
+    // Silently re-check on focus too — this is the actual access gate, so a
+    // role change made elsewhere while this tab sat open (promoted to admin,
+    // or demoted away from it) should take effect the moment the tab is
+    // looked at again, not only at the next hard refresh. Silent so it
+    // doesn't blank an already-admitted admin's screen with the loading
+    // gateway just because they alt-tabbed back.
+    const unsubscribe = subscribeToAuthResync(() => checkPermissions({ silent: true }));
+    return unsubscribe;
   }, [checkPermissions]);
 
   const handleSwitchAccount = () => {
@@ -70,12 +90,12 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   }
 
   if (!isAuth || !isAdmin) {
-    const roleName = currentUser?.role || 'MEMBER';
+    const roleName = currentUser?.role || 'NON_AFFILIATE';
     const email = currentUser?.email || 'Unknown';
 
     return (
       <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-20 px-4 flex items-center justify-center transition-colors duration-300">
-        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-[#151722] border border-rose-500/20 dark:border-rose-500/20 shadow-2xl space-y-6 text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl glass-panel border border-rose-500/20 dark:border-rose-500/20 shadow-2xl space-y-6 text-center">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-500 shadow-inner">
             <ShieldAlert className="w-8 h-8" />
           </div>
@@ -163,5 +183,14 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     );
   }
 
-  return <>{children}</>;
+  // AdminNavbar renders here, not in the root layout's NavbarSwitcher —
+  // that way its nav links, module names, and role badge are only ever
+  // shown once we've actually confirmed the viewer is an admin/club lead,
+  // never just because the URL starts with /admin.
+  return (
+    <>
+      <AdminNavbar />
+      {children}
+    </>
+  );
 }

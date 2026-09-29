@@ -17,6 +17,15 @@ export function normalizeImageUrl(url: string | null | undefined): string | null
   return /^https?:\/\/data:/i.test(trimmed) ? trimmed.replace(/^https?:\/\//i, "") : trimmed;
 }
 
+/** Converts a title into a URL-safe slug, e.g. for auto-filling an admin create form's slug field. */
+export function slugify(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 /**
  * Formats a raw student year number (1, 2, 3, 4, ...) as an ordinal
  * "Nth Year" label (e.g. 1 -> "1st Year", 2 -> "2nd Year", 11 -> "11th Year").

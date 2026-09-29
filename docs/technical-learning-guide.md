@@ -81,7 +81,7 @@ Configured in [next.config.ts](file:///c:/Users/chall/OneDrive/Desktop/SRKRCC-Ma
 - **`X-Frame-Options: SAMEORIGIN`**: Prevents clickjacking by blocking iframe embedding on untrusted domains.
 - **`X-Content-Type-Options: nosniff`**: Prevents browser MIME-type sniffing.
 - **`Referrer-Policy: strict-origin-when-cross-origin`**: Controls referrer leakage across origins.
-- **`Permissions-Policy: camera=(), microphone=(), geolocation=()`**: Restricts unnecessary device APIs.
+- **`Permissions-Policy: camera=(self), microphone=(), geolocation=()`**: Allows camera access on the same origin (for QR scanning features) while restricting unnecessary device APIs.
 
 ---
 
@@ -116,7 +116,17 @@ When students open registration forms, the application automatically matches and
 
 ---
 
-## 7. Server Component (RSC) vs Client Component Rendering Rules
+## 7. CodeQuest Admin Workspace
+
+`/admin/codequest` follows the standard admin-route pattern: it is a thin route wrapper around
+`components/admin/CodeQuestTab.tsx`, which owns interactive scheduling and review controls.
+The public `/codequest` page owns the daily member experience and receives today's problem plus
+previously published challenges, never future scheduled problems. The browser never calculates or
+writes a member streak.
+
+---
+
+## 8. Server Component (RSC) vs Client Component Rendering Rules
 
 1. **No Event Handlers in Server Components**:
    - Server Components (`src/app/forms/page.tsx`, `src/app/events/page.tsx`, etc.) run during SSR without a browser JS runtime.

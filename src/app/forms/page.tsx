@@ -188,7 +188,7 @@ export default async function FormsCenterPage() {
 
         {/* Forms Grid */}
         {formsToDisplay.length === 0 ? (
-          <div className="py-20 text-center bg-white dark:bg-[#151722] rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
+          <div className="py-20 text-center glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
             <FileText className="w-12 h-12 text-slate-500 mx-auto" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">No Public Forms Currently Active</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">

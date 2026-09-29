@@ -135,7 +135,7 @@ export default function AboutPage() {
                 {FACTS.map((f) => (
                   <span
                     key={f.label}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-800 glass-panel px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300"
                   >
                     <f.icon className="w-3.5 h-3.5 text-[#FF7A00]" />
                     {f.label}
@@ -153,7 +153,7 @@ export default function AboutPage() {
                 className="relative z-10 p-[2px] rounded-[10px]"
                 style={{ background: 'linear-gradient(135deg, #FFA500, #FF7A00 45%, #8B2E3B 85%)' }}
               >
-                <div className="relative h-[320px] sm:h-[400px] overflow-hidden rounded-[10px] bg-white dark:bg-[#151722]">
+                <div className="relative h-[320px] sm:h-[400px] overflow-hidden rounded-[10px] glass-panel">
                   <Image
                     src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1000&q=80"
                     alt="Students working together at laptops"
@@ -182,7 +182,7 @@ export default function AboutPage() {
               {VALUES.map((v) => (
                 <div
                   key={v.title}
-                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow"
+                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 glass-panel p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
@@ -214,7 +214,7 @@ export default function AboutPage() {
                 <Link
                   key={m.title}
                   href={m.href}
-                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151722] p-4 sm:p-6 shadow-sm hover:shadow-md hover:border-[#FF7A00]/40 transition-all flex flex-col"
+                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 glass-panel p-4 sm:p-6 shadow-sm hover:shadow-md hover:border-[#FF7A00]/40 transition-all flex flex-col"
                 >
                   <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00] flex items-center justify-center mb-4">
                     <m.icon className="w-5 h-5" />

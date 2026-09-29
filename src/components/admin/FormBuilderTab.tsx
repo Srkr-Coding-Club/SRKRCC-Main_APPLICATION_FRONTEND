@@ -37,6 +37,7 @@ import {
   Table2,
   PenTool,
   Link2,
+  Phone,
 } from 'lucide-react';
 import { Form, FormField, ValidationRules } from '@/lib/types';
 import { hasConstraintOptions, hasActiveValidation, getConstraintHint } from '@/lib/formValidation';
@@ -46,6 +47,8 @@ import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import EmailTemplateEditor from '@/components/admin/EmailTemplateEditor';
 import { IdCard, Mail as MailIcon, QrCode } from 'lucide-react';
+import { fetchApi } from '@/lib/api-client';
+import { EmailTemplateSummary } from '@/lib/types';
 
 interface TypeMeta {
   label: string;
@@ -57,13 +60,14 @@ interface TypeMeta {
   hasScale?: boolean;
 }
 
-// Partial because FormField['type'] also includes exotic types (PHONE, ...) used by the
-// ported response/CSV admin tools that this builder doesn't offer as addable fields.
+// Partial because FormField['type'] also includes types this builder doesn't
+// offer as addable fields (e.g. exotic ones used by ported response/CSV admin tools).
 const TYPE_META: Partial<Record<FormField['type'], TypeMeta>> = {
   TEXT: { label: 'Short Answer', icon: Type },
   PARAGRAPH: { label: 'Paragraph', icon: AlignLeft },
   EMAIL: { label: 'Email Address', icon: Mail },
-  NUMBER: { label: 'Number / Phone', icon: Hash },
+  PHONE: { label: 'Phone Number', icon: Phone },
+  NUMBER: { label: 'Number', icon: Hash },
   URL: { label: 'Website URL', icon: Link2 },
   DROPDOWN: { label: 'Dropdown', icon: List, hasOptions: true },
   RADIO: { label: 'Multiple Choice', icon: CheckCircle2, hasOptions: true },
@@ -77,6 +81,7 @@ const TYPE_META: Partial<Record<FormField['type'], TypeMeta>> = {
   MATRIX_RADIO: { label: 'Multiple Choice Grid', icon: Grid3x3, hasOptions: true, hasRows: true },
   MATRIX_CHECKBOX: { label: 'Checkbox Grid', icon: Table2, hasOptions: true, hasRows: true },
   SIGNATURE: { label: 'Signature', icon: PenTool },
+  CLUB_ID: { label: 'Club ID', icon: IdCard },
   SECTION: { label: 'Section Header', icon: SeparatorHorizontal },
 };
 
@@ -89,12 +94,12 @@ function getTypeMeta(type: FormField['type']): TypeMeta {
 }
 
 const SELECTABLE_TYPES: FormField['type'][] = [
-  'TEXT', 'PARAGRAPH', 'EMAIL', 'NUMBER', 'URL', 'DROPDOWN', 'RADIO', 'CHECKBOX', 'DATE', 'TIME', 'FILE', 'MULTI_FILE',
-  'RATING', 'LINEAR_SCALE', 'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE',
+  'TEXT', 'PARAGRAPH', 'EMAIL', 'PHONE', 'NUMBER', 'URL', 'DROPDOWN', 'RADIO', 'CHECKBOX', 'DATE', 'TIME', 'FILE', 'MULTI_FILE',
+  'RATING', 'LINEAR_SCALE', 'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE', 'CLUB_ID',
 ];
 
 const FIELD_GROUPS: { label: string; icon: React.ElementType; types: FormField['type'][] }[] = [
-  { label: 'Text Inputs', icon: Type, types: ['TEXT', 'PARAGRAPH', 'EMAIL', 'NUMBER', 'URL'] },
+  { label: 'Text Inputs', icon: Type, types: ['TEXT', 'PARAGRAPH', 'EMAIL', 'PHONE', 'NUMBER', 'URL', 'CLUB_ID'] },
   { label: 'Choice Fields', icon: List, types: ['DROPDOWN', 'RADIO', 'CHECKBOX'] },
   { label: 'Rating & Matrix', icon: Grid3x3, types: ['RATING', 'LINEAR_SCALE', 'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE'] },
   { label: 'Advanced', icon: Layers, types: ['DATE', 'TIME', 'FILE', 'MULTI_FILE', 'SECTION'] },
@@ -122,7 +127,8 @@ interface FormBuilderTabProps {
     allow_edits_until?: string;
     club_id_enabled?: boolean;
     club_id_prefix?: string;
-    club_id_field_mapping?: { email?: number | string; full_name?: number | string; phone_number?: number | string; branch?: number | string; roll_number?: number | string };
+    club_id_field_mapping?: { club_id?: number | string; email?: number | string; full_name?: number | string; phone_number?: number | string; branch?: number | string; roll_number?: number | string };
+    club_id_verification_enabled?: boolean;
     confirmation_email_enabled?: boolean;
     confirmation_email_template?: number | string | null;
     attendance_enabled?: boolean;
@@ -174,11 +180,35 @@ export function FormBuilderTab({
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showEmailEditor, setShowEmailEditor] = useState(false);
   const [confirmationTemplateLabel, setConfirmationTemplateLabel] = useState<string>('');
+
+  // Hydrate the friendly template name for a form loaded with confirmation
+  // email already configured (opening an existing form in the builder, or
+  // right after this same form is saved and formMeta is replaced by the
+  // server response) — confirmationTemplateLabel otherwise only gets set via
+  // the "just picked/created a template" callback below, so every other case
+  // fell back to the opaque "Template #9" placeholder.
+  useEffect(() => {
+    const templateId = formMeta.confirmation_email_template;
+    if (!templateId || confirmationTemplateLabel) return;
+    let cancelled = false;
+    fetchApi<EmailTemplateSummary[]>('/auth/email-templates/')
+      .then((templates) => {
+        if (cancelled || !Array.isArray(templates)) return;
+        const match = templates.find((t) => t.id === templateId);
+        if (match) setConfirmationTemplateLabel(match.display_title || match.name);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formMeta.confirmation_email_template]);
   // Club ID field mapping stores real FormField ids; a brand-new, never-saved
   // field only has a client-side placeholder id (e.g. 'f2') until the form is
   // saved once and the backend assigns it a permanent numeric id.
   const formIsSaved = typeof formMeta.id === 'number' && formMeta.id > 0;
   const emailFields = builderFields.filter((f) => f.type === 'EMAIL' && typeof f.id === 'number' && f.id > 0);
+  const savedFormFields = builderFields.filter((f) => f.type !== 'SECTION' && typeof f.id === 'number' && f.id > 0);
   const [scheduleOpenAt, setScheduleOpenAt] = useState(formMeta.open_at || '');
   const [scheduleCloseAt, setScheduleCloseAt] = useState(formMeta.close_at || '');
   const prevIdsRef = useRef<Set<number | string>>(new Set(builderFields.map((f) => f.id)));
@@ -321,14 +351,17 @@ export function FormBuilderTab({
     onFieldChange(field.id, 'validation_rules', { ...(field.validation_rules || {}), ...patch });
   };
 
-  const totalRequired = builderFields.filter((f) => f.is_required).length;
+  // SECTION headers are never answerable (validation always skips them) so a
+  // stray is_required=true on one — from data saved before this default was
+  // fixed, or a duplicated field — must not count toward this summary either.
+  const totalRequired = builderFields.filter((f) => f.is_required && f.type !== 'SECTION').length;
   const totalConditional = builderFields.filter((f) => !!normalizeConditional(f.conditional_logic)).length;
   const isCurrentlyPublished = formMeta.status === 'PUBLISHED';
 
   return (
     <div className="space-y-6">
       {/* Top Controls Bar */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between bg-white dark:bg-[#151722] p-4 rounded-lg border border-slate-200 dark:border-slate-800 gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between glass-panel p-4 rounded-lg border border-slate-200 dark:border-slate-800 gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[#FF7A00] flex-shrink-0">
             <Layers className="w-5 h-5" />
@@ -365,13 +398,13 @@ export function FormBuilderTab({
             <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-md">
               <button
                 onClick={() => setViewportMode('desktop')}
-                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'desktop' ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow' : 'text-slate-400'}`}
+                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'desktop' ? 'glass-panel text-[#FF7A00] shadow' : 'text-slate-400'}`}
               >
                 <Monitor className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewportMode('mobile')}
-                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'mobile' ? 'bg-white dark:bg-[#151722] text-[#FF7A00] shadow' : 'text-slate-400'}`}
+                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'mobile' ? 'glass-panel text-[#FF7A00] shadow' : 'text-slate-400'}`}
               >
                 <Smartphone className="w-4 h-4" />
               </button>
@@ -383,7 +416,7 @@ export function FormBuilderTab({
             className={`px-3.5 py-2 rounded-md text-xs font-bold border flex items-center space-x-1.5 transition-transform duration-100 active:scale-95 ${
               isPreviewMode
                 ? 'bg-slate-800 text-white border-slate-800'
-                : 'bg-white dark:bg-[#151722] text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                : 'glass-panel text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
@@ -397,7 +430,7 @@ export function FormBuilderTab({
                 onResetForm?.();
               }
             }}
-            className="px-3.5 py-2 rounded-md bg-white dark:bg-[#151722] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
+            className="px-3.5 py-2 rounded-md glass-panel hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
             title={formMeta.id ? "Reset form back to last saved checkpoint" : "Reset to blank form"}
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -417,7 +450,7 @@ export function FormBuilderTab({
           {formMeta.status === 'PUBLISHED' ? (
             <button
               onClick={() => onSaveForm('DRAFT')}
-              className="px-4 py-2 rounded-md bg-white dark:bg-[#151722] border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
+              className="px-4 py-2 rounded-md glass-panel border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
               title="Revert to draft — students can no longer see or submit this form"
             >
               <span>Unpublish</span>
@@ -449,7 +482,7 @@ export function FormBuilderTab({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Field Palette — left side, click + to add a field to the form */}
           <div className="lg:col-span-4 lg:sticky lg:top-24 self-start">
-            <div className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="p-4 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-[#1A1A2E] dark:text-white">Add Fields</h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">Click a field to add it to the form.</p>
@@ -481,7 +514,7 @@ export function FormBuilderTab({
           {/* Canvas — right side */}
           <div className="lg:col-span-8 space-y-3">
             {/* Title & Description Card */}
-            <div className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-4">
               <input
                 type="text"
                 value={formMeta.title}
@@ -526,7 +559,7 @@ export function FormBuilderTab({
 
             {/* Automation Card — Club Member ID + confirmation email, wired into
                 Response submission on the backend (apps/forms/services.py). */}
-            <div className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-5">
+            <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-5">
               <div className="flex items-center gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#1A1A2E] dark:text-white">Automation</h3>
               </div>
@@ -540,7 +573,7 @@ export function FormBuilderTab({
                   <input
                     type="checkbox"
                     checked={!!formMeta.club_id_enabled}
-                    onChange={(e) => setFormMeta({ ...formMeta, club_id_enabled: e.target.checked })}
+                    onChange={(e) => setFormMeta({ ...formMeta, club_id_enabled: e.target.checked, ...(e.target.checked ? { club_id_verification_enabled: false } : {}) })}
                     className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
                   />
                 </label>
@@ -606,7 +639,7 @@ export function FormBuilderTab({
                                 className="w-full px-2.5 py-2 rounded border text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                               >
                                 <option value="">None</option>
-                                {builderFields.filter((f) => f.type !== 'SECTION' && typeof f.id === 'number' && f.id > 0).map((f) => (
+                                {savedFormFields.map((f) => (
                                   <option key={f.id} value={f.id}>{f.label}</option>
                                 ))}
                               </select>
@@ -617,6 +650,85 @@ export function FormBuilderTab({
                           Each completed submission is matched by email to the club member directory. New members get a
                           permanent ID like &quot;{new Date().getFullYear().toString().slice(-2)}{formMeta.club_id_prefix || 'SCC'}001&quot; —
                           returning members (same email) always keep their existing one.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3 pb-5 border-b border-slate-100 dark:border-slate-800">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                    <ShieldCheck className="w-4 h-4 text-[#FF7A00]" />
+                    Verify Club ID on submission
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!formMeta.club_id_verification_enabled}
+                    onChange={(e) => setFormMeta({ ...formMeta, club_id_verification_enabled: e.target.checked, ...(e.target.checked ? { club_id_enabled: false } : {}) })}
+                    className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
+                  />
+                </label>
+
+                {formMeta.club_id_verification_enabled && (
+                  <div className="pl-6 space-y-3">
+                    {!formIsSaved ? (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        Save this form once first, then come back here to map the fields used for Club ID verification.
+                      </p>
+                    ) : savedFormFields.length === 0 ? (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        Add fields to this form before enabling Club ID verification.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Club ID Field *</label>
+                            <select
+                              value={formMeta.club_id_field_mapping?.club_id ?? ''}
+                              onChange={(e) => setFormMeta({ ...formMeta, club_id_field_mapping: { ...formMeta.club_id_field_mapping, club_id: e.target.value || undefined } })}
+                              className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                            >
+                              <option value="">Select field…</option>
+                              {savedFormFields.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Name Field</label>
+                            <select
+                              value={formMeta.club_id_field_mapping?.full_name ?? ''}
+                              onChange={(e) => setFormMeta({ ...formMeta, club_id_field_mapping: { ...formMeta.club_id_field_mapping, full_name: e.target.value || undefined } })}
+                              className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                            >
+                              <option value="">None</option>
+                              {savedFormFields.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {([
+                            ['email', 'Email Field'],
+                            ['phone_number', 'Phone Field'],
+                            ['branch', 'Branch Field'],
+                            ['roll_number', 'Roll Number Field'],
+                          ] as const).map(([key, labelText]) => (
+                            <div key={key}>
+                              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">{labelText}</label>
+                              <select
+                                value={formMeta.club_id_field_mapping?.[key] ?? ''}
+                                onChange={(e) => setFormMeta({ ...formMeta, club_id_field_mapping: { ...formMeta.club_id_field_mapping, [key]: e.target.value || undefined } })}
+                                className="w-full px-2.5 py-2 rounded border text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+                              >
+                                <option value="">None</option>
+                                {savedFormFields.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          The submitted Club ID must exist in the member directory. Any mapped profile fields must also match that member&apos;s records.
                         </p>
                       </>
                     )}
@@ -993,7 +1105,7 @@ function QuestionCard({
     return (
       <div
         onClick={onFocus}
-        className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 p-5 cursor-pointer"
+        className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 p-5 cursor-pointer"
       >
         <div className="flex items-center gap-3 border-b border-[#FF7A00] pb-3">
           {reorderControls}
@@ -1023,7 +1135,7 @@ function QuestionCard({
     return (
       <div
         onClick={onFocus}
-        className="bg-white dark:bg-[#151722] rounded-lg border border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50 cursor-pointer p-4 flex items-center gap-3"
+        className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50 cursor-pointer p-4 flex items-center gap-3"
       >
         {reorderControls}
         {numberBadge}
@@ -1040,7 +1152,7 @@ function QuestionCard({
   }
 
   return (
-    <div className="bg-white dark:bg-[#151722] rounded-lg border-l-4 border-l-[#FF7A00] border border-slate-200 dark:border-slate-800 p-5 space-y-3">
+    <div className="glass-panel rounded-lg border-l-4 border-l-[#FF7A00] border border-slate-200 dark:border-slate-800 p-5 space-y-3">
       <div className="flex items-start gap-3">
         <div className="mt-1.5">{reorderControls}</div>
         <div className="mt-1.5">{numberBadge}</div>
@@ -1064,7 +1176,7 @@ function QuestionCard({
           </button>
 
           {typeMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-[#151722] border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-20 p-1 max-h-80 overflow-y-auto">
+            <div className="absolute right-0 top-full mt-1 w-56 glass-panel border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-20 p-1 max-h-80 overflow-y-auto">
               {SELECTABLE_TYPES.map((t) => {
                 const m = getTypeMeta(t);
                 const TIcon = m.icon;
@@ -1174,7 +1286,7 @@ function QuestionCard({
               type="number"
               value={field.min_value ?? 1}
               onChange={(e) => onScaleRangeChange('min_value', e.target.value === '' ? undefined : Number(e.target.value))}
-              className="w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+              className="w-full px-2 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
             />
           </div>
           <div>
@@ -1185,7 +1297,7 @@ function QuestionCard({
               type="number"
               value={field.max_value ?? 5}
               onChange={(e) => onScaleRangeChange('max_value', e.target.value === '' ? undefined : Number(e.target.value))}
-              className="w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
+              className="w-full px-2 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
             />
           </div>
         </div>
@@ -1320,7 +1432,7 @@ function ConditionalEditor({
     });
   };
 
-  const sel = 'w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]';
+  const sel = 'w-full px-2 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]';
 
   return (
     <div className="p-3 rounded bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs space-y-2 mt-2">
@@ -1406,7 +1518,7 @@ function CrossFieldEditor({ field, siblingFields, onChange }: {
 }) {
   const rules = (field.validation_rules?.crossField as any[]) || [];
   const rule = rules[0];
-  const sel = 'px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] border-slate-200 dark:border-slate-800';
+  const sel = 'px-2 py-1.5 rounded border text-xs glass-panel border-slate-200 dark:border-slate-800';
   const emit = (patch: any) => {
     const next = { op: patch.op ?? rule?.op ?? 'eq', field: patch.field ?? rule?.field ?? siblingFields[0]?.id, equals: patch.equals ?? rule?.equals };
     if (!next.field) { onChange({ crossField: undefined }); return; }
@@ -1459,7 +1571,7 @@ function ValidationPanel({ field, siblingFields, onChange }: {
             <div>
               <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Format</label>
               <select value={r.format || ''} onChange={(e) => onChange({ format: (e.target.value || undefined) as any })}
-                className="w-full px-2 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] border-slate-200 dark:border-slate-800">
+                className="w-full px-2 py-1.5 rounded border text-xs glass-panel border-slate-200 dark:border-slate-800">
                 {TEXT_FORMAT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
@@ -1700,7 +1812,7 @@ function LabeledInput({
         inputMode={isNumber ? 'decimal' : undefined}
         value={raw}
         onChange={handleChange}
-        className="w-full px-2.5 py-1.5 rounded border text-xs bg-white dark:bg-[#151722] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+        className="w-full px-2.5 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
       />
     </div>
   );
@@ -1725,15 +1837,17 @@ function LivePreview({
   viewportMode,
   setIsPreviewMode,
 }: LivePreviewProps) {
-  // previewAnswers is keyed by label; rebuild it by field id for the shared
-  // conditional engine (same one the public form + backend use).
+  const valueFor = (field: FormField) => previewAnswers[String(field.id)];
+  const updateValue = (field: FormField, value: any) =>
+    setPreviewAnswers({ ...previewAnswers, [String(field.id)]: value });
+
   const previewValuesById: Record<string, any> = {};
-  builderFields.forEach((f) => { previewValuesById[String(f.id)] = previewAnswers[f.label]; });
+  builderFields.forEach((f) => { previewValuesById[String(f.id)] = valueFor(f); });
   const previewLayout = computeLayout(builderFields as any, previewValuesById);
 
   return (
     <div
-      className={`bg-white dark:bg-[#151722] rounded-lg p-6 sm:p-8 border border-slate-200 dark:border-slate-800 mx-auto space-y-6 ${
+      className={`glass-panel rounded-lg p-6 sm:p-8 border border-slate-200 dark:border-slate-800 mx-auto space-y-6 ${
         viewportMode === 'mobile' ? 'max-w-sm border-2 border-slate-700' : 'max-w-3xl'
       }`}
     >
@@ -1796,13 +1910,13 @@ function LivePreview({
               </label>
               {field.description && <p className="text-xs text-slate-400 -mt-1">{field.description}</p>}
 
-              {field.type === 'TEXT' && (
+              {(field.type === 'TEXT' || field.type === 'PHONE' || field.type === 'CLUB_ID') && (
                 <input
-                  type="text"
+                  type={field.type === 'PHONE' ? 'tel' : 'text'}
                   required={field.is_required}
-                  placeholder={field.placeholder || 'Enter short text...'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  placeholder={field.placeholder || (field.type === 'CLUB_ID' ? 'Enter your Club ID...' : field.type === 'PHONE' ? '+91 9876543210' : 'Enter short text...')}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1812,8 +1926,8 @@ function LivePreview({
                   rows={3}
                   required={field.is_required}
                   placeholder={field.placeholder || 'Enter detailed response...'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1823,8 +1937,8 @@ function LivePreview({
                   type="email"
                   required={field.is_required}
                   placeholder={field.placeholder || 'email@example.com'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1834,8 +1948,8 @@ function LivePreview({
                   type="number"
                   required={field.is_required}
                   placeholder={field.placeholder || 'Enter number...'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1843,8 +1957,8 @@ function LivePreview({
               {field.type === 'DROPDOWN' && (
                 <select
                   required={field.is_required}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 >
                   <option value="">Select option...</option>
@@ -1862,8 +1976,8 @@ function LivePreview({
                         type="radio"
                         name={`preview-${field.id}`}
                         value={opt}
-                        checked={previewAnswers[field.label] === opt}
-                        onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                        checked={valueFor(field) === opt}
+                        onChange={(e) => updateValue(field, e.target.value)}
                         className="w-4 h-4 text-[#FF7A00] focus:ring-[#FF7A00]"
                       />
                       <span>{opt}</span>
@@ -1879,11 +1993,11 @@ function LivePreview({
                       <input
                         type="checkbox"
                         value={opt}
-                        checked={Array.isArray(previewAnswers[field.label]) && previewAnswers[field.label].includes(opt)}
+                        checked={Array.isArray(valueFor(field)) && valueFor(field).includes(opt)}
                         onChange={(e) => {
-                          const curr = Array.isArray(previewAnswers[field.label]) ? previewAnswers[field.label] : [];
+                          const curr = Array.isArray(valueFor(field)) ? valueFor(field) : [];
                           const next = e.target.checked ? [...curr, opt] : curr.filter((i: string) => i !== opt);
-                          setPreviewAnswers({ ...previewAnswers, [field.label]: next });
+                          updateValue(field, next);
                         }}
                         className="w-4 h-4 text-[#FF7A00] rounded focus:ring-[#FF7A00]"
                       />
@@ -1897,8 +2011,8 @@ function LivePreview({
                 <input
                   type={field.type === 'DATE' ? 'date' : 'time'}
                   required={field.is_required}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1920,8 +2034,8 @@ function LivePreview({
                   type="url"
                   required={field.is_required}
                   placeholder={field.placeholder || 'https://...'}
-                  value={previewAnswers[field.label] || ''}
-                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [field.label]: e.target.value })}
+                  value={valueFor(field) || ''}
+                  onChange={(e) => updateValue(field, e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
                 />
               )}
@@ -1929,7 +2043,7 @@ function LivePreview({
               {(field.type === 'RATING' || field.type === 'LINEAR_SCALE') && (() => {
                 const min = field.min_value ?? 1;
                 const max = field.max_value ?? 5;
-                const current = Number(previewAnswers[field.label]) || 0;
+                const current = Number(valueFor(field)) || 0;
                 const nums: number[] = [];
                 for (let i = min; i <= max; i++) nums.push(i);
                 return (
@@ -1938,7 +2052,7 @@ function LivePreview({
                       <button
                         key={i}
                         type="button"
-                        onClick={() => setPreviewAnswers({ ...previewAnswers, [field.label]: i })}
+                        onClick={() => updateValue(field, i)}
                         className={`h-9 w-9 rounded-lg border text-xs font-bold transition-transform duration-100 active:scale-90 ${
                           current === i
                             ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
@@ -1957,7 +2071,7 @@ function LivePreview({
                 const cols = field.options || [];
                 const multi = field.type === 'MATRIX_CHECKBOX';
                 const matrixVal: Record<string, any> =
-                  previewAnswers[field.label] && typeof previewAnswers[field.label] === 'object' ? previewAnswers[field.label] : {};
+                  valueFor(field) && typeof valueFor(field) === 'object' ? valueFor(field) : {};
                 return (
                   <div className="overflow-x-auto pt-1">
                     <table className="w-full text-xs border-collapse">
@@ -1989,7 +2103,7 @@ function LivePreview({
                                             ? (Array.isArray(cell) ? cell : []).filter((x: string) => x !== c)
                                             : [...(Array.isArray(cell) ? cell : []), c]
                                           : c;
-                                        setPreviewAnswers({ ...previewAnswers, [field.label]: { ...matrixVal, [row]: nextCell } });
+                                        updateValue(field, { ...matrixVal, [row]: nextCell });
                                       }}
                                       className="h-3.5 w-3.5 accent-[#FF7A00]"
                                     />

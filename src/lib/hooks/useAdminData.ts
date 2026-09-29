@@ -1,19 +1,37 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FeatureFlag, Form, FormField } from '@/lib/types';
+import { FeatureFlag, Form, FormField, ValidationRules } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { buildAuthFetchOptions } from '@/lib/dataManagement';
 import { useToast } from '@/context/ToastContext';
 
-interface UserRecord {
+/**
+ * Sensible out-of-the-box validation for a newly-added field, so an admin
+ * gets working validation without having to discover and hand-configure the
+ * Response Validation panel. Only PHONE has one today — a phone number field
+ * with no digit constraint is effectively unvalidated (the builder's old
+ * "Number / Phone" button created a bare NUMBER field, whose only rules are
+ * numeric-value range checks, useless for enforcing a 10-digit phone number,
+ * and its baseline `Number(value)` check even rejects a phone typed with a
+ * '+' or spaces). Other types intentionally get no default — e.g. TEXT is
+ * general-purpose (names, addresses, free text), so guessing a format would
+ * be wrong as often as right; the admin picks one (e.g. "Alphabetic") from
+ * the same Response Validation panel.
+ */
+function defaultValidationRulesFor(type: FormField['type']): Partial<ValidationRules> | undefined {
+  if (type === 'PHONE') return { minDigits: 10, maxDigits: 10, numericOnly: true };
+  return undefined;
+}
+
+export interface UserRecord {
   id: number;
   name: string;
   email: string;
   rollNumber: string;
   branch: string;
   year: string;
-  role: 'MEMBER' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
+  role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
   membershipStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI' | 'PENDING';
   scopedAssignments?: { type: 'EVENT' | 'HACKATHON'; targetTitle: string; role: string }[];
   isActive: boolean;
@@ -148,7 +166,9 @@ export function useAdminData(options?: UseAdminDataOptions) {
     rollNumber: '',
     branch: 'CSE',
     year: '1st Year',
-    role: 'MEMBER' as UserRecord['role'],
+    phoneNumber: '',
+    role: 'NON_AFFILIATE' as UserRecord['role'],
+    clubId: '',
     password: '',
   });
 
@@ -177,6 +197,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     club_id_enabled?: boolean;
     club_id_prefix?: string;
     club_id_field_mapping?: import('@/lib/types').ClubIdFieldMapping;
+    club_id_verification_enabled?: boolean;
     confirmation_email_enabled?: boolean;
     confirmation_email_template?: number | string | null;
     attendance_enabled?: boolean;
@@ -203,6 +224,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     club_id_enabled: false,
     club_id_prefix: 'SCC',
     club_id_field_mapping: {},
+    club_id_verification_enabled: false,
     confirmation_email_enabled: false,
     confirmation_email_template: null,
     attendance_enabled: false,
@@ -291,7 +313,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
               rollNumber: u.roll_number || 'Not set',
               branch: u.branch || 'CSE',
               year: u.year ? `${u.year}th Year` : '1st Year',
-              role: u.role || 'MEMBER',
+              role: u.role || 'NON_AFFILIATE',
               membershipStatus: u.membership_status || 'ACTIVE',
               isActive: u.is_active !== false,
               joinedDate: u.date_joined ? u.date_joined.split('T')[0] : '2025-01-01',
@@ -418,6 +440,8 @@ export function useAdminData(options?: UseAdminDataOptions) {
         role: newUser.role,
         roll_number: newUser.rollNumber,
         branch: newUser.branch,
+        phone_number: newUser.phoneNumber || undefined,
+        club_id: newUser.role === 'AFFILIATE' ? newUser.clubId : undefined,
       };
       const created = await fetchApi<any>('/auth/register/', {
         method: 'POST',
@@ -432,6 +456,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         rollNumber: newUser.rollNumber,
         branch: newUser.branch,
         year: newUser.year,
+        phoneNumber: newUser.phoneNumber || null,
         role: newUser.role,
         membershipStatus: 'ACTIVE',
         isActive: true,
@@ -491,8 +516,36 @@ export function useAdminData(options?: UseAdminDataOptions) {
       });
   };
 
+  // Unlike role/membership status above, a member can self-set their OWN roll
+  // number once via their profile — after that, only an admin can change or
+  // clear it (see UserProfileDetailSerializer.validate_roll_number on the
+  // backend). This is that admin path. Not optimistic like the two handlers
+  // above: it's free-text with server-side uniqueness/format validation, so
+  // the inline editor needs to know synchronously whether the save actually
+  // succeeded (to stay open and show the error) rather than find out via a
+  // toast after already closing.
+  const handleRollNumberChange = async (userId: number, rollNumber: string): Promise<void> => {
+    const user = usersList.find((u) => u.id === userId);
+    if (!user) return;
+    const displayValue = rollNumber || 'Not set';
+
+    await fetchApi(`/auth/users/${userId}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roll_number: rollNumber || null }),
+    });
+    setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, rollNumber: displayValue } : u)));
+    toast.success('Roll Number Updated', `${user.name}'s roll number is now ${displayValue}.`);
+  };
+
   const handleAddFieldFromPalette = (type: FormField['type'], label: string) => {
-    setBuilderFields((prev) => [...prev, { id: Date.now().toString(), label, type, is_required: true, order: prev.length + 1 }]);
+    // A Section Header isn't answerable (validation always skips it, both here
+    // and server-side) — defaulting it to required is meaningless and only
+    // inflates the builder's "N Required" summary.
+    setBuilderFields((prev) => [
+      ...prev,
+      { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: prev.length + 1, validation_rules: defaultValidationRulesFor(type) },
+    ]);
   };
 
   const handleRemoveField = (id: number | string) => {
@@ -512,7 +565,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
 
   const handleAddFieldAtIndex = (type: FormField['type'], label: string, index: number) => {
     setBuilderFields((prev) => {
-      const newField: FormField = { id: Date.now().toString(), label, type, is_required: true, order: 0 };
+      const newField: FormField = { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: 0, validation_rules: defaultValidationRulesFor(type) };
       const updated = [...prev];
       updated.splice(index, 0, newField);
       return updated.map((f, i) => ({ ...f, order: i + 1 }));
@@ -546,6 +599,12 @@ export function useAdminData(options?: UseAdminDataOptions) {
     setFormMeta(defaultMeta);
     setBuilderFields(defaultFields);
     setSavedCheckpoint(null);
+    // Otherwise a previous form's test-fill answers (and its last test
+    // submission, if the admin opened that modal) would carry over into a
+    // brand-new form's preview — e.g. text typed for Form A's "Full Name"
+    // field silently pre-filling Form B's field of the same id/type.
+    setPreviewAnswers({});
+    setSubmittedTestData(null);
   };
 
   const handleResetBuilder = () => {
@@ -597,6 +656,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
       club_id_enabled: form.club_id_enabled ?? false,
       club_id_prefix: form.club_id_prefix || 'SCC',
       club_id_field_mapping: form.club_id_field_mapping || {},
+      club_id_verification_enabled: form.club_id_verification_enabled ?? false,
       confirmation_email_enabled: form.confirmation_email_enabled ?? false,
       confirmation_email_template: form.confirmation_email_template ?? null,
       attendance_enabled: form.attendance_enabled ?? false,
@@ -618,12 +678,29 @@ export function useAdminData(options?: UseAdminDataOptions) {
       formMeta: JSON.parse(JSON.stringify(meta)),
       builderFields: JSON.parse(JSON.stringify(fields)),
     });
+    // Same reasoning as resetNewForm() — loading a different existing form
+    // into the builder must not carry over whatever was test-typed into the
+    // PREVIOUS form's preview.
+    setPreviewAnswers({});
+    setSubmittedTestData(null);
   };
 
   const handleSaveForm = async (
     targetStatus?: Form['status'],
     scheduleOptions?: { open_at?: string; close_at?: string }
   ) => {
+    // A whitespace-only title (e.g. a space typed then deleted) passes the
+    // backend's old "not empty string" check but renders as a blank row
+    // everywhere the form is listed (the admin's "Select a form" dropdown,
+    // the registration-form pickers). Catch it here with an immediate,
+    // specific message instead of a generic save failure — the backend now
+    // also rejects it (FormSerializer.validate_title) as a second line of
+    // defense for any caller that bypasses this UI.
+    if (!formMeta.title.trim()) {
+      toast.error('Title Required', 'Give this form a title before saving.');
+      return;
+    }
+
     const finalStatus = targetStatus || formMeta.status || 'DRAFT';
     const slug = formMeta.slug || formMeta.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -661,6 +738,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
       club_id_enabled: formMeta.club_id_enabled ?? false,
       club_id_prefix: (formMeta.club_id_prefix || 'SCC').trim().toUpperCase(),
       club_id_field_mapping: formMeta.club_id_field_mapping || {},
+      club_id_verification_enabled: formMeta.club_id_verification_enabled ?? false,
       confirmation_email_enabled: formMeta.confirmation_email_enabled ?? false,
       confirmation_email_template: formMeta.confirmation_email_template || null,
       attendance_enabled: formMeta.attendance_enabled ?? false,
@@ -818,6 +896,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         club_id_enabled: saved.club_id_enabled ?? false,
         club_id_prefix: saved.club_id_prefix || 'SCC',
         club_id_field_mapping: saved.club_id_field_mapping || {},
+        club_id_verification_enabled: saved.club_id_verification_enabled ?? false,
         confirmation_email_enabled: saved.confirmation_email_enabled ?? false,
         confirmation_email_template: saved.confirmation_email_template ?? null,
         attendance_enabled: saved.attendance_enabled ?? false,
@@ -1049,6 +1128,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     handleCreateUser,
     handleRoleChange,
     handleMembershipStatusChange,
+    handleRollNumberChange,
 
     publishedForms,
     setPublishedForms,

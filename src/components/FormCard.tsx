@@ -111,7 +111,7 @@ export default function FormCard({
 
 return (
     <div ref={cardRef} className="h-full w-full pt-2 pb-6">
-      <div className="form-card group relative overflow-hidden rounded-xl border border-slate-200/70 bg-white dark:border-white/10 dark:bg-[#14141c]">
+      <div className="form-card glass-panel group relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-white/10">
         {/* ========================================= */}
         {/* POSTER — glassmorphic gradient background */}
         {/* ========================================= */}
