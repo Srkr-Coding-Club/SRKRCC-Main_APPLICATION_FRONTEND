@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import {
   Mail,
   Lock,
@@ -11,14 +13,11 @@ import {
   ArrowRight,
   Loader2,
   CheckCircle2,
-  Trophy,
-  Flame,
-  FileText,
+  X,
   ShieldCheck,
   LogOut,
   AlertCircle,
 } from 'lucide-react';
-import AuthLayout from '@/components/AuthLayout';
 import { loginUser, getStoredUser, isAuthenticated, clearAuthSession, fetchAndSyncCurrentUser, isSafeNextPath, AuthUser, LoginError } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
 import { normalizeEmail, validateEmail } from '@/lib/validation/auth';
@@ -27,13 +26,18 @@ export interface LoginCardProps {
   className?: string;
   nextUrl?: string | null;
   onSubmit?: (values: { email: string; password: string }) => Promise<void> | void;
+  onClose?: () => void;
+  onSwitchToSignup?: () => void;
+  embedded?: boolean;
 }
 
 export default function LoginCard({
   nextUrl: nextUrlProp,
   onSubmit: onSubmitProp,
+  onClose,
+  onSwitchToSignup,
+  embedded = false,
 }: LoginCardProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = nextUrlProp ?? searchParams?.get('next') ?? null;
   const { toast } = useToast();
@@ -51,19 +55,6 @@ export default function LoginCard({
   const [setupSent, setSetupSent] = useState(false);
 
   useEffect(() => {
-    // Deliberately NOT showing the optimistic localStorage/cookie value here
-    // (unlike most of the app, where an optimistic read is fine while a live
-    // check runs in the background). This is the one place a stale "signed
-    // in" artifact is directly user-visible and actionable — "Already Signed
-    // In" as a wrong, momentary flash before self-correcting was confusing
-    // enough to be reported as a bug ("sometimes shows already logged in,
-    // then a refresh makes it go away"). A cached artifact can outlive the
-    // real session (expired/invalidated elsewhere, or a stale role cookie
-    // surviving a localStorage clear) — the banner and the submit button's
-    // "Sign in with different account" label now render ONLY after the
-    // server has confirmed the session, never off local cache alone, so
-    // there is nothing to "self-correct" — it's just right from the start,
-    // even if that means the banner appears a beat after the form does.
     let cancelled = false;
     if (isAuthenticated()) {
       fetchAndSyncCurrentUser().then((user) => {
@@ -119,8 +110,6 @@ export default function LoginCard({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Same email rules the signup form applies, so a typo is caught here rather
-    // than coming back as an ambiguous "incorrect email or password".
     const emailError = validateEmail(email);
     const passwordError = password ? undefined : 'Password is required.';
     if (emailError || passwordError) {
@@ -164,9 +153,6 @@ export default function LoginCard({
       } else {
         const message = loginError?.message || 'Login failed. Please check your credentials.';
         toast.error('Sign In Failed', message);
-        // Prefer the API's own per-field messages; fall back to pinning the
-        // generic credential failure under the password field, which is the one
-        // the member can act on without leaking whether the email is registered.
         setFieldErrors(
           loginError?.fieldErrors && Object.keys(loginError.fieldErrors).length > 0
             ? loginError.fieldErrors
@@ -181,214 +167,276 @@ export default function LoginCard({
   const isCurrentAdmin = loggedInUser?.role === 'ADMIN' || loggedInUser?.role === 'CLUB_LEAD';
 
   return (
-    <AuthLayout
-      eyebrow="Member Portal"
-      title="Welcome back, coder."
-      subtitle="Sign in to register for events, track your Codequest streak, and access member-only perks."
-      features={[
-        { icon: Trophy, text: 'Register for hackathons & workshops' },
-        { icon: Flame, text: 'Track your daily Codequest streak' },
-        { icon: FileText, text: 'View your past submissions & forms' },
-      ]}
-      footer={
-        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="font-bold text-[#FF7A00] hover:text-[#E06B00]">
-            Sign up
-          </Link>
-        </p>
-      }
+    <motion.main
+      initial={embedded ? false : { opacity: 0 }}
+      animate={embedded ? undefined : { opacity: 1 }}
+      transition={{ duration: 0.05, ease: 'easeOut' }}
+      onClick={(event) => {
+        if (!embedded && event.target === event.currentTarget) onClose?.();
+      }}
+      className={embedded ? 'contents' : 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 sm:p-6 backdrop-blur-[6px]'}
     >
-      <h2 className="text-2xl font-extrabold text-[#1A1A2E] dark:text-white mb-1">Sign in</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Enter your credentials to continue.</p>
+      {/* Expanded Modal Card: generous width, natural height, soft pill corners */}
+      <motion.section
+        initial={embedded ? false : { opacity: 0, scale: 0.86, y: 12 }}
+        animate={embedded ? undefined : { opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        exit={{ opacity: 0, scale: 0.96, y: 8 }}
+        className={embedded ? 'contents' : 'relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-rows-[120px_minmax(0,1fr)] grid-cols-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] sm:grid-cols-[1fr_1.1fr] sm:grid-rows-1'}
+      >
 
-      {/* Already logged in helper card */}
-      {loggedInUser && (
-        <div className="mb-6 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-orange-500" />
-              <span className="font-bold text-slate-900 dark:text-white">Already Signed In</span>
-            </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#8B2E3B] text-white">
-              {loggedInUser.role}
-            </span>
-          </div>
-
-          <p className="text-slate-600 dark:text-slate-300">
-            You are active as <strong className="text-slate-900 dark:text-white">{loggedInUser.email}</strong>.
-            {nextUrl === '/admin' && !isCurrentAdmin && (
-              <span className="block text-rose-500 mt-1 font-semibold">
-                This account is a {loggedInUser.role}, which does not have Admin access. Sign in below with an Admin or Club Lead account.
-              </span>
-            )}
-          </p>
-
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={handleContinueAsExisting}
-              className="flex-1 py-2 px-3 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm"
-            >
-              <span>Continue as {loggedInUser.first_name || loggedInUser.username || 'User'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleSwitchAccount}
-              className="py-2 px-3 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center gap-1 transition active:scale-95"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Switch
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Password Setup Required Banner (for Backup-Restored / Imported Members) */}
-      {setupRequired && (
-        <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2.5">
-          <div className="flex items-center gap-2 text-amber-400 font-bold">
-            <Lock className="w-4 h-4" />
-            <span>Password Setup Required</span>
-          </div>
-          <p className="text-slate-600 dark:text-slate-300">
-            Your account was restored from the club member directory. A secure password setup link is required to activate your account.
-          </p>
-          {setupSent ? (
-            <div className="flex items-center gap-1.5 text-emerald-400 font-medium pt-1">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Setup link sent! Check your inbox.</span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleRequestSetup}
-              disabled={isSendingSetup}
-              className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98] disabled:opacity-50 shadow-sm"
-            >
-              {isSendingSetup ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
-              <span>Send Password Setup Link</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* noValidate: the browser's own bubble would pre-empt our inline,
-          field-anchored messages and phrase them differently from signup. */}
-      <form onSubmit={handleSubmit} noValidate className="space-y-5">
-        {nextUrl && !loggedInUser && (
-          <div className="p-2.5 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs text-[#FF7A00]">
-            <span className="font-bold">Sign in required</span> to continue to <code className="font-mono text-[11px]">{nextUrl}</code>.
-          </div>
+        {onClose && !embedded && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close sign in"
+            className="absolute right-4 top-4 z-20 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
         )}
 
-        <div className="space-y-1.5">
-          <label htmlFor="login-email" className="block text-xs font-semibold text-[#1A1A2E] dark:text-white">Email</label>
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              inputMode="email"
-              maxLength={254}
-              placeholder="student@srkr.ac.in"
-              value={email}
-              aria-invalid={Boolean(fieldErrors.email)}
-              aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
-              onChange={(e) => {
-                setEmail(e.target.value.replace(/\s/g, ''));
-                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
-              }}
-              onBlur={() => {
-                if (email) setFieldErrors((prev) => ({ ...prev, email: validateEmail(email) }));
-              }}
-              disabled={isLoading || success}
-              className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
-                fieldErrors.email
-                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
-                  : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:ring-[#FF7A00]'
-              }`}
-            />
-          </div>
-          {fieldErrors.email && (
-            <p id="login-email-error" role="alert" className="text-xs text-rose-500 font-semibold flex items-start gap-1">
-              <AlertCircle className="w-3.5 h-3.5 mt-px flex-shrink-0" />
-              <span>{fieldErrors.email}</span>
-            </p>
-          )}
+        {/* Left Illustration Section */}
+        <div className={embedded ? 'hidden' : 'relative min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)]'}>
+          <Image
+            src="/Loginn.svg"
+            alt="Secure sign in illustration"
+            fill
+            priority
+            sizes="(min-width: 640px) 380px, 100vw"
+            className="object-contain p-6 sm:p-8"
+          />
         </div>
 
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label htmlFor="login-password" className="block text-xs font-semibold text-[#1A1A2E] dark:text-white">Password</label>
-            <Link href="/account/setup-password" className="text-xs font-semibold text-[#FF7A00] hover:text-[#E06B00]">
-              Forgot / Set Up?
-            </Link>
-          </div>
-          <div className="relative">
-            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              id="login-password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              placeholder="••••••••"
-              value={password}
-              aria-invalid={Boolean(fieldErrors.password)}
-              aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
-              }}
-              disabled={isLoading || success}
-              className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white focus:outline-none focus:ring-1 ${
-                fieldErrors.password
-                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
-                  : 'border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:ring-[#FF7A00]'
-              }`}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute right-0 top-1/2 -translate-y-1/2 p-3.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-transform duration-100 active:scale-90"
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-          {fieldErrors.password && (
-            <p id="login-password-error" role="alert" className="text-xs text-rose-500 font-semibold flex items-start gap-1">
-              <AlertCircle className="w-3.5 h-3.5 mt-px flex-shrink-0" />
-              <span>{fieldErrors.password}</span>
-            </p>
-          )}
-        </div>
+        {/* Right Form Section: roomy padding, uncompressed */}
+        <div className={`min-h-0 overflow-y-auto px-8 py-6 sm:px-10 sm:py-8 ${embedded ? 'h-full' : ''}`}>
+          <div className="mx-auto flex min-h-full w-full max-w-[320px] flex-col justify-center sm:mx-0">
 
-        <button
-          type="submit"
-          disabled={isLoading || success}
-          className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition active:scale-[0.98] disabled:opacity-50"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Signing in…</span>
-            </>
-          ) : success ? (
-            <>
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{redirecting ? 'Signed in — redirecting…' : 'Signed in'}</span>
-              {redirecting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            </>
-          ) : (
-            <>
-              <span>{loggedInUser ? 'Sign in with different account' : 'Sign in'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
-      </form>
-    </AuthLayout>
+            {/* SECURE SIGN IN Badge */}
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              <Lock className="h-3 w-3 text-slate-500 stroke-[2.2]" />
+              Secure Sign In
+            </div>
+
+            {/* Title & Subtitle */}
+            <h2 className="text-[24px] font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+              Sign in
+            </h2>
+            <p className="mb-5 text-[12px] text-slate-500 dark:text-slate-400">
+              Enter your credentials to continue.
+            </p>
+
+            {/* Already Signed In Card */}
+            {loggedInUser && (
+              <div className="mb-4 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-orange-500" />
+                    <span className="font-semibold text-slate-900 dark:text-white text-xs">Already Signed In</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-[#8B2E3B] text-white">
+                    {loggedInUser.role}
+                  </span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300 text-[11px]">
+                  Active as <strong>{loggedInUser.email}</strong>.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleContinueAsExisting}
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-medium text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <span>Continue</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-white" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSwitchAccount}
+                    className="py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs flex items-center gap-1"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Switch
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Password Setup Banner */}
+            {setupRequired && (
+              <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5">
+                <div className="flex items-center gap-1.5 text-amber-500 font-semibold text-xs">
+                  <Lock className="w-4 h-4" />
+                  <span>Password Setup Required</span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300 text-[11px]">
+                  Account restored from directory. Please set your password.
+                </p>
+                {setupSent ? (
+                  <div className="flex items-center gap-1 text-emerald-500 text-[11px]">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Link sent! Check your inbox.</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleRequestSetup}
+                    disabled={isSendingSetup}
+                    className="w-full py-1.5 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs flex items-center justify-center gap-1"
+                  >
+                    {isSendingSetup ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+                    <span>Send Setup Link</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
+              {nextUrl && !loggedInUser && (
+                <div className="p-2 rounded-lg bg-orange-50 border border-orange-200 text-xs text-orange-600">
+                  <span className="font-semibold">Sign in required</span> for <code className="font-mono">{nextUrl}</code>
+                </div>
+              )}
+
+              {/* EMAIL: proper 10px uppercase label, neutral input background, 38px height */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="login-email"
+                  className="block text-[10px] font-bold tracking-wider text-slate-600 dark:text-slate-300 uppercase"
+                >
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 stroke-[1.8]" />
+                  <input
+                    id="login-email"
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    maxLength={254}
+                    placeholder="you@srkr.ac.in"
+                    value={email}
+                    aria-invalid={Boolean(fieldErrors.email)}
+                    aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
+                    onChange={(e) => {
+                      setEmail(e.target.value.replace(/\s/g, ''));
+                      if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                    }}
+                    onBlur={() => {
+                      if (email) setFieldErrors((prev) => ({ ...prev, email: validateEmail(email) }));
+                    }}
+                    disabled={isLoading || success}
+                    className={`w-full h-10 pl-9 pr-3 rounded-lg border text-xs text-slate-800 placeholder:text-slate-400 bg-[#FCFCFD] dark:bg-[#1C1F2E] dark:text-slate-100 transition-colors focus:outline-none focus:ring-1 ${
+                      fieldErrors.email
+                        ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500'
+                        : 'border-slate-200/90 dark:border-slate-700 focus:border-slate-400 focus:ring-slate-300'
+                    }`}
+                  />
+                </div>
+                {fieldErrors.email && (
+                  <p id="login-email-error" role="alert" className="text-[10px] text-rose-500 flex items-start gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                    <span>{fieldErrors.email}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* PASSWORD: proper 10px uppercase label, dark gray 'Forgot?' link, 38px height */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="login-password"
+                    className="block text-[10px] font-bold tracking-wider text-slate-600 dark:text-slate-300 uppercase"
+                  >
+                    Password
+                  </label>
+                  <Link
+                    href="/account/setup-password"
+                    className="text-[10px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                  >
+                    Forgot?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 stroke-[1.8]" />
+                  <input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    aria-invalid={Boolean(fieldErrors.password)}
+                    aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                    }}
+                    disabled={isLoading || success}
+                    className={`w-full h-10 pl-9 pr-9 rounded-lg border text-xs text-slate-800 placeholder:text-slate-400 bg-[#FCFCFD] dark:bg-[#1C1F2E] dark:text-slate-100 transition-colors focus:outline-none focus:ring-1 ${
+                      fieldErrors.password
+                        ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500'
+                        : 'border-slate-200/90 dark:border-slate-700 focus:border-slate-400 focus:ring-slate-300'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 p-2.5 text-slate-400 hover:text-slate-700 dark:text-slate-400 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {fieldErrors.password && (
+                  <p id="login-password-error" role="alert" className="text-[10px] text-rose-500 flex items-start gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                    <span>{fieldErrors.password}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* SIGN IN BUTTON: 40px height, vibrant orange, white text, clear arrow */}
+              <button
+                type="submit"
+                disabled={isLoading || success}
+                className="w-full h-10 mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-[#FF6B00] hover:bg-[#E56000] text-white font-medium text-xs shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>Signing in…</span>
+                  </>
+                ) : success ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    <span>{redirecting ? 'Signed in — redirecting…' : 'Signed in'}</span>
+                    {redirecting && <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />}
+                  </>
+                ) : (
+                  <>
+                    <span>{loggedInUser ? 'Sign in with different account' : 'Sign in'}</span>
+                    <ArrowRight className="w-4 h-4 text-white stroke-[2.2]" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Footer */}
+            <p className="mt-3 text-center text-[10px] text-slate-500 dark:text-slate-400">
+              Don&apos;t have an account?{' '}
+              {onSwitchToSignup ? (
+                <button type="button" onClick={onSwitchToSignup} className="font-semibold text-slate-800 hover:underline dark:text-slate-200">
+                  Sign up
+                </button>
+              ) : (
+                <Link href="/signup" className="font-semibold text-slate-800 hover:underline dark:text-slate-200">
+                  Sign up
+                </Link>
+              )}
+            </p>
+          </div>
+        </div>
+      </motion.section>
+    </motion.main>
   );
 }

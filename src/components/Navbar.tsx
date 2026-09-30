@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   User,
@@ -10,12 +11,15 @@ import {
   Terminal,
   Trophy,
   Calendar,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
 import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
+import LoginCard from './LoginCard';
+import SignupCard from './SignupCard';
 
 interface NavChild {
   label: string;
@@ -121,6 +125,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [authCard, setAuthCard] = useState<'login' | 'signup' | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -293,12 +298,13 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               </>
             ) : (
               <>
-                <Link
-                  href="/login"
+                <button
+                  type="button"
+                  onClick={() => setAuthCard('login')}
                   className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-block"
                 >
                   Login
-                </Link>
+                </button>
 
                 <PillButton href="/signup" variant="solid" size="sm">
                   Join the Club
@@ -402,13 +408,16 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 </>
               ) : (
                 <div className="flex items-center gap-4">
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setAuthCard('login');
+                    }}
                     className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white transition-transform duration-100 active:scale-95"
                   >
                     Login
-                  </Link>
+                  </button>
                   <div className="flex-1">
                     <PillButton href="/signup" variant="solid" onClick={() => setMobileMenuOpen(false)} className="w-full justify-center">
                       Join the Club
@@ -420,6 +429,71 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Suspense fallback={null}>
+        <AnimatePresence>
+          {authCard && (
+            <motion.main
+              key="auth-card-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              onClick={(event) => {
+                if (event.target === event.currentTarget) setAuthCard(null);
+              }}
+              className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-[6px] sm:p-6"
+            >
+              <motion.section
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98, y: 6 }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-rows-[120px_minmax(0,1fr)] grid-cols-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] sm:grid-cols-[1fr_1.1fr] sm:grid-rows-1"
+              >
+                <button
+                  type="button"
+                  onClick={() => setAuthCard(null)}
+                  aria-label="Close sign in"
+                  className="absolute right-3 top-3 z-20 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
+                <div className="relative min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)]">
+                  <Image
+                    src="/Loginn.svg"
+                    alt="Secure account illustration"
+                    fill
+                    priority
+                    sizes="(min-width: 640px) 380px, 100vw"
+                    className="object-contain p-6 sm:p-8"
+                  />
+                </div>
+
+                <div className="min-h-0 overflow-hidden">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={authCard}
+                      initial={{ opacity: 0, y: 28 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -12 }}
+                      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                      className="h-full"
+                    >
+                      {authCard === 'login' ? (
+                        <LoginCard embedded onSwitchToSignup={() => setAuthCard('signup')} />
+                      ) : (
+                        <SignupCard embedded onSwitchToLogin={() => setAuthCard('login')} />
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </motion.section>
+            </motion.main>
+          )}
+        </AnimatePresence>
+      </Suspense>
 
     </>
   );
