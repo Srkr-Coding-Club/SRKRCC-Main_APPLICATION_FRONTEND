@@ -24,6 +24,7 @@ import {
   QrCode,
   Code,
   Megaphone,
+  Flag,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
@@ -45,6 +46,12 @@ interface NavItem {
   icon: React.ElementType;
   hasDropdown?: boolean;
   children?: NavChild[];
+}
+
+// Child pages can have nested routes (e.g. /admin/hackathons/[slug]) that
+// should still highlight their parent entry.
+function matchesChild(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 const navItems: NavItem[] = [
@@ -85,6 +92,7 @@ const navItems: NavItem[] = [
     children: [
       { label: 'Members', shortLabel: 'Members', href: '/admin/members', desc: 'Club member directory', icon: UserCheck },
       { label: 'Events & Hackathons', shortLabel: 'Events', href: '/admin/events', desc: 'Workshops & hackathon engine', icon: Trophy },
+      { label: 'Hackathon Management', shortLabel: 'Hackathons', href: '/admin/hackathons', desc: 'Teams, rounds, shortlisting & notices', icon: Flag },
       { label: 'Content Hub', shortLabel: 'Content', href: '/admin/content', desc: 'Blogs & career postings', icon: BookOpen },
       { label: 'Announcements', shortLabel: 'Announce', href: '/admin/announcements', desc: 'Landing page banner messages', icon: Megaphone },
       { label: 'Module Flags', shortLabel: 'Flags', href: '/admin/flags', desc: 'Feature toggles & windows', icon: Sliders },
@@ -139,7 +147,7 @@ export default function AdminNavbar() {
   }, [clickedDropdown]);
 
   const activeNavItem = navItems.find(
-    (item) => pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false),
+    (item) => pathname === item.href || (item.children?.some((c) => matchesChild(pathname, c.href)) ?? false),
   );
   // The sliding pill sits under the hovered tab, or the active tab when nothing
   // is hovered — so ONLY that tab gets white text. Previously the active tab
@@ -148,7 +156,7 @@ export default function AdminNavbar() {
 
   // Breadcrumb trail derived from the same navItems hierarchy — skipped entirely
   // on the dashboard root or any path that doesn't map onto a known section.
-  const activeChild = activeNavItem?.children?.find((c) => pathname === c.href);
+  const activeChild = activeNavItem?.children?.find((c) => matchesChild(pathname, c.href));
 
   return (
     <>
@@ -366,7 +374,7 @@ export default function AdminNavbar() {
             <div className="flex flex-col gap-1">
               {navItems.map((item, i) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false);
+                const isActive = pathname === item.href || (item.children?.some((c) => matchesChild(pathname, c.href)) ?? false);
                 return (
                   <motion.div
                     key={item.label}

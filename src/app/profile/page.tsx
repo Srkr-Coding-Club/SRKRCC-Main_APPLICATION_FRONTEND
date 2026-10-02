@@ -30,6 +30,7 @@ import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated, AuthUs
 import { fetchApi } from '@/lib/api-client';
 import { ordinalYear } from '@/lib/utils';
 import { EditProfileModal } from '@/components/EditProfileModal';
+import { MyHackathonsPanel } from '@/components/hackathons/MyHackathonsPanel';
 import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
 
 export const dynamic = 'force-dynamic';
@@ -497,6 +498,8 @@ function ProfileContent() {
           
           {/* Main Column: Registered Events */}
           <div className="lg:col-span-2 space-y-4">
+            <MyHackathonsPanel />
+
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#FF7A00]" />

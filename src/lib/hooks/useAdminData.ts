@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FeatureFlag, Form, FormField, ValidationRules } from '@/lib/types';
+import { FeatureFlag, Form, FormField, ProfileFieldKey, ValidationRules } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { buildAuthFetchOptions } from '@/lib/dataManagement';
 import { useToast } from '@/context/ToastContext';
@@ -538,13 +538,21 @@ export function useAdminData(options?: UseAdminDataOptions) {
     toast.success('Roll Number Updated', `${user.name}'s roll number is now ${displayValue}.`);
   };
 
-  const handleAddFieldFromPalette = (type: FormField['type'], label: string) => {
+  const handleAddFieldFromPalette = (type: FormField['type'], label: string, profileField?: ProfileFieldKey) => {
     // A Section Header isn't answerable (validation always skips it, both here
     // and server-side) — defaulting it to required is meaningless and only
     // inflates the builder's "N Required" summary.
     setBuilderFields((prev) => [
       ...prev,
-      { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: prev.length + 1, validation_rules: defaultValidationRulesFor(type) },
+      {
+        id: Date.now().toString(), label, type, order: prev.length + 1,
+        // A profile-bound field defaults to required — it's on the form
+        // precisely because the registration needs that data one way or
+        // another; the admin can still relax it in the field settings.
+        is_required: profileField ? true : type !== 'SECTION',
+        validation_rules: defaultValidationRulesFor(type),
+        profile_field: profileField,
+      },
     ]);
   };
 

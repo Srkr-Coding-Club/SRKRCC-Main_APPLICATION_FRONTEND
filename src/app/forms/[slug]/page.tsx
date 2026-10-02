@@ -3,7 +3,7 @@
 import React, { useState, useEffect,useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Form, FormField, CrossFieldRule } from '@/lib/types';
+import { Form, FormField, CrossFieldRule, ProfileFieldKey } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
 import { getConstraintHint, validateSubmission, validateFieldValue, getCrossFieldError } from '@/lib/formValidation';
@@ -297,6 +297,38 @@ function matchUserDetailToField(field: FormField, user: AuthUser | null): any {
   }
 
   return undefined;
+}
+
+/**
+ * Explicit profile lookup for a FormField.profile_field mapping — unlike
+ * matchUserDetailToField's label-guessing above, this is an admin-chosen,
+ * unambiguous binding, so it needs no heuristics. Keys mirror
+ * apps.forms.serializers.PROFILE_FIELD_GETTERS on the backend, which is the
+ * one that actually resolves and writes the value on submit; this copy only
+ * drives what the confirmation view displays before that happens.
+ */
+function resolveProfileFieldValue(profileField: ProfileFieldKey, user: AuthUser | null): string | undefined {
+  if (!user) return undefined;
+  switch (profileField) {
+    case 'full_name': {
+      const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+      return name || user.username || undefined;
+    }
+    case 'email':
+      return user.email || undefined;
+    case 'phone_number':
+      return user.phone_number || user.phone || undefined;
+    case 'branch':
+      return user.branch || undefined;
+    case 'roll_number':
+      return user.roll_number || undefined;
+    case 'year':
+      return user.year !== undefined && user.year !== null ? String(user.year) : undefined;
+    case 'club_id':
+      return user.club_id || undefined;
+    default:
+      return undefined;
+  }
 }
 
 interface ModernSelectProps {
@@ -870,6 +902,34 @@ export default function FormDetailSubmissionPage() {
     }
   }, [form, currentUser, hasSubmitted]);
 
+  // Profile-bound fields (field.profile_field) are authoritative, not a
+  // convenience: the server always resolves and overwrites their value from
+  // the submitter's profile at submission time regardless of what's sent —
+  // including on an edit — so this stays in sync even when hasSubmitted is
+  // true (unlike the heuristic effect above, which deliberately backs off
+  // once there's a real submitted answer to avoid clobbering it). Skipping it
+  // in edit mode would leave formData empty for a profile field the read-only
+  // display and the missing-profile gate below both resolve independently,
+  // letting a required-but-empty field slip past those checks only to fail
+  // validateSubmission's own required check at submit time.
+  useEffect(() => {
+    if (!form || !form.fields || !currentUser) return;
+    setFormData((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      form.fields!.forEach((field) => {
+        if (!field.profile_field) return;
+        const resolved = resolveProfileFieldValue(field.profile_field, currentUser);
+        const key = String(field.id);
+        if (resolved !== undefined && next[key] !== resolved) {
+          next[key] = resolved;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [form, currentUser, hasSubmitted]);
+
   // Load draft from localStorage on mount (only if no existing submitted response)
   useEffect(() => {
     if (slug && !hasSubmitted) {
@@ -1429,6 +1489,41 @@ export default function FormDetailSubmissionPage() {
                 if (!layout.visible.has(String(field.id))) return null;
 
                 const conditionallyRequired = isFieldRequired(field as any, layout);
+
+                // Profile-bound field — never an input. The server resolves
+                // and writes this value from the submitter's own profile at
+                // submission time no matter what (if anything) is sent for
+                // it, so it's shown read-only here rather than editable.
+                if (field.profile_field) {
+                  const resolvedValue = resolveProfileFieldValue(field.profile_field, currentUser);
+                  const isMissing = resolvedValue === undefined || resolvedValue === '';
+                  return (
+                    <div
+                      key={field.id}
+                      className={`flex w-full flex-col space-y-1.5 rounded-lg border px-3.5 py-2.5 ${
+                        isMissing
+                          ? 'border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/30'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <FieldLabel required={conditionallyRequired}>{field.label}</FieldLabel>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#FF7A00] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>From your profile</span>
+                        </span>
+                      </div>
+                      {isMissing ? (
+                        <p className="text-xs text-rose-600 dark:text-rose-400">
+                          Missing from your profile.{' '}
+                          <Link href="/profile" className="underline font-semibold">Update your profile</Link> to register.
+                        </p>
+                      ) : (
+                        <p className="text-sm font-semibold text-[#1A1A2E] dark:text-white">{resolvedValue}</p>
+                      )}
+                    </div>
+                  );
+                }
 
                 const fieldVal = formData[String(field.id)] ?? formData[field.id] ?? '';
                 const isAutoMatched = (
@@ -2090,6 +2185,34 @@ export default function FormDetailSubmissionPage() {
                         <Lock className="w-4 h-4" />
                         <span>Response Already Submitted</span>
                       </button>
+                    </div>
+                  );
+                }
+
+                // A required profile-bound field with nothing to show for it
+                // (e.g. phone number never set) can never pass validation —
+                // the server would reject it the same way. Send them to fix
+                // their profile instead of letting them hit that on submit —
+                // but only when the form would otherwise actually accept a
+                // submission; a closed/not-yet-open form should still show
+                // that, not a profile-completion prompt implying they could
+                // register right now by fixing their profile.
+                const missingRequiredProfileFields = (form.fields || []).filter(
+                  (f) => f.profile_field && f.is_required && resolveProfileFieldValue(f.profile_field, currentUser) === undefined
+                );
+                if (missingRequiredProfileFields.length > 0 && !isClosed && !isBeforeOpen) {
+                  return (
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <p className="text-xs text-rose-500 font-semibold flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>Complete your profile to register — missing: {missingRequiredProfileFields.map((f) => f.label).join(', ')}</span>
+                      </p>
+                      <Link
+                        href="/profile"
+                        className="inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-sm transition active:scale-[0.98]"
+                      >
+                        <span>Update Your Profile</span>
+                      </Link>
                     </div>
                   );
                 }

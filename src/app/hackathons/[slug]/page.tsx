@@ -2,13 +2,15 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Calendar, Clock, Trophy, Users, Flame, Lock, ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Trophy, Users, Flame, Sparkles, Target, Megaphone, UsersRound } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
-import { Hackathon } from '@/lib/types';
+import { Hackathon, HackathonAnnouncement, ProblemStatement } from '@/lib/types';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import { isSafeHref } from '@/lib/urlSafety';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
+import { HackathonCTA } from '@/components/hackathons/HackathonCTA';
+import { HackathonAnnouncementsFeed } from '@/components/hackathons/HackathonAnnouncementsFeed';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +26,14 @@ async function getHackathon(slug: string): Promise<Hackathon | null> {
   } catch {
     return null;
   }
+}
+
+async function getPublicExtras(slug: string) {
+  const [problems, announcements] = await Promise.all([
+    fetchApi<ProblemStatement[]>(`/hackathons/${encodeURIComponent(slug)}/problem-statements/`).catch(() => []),
+    fetchApi<HackathonAnnouncement[]>(`/hackathons/${encodeURIComponent(slug)}/announcements/`).catch(() => []),
+  ]);
+  return { problems: problems || [], announcements: announcements || [] };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -71,7 +81,8 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
   const hackathon = await getHackathon(slug);
   if (!hackathon) notFound();
 
-  const isClosed = hackathon.status === 'CLOSED';
+  const { problems, announcements } = await getPublicExtras(slug);
+  const isClosed = !(hackathon.is_registration_open ?? hackathon.status !== 'CLOSED');
   const teams = hackathon.team_count ?? 0;
   const banner = hackathon.banner_image && isSafeHref(hackathon.banner_image) ? hackathon.banner_image : FALLBACK_BANNER;
 
@@ -80,6 +91,24 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
     { icon: Sparkles, label: 'Theme', value: hackathon.theme },
     { icon: Trophy, label: 'Prize Pool', value: hackathon.prize_pool },
     { icon: Users, label: 'Teams', value: `${teams} team${teams === 1 ? '' : 's'} registered` },
+    ...(hackathon.max_team_size
+      ? [{
+          icon: UsersRound,
+          label: 'Team Size',
+          value: hackathon.min_team_size === hackathon.max_team_size
+            ? `${hackathon.max_team_size} members`
+            : `${hackathon.min_team_size}–${hackathon.max_team_size} members`,
+        }]
+      : []),
+    ...(hackathon.registration_closes_at
+      ? [{
+          icon: Clock,
+          label: 'Registration Closes',
+          value: new Date(hackathon.registration_closes_at).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: HACKATHON_TIME_ZONE,
+          }) + ' IST',
+        }]
+      : []),
   ];
 
   return (
@@ -147,28 +176,56 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
               ))}
 
               <div className="pt-2">
-                {isClosed ? (
-                  <span className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500">
-                    <Lock className="h-4 w-4" />
-                    Registration Closed
-                  </span>
-                ) : hackathon.form_slug ? (
-                  <Link
-                    href={`/forms/${hackathon.form_slug}`}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#8B2E3B] to-[#FF7A00] px-4 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 active:scale-95"
-                  >
-                    Register Team
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                ) : (
-                  <span className="flex w-full items-center justify-center rounded-lg bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                    Registration opens soon
-                  </span>
-                )}
+                <HackathonCTA hackathon={hackathon} />
               </div>
             </div>
           </aside>
         </div>
+
+        {problems.length > 0 && (
+          <section className="glass-panel rounded-2xl border border-slate-200 dark:border-white/10 p-6 sm:p-8 space-y-4">
+            <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.25em] text-[#FF7A00]">
+              <Target className="h-4 w-4" /> Problem Statements
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {problems.map((ps) => (
+                <article key={ps.id} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-white/[0.02] p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="rounded bg-[#8B2E3B]/10 px-2 py-0.5 text-[10px] font-extrabold tracking-wider text-[#8B2E3B] dark:text-rose-300">{ps.code}</span>
+                    {ps.slots_left !== null && (
+                      <span className={`text-[10px] font-bold ${ps.slots_left === 0 ? 'text-rose-500' : 'text-slate-400'}`}>
+                        {ps.slots_left === 0 ? 'Full' : `${ps.slots_left} slot${ps.slots_left === 1 ? '' : 's'} left`}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-bold text-[#1A1A2E] dark:text-white">{ps.title}</h3>
+                  {ps.category && <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{ps.category}</p>}
+                  {ps.description?.trim() && (
+                    <div className="text-sm text-slate-600 dark:text-slate-300 line-clamp-6">
+                      <MarkdownRenderer content={ps.description} />
+                    </div>
+                  )}
+                  {ps.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {ps.tags.map((t) => (
+                        <span key={t} className="rounded-full bg-slate-100 dark:bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-500">#{t}</span>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {announcements.length > 0 && (
+          <section className="glass-panel rounded-2xl border border-slate-200 dark:border-white/10 p-6 sm:p-8 space-y-4">
+            <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.25em] text-[#FF7A00]">
+              <Megaphone className="h-4 w-4" /> Announcements
+            </h2>
+            <HackathonAnnouncementsFeed announcements={announcements} />
+          </section>
+        )}
       </div>
     </div>
   );
