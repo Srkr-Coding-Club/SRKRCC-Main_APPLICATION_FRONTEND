@@ -14,6 +14,19 @@ import type {
 } from '@/lib/types';
 
 const enc = encodeURIComponent;
+
+/** A team's problem: a statement id, or an open-innovation problem — never both. */
+export interface TeamProblemBody {
+  problem_statement?: number | null;
+  open_innovation?: { title: string; description: string; domain: string } | null;
+}
+
+export interface ProblemStatementUploadResult {
+  created: number;
+  skipped: number;
+  codes: string[];
+  errors: { row: number; message: string }[];
+}
 const json = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body ?? {}) });
 const patch = (body: unknown): RequestInit => ({ method: 'PATCH', body: JSON.stringify(body) });
 
@@ -26,7 +39,7 @@ export const hackathonApi = {
   myTeam: (slug: string) => fetchApi<MyTeamPayload>(`/hackathons/${enc(slug)}/my-team/`),
   myTeams: () => fetchApi<HackathonTeam[]>('/hackathons/my-teams/'),
   myInvites: () => fetchApi<HackathonTeamInvite[]>('/hackathons/my-invites/'),
-  createTeam: (slug: string, body: { name: string; problem_statement: number | null }) =>
+  createTeam: (slug: string, body: TeamProblemBody & { name: string }) =>
     fetchApi<HackathonTeam>(`/hackathons/${enc(slug)}/teams/`, json(body)),
   lookupUser: (slug: string, email: string) =>
     fetchApi<UserLookupResult>(`/hackathons/${enc(slug)}/user-lookup/?email=${enc(email)}`),
@@ -36,7 +49,7 @@ export const hackathonApi = {
 
   // --- team (leader / member / admin) ---
   team: (id: number) => fetchApi<HackathonTeam>(`/hackathons/teams/${id}/`),
-  updateTeam: (id: number, body: { name?: string; problem_statement?: number | null }) =>
+  updateTeam: (id: number, body: TeamProblemBody & { name?: string }) =>
     fetchApi<HackathonTeam>(`/hackathons/teams/${id}/`, patch(body)),
   invite: (id: number, email: string) =>
     fetchApi<{ invite: HackathonTeamInvite; team: HackathonTeam }>(`/hackathons/teams/${id}/invite/`, json({ email })),
@@ -55,6 +68,14 @@ export const hackathonApi = {
       fetchApi<Hackathon>(`/hackathons/${enc(slug)}/${open ? 'reopen' : 'close'}/`, json({})),
     stats: (slug: string) => fetchApi<HackathonStats>(`/hackathons/${enc(slug)}/stats/`),
 
+    uploadProblemStatements: (slug: string, file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return fetchApi<ProblemStatementUploadResult>(`/hackathons/${enc(slug)}/problem-statements/upload/`, {
+        method: 'POST',
+        body: form,
+      });
+    },
     createProblemStatement: (slug: string, body: Partial<ProblemStatement>) =>
       fetchApi<ProblemStatement>(`/hackathons/${enc(slug)}/problem-statements/`, json(body)),
     updateProblemStatement: (slug: string, id: number, body: Partial<ProblemStatement>) =>
@@ -85,7 +106,7 @@ export const hackathonApi = {
       id: number,
       body: { team_ids: number[]; status: RoundEntryStatus; feedback?: string; admin_notes?: string },
     ) => fetchApi<{ updated: number; round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/decide/`, json(body)),
-    publishRound: (slug: string, id: number, body: { announce?: boolean; message?: string } = {}) =>
+    publishRound: (slug: string, id: number, body: { announce?: boolean; message?: string; email?: boolean } = {}) =>
       fetchApi<{ round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/publish/`, json(body)),
     unpublishRound: (slug: string, id: number) =>
       fetchApi<{ round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/unpublish/`, json({})),

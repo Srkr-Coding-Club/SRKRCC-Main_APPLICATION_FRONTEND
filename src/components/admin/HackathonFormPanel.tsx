@@ -268,7 +268,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
           </div>
 
           <div>
-            <label className={labelClasses}>Registration Form</label>
+            <label className={labelClasses}>Legacy Registration Form <span className="normal-case font-medium text-slate-400">(optional)</span></label>
             <select
               value={registrationForm}
               onChange={(e) => setRegistrationForm(e.target.value)}
@@ -282,7 +282,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
               ))}
             </select>
             <p className="mt-1 text-[11px] text-slate-400">
-              "Register Team" on the public hackathon card will link to this form.
+              Not needed — teams register from the participant dashboard. Set team size, the registration window and problem statements under Manage after saving.
             </p>
           </div>
 

@@ -63,7 +63,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
     setBusy(true);
     try {
       const res = await hackathonApi.invite(team.id, email.trim());
-      toast.success('Invite sent', `${lookup.name} will see it on their dashboard.`);
+      toast.success('Invite sent', `${lookup.name} will get an email and see it on their dashboard.`);
       onInvited(res.team);
       onClose();
     } catch (err) {

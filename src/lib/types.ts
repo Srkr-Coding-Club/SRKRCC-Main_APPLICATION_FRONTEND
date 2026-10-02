@@ -92,6 +92,7 @@ export interface Hackathon {
   team_edits_locked?: boolean;
   required_profile_fields?: ProfileFieldKey[];
   is_registration_open?: boolean;
+  allow_open_innovation?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +111,8 @@ export interface ProblemStatement {
   code: string;
   title: string;
   description: string;
-  category: string;
+  /** The problem's domain (e.g. EdTech). */
+  domain: string;
   tags: string[];
   max_teams: number | null;
   is_active: boolean;
@@ -124,7 +126,16 @@ export interface ProblemStatementBrief {
   id: number;
   code: string;
   title: string;
-  category: string;
+  domain: string;
+}
+
+/** A team's own problem when it goes open innovation instead of picking a statement. */
+export interface OpenInnovationProblem {
+  /** Generated ID, OI-<team id>. */
+  code?: string;
+  title: string;
+  description: string;
+  domain: string;
 }
 
 export interface HackathonTeamMember {
@@ -150,6 +161,7 @@ export interface HackathonTeamInvite {
   invited_user: { id: number; name: string; email: string };
   invited_by_name: string | null;
   problem_statement: ProblemStatementBrief | null;
+  is_open_innovation: boolean;
   member_count: number;
   status: TeamInviteStatus;
   created_at: string;
@@ -174,6 +186,8 @@ export interface HackathonTeam {
   hackathon_slug: string;
   status: HackathonTeamStatus;
   problem_statement: ProblemStatementBrief | null;
+  /** Set (and problem_statement null) when the team brought its own problem. */
+  open_innovation: OpenInnovationProblem | null;
   leader_id: number | null;
   members: HackathonTeamMember[];
   member_count: number;
@@ -252,6 +266,8 @@ export interface AdminRoundEntry {
   leader_email: string | null;
   member_count: number;
   problem_statement: ProblemStatementBrief | null;
+  /** PS-001 for a statement, OI-<id> for open innovation. */
+  problem_code: string | null;
   status: RoundEntryStatus;
   admin_notes: string;
   feedback: string;
@@ -285,6 +301,7 @@ export interface HackathonStats {
   teams_total: number;
   participants: number;
   pending_invites: number;
+  open_innovation_teams: number;
   problem_statements: { id: number; code: string; title: string; teams: number; max_teams: number | null }[];
   rounds: ({ id: number; order: number; name: string; results_published: boolean; total: number; details_submitted: number } & Record<RoundEntryStatus, number>)[];
   is_registration_open: boolean;

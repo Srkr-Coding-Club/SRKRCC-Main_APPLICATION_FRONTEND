@@ -23,6 +23,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const [minSize, setMinSize] = useState('1');
   const [maxSize, setMaxSize] = useState('4');
   const [locked, setLocked] = useState(false);
+  const [openInnovation, setOpenInnovation] = useState(true);
   const [required, setRequired] = useState<ProfileFieldKey[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -33,6 +34,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setMinSize(String(hackathon.min_team_size ?? 1));
     setMaxSize(String(hackathon.max_team_size ?? 4));
     setLocked(!!hackathon.team_edits_locked);
+    setOpenInnovation(hackathon.allow_open_innovation ?? true);
     setRequired(hackathon.required_profile_fields ?? []);
   }, [hackathon]);
 
@@ -47,6 +49,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         min_team_size: Number(minSize),
         max_team_size: Number(maxSize),
         team_edits_locked: locked,
+        allow_open_innovation: openInnovation,
         required_profile_fields: required,
       });
       onSaved(saved);
@@ -125,10 +128,18 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         </div>
 
         <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-800 p-3 cursor-pointer">
+          <input type="checkbox" checked={openInnovation} onChange={(e) => setOpenInnovation(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#FF7A00]" />
+          <span className="text-sm">
+            <span className="font-bold text-[#1A1A2E] dark:text-white">Allow open innovation</span>
+            <span className="block text-xs text-slate-500">Teams may bring their own problem instead of picking a statement. They must submit a title, a description and a domain.</span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-800 p-3 cursor-pointer">
           <input type="checkbox" checked={locked} onChange={(e) => setLocked(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#FF7A00]" />
           <span className="text-sm">
             <span className="font-bold text-[#1A1A2E] dark:text-white">Lock team changes</span>
-            <span className="block text-xs text-slate-500">Participants can no longer rename, switch problem statements, invite, remove or leave. Admins can still edit.</span>
+            <span className="block text-xs text-slate-500">Participants can no longer rename, change their problem, invite, remove or leave. Admins can still edit.</span>
           </span>
         </label>
 

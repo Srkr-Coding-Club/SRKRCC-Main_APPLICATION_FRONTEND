@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  AlertCircle, ArrowLeft, Crown, LogOut, Mail, Megaphone, Pencil, RefreshCw, Target, Trophy,
+  AlertCircle, ArrowLeft, Crown, Lightbulb, LogOut, Mail, Megaphone, Pencil, RefreshCw, Target, Trophy,
   UserMinus, UserPlus, Users, UsersRound, X, Check, Lock, Flag,
 } from 'lucide-react';
 import type { HackathonAnnouncement, HackathonTeamInvite, MyTeamPayload, ProblemStatement } from '@/lib/types';
@@ -179,6 +179,7 @@ export default function HackathonDashboardPage() {
                             <p className="text-xs text-slate-500">
                               Invited by {inv.invited_by_name ?? 'the team leader'} · {inv.member_count} member{inv.member_count === 1 ? '' : 's'}
                               {inv.problem_statement && ` · ${inv.problem_statement.code} — ${inv.problem_statement.title}`}
+                              {inv.is_open_innovation && ' · Open innovation'}
                             </p>
                           </div>
                           <button
@@ -364,12 +365,22 @@ export default function HackathonDashboardPage() {
           <aside className="space-y-6">
             {team && (
               <section className={`${PANEL} space-y-3`}>
-                <h2 className={H2}><Target className="h-4 w-4" /> Problem statement</h2>
-                {team.problem_statement ? (
+                <h2 className={H2}><Target className="h-4 w-4" /> {team.open_innovation ? 'Your problem' : 'Problem statement'}</h2>
+                {team.open_innovation ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded bg-[#8B2E3B]/10 px-2 py-0.5 text-[10px] font-extrabold tracking-wider text-[#8B2E3B] dark:text-rose-300">{team.open_innovation.code}</span>
+                      <span className="text-[10px] font-bold uppercase text-slate-400">{team.open_innovation.domain}</span>
+                      <StatusPill tone="purple" icon={Lightbulb}>Open innovation</StatusPill>
+                    </div>
+                    <h3 className="font-bold text-[#1A1A2E] dark:text-white">{team.open_innovation.title}</h3>
+                    <p className="max-h-72 overflow-y-auto whitespace-pre-line text-sm text-slate-600 dark:text-slate-300">{team.open_innovation.description}</p>
+                  </>
+                ) : team.problem_statement ? (
                   <>
                     <div className="flex items-center gap-2">
                       <span className="rounded bg-[#8B2E3B]/10 px-2 py-0.5 text-[10px] font-extrabold tracking-wider text-[#8B2E3B] dark:text-rose-300">{team.problem_statement.code}</span>
-                      {team.problem_statement.category && <span className="text-[10px] font-bold uppercase text-slate-400">{team.problem_statement.category}</span>}
+                      {team.problem_statement.domain && <span className="text-[10px] font-bold uppercase text-slate-400">{team.problem_statement.domain}</span>}
                     </div>
                     <h3 className="font-bold text-[#1A1A2E] dark:text-white">{team.problem_statement.title}</h3>
                     {myProblem?.description?.trim() && (
@@ -377,7 +388,7 @@ export default function HackathonDashboardPage() {
                     )}
                   </>
                 ) : (
-                  <p className="text-sm text-slate-500">No problem statement selected{isLeader && editable ? ' — use Edit team to pick one.' : '.'}</p>
+                  <p className="text-sm text-slate-500">No problem selected yet{isLeader && editable ? ' — use Edit team to pick a statement or bring your own.' : '.'}</p>
                 )}
               </section>
             )}
@@ -402,6 +413,7 @@ export default function HackathonDashboardPage() {
         onClose={() => setTeamModal(null)}
         slug={slug}
         problemStatements={problems}
+        allowOpenInnovation={!!hackathon.allow_open_innovation}
         team={teamModal === 'edit' ? team : null}
         onSaved={() => load()}
       />

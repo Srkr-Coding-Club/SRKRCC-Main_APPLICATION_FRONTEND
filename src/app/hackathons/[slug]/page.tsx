@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Calendar, Clock, Trophy, Users, Flame, Sparkles, Target, Megaphone, UsersRound } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Trophy, Users, Flame, Sparkles, Target, Megaphone, UsersRound, Lightbulb } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
 import { Hackathon, HackathonAnnouncement, ProblemStatement } from '@/lib/types';
 import { isModuleEnabled } from '@/lib/moduleFlags';
@@ -199,7 +199,7 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
                     )}
                   </div>
                   <h3 className="font-bold text-[#1A1A2E] dark:text-white">{ps.title}</h3>
-                  {ps.category && <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{ps.category}</p>}
+                  {ps.domain && <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{ps.domain}</p>}
                   {ps.description?.trim() && (
                     <div className="text-sm text-slate-600 dark:text-slate-300 line-clamp-6">
                       <MarkdownRenderer content={ps.description} />
@@ -215,6 +215,15 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
                 </article>
               ))}
             </div>
+            {hackathon.allow_open_innovation && (
+              <p className="flex items-start gap-2 rounded-xl border border-dashed border-[#FF7A00]/40 bg-[#FF7A00]/5 px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[#FF7A00]" />
+                <span>
+                  <strong className="text-[#1A1A2E] dark:text-white">Have your own idea?</strong> Choose <em>Open innovation</em> when you register
+                  your team and submit your own problem — a title, a description and its domain.
+                </span>
+              </p>
+            )}
           </section>
         )}
 
