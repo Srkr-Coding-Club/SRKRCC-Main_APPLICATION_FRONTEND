@@ -182,7 +182,7 @@ export default function LoginCard({
         animate={embedded ? undefined : { opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className={embedded ? 'contents' : 'relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-rows-[120px_minmax(0,1fr)] grid-cols-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] sm:grid-cols-[1fr_1.1fr] sm:grid-rows-1'}
+        className={embedded ? 'contents' : 'relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-cols-1 grid-rows-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] lg:grid-cols-[1fr_1.1fr]'}
       >
 
         {onClose && !embedded && (
@@ -197,7 +197,7 @@ export default function LoginCard({
         )}
 
         {/* Left Illustration Section */}
-        <div className={embedded ? 'hidden' : 'relative min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)]'}>
+        <div className={embedded ? 'hidden' : 'relative hidden min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)] lg:block'}>
           <Image
             src="/Loginn.svg"
             alt="Secure sign in illustration"
@@ -212,11 +212,11 @@ export default function LoginCard({
         <div className={`min-h-0 overflow-y-auto px-8 py-6 sm:px-10 sm:py-8 ${embedded ? 'h-full' : ''}`}>
           <div className="mx-auto flex min-h-full w-full max-w-[320px] flex-col justify-center sm:mx-0">
 
-            {/* SECURE SIGN IN Badge */}
+            {/* SECURE SIGN IN Badge 
             <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
               <Lock className="h-3 w-3 text-slate-500 stroke-[2.2]" />
               Secure Sign In
-            </div>
+            </div> */}
 
             {/* Title & Subtitle */}
             <h2 className="text-[24px] font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
@@ -293,8 +293,9 @@ export default function LoginCard({
 
             <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
               {nextUrl && !loggedInUser && (
-                <div className="p-2 rounded-lg bg-orange-50 border border-orange-200 text-xs text-orange-600">
-                  <span className="font-semibold">Sign in required</span> for <code className="font-mono">{nextUrl}</code>
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-2 text-xs text-orange-600 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300">
+                  <span className="font-semibold">Sign in required</span> for{' '}
+                  <code className="font-mono">{nextUrl}</code>
                 </div>
               )}
 
