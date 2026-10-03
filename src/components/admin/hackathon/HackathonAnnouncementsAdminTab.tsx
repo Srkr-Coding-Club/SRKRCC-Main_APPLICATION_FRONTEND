@@ -139,7 +139,7 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-bold text-[#1A1A2E] dark:text-white">{a.title}</p>
                     <StatusPill tone={a.audience === 'PUBLIC' ? 'sky' : 'purple'}>
-                      {a.audience_label}{a.round_name ? ` — ${a.round_name}` : ''}{a.audience === 'TEAMS' && a.target_team_names?.length ? ` (${a.target_team_names.length})` : ''}
+                      {a.audience_label}{a.round_name ? `: ${a.round_name}` : ''}{a.audience === 'TEAMS' && a.target_team_names?.length ? ` (${a.target_team_names.length})` : ''}
                     </StatusPill>
                     {!a.is_active && <StatusPill tone="slate">Inactive</StatusPill>}
                     {future && <StatusPill tone="amber">Scheduled</StatusPill>}

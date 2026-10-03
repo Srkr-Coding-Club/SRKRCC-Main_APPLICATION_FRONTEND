@@ -35,7 +35,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
     }
   }, [isOpen]);
 
-  // Exact-email lookup, debounced — the backend never does partial matching.
+  // Exact-email lookup, debounced - the backend never does partial matching.
   useEffect(() => {
     const value = email.trim();
     setLookup(null);

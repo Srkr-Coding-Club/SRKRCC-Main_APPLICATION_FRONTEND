@@ -39,16 +39,16 @@ const GROUP_ICONS: Record<string, React.ElementType> = {
 // ============================================================================
 
 function formatCell(cv: CanonicalValue | undefined): { text: string; state: string } {
-  if (!cv) return { text: '—', state: 'not_applicable' };
-  if (cv.state === 'not_applicable') return { text: '—', state: 'not_applicable' };
-  if (cv.state === 'empty') return { text: '—', state: 'empty' };
+  if (!cv) return { text: '-', state: 'not_applicable' };
+  if (cv.state === 'not_applicable') return { text: '-', state: 'not_applicable' };
+  if (cv.state === 'empty') return { text: '-', state: 'empty' };
   if (cv.state === 'unknown') return { text: 'Unavailable', state: 'unknown' };
   return { text: cv.display_value || String(cv.value ?? ''), state: 'value' };
 }
 
 function StateIcon({ state }: { state: string }) {
   if (state === 'not_applicable') return <Minus className="w-3 h-3 text-slate-400 dark:text-slate-500 inline" />;
-  if (state === 'empty') return <span className="text-slate-400 dark:text-slate-500 font-mono text-xs select-none">—</span>;
+  if (state === 'empty') return <span className="text-slate-400 dark:text-slate-500 font-mono text-xs select-none">-</span>;
   if (state === 'unknown') return <HelpCircle className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 inline" />;
   return null;
 }
@@ -806,7 +806,7 @@ export default function DataManagementCenter() {
 
   return (
     <div className="relative flex h-[calc(100vh-74px)] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
-      {/* Mobile datasets toggle — sidebar is hidden below md, so this is the only way in */}
+      {/* Mobile datasets toggle - sidebar is hidden below md, so this is the only way in */}
       <button
         onClick={() => setSidebarOpen(true)}
         className="md:hidden absolute top-3 left-3 z-30 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-md text-xs font-bold text-slate-700 dark:text-slate-300 transition-transform duration-100 active:scale-95"

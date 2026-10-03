@@ -22,7 +22,7 @@ const STATUS_OPTIONS = [
 const OPEN_INNOVATION = 'open_innovation';
 
 /** The ID a team's problem is known by: PS-001, or OI-<id> for open innovation. */
-const problemCode = (t: HackathonTeam) => t.problem_statement?.code ?? t.open_innovation?.code ?? '—';
+const problemCode = (t: HackathonTeam) => t.problem_statement?.code ?? t.open_innovation?.code ?? '-';
 
 export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
   const slug = hackathon.slug;
@@ -103,7 +103,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
           value={ps}
           onChange={setPs}
           options={[
-            ...problems.map((p) => ({ value: String(p.id), label: `${p.code} — ${p.title}` })),
+            ...problems.map((p) => ({ value: String(p.id), label: `${p.code}: ${p.title}` })),
             { value: OPEN_INNOVATION, label: 'Open innovation (own problem)' },
           ]}
           placeholder="All problems"
@@ -133,12 +133,12 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                 return (
                   <tr key={t.id} onClick={() => setSelectedId(t.id)} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03]">
                     <td className="py-2.5 pr-3 font-semibold text-[#1A1A2E] dark:text-white">{t.name}</td>
-                    <td className="py-2.5 pr-3 text-xs text-slate-500">{t.leader_email ?? '—'}</td>
+                    <td className="py-2.5 pr-3 text-xs text-slate-500">{t.leader_email ?? '-'}</td>
                     <td className="py-2.5 pr-3 text-xs">{t.member_count}{t.pending_invites.length ? ` (+${t.pending_invites.length} invited)` : ''}</td>
                     <td className="py-2.5 pr-3 text-xs font-mono" title={t.open_innovation ? `Open innovation: ${t.open_innovation.title}` : t.problem_statement?.title}>{problemCode(t)}</td>
                     <td className="py-2.5 pr-3">{pill && <StatusPill tone={pill.tone}>{pill.label}</StatusPill>}</td>
                     <td className="py-2.5 pr-3 text-xs">
-                      {latest ? <span className="flex items-center gap-1.5">R{latest.round_order} <StatusPill tone={ENTRY_STATUS_PILL[latest.status].tone}>{ENTRY_STATUS_PILL[latest.status].label}</StatusPill></span> : '—'}
+                      {latest ? <span className="flex items-center gap-1.5">R{latest.round_order} <StatusPill tone={ENTRY_STATUS_PILL[latest.status].tone}>{ENTRY_STATUS_PILL[latest.status].label}</StatusPill></span> : '-'}
                     </td>
                   </tr>
                 );
@@ -154,7 +154,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-2">
                 {TEAM_STATUS_PILL[selected.status] && <StatusPill tone={TEAM_STATUS_PILL[selected.status].tone}>{TEAM_STATUS_PILL[selected.status].label}</StatusPill>}
-                {selected.problem_statement && <span className="text-xs font-semibold text-slate-500">{selected.problem_statement.code} — {selected.problem_statement.title}</span>}
+                {selected.problem_statement && <span className="text-xs font-semibold text-slate-500">{selected.problem_statement.code}: {selected.problem_statement.title}</span>}
                 {selected.open_innovation && <StatusPill tone="purple">Open innovation</StatusPill>}
               </div>
 
@@ -205,7 +205,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                 <div>
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Pending invites</p>
                   <ul className="space-y-1 text-xs text-slate-500">
-                    {selected.pending_invites.map((i) => <li key={i.id}>{i.invited_user.name} — {i.invited_user.email}</li>)}
+                    {selected.pending_invites.map((i) => <li key={i.id}>{i.invited_user.name} ({i.invited_user.email})</li>)}
                   </ul>
                 </div>
               )}

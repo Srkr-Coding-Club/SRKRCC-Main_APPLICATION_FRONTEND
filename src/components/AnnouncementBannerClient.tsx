@@ -29,14 +29,14 @@ function writeDismissed(ids: number[]) {
   try {
     window.localStorage.setItem(DISMISSED_KEY, JSON.stringify(ids));
   } catch {
-    // localStorage can throw in private-browsing/blocked-storage contexts —
+    // localStorage can throw in private-browsing/blocked-storage contexts -
     // dismissal still applies for this render via component state.
   }
 }
 
 export default function AnnouncementBannerClient({ announcements }: { announcements: Announcement[] }) {
   // Starts as "nothing dismissed" so server and first client render match
-  // (avoids a hydration mismatch) — the real per-viewer dismiss state from
+  // (avoids a hydration mismatch) - the real per-viewer dismiss state from
   // localStorage is applied right after mount, in the effect below.
   const [dismissedIds, setDismissedIds] = useState<number[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -48,7 +48,7 @@ export default function AnnouncementBannerClient({ announcements }: { announceme
   const visible = announcements.filter((a) => !dismissedIds.includes(a.id));
   const expanded = visible.find((a) => a.id === expandedId) || null;
 
-  // Roughly constant scroll speed regardless of item count — more items
+  // Roughly constant scroll speed regardless of item count - more items
   // means a longer track, so it needs proportionally more time to cross.
   const durationSeconds = Math.max(15, visible.length * 6);
 

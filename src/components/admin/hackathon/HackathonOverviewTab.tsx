@@ -55,7 +55,7 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
                 return (
                   <li key={p.id} className="space-y-1">
                     <div className="flex justify-between gap-2 text-xs">
-                      <span className="font-semibold text-[#1A1A2E] dark:text-white truncate">{p.code} — {p.title}</span>
+                      <span className="font-semibold text-[#1A1A2E] dark:text-white truncate">{p.code}: {p.title}</span>
                       <span className="text-slate-500 shrink-0">{p.teams}{p.max_teams ? ` / ${p.max_teams}` : ''} teams</span>
                     </div>
                     {pct !== null && (

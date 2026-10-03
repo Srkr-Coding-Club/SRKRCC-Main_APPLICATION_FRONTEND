@@ -208,7 +208,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
                 className="w-full px-3.5 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 font-mono tracking-wide"
               />
               <p className="mt-1 text-[11px] text-slate-400">
-                Required for Affiliate — this member won't be created without a valid, unclaimed Club ID.
+                Required for Affiliate: this member won't be created without a valid, unclaimed Club ID.
               </p>
             </div>
           )}

@@ -58,7 +58,7 @@ export function MyHackathonsPanel() {
               </p>
               <p className="text-xs text-slate-500 truncate">
                 {t.member_count} member{t.member_count === 1 ? '' : 's'}
-                {t.problem_statement ? ` · ${t.problem_statement.code} — ${t.problem_statement.title}` : t.open_innovation ? ` · ${t.open_innovation.code} — ${t.open_innovation.title} (open innovation)` : ''}
+                {t.problem_statement ? ` · ${t.problem_statement.code}: ${t.problem_statement.title}` : t.open_innovation ? ` · ${t.open_innovation.code}: ${t.open_innovation.title} (open innovation)` : ''}
               </p>
             </div>
             {pill && <StatusPill tone={pill.tone}>{pill.label}</StatusPill>}

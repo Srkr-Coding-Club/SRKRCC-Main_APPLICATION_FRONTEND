@@ -15,7 +15,7 @@ import PillButton from './PillButton';
 import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 
 /* ------------------------------------------------------------------ */
-/* Logo worn like a seal — gradient ring, page-coloured core so it     */
+/* Logo worn like a seal - gradient ring, page-coloured core so it     */
 /* sits flush in either theme. `depthX/Y` drive its parallax layer.   */
 /* ------------------------------------------------------------------ */
 function LogoSeal({ depthX, depthY }: { depthX: MotionValue<number>; depthY: MotionValue<number> }) {
@@ -74,7 +74,7 @@ export default function HeroSection() {
         }
       });
     };
-    // Re-validate on focus too — otherwise a role change made elsewhere (e.g. an
+    // Re-validate on focus too - otherwise a role change made elsewhere (e.g. an
     // admin promoting this member) never reaches an already-open tab until a
     // hard refresh remounts everything.
     syncFromServer();
@@ -99,13 +99,13 @@ export default function HeroSection() {
   const sx = useSpring(px, { stiffness: 90, damping: 18, mass: 0.5 });
   const sy = useSpring(py, { stiffness: 90, damping: 18, mass: 0.5 });
 
-  /* Headline — the closest layer, so it moves & tilts the most. */
+  /* Headline - the closest layer, so it moves & tilts the most. */
   const hX = useTransform(sx, [-0.5, 0.5], [-16, 16]);
   const hY = useTransform(sy, [-0.5, 0.5], [-11, 11]);
   const hRotX = useTransform(sy, [-0.5, 0.5], [6, -6]);
   const hRotY = useTransform(sx, [-0.5, 0.5], [-7, 7]);
 
-  /* Logo — mid layer, a gentler shift in the same direction. */
+  /* Logo - mid layer, a gentler shift in the same direction. */
   const midX = useTransform(sx, [-0.5, 0.5], [-7, 7]);
   const midY = useTransform(sy, [-0.5, 0.5], [-5, 5]);
 
@@ -144,10 +144,10 @@ export default function HeroSection() {
     >
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center [perspective:1000px]">
         {/* When reduced-motion is on, handleMove bails and px/py stay 0, so   */}
-        {/* midX/midY (and the headline transforms) resolve to 0 — no motion.  */}
+        {/* midX/midY (and the headline transforms) resolve to 0 - no motion.  */}
         <LogoSeal depthX={midX} depthY={midY} />
 
-        {/* LCP element — real text, painted at full opacity from the first frame. */}
+        {/* LCP element - real text, painted at full opacity from the first frame. */}
         {/* Entrance is a transform-only rise; the pointer parallax lives on the   */}
         {/* inner <h1> so it never fights the entrance.                            */}
         <motion.div

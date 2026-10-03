@@ -36,7 +36,7 @@ export function AnnouncementsTab() {
   const toggleActive = async (announcement: Announcement) => {
     const nextActive = !announcement.is_active;
     setTransitioningId(announcement.id);
-    // Optimistic — flip immediately, then best-effort persist.
+    // Optimistic - flip immediately, then best-effort persist.
     setAnnouncements((prev) => prev.map((a) => (a.id === announcement.id ? { ...a, is_active: nextActive } : a)));
     try {
       const updated = await fetchApi<Announcement>(`/announcements/${announcement.id}/`, {
@@ -50,7 +50,7 @@ export function AnnouncementsTab() {
         nextActive ? `"${updated.title}" is now visible on the landing page.` : `"${updated.title}" no longer appears on the landing page.`
       );
     } catch (err: any) {
-      // Roll the optimistic change back — it never actually persisted.
+      // Roll the optimistic change back - it never actually persisted.
       setAnnouncements((prev) => prev.map((a) => (a.id === announcement.id ? announcement : a)));
       toast.error('Action Failed', err?.message || 'Could not update this announcement.');
     } finally {

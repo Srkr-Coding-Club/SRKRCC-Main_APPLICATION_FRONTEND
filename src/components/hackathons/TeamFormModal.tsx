@@ -86,7 +86,7 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
     const full = p.slots_left === 0 && !mine;
     return {
       value: String(p.id),
-      label: `${p.code} — ${p.title}`,
+      label: `${p.code}: ${p.title}`,
       hint: full ? 'Full' : p.slots_left !== null ? `${p.slots_left} left` : undefined,
       disabled: full,
     };
@@ -182,7 +182,7 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
             {mode === 'open' && (
               <div className="space-y-3 rounded-lg border border-[#FF7A00]/30 bg-[#FF7A00]/5 p-3">
                 <p className="text-xs text-slate-600 dark:text-slate-300">
-                  Bring your own idea. Describe the problem you will solve — the organizers review it. All three fields are required.
+                  Bring your own idea. Describe the problem you will solve. The organizers review it. All three fields are required.
                 </p>
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="oi-title" required>Problem title</FieldLabel>
@@ -236,7 +236,7 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
 
         {!editing && (
           <p className="text-xs text-slate-500">
-            You&apos;ll be the team leader — only you can edit the team and invite members.
+            You&apos;ll be the team leader, so only you can edit the team and invite members.
           </p>
         )}
         {errors.form && <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400">{errors.form}</p>}

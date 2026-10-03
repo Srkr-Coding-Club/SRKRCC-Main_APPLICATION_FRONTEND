@@ -105,7 +105,7 @@ const STAT_CARD_ACCENT: Record<StatusGroup, string> = {
 };
 
 // Summary fields already rendered inline in the table's Summary column, keyed
-// by job type — everything else in `summary` is shown in the expanded row.
+// by job type - everything else in `summary` is shown in the expanded row.
 const INLINE_SUMMARY_KEYS: Record<JobType, string[]> = {
   email: ['total', 'sent', 'failed'],
   export: ['rows', 'format'],
@@ -148,7 +148,7 @@ function formatSummaryInline(job: BackgroundJob): string {
         : `${inserted} inserted / ${updated} updated`;
     }
     default:
-      return '—';
+      return '-';
   }
 }
 
@@ -413,7 +413,7 @@ export function BackgroundJobsTab() {
                               <span className="text-[11px] text-slate-500">{job.created_by.email}</span>
                             </div>
                           ) : (
-                            '—'
+                            '-'
                           )}
                         </td>
                         <td className="px-6 py-4 text-xs font-mono text-slate-500">{formatSummaryInline(job)}</td>
@@ -447,7 +447,7 @@ export function BackgroundJobsTab() {
                                   <span className="font-semibold text-[#1A1A2E] dark:text-white">
                                     {job.completed_at
                                       ? new Date(job.completed_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-                                      : '—'}
+                                      : '-'}
                                   </span>
                                 </div>
                                 <div>

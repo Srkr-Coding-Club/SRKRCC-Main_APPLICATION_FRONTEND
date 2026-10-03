@@ -61,7 +61,7 @@ export function HackathonAnnouncementsFeed({
                   {formatDateTime(a.publish_at)}
                   {showAudience && a.audience !== 'PUBLIC' && (
                     <span className="ml-2 font-semibold text-[#FF7A00]">
-                      · {a.audience_label}{a.round_name ? ` — ${a.round_name}` : ''}
+                      · {a.audience_label}{a.round_name ? `: ${a.round_name}` : ''}
                     </span>
                   )}
                 </p>

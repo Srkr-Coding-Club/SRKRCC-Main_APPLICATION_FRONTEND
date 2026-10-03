@@ -178,7 +178,7 @@ export default function HackathonDashboardPage() {
                             <p className="font-bold text-[#1A1A2E] dark:text-white">{inv.team_name}</p>
                             <p className="text-xs text-slate-500">
                               Invited by {inv.invited_by_name ?? 'the team leader'} · {inv.member_count} member{inv.member_count === 1 ? '' : 's'}
-                              {inv.problem_statement && ` · ${inv.problem_statement.code} — ${inv.problem_statement.title}`}
+                              {inv.problem_statement && ` · ${inv.problem_statement.code}: ${inv.problem_statement.title}`}
                               {inv.is_open_innovation && ' · Open innovation'}
                             </p>
                           </div>
@@ -246,7 +246,7 @@ export default function HackathonDashboardPage() {
 
                 {team.status === 'FORMING' && (
                   <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                    Your team needs at least {minSize} members to be registered — {Math.max(minSize - team.member_count, 0)} more to go.
+                    Your team needs at least {minSize} members to be registered: {Math.max(minSize - team.member_count, 0)} more to go.
                   </p>
                 )}
                 {(team.status === 'DISQUALIFIED' || team.status === 'WITHDRAWN') && (
@@ -340,7 +340,7 @@ export default function HackathonDashboardPage() {
                       title={isLeader && team.member_count > 1 ? 'Transfer leadership before leaving' : undefined}
                       onClick={() => {
                         const msg = isLeader
-                          ? 'You are the only member — leaving will withdraw this team. Continue?'
+                          ? 'You are the only member. Leaving will withdraw this team. Continue?'
                           : 'Leave this team?';
                         if (window.confirm(msg)) run('leave', () => hackathonApi.leaveTeam(team.id), 'You left the team');
                       }}
@@ -388,14 +388,14 @@ export default function HackathonDashboardPage() {
                     )}
                   </>
                 ) : (
-                  <p className="text-sm text-slate-500">No problem selected yet{isLeader && editable ? ' — use Edit team to pick a statement or bring your own.' : '.'}</p>
+                  <p className="text-sm text-slate-500">No problem selected yet{isLeader && editable ? '. Use Edit team to pick a statement or bring your own.' : '.'}</p>
                 )}
               </section>
             )}
 
             <section className={`${PANEL} space-y-4`}>
               <h2 className={H2}><Megaphone className="h-4 w-4" /> Announcements</h2>
-              <HackathonAnnouncementsFeed announcements={announcements} emptyText="Nothing announced yet — check back soon." />
+              <HackathonAnnouncementsFeed announcements={announcements} emptyText="Nothing announced yet. Check back soon." />
             </section>
 
             <section className={`${PANEL} space-y-2 text-sm`}>

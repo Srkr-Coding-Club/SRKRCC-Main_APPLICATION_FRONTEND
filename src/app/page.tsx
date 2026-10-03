@@ -12,7 +12,7 @@ import PlatformModulesSkeleton from '@/components/PlatformModulesSkeleton';
 import CallToActionBanner from '@/components/CallToActionBanner';
 
 export const metadata: Metadata = {
-  title: 'Home — Innovate, Code, Excel',
+  title: 'Home | Innovate, Code, Excel',
   description:
     'Official portal of SRKR Coding Club. Explore annual hackathons, daily CodeQuest coding challenges, developer workshops, technical blogs, and active registrations.',
 };
@@ -38,7 +38,7 @@ export default function HomePage() {
       {/* 5. Upcoming Events Grid */}
       <UpcomingEventsGrid />
 
-      {/* 6. Dynamic Platform Modules Section — streamed independently so a slow  */}
+      {/* 6. Dynamic Platform Modules Section - streamed independently so a slow  */}
       {/* or offline backend never blocks the rest of the page from rendering.   */}
       <Suspense fallback={<PlatformModulesSkeleton />}>
         <PlatformModulesSection />

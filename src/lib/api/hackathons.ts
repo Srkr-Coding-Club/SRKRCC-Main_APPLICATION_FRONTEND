@@ -15,7 +15,7 @@ import type {
 
 const enc = encodeURIComponent;
 
-/** A team's problem: a statement id, or an open-innovation problem — never both. */
+/** A team's problem: a statement id, or an open-innovation problem - never both. */
 export interface TeamProblemBody {
   problem_statement?: number | null;
   open_innovation?: { title: string; description: string; domain: string } | null;

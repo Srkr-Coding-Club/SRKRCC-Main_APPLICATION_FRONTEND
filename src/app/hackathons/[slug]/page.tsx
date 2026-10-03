@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!hackathon) notFound();
   return {
     title: hackathon.title,
-    description: `${hackathon.theme} — prize pool ${hackathon.prize_pool}. SRKR Coding Club hackathon.`,
+    description: `${hackathon.theme}. Prize pool ${hackathon.prize_pool}. SRKR Coding Club hackathon.`,
   };
 }
 
@@ -220,7 +220,7 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
                 <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[#FF7A00]" />
                 <span>
                   <strong className="text-[#1A1A2E] dark:text-white">Have your own idea?</strong> Choose <em>Open innovation</em> when you register
-                  your team and submit your own problem — a title, a description and its domain.
+                  your team and submit your own problem: a title, a description and its domain.
                 </span>
               </p>
             )}

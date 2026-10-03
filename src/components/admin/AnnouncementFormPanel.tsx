@@ -9,7 +9,7 @@ import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 
 interface AnnouncementFormPanelProps {
   isOpen: boolean;
-  /** Present in edit mode — the panel is pre-filled and PATCHes this announcement instead of creating a new one. */
+  /** Present in edit mode - the panel is pre-filled and PATCHes this announcement instead of creating a new one. */
   announcement?: Announcement | null;
   onClose: () => void;
   onSaved: (announcement: Announcement) => void;
@@ -38,7 +38,7 @@ export function AnnouncementFormPanel({ isOpen, announcement, onClose, onSaved }
   const [type, setType] = useState<AnnouncementType>('INFO');
   const [isActive, setIsActive] = useState(true);
 
-  // Re-seed the form whenever the panel opens — either from the announcement
+  // Re-seed the form whenever the panel opens - either from the announcement
   // being edited, or blank for a fresh create.
   useEffect(() => {
     if (!isOpen) return;
@@ -104,7 +104,7 @@ export function AnnouncementFormPanel({ isOpen, announcement, onClose, onSaved }
           <div className="flex items-center space-x-2">
             <Megaphone className="w-5 h-5 text-[#FF7A00]" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
-              {isEditMode ? `Edit Announcement — ${announcement!.title}` : 'New Announcement'}
+              {isEditMode ? `Edit Announcement: ${announcement!.title}` : 'New Announcement'}
             </h3>
           </div>
           <button
@@ -154,7 +154,7 @@ export function AnnouncementFormPanel({ isOpen, announcement, onClose, onSaved }
               className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
             />
             <span className="text-sm font-medium text-[#1A1A2E] dark:text-white">
-              Active — visible on the landing page
+              Active: visible on the landing page
             </span>
           </label>
 

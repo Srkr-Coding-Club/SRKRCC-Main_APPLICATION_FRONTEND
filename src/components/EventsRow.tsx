@@ -68,7 +68,7 @@ export default function EventsRow({ title, events, accent = '#FF7A00' }: EventsR
         <ChevronLeft className="h-5 w-5" />
       </button>
 
-      {/* measured track — width drives cardsPerPage */}
+      {/* measured track - width drives cardsPerPage */}
       <div ref={containerRef} className="min-w-0 flex-1 overflow-hidden">
         <div className="flex justify-center gap-5">
           {visibleEvents.map((event, i) => (

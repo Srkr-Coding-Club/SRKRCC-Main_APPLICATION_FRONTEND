@@ -12,13 +12,13 @@ interface AttendanceBadgeCardProps {
 }
 
 /**
- * "Your Attendance Pass" card — fetched from GET /api/forms/<id>/attendance/my-badge/
+ * "Your Attendance Pass" card - fetched from GET /api/forms/<id>/attendance/my-badge/
  * once the registrant has a completed response on an attendance_enabled form. The
  * `token` is rendered as a QR code volunteers scan at check-in (see
  * AttendanceScannerTab / POST /api/attendance/scan/ on the admin side).
  *
  * Also fetches GET /api/forms/<id>/attendance/my-record/ and renders a
- * session-by-session attended/not-attended list beneath the QR code — the
+ * session-by-session attended/not-attended list beneath the QR code - the
  * registrant's own performance for this event, not just their check-in pass.
  *
  * Viewed from Profile → Registered Events → select event, so the container
@@ -38,7 +38,7 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
       try {
         const [badgeRes, recordRes] = await Promise.all([
           fetchApi<AttendanceBadge>(`/forms/${formId}/attendance/my-badge/`),
-          // Sessions may not exist yet (e.g. the form was just switched on) —
+          // Sessions may not exist yet (e.g. the form was just switched on) -
           // that's not fatal to showing the QR pass itself, so it fails quietly.
           fetchApi<MyAttendanceRecord>(`/forms/${formId}/attendance/my-record/`).catch(() => null),
         ]);
@@ -68,7 +68,7 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
   }
 
   // Opened deliberately (the person clicked "View QR Badge"), so a failure
-  // has to say something instead of rendering nothing — silently showing an
+  // has to say something instead of rendering nothing - silently showing an
   // empty modal would look broken rather than "no badge available."
   if (error) {
     return (
@@ -94,7 +94,7 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
           <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{registrantName}</p>
         )}
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-          Show this QR code at check-in for each session. It stays the same for every day — no need to reload or
+          Show this QR code at check-in for each session. It stays the same for every day, so there is no need to reload or
           re-download it.
         </p>
       </div>

@@ -32,7 +32,7 @@ export async function generateMetadata({
 
   const readableTitle = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   return {
-    title: `${readableTitle} — Registration`,
+    title: `${readableTitle} | Registration`,
     description: `Official registration form for ${readableTitle} on the SRKR Coding Club platform.`,
   };
 }

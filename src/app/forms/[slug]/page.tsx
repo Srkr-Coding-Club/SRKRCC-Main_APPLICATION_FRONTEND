@@ -300,7 +300,7 @@ function matchUserDetailToField(field: FormField, user: AuthUser | null): any {
 }
 
 /**
- * Explicit profile lookup for a FormField.profile_field mapping — unlike
+ * Explicit profile lookup for a FormField.profile_field mapping - unlike
  * matchUserDetailToField's label-guessing above, this is an admin-chosen,
  * unambiguous binding, so it needs no heuristics. Keys mirror
  * apps.forms.serializers.PROFILE_FIELD_GETTERS on the backend, which is the
@@ -528,7 +528,7 @@ interface SignaturePadProps {
   value: string;
   onChange: (dataUrl: string) => void;
   // Takes the just-finalized value directly rather than the caller re-reading
-  // its own `formData` after `onChange` — that read raced the (batched, not
+  // its own `formData` after `onChange` - that read raced the (batched, not
   // yet re-rendered) state update and always saw the pre-stroke value, so the
   // field falsely flashed "required" immediately after every signature.
   onBlur?: (value: string) => void;
@@ -538,7 +538,7 @@ interface SignaturePadProps {
 }
 
 /**
- * SIGNATURE field — a canvas the user can draw on with mouse or touch.
+ * SIGNATURE field - a canvas the user can draw on with mouse or touch.
  * The answer value stored via `onChange` is a PNG data URL, cleared to ''
  * by the Clear button (treated as empty by `isEmpty()` for required checks).
  */
@@ -558,13 +558,13 @@ function SignaturePad({
 
   // Keep the canvas in sync with an externally-set value (prefill / draft
   // restore). Was `[]` (mount-only) despite the comment above claiming it
-  // stays in sync — an existing response's signature loaded asynchronously
+  // stays in sync - an existing response's signature loaded asynchronously
   // (editing an already-submitted form) arrives well after this component's
   // first render, so the canvas never drew it and `hasDrawn` never flipped
   // to true, making a genuinely-signed field look empty and fail the
   // required-field check. `[value]` is the fix; re-running per completed
   // stroke (endDraw's own onChange feeding back into `value`) just redraws
-  // identical pixels from what's already on the canvas — harmless.
+  // identical pixels from what's already on the canvas - harmless.
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -683,7 +683,7 @@ function SignaturePad({
 }
 
 /**
- * True if `f`'s crossField rules or conditional_logic reference `targetId` —
+ * True if `f`'s crossField rules or conditional_logic reference `targetId` -
  * used by handleInputChange to find which OTHER fields might have a stale
  * error once `targetId`'s value changes (its required_if trigger, its
  * comparison value, or the condition that shows/requires it).
@@ -720,7 +720,7 @@ export default function FormDetailSubmissionPage() {
   const [form, setForm] = useState<Form | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
-  // Fields the user has blurred at least once — gates when an error is allowed
+  // Fields the user has blurred at least once - gates when an error is allowed
   // to display, so nothing appears red before the user has touched the field.
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
@@ -736,7 +736,7 @@ export default function FormDetailSubmissionPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  // Conditional-logic layout — which fields are visible / required right now,
+  // Conditional-logic layout - which fields are visible / required right now,
   // recomputed whenever an answer changes. Mirrors the backend engine.
   const layout = React.useMemo(
     () => computeLayout((form?.fields as any) || [], formData),
@@ -745,13 +745,13 @@ export default function FormDetailSubmissionPage() {
 
   // "Already submitted, can't edit it" only actually locks the form when this
   // is a single-response form. When the form allows multiple responses, a
-  // prior submission must never block a new, independent one — the backend
+  // prior submission must never block a new, independent one - the backend
   // already enforces the real limit (max_responses_per_user) and reports it
   // as its own submission error. `hasSubmitted && !canEditResponse` used to
   // be read as "locked" everywhere in this file regardless of that flag, so
   // a form configured to allow both multiple responses AND response editing
   // (or even just multiple responses with editing off) silently could never
-  // accept a second submission — every input was blocked outright.
+  // accept a second submission - every input was blocked outright.
   const isLockedToSingleExistingResponse = hasSubmitted && !canEditResponse && form?.allow_multiple_responses !== true;
 
   // Check user authentication & fetch fresh profile details
@@ -778,8 +778,8 @@ export default function FormDetailSubmissionPage() {
       if (!slug) return;
       setLoading(true);
       // This page component is reused (not remounted) when navigating
-      // client-side between two different forms — e.g. submitting one form
-      // and clicking through to a "next form" link — since Next.js treats
+      // client-side between two different forms - e.g. submitting one form
+      // and clicking through to a "next form" link - since Next.js treats
       // /forms/[slug] as the same page instance across dynamic-param
       // changes. Without this reset, the PREVIOUS form's typed answers,
       // validation errors, and "already submitted"/edit-mode state all
@@ -847,7 +847,7 @@ export default function FormDetailSubmissionPage() {
           setHasSubmitted(true);
           setExistingResponse(res.response);
           setCanEditResponse(res.can_edit);
-          // Edit mode — pre-fill this response and PATCH it on submit — only
+          // Edit mode - pre-fill this response and PATCH it on submit - only
           // makes sense for a single-response form. When the form allows
           // multiple responses, having a PAST response must not silently
           // turn every future submit into an edit of that one response: the
@@ -904,8 +904,8 @@ export default function FormDetailSubmissionPage() {
 
   // Profile-bound fields (field.profile_field) are authoritative, not a
   // convenience: the server always resolves and overwrites their value from
-  // the submitter's profile at submission time regardless of what's sent —
-  // including on an edit — so this stays in sync even when hasSubmitted is
+  // the submitter's profile at submission time regardless of what's sent -
+  // including on an edit - so this stays in sync even when hasSubmitted is
   // true (unlike the heuristic effect above, which deliberately backs off
   // once there's a real submitted answer to avoid clobbering it). Skipping it
   // in edit mode would leave formData empty for a profile field the read-only
@@ -955,14 +955,14 @@ export default function FormDetailSubmissionPage() {
     const allFields = (form?.fields as FormField[]) || [];
 
     // Once an error is already showing for this field, re-check on every
-    // keystroke so it can clear (or update) the moment the value is fixed —
+    // keystroke so it can clear (or update) the moment the value is fixed -
     // matches Formik's validateOnChange-after-error behavior.
     const selfFlagged = !!(errors[String(fieldId)] || errors[fieldId]);
 
     // Any OTHER field whose crossField/required_if rules or conditional_logic
     // reference this field may now be stale (e.g. a "required when X is
     // answered" error that should clear, or a comparison that now fails).
-    // Only re-check fields already touched or currently showing an error —
+    // Only re-check fields already touched or currently showing an error -
     // never flag a field the user hasn't reached yet.
     const dependents = allFields.filter((f) => {
       if (String(f.id) === String(fieldId)) return false;
@@ -990,7 +990,7 @@ export default function FormDetailSubmissionPage() {
     }
   };
 
-  // Runs once per blur, validating only the field that lost focus — cheap
+  // Runs once per blur, validating only the field that lost focus - cheap
   // enough to call on every field in a long form, unlike a full re-validation.
   const handleFieldBlur = (field: FormField, value: any) => {
     const fieldId = String(field.id);
@@ -1008,14 +1008,14 @@ export default function FormDetailSubmissionPage() {
     });
   };
 
-  // There is no binary-upload endpoint — files are captured inline as data URLs
+  // There is no binary-upload endpoint - files are captured inline as data URLs
   // (bounded by the field's max size, or 5 MB) so the answer stores something
   // that can actually be viewed / downloaded from the responses tab.
   const MAX_INLINE_FILE_MB = 5;
   const handleFileChange = async (field: FormField, fileList: FileList | null) => {
     const picked = Array.from(fileList || []);
     if (!picked.length) return;
-    // Picking a file is itself an interaction — mark touched now so a
+    // Picking a file is itself an interaction - mark touched now so a
     // too-large-file error (set directly below) isn't hidden pending a blur.
     setTouched((prev) => (prev[String(field.id)] ? prev : { ...prev, [String(field.id)]: true }));
     const capMb = Number(field.validation_rules?.maxFileSizeMB) || MAX_INLINE_FILE_MB;
@@ -1024,7 +1024,7 @@ export default function FormDetailSubmissionPage() {
       if (f.size > capMb * 1024 * 1024) {
         setErrors((prev) => ({
           ...prev,
-          [String(field.id)]: `"${f.name}" is ${(f.size / 1048576).toFixed(1)} MB — the limit is ${capMb} MB.`,
+          [String(field.id)]: `"${f.name}" is ${(f.size / 1048576).toFixed(1)} MB. The limit is ${capMb} MB.`,
         }));
         continue;
       }
@@ -1062,7 +1062,7 @@ export default function FormDetailSubmissionPage() {
     // From here on, every field's error (not just touched ones) is allowed to display.
     setHasAttemptedSubmit(true);
 
-    // Client-side pre-check — mirrors the backend engine (conditional visibility,
+    // Client-side pre-check - mirrors the backend engine (conditional visibility,
     // required, type + rule + cross-field). The backend re-validates everything.
     const { errors: clientErrors, layout, payload } = validateSubmission(form.fields, formData);
     if (clientErrors.length > 0) {
@@ -1088,7 +1088,7 @@ export default function FormDetailSubmissionPage() {
         value,
       }));
 
-      // Editing an existing response must PATCH that exact response in place —
+      // Editing an existing response must PATCH that exact response in place -
       // POSTing again would create a brand-new row (the backend's create()-side
       // auto-update-in-place path only fires when the form disallows multiple
       // responses; with multiple responses allowed there's no way for create()
@@ -1254,7 +1254,7 @@ export default function FormDetailSubmissionPage() {
         {/* Success Confirmation Card */}
         {isSubmitted ? (
           <div className="relative glass-panel rounded-xl p-8 sm:p-12 border border-emerald-200 dark:border-emerald-900/50 shadow-md text-center space-y-4">
-            {/* Glow behind the glass panel — without it, a translucent panel
+            {/* Glow behind the glass panel - without it, a translucent panel
                 over this page's plain background has nothing colorful behind
                 it to actually blur, so it reads as flat/opaque instead of
                 glassy (same fix applied to the admin create-event panels). */}
@@ -1274,7 +1274,7 @@ export default function FormDetailSubmissionPage() {
 
             {form.attendance_enabled && (
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Your attendance QR badge is now on your profile — go to Profile → Registered Events to view it.
+                Your attendance QR badge is now on your profile. Go to Profile → Registered Events to view it.
               </p>
             )}
 
@@ -1288,9 +1288,9 @@ export default function FormDetailSubmissionPage() {
             </div>
           </div>
         ) : (
-          /* Form Content Card — shadow-input styling to match Aceternity's signup-form card */
+          /* Form Content Card - shadow-input styling to match Aceternity's signup-form card */
           <div className="relative glass-panel rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] space-y-8">
-            {/* Glow behind the glass panel — see the matching comment on the
+            {/* Glow behind the glass panel - see the matching comment on the
                 success card above for why this is needed at all. */}
             <div
               className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-70 blur-2xl hidden md:block"
@@ -1327,7 +1327,7 @@ export default function FormDetailSubmissionPage() {
                     </div>
                   </div>
 
-                  {/* Previous submission & Edit Mode banner — single-response
+                  {/* Previous submission & Edit Mode banner - single-response
                       forms only. On a multi-response form this would show
                       "Edit Mode Active" or "Edits Locked" for what's actually
                       just a normal, independent new submission. */}
@@ -1361,7 +1361,7 @@ export default function FormDetailSubmissionPage() {
 
                   {hasSubmitted && form.attendance_enabled && (
                     <p className="text-xs text-slate-400 dark:text-slate-500">
-                      Your attendance QR badge is on your profile — go to Profile → Registered Events to view it.
+                      Your attendance QR badge is on your profile. Go to Profile → Registered Events to view it.
                     </p>
                   )}
                 </div>
@@ -1469,7 +1469,7 @@ export default function FormDetailSubmissionPage() {
               {form.fields?.map((field) => {
                 const hasFieldError = !!(errors[field.id] || errors[String(field.id)]);
                 // Only show an error once the user has left this field, or a
-                // submit attempt has already happened — never pre-emptively.
+                // submit attempt has already happened - never pre-emptively.
                 const isFieldTouched = !!touched[String(field.id)];
                 const isErr = hasFieldError && (isFieldTouched || hasAttemptedSubmit);
                 const hint = getConstraintHint(field);
@@ -1484,13 +1484,13 @@ export default function FormDetailSubmissionPage() {
                   );
                 }
 
-                // Conditional visibility — a hidden field is not rendered, not
+                // Conditional visibility - a hidden field is not rendered, not
                 // validated and not submitted (the backend enforces the same).
                 if (!layout.visible.has(String(field.id))) return null;
 
                 const conditionallyRequired = isFieldRequired(field as any, layout);
 
-                // Profile-bound field — never an input. The server resolves
+                // Profile-bound field - never an input. The server resolves
                 // and writes this value from the submitter's own profile at
                 // submission time no matter what (if anything) is sent for
                 // it, so it's shown read-only here rather than editable.
@@ -2190,9 +2190,9 @@ export default function FormDetailSubmissionPage() {
                 }
 
                 // A required profile-bound field with nothing to show for it
-                // (e.g. phone number never set) can never pass validation —
+                // (e.g. phone number never set) can never pass validation -
                 // the server would reject it the same way. Send them to fix
-                // their profile instead of letting them hit that on submit —
+                // their profile instead of letting them hit that on submit -
                 // but only when the form would otherwise actually accept a
                 // submission; a closed/not-yet-open form should still show
                 // that, not a profile-completion prompt implying they could
@@ -2205,7 +2205,7 @@ export default function FormDetailSubmissionPage() {
                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <p className="text-xs text-rose-500 font-semibold flex items-center gap-1.5">
                         <AlertCircle className="w-4 h-4" />
-                        <span>Complete your profile to register — missing: {missingRequiredProfileFields.map((f) => f.label).join(', ')}</span>
+                        <span>Complete your profile to register. Missing: {missingRequiredProfileFields.map((f) => f.label).join(', ')}</span>
                       </p>
                       <Link
                         href="/profile"

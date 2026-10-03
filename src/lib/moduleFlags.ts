@@ -2,7 +2,7 @@ import { fetchApi } from './api-client';
 import { FeatureFlag } from './types';
 
 /**
- * Single source of truth for "is this module enabled" — used by the Navbar,
+ * Single source of truth for "is this module enabled" - used by the Navbar,
  * the homepage module rail, and the gated route pages (hackathons/iconcoders/
  * codequest). Fails open: a missing key or an offline backend defaults to
  * enabled, matching this app's existing offline-tolerance convention rather

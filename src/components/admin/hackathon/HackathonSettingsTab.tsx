@@ -106,7 +106,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
 
         <div>
           <label className={LABEL}>Required profile details</label>
-          <p className="mb-2 text-[11px] text-slate-400">Every member must have these on their SRKRCC profile to create or join a team — no re-typing during registration.</p>
+          <p className="mb-2 text-[11px] text-slate-400">Every member must have these on their SRKRCC profile to create or join a team. No re-typing during registration.</p>
           <div className="flex flex-wrap gap-2">
             {PROFILE_FIELDS.map((f) => {
               const on = required.includes(f.key);
@@ -152,7 +152,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Hackathon status</h3>
         <p className="text-xs text-slate-500">
           {closed
-            ? 'Closed — registration is shut regardless of the window above.'
+            ? 'Closed: registration is shut regardless of the window above.'
             : hackathon.is_registration_open
               ? 'Live and accepting team registrations.'
               : 'Live, but outside the registration window.'}

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 async function getPublishedForms(): Promise<Form[]> {
   try {
-    // REAL BACKEND CALL — KEEP THIS
+    // REAL BACKEND CALL - KEEP THIS
     const forms = await fetchApi<Form[]>('/forms/');
 
     const now = Date.now();

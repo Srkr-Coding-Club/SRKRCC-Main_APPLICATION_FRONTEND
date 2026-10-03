@@ -5,7 +5,7 @@ import { Check, ChevronDown } from 'lucide-react';
 
 /**
  * Custom-styled replacement for a native <select> of forms. A native select's
- * dropdown popup is rendered by the OS/browser chrome, not by our CSS — on
+ * dropdown popup is rendered by the OS/browser chrome, not by our CSS - on
  * some browsers that popup came through as large blank rows instead of dark
  * theme, showing a mostly-empty white box with only the hovered row legible.
  * This renders the whole list ourselves (mirrors the ModernSelect pattern

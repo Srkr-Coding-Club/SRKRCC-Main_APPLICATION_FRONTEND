@@ -221,7 +221,7 @@ export default function EventCard({
             )}
           </div>
 
-          {/* Registration window — distinct from the event's own date above:
+          {/* Registration window - distinct from the event's own date above:
               when the linked form is actually open for submissions. */}
           {(registrationOpensLabel || registrationClosesLabel) && (
             <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">

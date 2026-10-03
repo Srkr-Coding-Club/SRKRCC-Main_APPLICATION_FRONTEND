@@ -7,7 +7,7 @@ import { ArrowRight } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 /* ------------------------------------------------------------------ */
-/* Word-by-word masked reveal for display headings — a single viewport  */
+/* Word-by-word masked reveal for display headings - a single viewport  */
 /* observer on the parent drives all children via variant propagation.  */
 /* ------------------------------------------------------------------ */
 const revealContainer = {
@@ -57,7 +57,7 @@ function RevealLine({
 }
 
 /* ------------------------------------------------------------------ */
-/* Premium interactive CTA — morphing label, self-drawing underline     */
+/* Premium interactive CTA - morphing label, self-drawing underline     */
 /* ------------------------------------------------------------------ */
 function KnowMoreCTA() {
   return (
@@ -110,7 +110,7 @@ export default function AboutSection() {
   const reduce = useReducedMotion();
   return (
     <section className="relative py-24 sm:py-32 overflow-hidden bg-[var(--background)] transition-colors duration-300">
-      {/* Backdrop — dot-grid, distinct from the hero's line grid */}
+      {/* Backdrop - dot-grid, distinct from the hero's line grid */}
       <div className="absolute inset-0 bg-dot-grid opacity-40 [mask-image:radial-gradient(ellipse_75%_70%_at_50%_35%,#000_15%,transparent_100%)] pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -127,7 +127,7 @@ export default function AboutSection() {
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left — heading + copy + CTA */}
+          {/* Left - heading + copy + CTA */}
           <div className="relative z-10 space-y-7">
             <span className="block text-xs font-bold tracking-[0.3em] text-[#FF7A00] uppercase">
               Who We Are
@@ -165,7 +165,7 @@ export default function AboutSection() {
             <MicroSteps />
           </div>
 
-          {/* Right — image in a gradient-bordered frame */}
+          {/* Right - image in a gradient-bordered frame */}
           <motion.div
             initial={{ opacity: 0, scale: reduce ? 1 : 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}

@@ -18,13 +18,13 @@ function sessionColumnLabel(day_index: number, session_label: string): string {
 
 /**
  * Per-session summary cards + a per-registrant present/absent grid, both
- * rendered from the single GET /api/forms/<id>/attendance/report/ payload —
+ * rendered from the single GET /api/forms/<id>/attendance/report/ payload -
  * see apps/attendance/views.py's AttendanceReportView for the exact shape.
  */
 export function AttendanceReportTab({ report, loading, formTitle }: AttendanceReportTabProps) {
   // The report endpoint returns only a present/absent boolean per session per
-  // registrant (no per-cell scan timestamp) — see AttendanceReportView in
-  // apps/attendance/views.py — so the CSV records "Present"/"Absent" only.
+  // registrant (no per-cell scan timestamp) - see AttendanceReportView in
+  // apps/attendance/views.py - so the CSV records "Present"/"Absent" only.
   const handleExportCSV = () => {
     if (!report) return;
     const rows = report.registrants.map((r) => {

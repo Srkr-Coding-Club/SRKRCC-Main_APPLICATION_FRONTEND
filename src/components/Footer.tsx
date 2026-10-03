@@ -33,7 +33,7 @@ export default function Footer() {
   const pathname = usePathname();
   const currentYear = new Date().getFullYear();
 
-  // The login screen is a full-bleed auth layout with its own branding —
+  // The login screen is a full-bleed auth layout with its own branding -
   // no footer belongs below it.
   if (pathname === '/login') return null;
 

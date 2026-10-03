@@ -8,7 +8,7 @@ import { getStoredUser, fetchAndSyncCurrentUser, subscribeToAuthResync, clearAut
 import BrainLogo from '@/components/BrainLogo';
 
 // Mirrors the backend's apps.attendance.permissions.IsVolunteerOrAbove exactly
-// — VOLUNTEER included, unlike AdminGuard's ADMIN/CLUB_LEAD-only check. That
+// - VOLUNTEER included, unlike AdminGuard's ADMIN/CLUB_LEAD-only check. That
 // gate sits in front of every /admin/* route, so a volunteer (a role that
 // exists specifically to scan attendance without any other admin capability)
 // could never reach the scanner: they'd hit "Admin Access Required" before
@@ -159,7 +159,7 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
 
   return (
     <>
-      {/* Minimal header — deliberately not AdminNavbar. A volunteer gets scanner
+      {/* Minimal header - deliberately not AdminNavbar. A volunteer gets scanner
           access only, not links into Users/Data Center/Forms/etc. */}
       <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#0D0E15]/80 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">

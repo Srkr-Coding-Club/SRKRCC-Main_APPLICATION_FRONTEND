@@ -78,7 +78,7 @@ export default async function IconCodersPage() {
           icon={<Sparkles className="h-4 w-4 text-[#FF7A00]" />}
           eyebrow="SRKR CODING CLUB ICONCODERS FLAGSHIP"
           title="IconCoders Flagship"
-          description="SRKR Coding Club's annual flagship hackathon — where top individual problem-solvers compete for glory and recognition."
+          description="SRKR Coding Club's annual flagship hackathon, where top individual problem-solvers compete for glory and recognition."
         />
 
         <div className="space-y-6">

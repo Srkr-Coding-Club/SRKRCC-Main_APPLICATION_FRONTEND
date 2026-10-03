@@ -25,7 +25,7 @@ export function HackathonCTA({ hackathon }: { hackathon: Hackathon }) {
     }
     // Confirm the session is actually live first: a stale stored user would
     // otherwise make my-team 401, and fetchApi's 401 handling redirects to
-    // /login — not acceptable on a public page.
+    // /login - not acceptable on a public page.
     let cancelled = false;
     fetchAndSyncCurrentUser().then((user) => {
       if (cancelled) return;
@@ -45,7 +45,7 @@ export function HackathonCTA({ hackathon }: { hackathon: Hackathon }) {
     return (
       <Link href={dashboard} className={PRIMARY}>
         <Users className="h-4 w-4" />
-        Go to my team — {mine.team.name}
+        Go to my team: {mine.team.name}
       </Link>
     );
   }

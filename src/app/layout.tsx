@@ -10,7 +10,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://srkrcc.com'),
   title: {
-    default: 'SRKR Coding Club — Innovate, Code, Excel',
+    default: 'SRKR Coding Club | Innovate, Code, Excel',
     template: '%s | SRKR Coding Club',
   },
   description:
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     locale: 'en_IN',
     url: 'https://srkrcc.com',
     siteName: 'SRKR Coding Club',
-    title: 'SRKR Coding Club — Official Platform',
+    title: 'SRKR Coding Club | Official Platform',
     description:
       'Participate in annual hackathons, solve daily CodeQuest challenges, attend tech workshops, and join the developer community.',
     images: [
@@ -88,7 +88,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col antialiased">
-        {/* Blocking, runs before first paint — sets the `dark` class synchronously
+        {/* Blocking, runs before first paint - sets the `dark` class synchronously
             so there's no flash of the light theme while React hydrates. Dark is
             the default; a stored 'light' choice from a previous visit wins. */}
         <script

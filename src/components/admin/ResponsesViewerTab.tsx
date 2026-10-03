@@ -44,7 +44,7 @@ interface ResponsesViewerTabProps {
 
 function renderCellValue(type: string, value: unknown): React.ReactNode {
   if (value === null || value === undefined || value === '') {
-    return <span className="text-slate-600 italic text-[11px]">—</span>;
+    return <span className="text-slate-600 italic text-[11px]">-</span>;
   }
   if (type === 'RATING') {
     return (
@@ -87,7 +87,7 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
             );
           }
           if (!isSafeFileUrl(url)) {
-            // A respondent-controlled `javascript:`/`vbscript:` URL — form file
+            // A respondent-controlled `javascript:`/`vbscript:` URL - form file
             // answers are metadata-only on the backend (name/size/extension are
             // validated, the url itself is not), so this is the last line of
             // defense before it would otherwise run in an admin's session on click.
@@ -171,7 +171,7 @@ function ConfirmationEmailCell({
   resending: boolean;
 }) {
   if (!formConfirmationEnabled && !response.confirmation_email) {
-    return <span className="text-slate-400 text-[11px]">—</span>;
+    return <span className="text-slate-400 text-[11px]">-</span>;
   }
   return (
     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -371,7 +371,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       };
       r.answers.forEach((a) => {
         // FILE answers hold {name,size,url} objects (url can be a huge data: URI)
-        // — export just the file name(s), never the blob.
+        // - export just the file name(s), never the blob.
         if ((a.field_type === 'FILE' || a.field_type === 'MULTI_FILE') && a.value) {
           const items = Array.isArray(a.value) ? a.value : [a.value];
           base[a.field_label] = items
@@ -549,7 +549,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         {/* Timeline chart */}
         {showChart && (
           <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-4">Submissions Per Day — Last 30 Days</p>
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-4">Submissions Per Day (Last 30 Days)</p>
             <ResponseTimelineChart data={timelineData} />
           </div>
         )}

@@ -67,7 +67,7 @@ export default async function HackathonsPage() {
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
               <Trophy className="h-8 w-8 text-slate-300 dark:text-slate-700" />
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No hackathons scheduled right now.</p>
-              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon — the next season will be announced here.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon. The next season will be announced here.</p>
             </div>
           )}
         </div>

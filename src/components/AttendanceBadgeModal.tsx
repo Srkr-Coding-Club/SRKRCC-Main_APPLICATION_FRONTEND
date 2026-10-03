@@ -14,7 +14,7 @@ interface AttendanceBadgeModalProps {
 }
 
 /**
- * Modal shell around AttendanceBadgeCard — opened from the profile page's
+ * Modal shell around AttendanceBadgeCard - opened from the profile page's
  * "View QR Badge" action on a registered event that has attendance enabled.
  */
 export function AttendanceBadgeModal({ isOpen, onClose, formId, eventTitle, registrantName }: AttendanceBadgeModalProps) {

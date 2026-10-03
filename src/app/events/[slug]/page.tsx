@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!event) notFound();
   return {
     title: event.title,
-    description: `${event.category} at ${event.venue} — SRKR Coding Club`,
+    description: `${event.category} at ${event.venue} | SRKR Coding Club`,
   };
 }
 

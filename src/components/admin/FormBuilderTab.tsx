@@ -54,9 +54,9 @@ interface TypeMeta {
   label: string;
   icon: React.ElementType;
   hasOptions?: boolean;
-  /** MATRIX_RADIO / MATRIX_CHECKBOX — has a `rows` list in addition to `options` (columns). */
+  /** MATRIX_RADIO / MATRIX_CHECKBOX - has a `rows` list in addition to `options` (columns). */
   hasRows?: boolean;
-  /** RATING / LINEAR_SCALE — has a min_value/max_value range instead of options. */
+  /** RATING / LINEAR_SCALE - has a min_value/max_value range instead of options. */
   hasScale?: boolean;
 }
 
@@ -88,7 +88,7 @@ const TYPE_META: Partial<Record<FormField['type'], TypeMeta>> = {
 const DEFAULT_TYPE_META: TypeMeta = TYPE_META.TEXT!;
 
 // Every call site only ever passes a type this builder actually offers (SELECTABLE_TYPES /
-// FIELD_GROUPS), so the lookup is always defined — this just gives that a safe, typed home.
+// FIELD_GROUPS), so the lookup is always defined - this just gives that a safe, typed home.
 function getTypeMeta(type: FormField['type']): TypeMeta {
   return TYPE_META[type] ?? DEFAULT_TYPE_META;
 }
@@ -105,7 +105,7 @@ const FIELD_GROUPS: { label: string; icon: React.ElementType; types: FormField['
   { label: 'Advanced', icon: Layers, types: ['DATE', 'TIME', 'FILE', 'MULTI_FILE', 'SECTION'] },
 ];
 
-// Drop-in questions that never ask the user anything — the server fills them
+// Drop-in questions that never ask the user anything - the server fills them
 // in from the submitter's own profile at submission time (see
 // FormField.profile_field / ResponseSerializer._resolve_profile_autofill on
 // the backend). Lets an admin build a "just confirm your details" event
@@ -199,7 +199,7 @@ export function FormBuilderTab({
   // Hydrate the friendly template name for a form loaded with confirmation
   // email already configured (opening an existing form in the builder, or
   // right after this same form is saved and formMeta is replaced by the
-  // server response) — confirmationTemplateLabel otherwise only gets set via
+  // server response) - confirmationTemplateLabel otherwise only gets set via
   // the "just picked/created a template" callback below, so every other case
   // fell back to the opaque "Template #9" placeholder.
   useEffect(() => {
@@ -234,7 +234,7 @@ export function FormBuilderTab({
       const newField = builderFields.find((f) => !prevIdsRef.current.has(f.id));
       if (newField) {
         setActiveFieldId(newField.id);
-        // Matrix fields are useless with no rows/columns — seed a sensible
+        // Matrix fields are useless with no rows/columns - seed a sensible
         // 2x2 default so they render something the admin can immediately edit.
         if (newField.type === 'MATRIX_RADIO' || newField.type === 'MATRIX_CHECKBOX') {
           if (!newField.rows || newField.rows.length === 0) {
@@ -340,7 +340,7 @@ export function FormBuilderTab({
     onFieldChange(field.id, 'options', opts);
   };
 
-  // Rows editor for MATRIX_RADIO / MATRIX_CHECKBOX — mirrors the options editor above.
+  // Rows editor for MATRIX_RADIO / MATRIX_CHECKBOX - mirrors the options editor above.
   const updateRow = (field: FormField, idx: number, value: string) => {
     const rows = [...(field.rows || [])];
     rows[idx] = value;
@@ -358,7 +358,7 @@ export function FormBuilderTab({
     onFieldChange(field.id, 'rows', rows);
   };
 
-  // Scale range for RATING / LINEAR_SCALE — field-level min_value/max_value
+  // Scale range for RATING / LINEAR_SCALE - field-level min_value/max_value
   // (distinct from validation_rules; this is what the public form renders).
   const updateScaleRange = (field: FormField, key: 'min_value' | 'max_value', value: number | undefined) => {
     onFieldChange(field.id, key, value);
@@ -369,8 +369,8 @@ export function FormBuilderTab({
   };
 
   // SECTION headers are never answerable (validation always skips them) so a
-  // stray is_required=true on one — from data saved before this default was
-  // fixed, or a duplicated field — must not count toward this summary either.
+  // stray is_required=true on one - from data saved before this default was
+  // fixed, or a duplicated field - must not count toward this summary either.
   const totalRequired = builderFields.filter((f) => f.is_required && f.type !== 'SECTION').length;
   const totalConditional = builderFields.filter((f) => !!normalizeConditional(f.conditional_logic)).length;
   const isCurrentlyPublished = formMeta.status === 'PUBLISHED';
@@ -454,7 +454,7 @@ export function FormBuilderTab({
             <span>Reset</span>
           </button>
 
-          {/* Save — keeps the form's current status */}
+          {/* Save - keeps the form's current status */}
           <button
             onClick={() => onSaveForm(formMeta.status || 'DRAFT')}
             className="px-4 py-2 rounded-md border border-[#FF7A00] text-[#FF7A00] hover:bg-orange-50 dark:hover:bg-orange-950/30 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
@@ -468,7 +468,7 @@ export function FormBuilderTab({
             <button
               onClick={() => onSaveForm('DRAFT')}
               className="px-4 py-2 rounded-md glass-panel border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
-              title="Revert to draft — students can no longer see or submit this form"
+              title="Revert to draft: students can no longer see or submit this form"
             >
               <span>Unpublish</span>
             </button>
@@ -497,7 +497,7 @@ export function FormBuilderTab({
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Field Palette — left side, click + to add a field to the form */}
+          {/* Field Palette - left side, click + to add a field to the form */}
           <div className="lg:col-span-4 lg:sticky lg:top-24 self-start">
             <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="p-4 border-b border-slate-200 dark:border-slate-800">
@@ -512,7 +512,7 @@ export function FormBuilderTab({
                     <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#FF7A00]">Profile Auto-fill</p>
                   </div>
                   <p className="px-2 pb-1 text-[10px] text-slate-400">
-                    Never shown as a question — filled in from the submitter's own profile at submission time.
+                    Never shown as a question, filled in from the submitter's own profile at submission time.
                   </p>
                   {PROFILE_FIELD_PALETTE.map((p) => (
                     <PaletteItem
@@ -546,7 +546,7 @@ export function FormBuilderTab({
             </div>
           </div>
 
-          {/* Canvas — right side */}
+          {/* Canvas - right side */}
           <div className="lg:col-span-8 space-y-3">
             {/* Title & Description Card */}
             <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-4">
@@ -592,7 +592,7 @@ export function FormBuilderTab({
               </div>
             </div>
 
-            {/* Automation Card — Club Member ID + confirmation email, wired into
+            {/* Automation Card - Club Member ID + confirmation email, wired into
                 Response submission on the backend (apps/forms/services.py). */}
             <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-5">
               <div className="flex items-center gap-2">
@@ -618,7 +618,7 @@ export function FormBuilderTab({
                     {!formIsSaved ? (
                       <p className="text-xs text-amber-600 dark:text-amber-400">
                         Save this form once first, then come back here to pick which field supplies the member&apos;s
-                        email — field mapping needs each field&apos;s permanent saved ID.
+                        email. Field mapping needs each field&apos;s permanent saved ID.
                       </p>
                     ) : emailFields.length === 0 ? (
                       <p className="text-xs text-amber-600 dark:text-amber-400">
@@ -683,8 +683,8 @@ export function FormBuilderTab({
                         </div>
                         <p className="text-[10px] text-slate-400">
                           Each completed submission is matched by email to the club member directory. New members get a
-                          permanent ID like &quot;{new Date().getFullYear().toString().slice(-2)}{formMeta.club_id_prefix || 'SCC'}001&quot; —
-                          returning members (same email) always keep their existing one.
+                          permanent ID like &quot;{new Date().getFullYear().toString().slice(-2)}{formMeta.club_id_prefix || 'SCC'}001&quot;.
+                          Returning members (same email) always keep their existing one.
                         </p>
                       </>
                     )}
@@ -977,7 +977,7 @@ export function FormBuilderTab({
 
             {builderFields.length === 0 && (
               <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 py-12 text-center text-xs font-semibold text-slate-400">
-                No questions yet — click a field in the palette to add one.
+                No questions yet. Click a field in the palette to add one.
               </div>
             )}
           </div>
@@ -1017,7 +1017,7 @@ function PaletteItem({
 }: {
   type: FormField['type'];
   onAdd: () => void;
-  /** Overrides the type's default label/icon — used by the Profile Auto-fill palette, whose entries share a type (e.g. TEXT) but mean different things. */
+  /** Overrides the type's default label/icon - used by the Profile Auto-fill palette, whose entries share a type (e.g. TEXT) but mean different things. */
   label?: string;
   icon?: React.ElementType;
 }) {
@@ -1204,7 +1204,7 @@ function QuestionCard({
         <div className="flex items-center gap-1.5 -mt-1">
           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#FF7A00] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full">
             <Sparkles className="w-2.5 h-2.5" />
-            <span>Profile Auto-fill — never shown as a question, filled from the submitter's profile</span>
+            <span>Profile Auto-fill: never shown as a question, filled from the submitter's profile</span>
           </span>
         </div>
       )}
@@ -1328,7 +1328,7 @@ function QuestionCard({
         </div>
       )}
 
-      {/* Scale range editor (RATING / LINEAR_SCALE only) — this is the actual
+      {/* Scale range editor (RATING / LINEAR_SCALE only) - this is the actual
           field.min_value/max_value range rendered on the public form; distinct
           from the validation_rules.minValue/maxValue rule below. */}
       {meta.hasScale && (
@@ -1409,7 +1409,7 @@ function QuestionCard({
 }
 
 /* ------------------------------------------------------------------ */
-/* Conditional rule editor — emits the canonical backend shape:        */
+/* Conditional rule editor - emits the canonical backend shape:        */
 /*   { logic:'AND', rules:[{ field, operator, value }], action }       */
 /* ------------------------------------------------------------------ */
 
@@ -1494,7 +1494,7 @@ function ConditionalEditor({
       <p className="font-bold text-[#FF7A00]">Conditional Rule</p>
 
       {siblingFields.length === 0 ? (
-        <p className="text-slate-500">Add another question first — a rule needs a field to depend on.</p>
+        <p className="text-slate-500">Add another question first. A rule needs a field to depend on.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1502,7 +1502,7 @@ function ConditionalEditor({
               {CONDITION_ACTIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
             <select className={sel} value={String(rule?.field ?? siblingFields[0]?.id ?? '')} onChange={(e) => emit({ field: e.target.value })}>
-              <option value="">— when field —</option>
+              <option value="">Select field</option>
               {siblingFields.map((f) => <option key={f.id} value={String(f.id)}>{f.label || `Question ${f.order}`}</option>)}
             </select>
             <select className={sel} value={rule?.operator || 'equals'} onChange={(e) => emit({ operator: e.target.value })}>
@@ -1513,7 +1513,7 @@ function ConditionalEditor({
           {needsValue && (
             targetField && (targetField.options?.length ?? 0) > 0 ? (
               <select className={sel} value={rule?.value ?? ''} onChange={(e) => emit({ value: e.target.value })}>
-                <option value="">— value —</option>
+                <option value="">Select value</option>
                 {targetField.options!.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
               </select>
             ) : (
@@ -1542,7 +1542,7 @@ function ConditionalEditor({
 }
 
 /* ------------------------------------------------------------------ */
-/* Per-type validation panel — the full backend rule set              */
+/* Per-type validation panel - the full backend rule set              */
 /* ------------------------------------------------------------------ */
 
 const TEXT_FORMAT_OPTIONS = [
@@ -1595,7 +1595,7 @@ function CrossFieldEditor({ field, siblingFields, onChange }: {
           <option value="required_if">required if</option>
         </select>
         <select className={sel} value={String(rule?.field ?? '')} onChange={(e) => emit({ field: e.target.value })} disabled={!rule?.op}>
-          <option value="">— field —</option>
+          <option value="">Select field</option>
           {siblingFields.map((f) => <option key={f.id} value={String(f.id)}>{f.label}</option>)}
         </select>
         {rule?.op === 'required_if' && (
@@ -1756,7 +1756,7 @@ function ValidationPanel({ field, siblingFields, onChange }: {
           </div>
           <CheckboxRow label="Whole numbers only" checked={r.integerOnly ?? true} onChange={(v) => onChange({ integerOnly: v ? undefined : false })} />
           <p className="text-[10px] text-slate-400">
-            The star/scale range itself is set above (Min/Max stars or values) — these extra rules layer a
+            The star/scale range itself is set above (Min/Max stars or values); these extra rules layer a
             stricter check on top, if needed.
           </p>
         </>
@@ -1798,7 +1798,7 @@ function ValidationPanel({ field, siblingFields, onChange }: {
 
       {t === 'SIGNATURE' && (
         <p className="text-[11px] text-slate-400">
-          Signatures only support "Required" and the comparison rule below — there are no extra format rules.
+          Signatures only support "Required" and the comparison rule below. There are no extra format rules.
         </p>
       )}
 
@@ -1968,7 +1968,7 @@ function LivePreview({
                     <span>From your profile</span>
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 italic">Preview only — filled from the real submitter's profile at submission time.</p>
+                <p className="text-xs text-slate-400 italic">Preview only: filled from the real submitter's profile at submission time.</p>
               </div>
             );
           }

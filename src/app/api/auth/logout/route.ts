@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({ refresh: refreshToken }),
       });
     } catch {
-      // Ignore — cookies are cleared unconditionally so the client session ends either way.
+      // Ignore - cookies are cleared unconditionally so the client session ends either way.
     }
   }
 

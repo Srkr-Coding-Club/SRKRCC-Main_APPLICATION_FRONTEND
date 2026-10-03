@@ -6,7 +6,7 @@ import gsap from 'gsap';
 interface SpotlightCardProps {
   children: ReactNode;
   className?: string;
-  spotlightColor?: string; // base hue, e.g. '#FF7A00' — SpotlightCard builds the alpha stops itself
+  spotlightColor?: string; // base hue, e.g. '#FF7A00' - SpotlightCard builds the alpha stops itself
   onEnter?: () => void;
   onLeave?: () => void;
 }
@@ -95,7 +95,7 @@ export default function SpotlightCard({
       className={`group relative overflow-hidden rounded-2xl border will-change-transform [backface-visibility:hidden] ${className}`}
       style={{ transformStyle: 'preserve-3d' }}
     >
-      {/* Small, bright, genuinely round spotlight — tight core + soft falloff */}
+      {/* Small, bright, genuinely round spotlight - tight core + soft falloff */}
       <div
         ref={glowRef}
         aria-hidden="true"

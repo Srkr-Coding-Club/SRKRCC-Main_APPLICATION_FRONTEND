@@ -235,7 +235,7 @@ export function EventsHackathonsTab() {
                     {h.team_count ?? 0} teams · size {h.min_team_size ?? 1}–{h.max_team_size ?? 4}
                   </span>
                   {h.form_title && (
-                    <span className="flex items-center gap-1" title="Legacy registration form — teams now register from the participant dashboard">
+                    <span className="flex items-center gap-1" title="Legacy registration form: teams now register from the participant dashboard">
                       <Link2 className="w-3.5 h-3.5 text-[#FF7A00]" />
                       Legacy form: {h.form_title}
                     </span>

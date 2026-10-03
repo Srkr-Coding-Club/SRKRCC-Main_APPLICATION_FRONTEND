@@ -10,12 +10,12 @@ interface NavbarSwitcherProps {
 export default function NavbarSwitcher({ moduleFlags }: NavbarSwitcherProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith('/admin');
-  // The login screen is a full-bleed auth layout with its own branding —
+  // The login screen is a full-bleed auth layout with its own branding -
   // no nav bar belongs on top of it.
   const isAuthRoute = pathname === '/login';
 
   if (isAuthRoute) return null;
-  // Admin routes get no navbar here. This component only knows the URL —
+  // Admin routes get no navbar here. This component only knows the URL -
   // it has no idea whether the viewer is actually authorized, and rendering
   // AdminNavbar (its nav links, module names, and the viewer's own role
   // badge) purely from the path leaked the admin panel's shell to anyone who
