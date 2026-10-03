@@ -63,7 +63,7 @@ function StageCard({ stage, index }: { stage: Stage; index: number }) {
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.05 * (index % 2) }}
       className="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 glass-panel p-7 sm:p-9 shadow-sm hover:shadow-md transition-shadow"
     >
-      {/* Ghost numeral — background texture */}
+      {/* Ghost numeral - background texture */}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute -top-3 right-3 font-poppins font-thin leading-none select-none text-[5.5rem] sm:text-[6.5rem]"
@@ -115,11 +115,11 @@ export default function WhatWeDoSection() {
 
   return (
     <section className="relative py-20 sm:py-28 overflow-hidden bg-[var(--background)] transition-colors duration-300">
-      {/* Backdrop — dot-grid, matches the About / Events sections */}
+      {/* Backdrop - dot-grid, matches the About / Events sections */}
       <div className="absolute inset-0 bg-dot-grid opacity-30 [mask-image:radial-gradient(ellipse_75%_70%_at_50%_35%,#000_15%,transparent_100%)] pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header — same container + type scale as the About section */}
+        {/* Header - same container + type scale as the About section */}
         <motion.div
           initial={prefersReducedMotion ? undefined : { opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -134,7 +134,7 @@ export default function WhatWeDoSection() {
             What We <span className="ember-text">Build</span>
           </h2>
           <p className="mt-4 text-slate-600 dark:text-slate-300 text-base leading-relaxed">
-            Four stages every member moves through — from first steps to shipping ideas that matter.
+            Four stages every member moves through, from first steps to shipping ideas that matter.
           </p>
         </motion.div>
 

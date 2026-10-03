@@ -4,14 +4,14 @@
  *
  * Used by the public form renderer to decide which fields are visible/required
  * and by the builder's live preview. The backend re-computes all of this on
- * submit — this is purely for UX (don't show, don't validate, don't submit a
+ * submit - this is purely for UX (don't show, don't validate, don't submit a
  * field the condition hides).
  */
 
 import { FormField } from './types';
 
 // ---------------------------------------------------------------------------
-// Normalizer — accepts every shape the backend accepts
+// Normalizer - accepts every shape the backend accepts
 // ---------------------------------------------------------------------------
 
 const OPERATOR_ALIASES: Record<string, string> = {
@@ -181,7 +181,7 @@ export function isEmpty(value: any): boolean {
 
 // Operators that are meaningful (and may be true) even when the trigger field
 // is still blank. Every other operator can only fire once the field is answered
-// — so a `show`/`require` rule stays dormant until the user actually picks a
+// - so a `show`/`require` rule stays dormant until the user actually picks a
 // value, instead of appearing on first render.
 const EMPTY_OK_OPERATORS = new Set(['is_empty', 'is_not_empty']);
 
@@ -191,7 +191,7 @@ function evalNode(node: NLeaf | NGroup, values: Map<number | string, any>): bool
     if (!results.length) return null;
     return node.logic === 'OR' ? results.some(Boolean) : results.every(Boolean);
   }
-  if (node.field === null) return null; // broken {if:"parent"} placeholder — ignore
+  if (node.field === null) return null; // broken {if:"parent"} placeholder - ignore
   const left = values.get(node.field);
   if (isEmpty(left) && !EMPTY_OK_OPERATORS.has(node.operator)) return false;
   return evaluateOperator(node.operator, left, node.value);
@@ -203,7 +203,7 @@ export interface Layout {
 }
 
 /**
- * `valuesByStrId` — the form's current answers keyed by String(field.id).
+ * `valuesByStrId` - the form's current answers keyed by String(field.id).
  * Returns which fields are visible and any require/optional overrides.
  */
 export function computeLayout(fields: FormField[], valuesByStrId: Record<string, any>): Layout {

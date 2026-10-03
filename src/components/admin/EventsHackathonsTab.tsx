@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api-client';
 import { Event, Hackathon } from '@/lib/types';
-import { Trophy, Calendar, MapPin, Users, Flame, Plus, Link2, Pencil, Lock, Unlock, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Trophy, Calendar, MapPin, Users, Flame, Plus, Link2, Pencil, Lock, Unlock, Trash2, Eye, EyeOff, Settings2 } from 'lucide-react';
+import Link from 'next/link';
 import { useToast } from '@/context/ToastContext';
 import { EventFormPanel } from './EventFormPanel';
 import { HackathonFormPanel } from './HackathonFormPanel';
@@ -231,15 +232,24 @@ export function EventsHackathonsTab() {
                 <div className="flex items-center flex-wrap gap-x-4 gap-y-1 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500">
                   <span className="flex items-center gap-1">
                     <Users className="w-3.5 h-3.5 text-[#FF7A00]" />
-                    {h.registration_count ?? 0} registrations · {h.team_count ?? 0} teams
+                    {h.team_count ?? 0} teams · size {h.min_team_size ?? 1}–{h.max_team_size ?? 4}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Link2 className="w-3.5 h-3.5 text-[#FF7A00]" />
-                    {h.form_title || 'No form linked'}
-                  </span>
+                  {h.form_title && (
+                    <span className="flex items-center gap-1" title="Legacy registration form: teams now register from the participant dashboard">
+                      <Link2 className="w-3.5 h-3.5 text-[#FF7A00]" />
+                      Legacy form: {h.form_title}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">
+                  <Link
+                    href={`/admin/hackathons/${h.slug}`}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-white bg-[#FF7A00] hover:bg-[#E06B00] transition"
+                  >
+                    <Settings2 className="w-3 h-3" />
+                    Manage
+                  </Link>
                   <button
                     onClick={() => setHackathonPanel({ open: true, editing: h })}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition"

@@ -24,6 +24,7 @@ import {
   QrCode,
   Code,
   Megaphone,
+  Flag,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
@@ -45,6 +46,12 @@ interface NavItem {
   icon: React.ElementType;
   hasDropdown?: boolean;
   children?: NavChild[];
+}
+
+// Child pages can have nested routes (e.g. /admin/hackathons/[slug]) that
+// should still highlight their parent entry.
+function matchesChild(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 const navItems: NavItem[] = [
@@ -85,6 +92,7 @@ const navItems: NavItem[] = [
     children: [
       { label: 'Members', shortLabel: 'Members', href: '/admin/members', desc: 'Club member directory', icon: UserCheck },
       { label: 'Events & Hackathons', shortLabel: 'Events', href: '/admin/events', desc: 'Workshops & hackathon engine', icon: Trophy },
+      { label: 'Hackathon Management', shortLabel: 'Hackathons', href: '/admin/hackathons', desc: 'Teams, rounds, shortlisting & notices', icon: Flag },
       { label: 'Content Hub', shortLabel: 'Content', href: '/admin/content', desc: 'Blogs & career postings', icon: BookOpen },
       { label: 'Announcements', shortLabel: 'Announce', href: '/admin/announcements', desc: 'Landing page banner messages', icon: Megaphone },
       { label: 'Module Flags', shortLabel: 'Flags', href: '/admin/flags', desc: 'Feature toggles & windows', icon: Sliders },
@@ -100,7 +108,7 @@ export default function AdminNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  // Click/keyboard-driven dropdown, independent of the hover-only state above —
+  // Click/keyboard-driven dropdown, independent of the hover-only state above -
   // lets touch and keyboard users open a dropdown without a mouseenter event.
   const [clickedDropdown, setClickedDropdown] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
@@ -139,16 +147,16 @@ export default function AdminNavbar() {
   }, [clickedDropdown]);
 
   const activeNavItem = navItems.find(
-    (item) => pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false),
+    (item) => pathname === item.href || (item.children?.some((c) => matchesChild(pathname, c.href)) ?? false),
   );
   // The sliding pill sits under the hovered tab, or the active tab when nothing
-  // is hovered — so ONLY that tab gets white text. Previously the active tab
+  // is hovered - so ONLY that tab gets white text. Previously the active tab
   // stayed white after the pill slid away to a hovered sibling.
   const pillLabel = hovered ?? activeNavItem?.label ?? null;
 
-  // Breadcrumb trail derived from the same navItems hierarchy — skipped entirely
+  // Breadcrumb trail derived from the same navItems hierarchy - skipped entirely
   // on the dashboard root or any path that doesn't map onto a known section.
-  const activeChild = activeNavItem?.children?.find((c) => pathname === c.href);
+  const activeChild = activeNavItem?.children?.find((c) => matchesChild(pathname, c.href));
 
   return (
     <>
@@ -164,7 +172,7 @@ export default function AdminNavbar() {
 
       <div className="max-w-[1600px] mx-auto px-5 sm:px-8">
         <div className={`flex items-center justify-between gap-4 transition-all duration-300 ${scrolled ? 'h-16' : 'h-[72px]'}`}>
-          {/* Logo — sits directly on the bar, no card wrapper */}
+          {/* Logo - sits directly on the bar, no card wrapper */}
           <Link href="/admin" className="group flex items-center gap-2.5 flex-shrink-0" aria-label="Admin Control Room Home">
             <motion.div whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
               <BrainLogo size={30} showRays={false} animated={false} />
@@ -179,7 +187,7 @@ export default function AdminNavbar() {
             </div>
           </Link>
 
-          {/* Center — segmented sliding-pill nav, mirrors the public navbar's silhouette */}
+          {/* Center - segmented sliding-pill nav, mirrors the public navbar's silhouette */}
           <nav
             ref={navRef}
             className="hidden lg:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
@@ -230,7 +238,7 @@ export default function AdminNavbar() {
                       layoutId="admin-nav-pill"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       className="absolute inset-0 rounded-full -z-0"
-                      // #C2410C (not the brand's #FF7A00) — the lighter orange fails
+                      // #C2410C (not the brand's #FF7A00) - the lighter orange fails
                       // WCAG AA contrast against the white pill label (~2.6:1); this
                       // stop keeps white text readable (~5:1) at every point along the
                       // gradient while staying visually on-brand (maroon → burnt orange).
@@ -325,7 +333,7 @@ export default function AdminNavbar() {
       </div>
     </header>
 
-      {/* Breadcrumb strip — derived from navItems, hidden on the dashboard root  */}
+      {/* Breadcrumb strip - derived from navItems, hidden on the dashboard root  */}
       {/* and on any path that doesn't map onto a known top-level section.       */}
       {activeNavItem && pathname !== '/admin' && (
         <div className="w-full border-b border-black/[0.04] dark:border-white/[0.06] bg-[var(--background)]/60">
@@ -351,7 +359,7 @@ export default function AdminNavbar() {
         </div>
       )}
 
-      {/* Fullscreen mobile menu — rendered as a sibling of <header>, not a       */}
+      {/* Fullscreen mobile menu - rendered as a sibling of <header>, not a       */}
       {/* descendant, for the same backdrop-filter containing-block reason       */}
       {/* documented in the public Navbar.                                      */}
       <AnimatePresence>
@@ -366,7 +374,7 @@ export default function AdminNavbar() {
             <div className="flex flex-col gap-1">
               {navItems.map((item, i) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false);
+                const isActive = pathname === item.href || (item.children?.some((c) => matchesChild(pathname, c.href)) ?? false);
                 return (
                   <motion.div
                     key={item.label}

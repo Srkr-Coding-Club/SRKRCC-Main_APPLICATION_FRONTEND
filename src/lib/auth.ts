@@ -89,7 +89,7 @@ export function isAuthenticated(): boolean {
 
 /**
  * Guards a post-login/signup `?next=` redirect target against open-redirect
- * payloads (absolute URLs, protocol-relative `//host` paths) — only an
+ * payloads (absolute URLs, protocol-relative `//host` paths) - only an
  * in-app relative path is ever safe to hand to `window.location.replace`.
  */
 export function isSafeNextPath(next: string | null | undefined): next is string {
@@ -123,8 +123,8 @@ const authResyncSubscribers = new Set<() => void>();
  *
  * Several components (Navbar, HeroSection, AdminGuard, …) call
  * `fetchAndSyncCurrentUser()` once on mount to show the right role-gated UI.
- * That single fetch means a role change made elsewhere — an admin promoting
- * this member to CLUB_LEAD, say — never reaches an already-open tab: it kept
+ * That single fetch means a role change made elsewhere - an admin promoting
+ * this member to CLUB_LEAD, say - never reaches an already-open tab: it kept
  * showing the pre-promotion role/menu until a hard refresh remounted
  * everything, even though the server was correct the whole time. Refocus is
  * the moment a "go check now" actually happens, so that's what re-triggers it.
@@ -132,7 +132,7 @@ const authResyncSubscribers = new Set<() => void>();
  * The throttle window is shared across ALL subscribers combined (so rapid
  * focus/blur churn doesn't hammer the endpoint once per mounted component),
  * but when the window opens, every subscriber registered at that moment gets
- * its callback invoked — not just the one whose event listener fired.
+ * its callback invoked - not just the one whose event listener fired.
  *
  * Returns an unsubscribe function for effect cleanup.
  */
@@ -162,10 +162,10 @@ export function subscribeToAuthResync(onResync: () => void): () => void {
  * Validates session against the server /auth/me/ endpoint and updates stored user and role cookies.
  *
  * The proxy this hits no longer refreshes tokens on its own (see the comment
- * in src/app/api/proxy/[...path]/route.ts — an in-memory dedup there proved
+ * in src/app/api/proxy/[...path]/route.ts - an in-memory dedup there proved
  * unreliable under real concurrent load and let a perfectly valid session get
  * logged out). So a 401 here is retried once, after a refresh, the same way
- * fetchApi already does — using refreshAccessToken()'s module-level
+ * fetchApi already does - using refreshAccessToken()'s module-level
  * `activeRefreshPromise`, which IS a reliable dedup because a single tab's JS
  * is genuinely single-threaded.
  */
@@ -186,7 +186,7 @@ export async function fetchAndSyncCurrentUser(): Promise<AuthUser | null> {
 
     if (!res.ok) {
       // The server rejected the session outright (e.g. expired/invalidated),
-      // but the localStorage user + role cookie can outlive it — clear them so
+      // but the localStorage user + role cookie can outlive it - clear them so
       // isAuthenticated() stops reporting a session that no longer exists.
       clearAuthSession();
       return null;

@@ -10,7 +10,7 @@ import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 
 interface EventFormPanelProps {
   isOpen: boolean;
-  /** Present in edit mode — the panel is pre-filled and PATCHes this event instead of creating a new one. */
+  /** Present in edit mode - the panel is pre-filled and PATCHes this event instead of creating a new one. */
   event?: Event | null;
   onClose: () => void;
   onSaved: (event: Event) => void;
@@ -77,7 +77,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
     setErrors({});
   };
 
-  // Re-seed the form whenever the panel opens — either from the event being
+  // Re-seed the form whenever the panel opens - either from the event being
   // edited, or blank for a fresh create.
   useEffect(() => {
     if (!isOpen) return;
@@ -104,7 +104,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
 
   // Distinct from the event's own start/end below: this is when the LINKED
   // FORM opens/closes to submissions, read-only here since it lives on the
-  // Form record, not the Event — editing it happens in the Forms Registry.
+  // Form record, not the Event - editing it happens in the Forms Registry.
   const selectedForm = forms.find((f) => String(f.id) === registrationForm);
   const regOpensLabel = formatDisplay(selectedForm?.open_at);
   const regClosesLabel = formatDisplay(selectedForm?.close_at);
@@ -114,7 +114,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
     if (!title.trim()) next.title = 'Title is required.';
     if (!slug.trim()) next.slug = 'Slug is required.';
     if (!capacity || Number(capacity) <= 0) next.capacity = 'Capacity must be a positive number.';
-    // Venue and schedule are optional — an event can be announced before its
+    // Venue and schedule are optional - an event can be announced before its
     // venue/date is finalized. Only enforce ordering when BOTH are actually set.
     if (startTime && endTime && new Date(endTime) <= new Date(startTime)) {
       next.endTime = 'End time must be after the start time.';
@@ -175,7 +175,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
           <div className="flex items-center space-x-2">
             <CalendarPlus className="w-5 h-5 text-[#8B2E3B]" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
-              {isEditMode ? `Edit Event — ${event!.title}` : 'Schedule New Event'}
+              {isEditMode ? `Edit Event: ${event!.title}` : 'Schedule New Event'}
             </h3>
           </div>
           <button
@@ -247,7 +247,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
               type="text"
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
-              placeholder="CSE Seminar Hall — leave blank if not decided yet"
+              placeholder="CSE Seminar Hall (leave blank if not decided yet)"
               className={inputClasses}
             />
             {errors.venue && <p className="mt-1 text-[11px] text-rose-500">{errors.venue}</p>}
@@ -276,7 +276,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
             </div>
           </div>
           <p className="text-[11px] text-slate-400 -mt-2">
-            This is when the event itself happens — leave it blank to show "Date to be announced" on the public card.
+            This is when the event itself happens. Leave it blank to show "Date to be announced" on the public card.
           </p>
 
           <div>

@@ -30,6 +30,7 @@ import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated, AuthUs
 import { fetchApi } from '@/lib/api-client';
 import { ordinalYear } from '@/lib/utils';
 import { EditProfileModal } from '@/components/EditProfileModal';
+import { MyHackathonsPanel } from '@/components/hackathons/MyHackathonsPanel';
 import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
 
 export const dynamic = 'force-dynamic';
@@ -185,7 +186,7 @@ function ProfileContent() {
         }
       })
       .catch(() => {
-        // Tolerant fallback — keep showing the cached/local profile, but let the user know.
+        // Tolerant fallback - keep showing the cached/local profile, but let the user know.
         setRefreshError(true);
       })
       .finally(() => {
@@ -260,7 +261,7 @@ function ProfileContent() {
         {/* Stale Profile Refresh Notice */}
         {refreshError && (
           <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
-            <span>Couldn&apos;t refresh your profile — showing cached data.</span>
+            <span>Couldn&apos;t refresh your profile. Showing cached data.</span>
             <button
               type="button"
               onClick={() => {
@@ -276,7 +277,7 @@ function ProfileContent() {
 
         {/* Top Profile Header Banner */}
         <div className="relative glass-panel rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Glow behind the glass panel — without it, a translucent panel over
+          {/* Glow behind the glass panel - without it, a translucent panel over
               this page's plain background has nothing colorful behind it to
               actually blur, so it reads as flat/opaque instead of glassy. */}
           <div
@@ -366,7 +367,7 @@ function ProfileContent() {
             )}
 
             {/* VOLUNTEER can't reach /admin (AdminGuard is ADMIN/CLUB_LEAD only),
-                so this is the only in-app path to the scanner for that role —
+                so this is the only in-app path to the scanner for that role -
                 ADMIN/CLUB_LEAD get it too since both routes work for them either way. */}
             {(user.role === 'VOLUNTEER' || user.role === 'ADMIN' || user.role === 'CLUB_LEAD') && (
               <Link
@@ -421,7 +422,7 @@ function ProfileContent() {
           </div>
         )}
 
-        {/* Roll Number Reminder — roll number is optional at signup, so a
+        {/* Roll Number Reminder - roll number is optional at signup, so a
             member can land here without one; nudge them to add it since
             attendance/certificate matching relies on it. */}
         {!loading && profile && !profile.roll_number && (
@@ -431,7 +432,7 @@ function ProfileContent() {
               <div className="text-xs">
                 <p className="font-bold text-amber-600 dark:text-amber-400">Add Your Roll Number</p>
                 <p className="text-amber-700/80 dark:text-amber-300/70 mt-0.5">
-                  You haven't set your roll number yet — add it so event attendance and certificates can be matched to your official student record.
+                  You haven't set your roll number yet. Add it so event attendance and certificates can be matched to your official student record.
                 </p>
               </div>
             </div>
@@ -497,6 +498,8 @@ function ProfileContent() {
           
           {/* Main Column: Registered Events */}
           <div className="lg:col-span-2 space-y-4">
+            <MyHackathonsPanel />
+
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#FF7A00]" />

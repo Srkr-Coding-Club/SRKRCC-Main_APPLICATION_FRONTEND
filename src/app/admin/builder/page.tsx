@@ -66,10 +66,10 @@ function BuilderContent() {
         <FormBuilderTab
           // Forces a full remount when switching which form is loaded into
           // the builder (a different ?slug=, or "new"). Without this,
-          // FormBuilderTab's OWN internal state — scheduleOpenAt/
+          // FormBuilderTab's OWN internal state - scheduleOpenAt/
           // scheduleCloseAt (each seeded once from formMeta.open_at/
           // close_at via useState) and activeFieldId (seeded once from
-          // builderFields[0]) — only reads its initial value on first mount
+          // builderFields[0]) - only reads its initial value on first mount
           // and never re-syncs when formMeta/builderFields props change
           // underneath it, so it kept showing the PREVIOUS form's schedule
           // and selected field after switching forms via the slug param.

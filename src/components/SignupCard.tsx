@@ -140,7 +140,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  /** Fields the member has left at least once — gates inline errors while typing. */
+  /** Fields the member has left at least once - gates inline errors while typing. */
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
   /** Errors returned by the API, which outrank the client-side check until the field changes. */
   const [serverErrors, setServerErrors] = useState<SignupFieldErrors>({});
@@ -202,7 +202,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
 
     try {
       await registerUser({
-        // `username` is intentionally not sent — the server derives it from the
+        // `username` is intentionally not sent - the server derives it from the
         // email and de-duplicates it, so two people sharing an email local part
         // no longer collide.
         email,
@@ -493,7 +493,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
                 </div>
               </div>
 
-              {/* Affiliate toggle — replaces the old "Register As" role picker.
+              {/* Affiliate toggle - replaces the old "Register As" role picker.
                   This checkbox sets the account's role directly: checked sends
                   AFFILIATE (and requires the Club ID handed out offline),
                   unchecked sends NON_AFFILIATE. */}
@@ -525,7 +525,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
                     </span>
                     <span className="block text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
                       Tick this only if a club representative already gave you a Club Affiliate ID. Otherwise leave it
-                      unticked — one will be assigned to you.
+                      unticked and one will be assigned to you.
                     </span>
                   </span>
                 </label>
@@ -558,7 +558,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
                     <FieldError id="signup-affiliate-error" message={visibleError('affiliateId')} />
                     {!visibleError('affiliateId') && (
                       <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                        Format: two-digit year, then SCC, then your number — e.g. 25SCC277.
+                        Format: two-digit year, then SCC, then your number, e.g. 25SCC277.
                       </p>
                     )}
                   </div>
@@ -689,7 +689,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
               {success ? (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Account created — redirecting…</span>
+                  <span>Account created, redirecting…</span>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 </>
               ) : isLoading ? (

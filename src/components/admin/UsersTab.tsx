@@ -55,7 +55,7 @@ function DrawerSection({ title, children }: { title: string; children: React.Rea
 }
 
 /**
- * Roll Number is the one Academic field an admin can edit from this drawer —
+ * Roll Number is the one Academic field an admin can edit from this drawer -
  * unlike everything else here (read-only display), a member can only
  * self-set their OWN roll number ONCE (see
  * UserProfileDetailSerializer.validate_roll_number on the backend); after
@@ -250,8 +250,8 @@ export function UsersTab({
   isLoading = false,
 }: UsersTabProps) {
   const [viewedUser, setViewedUser] = useState<UserRecord | null>(null);
-  // Only a full ADMIN may grant ADMIN/CLUB_LEAD (the backend enforces this too —
-  // see UserDetailView.perform_update — this just keeps the dropdown from
+  // Only a full ADMIN may grant ADMIN/CLUB_LEAD (the backend enforces this too -
+  // see UserDetailView.perform_update - this just keeps the dropdown from
   // offering an option that would fail with a confusing 403 for a CLUB_LEAD viewer).
   const canAssignElevatedRoles = getStoredUser()?.role === 'ADMIN';
   return (

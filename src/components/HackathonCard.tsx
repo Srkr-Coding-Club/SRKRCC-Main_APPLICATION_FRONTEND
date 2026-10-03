@@ -134,13 +134,15 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00' }: Hackath
               Details
               <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
-            {hackathon.status === 'CLOSED' ? (
+            {!(hackathon.is_registration_open ?? hackathon.status !== 'CLOSED') ? (
               <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2.5 text-[12px] font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500">
-                Registration Closed
+                {hackathon.status !== 'CLOSED' && hackathon.registration_opens_at && new Date(hackathon.registration_opens_at) > new Date()
+                  ? 'Registration Opens Soon'
+                  : 'Registration Closed'}
               </span>
             ) : (
               <Link
-                href={hackathon.form_slug ? `/forms/${hackathon.form_slug}` : '/forms'}
+                href={`/hackathons/${hackathon.slug}/dashboard`}
                 className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5"
                 style={{ backgroundColor: accent }}
               >

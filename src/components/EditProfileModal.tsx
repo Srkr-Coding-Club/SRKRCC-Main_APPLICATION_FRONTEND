@@ -66,7 +66,7 @@ function inputClasses(hasError: boolean): string {
   return `${BASE_INPUT_CLASSES} ${hasError ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-800'}`;
 }
 
-/** Optional field — a blank value is valid; only checks shape when filled in. */
+/** Optional field - a blank value is valid; only checks shape when filled in. */
 function validateProfileUrl(value: string, label: string): string | undefined {
   if (!value.trim()) return undefined;
   try {
@@ -99,7 +99,7 @@ function validateForm(form: FormState, rollNumberLocked: boolean): FormErrors {
   if (phoneErr) errors.phone_number = phoneErr;
 
   // Once set, roll_number is disabled in the UI (only an admin can change
-  // it from here on — see UserProfileDetailSerializer.validate_roll_number
+  // it from here on - see UserProfileDetailSerializer.validate_roll_number
   // on the backend), so there's nothing to validate.
   if (!rollNumberLocked) {
     const rollErr = validateRollNumber(form.roll_number);
@@ -173,7 +173,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
   if (!isOpen) return null;
 
   // A member can set their own roll number once; after that, only an admin
-  // (via the Users tab) can change or clear it — see
+  // (via the Users tab) can change or clear it - see
   // UserProfileDetailSerializer.validate_roll_number on the backend. Locked
   // on the ORIGINAL value, not the in-progress form state, so it can't be
   // bypassed by clearing the field client-side.
@@ -343,11 +343,11 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
               />
               {rollNumberLocked ? (
                 <p id="edit-profile-roll-number-locked" className="mt-1 text-[11px] text-slate-400">
-                  Already set — contact an admin to change it.
+                  Already set. Contact an admin to change it.
                 </p>
               ) : (
                 <p className="mt-1 text-[11px] text-slate-400">
-                  You can set this once — after saving, only an admin can change it.
+                  You can set this once. After saving, only an admin can change it.
                 </p>
               )}
               <FieldError id="edit-profile-roll-number-error" message={errors.roll_number} />

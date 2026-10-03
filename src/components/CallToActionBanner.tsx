@@ -81,7 +81,7 @@ export default function CallToActionBanner() {
                 <p className="mt-4 text-slate-500 dark:text-slate-400 text-sm sm:text-base leading-relaxed">
                   {isAuth
                     ? 'Explore upcoming hackathons, solve CodeQuest challenges, and collaborate with fellow builders.'
-                    : 'Join SRKR Coding Club today and be part of a community that builds the future — one commit at a time.'}
+                    : 'Join SRKR Coding Club today and be part of a community that builds the future, one commit at a time.'}
                 </p>
 
                 <div className="mt-5 inline-flex items-center gap-2 font-mono text-xs text-slate-500 dark:text-slate-400">

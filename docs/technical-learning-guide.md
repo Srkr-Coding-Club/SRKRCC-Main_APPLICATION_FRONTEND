@@ -58,10 +58,10 @@ Raw JWT tokens are never stored in browser `localStorage`. Instead, Next.js API 
 
 ### Next.js Edge Middleware ([src/middleware.ts](file:///c:/Users/chall/OneDrive/Desktop/SRKRCC-Main_APPLICATION_FRONTEND/src/middleware.ts))
 Runs at the network edge before requests reach the App Router:
-1. Intercepts all `/admin/*` paths.
-2. Reads `request.cookies.get('srkrcc_access_token')`.
-3. If unauthenticated $\rightarrow$ Redirects to `/login?next=${pathname}`.
-4. If role is not `ADMIN` or `CLUB_LEAD` $\rightarrow$ Redirects to `/profile?error=admin_access_required`.
+1. Intercepts `/admin/*`, `/profile/*` and `/hackathons/[slug]/dashboard` (the `matcher` plus a regex check for the dashboard path).
+2. Reads the `srkrcc_access_token` and `srkrcc_refresh_token` cookies.
+3. If neither exists $\rightarrow$ Redirects to `/login?next=${pathname}`.
+4. Role checks are **not** done here: admin pages are wrapped in `AdminGuard` (`src/app/admin/layout.tsx`), which calls `fetchAndSyncCurrentUser()` and only renders for `ADMIN` / `CLUB_LEAD`. The backend enforces every permission regardless.
 
 ---
 
@@ -113,6 +113,11 @@ When students open registration forms, the application automatically matches and
      - **Portfolio Links**: Maps GitHub and LinkedIn profile URLs.
 3. **Session Freshness**:
    - The form page calls `/api/auth/me` on mount to fetch the latest student profile from PostgreSQL, merging it into `localStorage` and form state.
+4. **Profile-Bound Fields (`field.profile_field`)** — explicit, server-authoritative auto-fill:
+   - Admins add them from the **Profile Auto-fill** palette group in `FormBuilderTab` (`PROFILE_FIELD_PALETTE`); `useAdminData.handleAddFieldFromPalette(type, label, profileField)` stores the binding.
+   - `src/app/forms/[slug]/page.tsx` renders them as a read-only "From your profile" row (value from `resolveProfileFieldValue`) instead of an input, and keeps `formData` in sync with the profile — including in edit mode — so client validation sees the value.
+   - If a required one is blank on the profile, the submit button is replaced by an "Update Your Profile" prompt (only while the form is open).
+   - The backend discards whatever is sent for these fields and writes the profile value itself, so this UI is a mirror, not the source of truth.
 
 ---
 
@@ -135,3 +140,35 @@ writes a member streak.
    - Cover images support both external URLs (`https://...`) and Base64-encoded Data URLs (`data:image/...`).
    - Image URLs are sanitized to avoid duplicate protocol prefixes (`https://data:` $\rightarrow$ `data:`).
 
+---
+
+## 9. Hackathon Module (Teams, Rounds, Announcements)
+
+Backend contract: `apps/hackathons` — see the backend repo's `docs/modules/hackathon.md`.
+
+**API layer.** Every call goes through the typed wrappers in `src/lib/api/hackathons.ts` (`hackathonApi.*` for participants, `hackathonApi.admin.*` for organizers), built on `fetchApi`. Business-rule errors arrive as `{detail, code, field?}`; `apiErrorMessage(err)` picks the readable message and forms map `err.body.field` onto the matching input. Types live in `src/lib/types.ts` (`HackathonTeam`, `HackathonTeamInvite`, `ProblemStatement`, `ParticipantRound`, `MyTeamPayload`, `HackathonAnnouncement`, …).
+
+**Participant routes**
+
+| Route | Rendering | Notes |
+|---|---|---|
+| `/hackathons` | Server component | `HackathonCard`'s **Register Team** button links to `/hackathons/[slug]/dashboard` (middleware sends logged-out visitors to login first) and shows *Registration Opens Soon* / *Closed* from `is_registration_open`. The legacy `registration_form` link is no longer used for registration. |
+| `/hackathons/[slug]` | Server component | Fetches the hackathon, active problem statements and public announcements anonymously. The CTA (`components/hackathons/HackathonCTA.tsx`) is a client island: it verifies the session with `fetchAndSyncCurrentUser()` **before** calling `my-team`, because a stale stored login would otherwise 401 and `fetchApi` would redirect a public visitor to `/login`. |
+| `/hackathons/[slug]/dashboard` | Client page (needs the user's token) | One `GET /my-team/` payload drives the page: no team → invite cards + "Create a team" (`TeamFormModal`); team → members, leader-only controls (edit, `InviteMemberModal`, remove, make leader, cancel invite), leave, `RoundsTimeline`, `HackathonAnnouncementsFeed`, problem statement. Leader-only controls are hidden for members, but the backend is what enforces them. |
+| `/profile` | Existing client page | `MyHackathonsPanel` lists the user's teams (`/my-teams/`) and pending invites (`/my-invites/`); it renders nothing when both are empty. |
+
+`TeamFormModal` (create + edit) lets a leader choose between **Pick a statement** (`FormSelect` of active statements, showing domain and slots left) and **Open innovation** (title, domain with suggestions from existing statement domains, description — all required, validated client-side and again by the server, whose `field` errors are mapped back onto the inputs). The open-innovation option only appears when the hackathon has `allow_open_innovation`; when a hackathon has no statements yet the choice is *Decide later* / *Open innovation*. The dashboard and admin Teams drawer show an open-innovation team's problem with its `OI-<n>` ID.
+
+`InviteMemberModal` debounces an exact-email lookup (`/user-lookup/`) and only enables "Send invite" when the server says `can_invite`. `RoundsTimeline` shows each round's status, the team's result and feedback only once the round is published, and a "Submit details" link to `/forms/{slug}` for the leader of a shortlisted team.
+
+**Admin routes.** `/admin/hackathons` lists hackathons; `/admin/hackathons/[slug]?tab=` hosts six tab components in `src/components/admin/hackathon/` (Overview, Settings, Problem Statements, Teams, Rounds, Announcements). They share input/button class constants and datetime helpers from `shared.ts`. `ProblemStatementsAdminTab` creates statements without an ID field (the server generates and returns it) and uploads CSVs through `hackathonApi.admin.uploadProblemStatements` as `FormData` — `fetchApi` skips the JSON content-type for it and the BFF proxy forwards the multipart body untouched. The page uses `useSearchParams`, so it is wrapped in `<Suspense>`. `AdminNavbar` matches child entries with `pathname.startsWith(href + '/')` so nested routes still highlight "Modules → Hackathon Management", and each hackathon card in `EventsHackathonsTab` links to its manage page.
+
+---
+
+## 10. Shared UI Primitives
+
+| Component | Purpose |
+|---|---|
+| `src/components/ui/FormSelect.tsx` | Themed listbox replacing native `<select>` (whose OS-drawn popup ignores the dark theme). Props: `value`, `options` (`{value, label, hint?, disabled?}`), `placeholder`, `onChange`, `allowClear`, `disabled`. Used by the responses viewer and the hackathon screens. |
+| `src/components/ui/Modal.tsx` | Dialog shell with focus trap (`useFocusTrap`), Escape-to-close, backdrop click and body scroll lock. `busy` blocks closing while a request is in flight. |
+| `src/components/ui/StatusPill.tsx` | Coloured status pill plus label/tone maps for team, round and round-entry statuses. |

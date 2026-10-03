@@ -19,13 +19,13 @@ interface AuthLayoutProps {
 /**
  * Shared split-screen shell for /login and /admin/login. Brand panel on the
  * left carries the visual weight (logo, headline, feature bullets) so the
- * form itself can stay minimal — plain fields, one solid CTA, no card-in-
+ * form itself can stay minimal - plain fields, one solid CTA, no card-in-
  * card nesting or decorative noise competing with the inputs.
  */
 export default function AuthLayout({ eyebrow, title, subtitle, features, children, footer }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex bg-[#FAFAFC] dark:bg-[#0D0E15] transition-colors duration-300">
-      {/* Brand panel — desktop only */}
+      {/* Brand panel - desktop only */}
       <div className="hidden lg:flex lg:w-[44%] xl:w-[40%] relative flex-col justify-between bg-[#12131C] text-white p-12 overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.4]"
