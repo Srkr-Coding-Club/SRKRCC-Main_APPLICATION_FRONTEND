@@ -120,6 +120,11 @@ When students open registration forms, the application automatically matches and
 
 `/admin/codequest` follows the standard admin-route pattern: it is a thin route wrapper around
 `components/admin/CodeQuestTab.tsx`, which owns interactive scheduling and review controls.
+`/codequest/batch-schedule` is a force-dynamic route with a server metadata wrapper and a
+client-side batch editor. Admins and Club Leads can schedule up to five complete problems in
+one request, each with its own date. The backend keeps future problems out of public list and
+detail responses until their scheduled local date; the batch form uses the protected backend
+endpoint and reports date conflicts before any rows are created.
 The public `/codequest` page owns the daily member experience and receives today's problem plus
 previously published challenges, never future scheduled problems. The browser never calculates or
 writes a member streak.
