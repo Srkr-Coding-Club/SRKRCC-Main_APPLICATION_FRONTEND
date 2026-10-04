@@ -266,7 +266,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
         animate={embedded ? undefined : { opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className={embedded ? 'contents' : 'relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-rows-[120px_minmax(0,1fr)] overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] sm:grid-cols-[0.85fr_1.15fr] sm:grid-rows-1'}
+        className={embedded ? 'contents' : 'relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-cols-1 grid-rows-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] lg:grid-cols-[0.85fr_1.15fr]'}
       >
         {onClose && !embedded && (
           <button
@@ -279,7 +279,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
           </button>
         )}
 
-        <div className={embedded ? 'hidden' : 'relative min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)]'}>
+        <div className={embedded ? 'hidden' : 'relative hidden min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)] lg:block'}>
           <Image
             src="/Loginn.svg"
             alt="Secure sign up illustration"
@@ -295,12 +295,13 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
 
           {/* Header */}
           <div className="mb-5 space-y-1 text-left">
+            {/* SECURE SIGN UP Badge 
             <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
               <Lock className="h-3 w-3 text-slate-500" />
               Secure Sign Up
-            </div>
+            </div> */}
 
-            <h1 className="text-[24px] font-bold leading-tight tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-[24px] font-bold leading-tight tracking-tight text-slate-900 dark:text-white pt-2">
               Create your account
             </h1>
 

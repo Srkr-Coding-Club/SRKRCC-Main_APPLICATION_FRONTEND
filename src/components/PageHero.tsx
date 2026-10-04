@@ -99,7 +99,7 @@ export default function PageHero({
       onMouseLeave={handleLeave}
       className={[
         'group relative isolate overflow-hidden rounded-3xl',
-        'p-8 sm:p-14',
+        'p-4 sm:p-8',
         'border border-white/50 dark:border-white/10',
         'bg-gradient-to-b from-[#FFEEDD] via-[#FFDCB0] to-[#FFC98A]',
         'dark:from-[#1A1A2E] dark:via-[#2A1B2E] dark:to-[#3D1F2A]',
@@ -155,7 +155,7 @@ export default function PageHero({
 
         <h1
           data-hero-reveal
-          className="text-balance bg-gradient-to-br from-[#1A1A2E] via-[#8B2E3B] to-[#FF7A00] bg-clip-text text-4xl font-extrabold leading-[1.05] tracking-tight text-transparent sm:text-6xl dark:from-white dark:via-[#FFD8B5] dark:to-[#FF9A44]"
+          className="text-balance bg-gradient-to-br from-[#1A1A2E] via-[#8B2E3B] to-[#FF7A00] bg-clip-text text-4xl font-extrabold leading-[1.05] tracking-tight text-transparent sm:text-6xl dark:from-white dark:via-[#FFD8B5] dark:to-[#FF9A44] p-2"
         >
           {title}
         </h1>
