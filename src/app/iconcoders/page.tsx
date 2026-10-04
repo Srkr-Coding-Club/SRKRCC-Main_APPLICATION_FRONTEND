@@ -8,6 +8,7 @@ import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import IconCodersEditionCard from '@/components/IconCodersEditionCard';
 import IconCodersHallOfFameCard from '@/components/IconCodersHallOfFameCard';
+import EventsRow from '@/components/EventsRow';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
@@ -18,28 +19,13 @@ export const metadata: Metadata = {
     'The premier annual hackathon of SRKR Engineering College. Explore active challenges, past winning projects, and the Hall of Fame.',
 };
 
-async function getCurrentChallenge(): Promise<IconCodersChallenge> {
+async function getCurrentChallenge(): Promise<IconCodersChallenge | null> {
   try {
     const fetched = await fetchApi<IconCodersChallenge>('/iconcoders/current/');
-    if (fetched) return fetched;
-  } catch (error) {
-    // Fallback to curated current edition
+    return fetched || null;
+  } catch {
+    return null;
   }
-
-  return {
-    id: 1,
-    title: 'IconCoders 2026 Flagship Challenge',
-    slug: 'iconcoders-2026',
-    edition: '2026 Edition',
-    theme: 'Advanced Data Structures & Algorithmic Problem Solving',
-    description: 'SRKR Coding Club’s annual flagship individual DSA competition. Solve a curated set of algorithmic problems solo, climb the live leaderboard, and win recognition plus prizes.',
-    format: 'INDIVIDUAL',
-    difficulty_tier: 'Advanced DSA',
-    start_date: '2026-02-10',
-    end_date: '2026-02-10',
-    image_url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80',
-    form_slug: 'iconcoders-hackathon-2025',
-  };
 }
 
 async function getHallOfFame(): Promise<IconCodersHallOfFameEntry[]> {
@@ -83,18 +69,29 @@ export default async function IconCodersPage() {
 
         <div className="space-y-6">
           <SectionHeading icon={Sparkles} eyebrow="Current Edition" title="Current Challenge" />
-          <div className="max-w-sm">
-            <IconCodersEditionCard challenge={challenge} />
-          </div>
+          {challenge ? (
+            <div className="max-w-sm">
+              <IconCodersEditionCard challenge={challenge} />
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center dark:border-slate-800">
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                No current IconCoders challenge scheduled.
+              </p>
+              <p className="mt-2 text-xs text-slate-400 dark:text-slate-600">
+                Check back once the next edition is announced.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">
           <SectionHeading icon={Trophy} title="Hall of Fame" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {hallOfFame.map((entry) => (
+          <EventsRow
+            cards={hallOfFame.map((entry) => (
               <IconCodersHallOfFameCard key={entry.year} entry={entry} />
             ))}
-          </div>
+          />
         </div>
       </div>
     </div>

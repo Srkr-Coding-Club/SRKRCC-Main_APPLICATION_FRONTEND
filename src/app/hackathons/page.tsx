@@ -7,6 +7,7 @@ import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import HackathonCard from '@/components/HackathonCard';
+import EventsRow from '@/components/EventsRow';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
@@ -58,11 +59,11 @@ export default async function HackathonsPage() {
           />
 
           {hackathons.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {hackathons.map((h) => (
-                <HackathonCard key={h.id} hackathon={h} />
+            <EventsRow
+              cards={hackathons.map((hackathon, index) => (
+                <HackathonCard key={hackathon.id} hackathon={hackathon} index={index} />
               ))}
-            </div>
+            />
           ) : (
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
               <Trophy className="h-8 w-8 text-slate-300 dark:text-slate-700" />

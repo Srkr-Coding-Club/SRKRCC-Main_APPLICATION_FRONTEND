@@ -449,7 +449,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.98, y: 6 }}
                 transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                className="relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-rows-[120px_minmax(0,1fr)] grid-cols-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] sm:grid-cols-[1fr_1.1fr] sm:grid-rows-1"
+                className="relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-cols-1 grid-rows-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] lg:grid-cols-[1fr_1.1fr]"
               >
                 <button
                   type="button"
@@ -460,7 +460,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                   <X className="h-5 w-5" />
                 </button>
 
-                <div className="relative min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)]">
+                <div className="relative hidden min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)] lg:block">
                   <Image
                     src="/Loginn.svg"
                     alt="Secure account illustration"

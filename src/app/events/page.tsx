@@ -6,6 +6,7 @@ import { Calendar } from 'lucide-react';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
+import EventCard from '@/components/EventCard';
 import EventsRow from '@/components/EventsRow';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
@@ -57,7 +58,11 @@ export default async function EventsPage() {
             description="Workshops, seminars, and gatherings happening across campus."
           />
           {events.length > 0 ? (
-            <EventsRow events={events} accent="#FF7A00" />
+            <EventsRow
+              cards={events.map((event, index) => (
+                <EventCard key={event.id} event={event} accent="#FF7A00" index={index} />
+              ))}
+            />
           ) : (
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
               <Calendar className="h-8 w-8 text-slate-300 dark:text-slate-700" />
