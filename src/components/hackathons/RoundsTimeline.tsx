@@ -59,7 +59,7 @@ export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[
                     <p className="font-bold text-[#1A1A2E] dark:text-white">{form.title}</p>
                     <p className="text-slate-500">
                       {entry?.details_submitted
-                        ? 'Submitted — your leader can still update it while the form is open.'
+                        ? 'Submitted. Your leader can still update it while the form is open.'
                         : 'Shortlisted teams must submit these details.'}
                       {form.close_at && ` Deadline: ${formatDateTime(form.close_at)}.`}
                     </p>

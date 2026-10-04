@@ -6,11 +6,11 @@ import { AttendanceScannerTab } from '@/components/admin/AttendanceScannerTab';
 export const dynamic = 'force-dynamic';
 
 /**
- * Volunteer-reachable attendance scanner — /admin/attendance/scan renders the
+ * Volunteer-reachable attendance scanner - /admin/attendance/scan renders the
  * exact same AttendanceScannerTab but sits behind AdminGuard, which only
  * admits ADMIN/CLUB_LEAD. This route sits behind ScannerGuard instead (mirrors
- * the backend's IsVolunteerOrAbove), so a VOLUNTEER account — which exists
- * specifically to scan check-ins and nothing else — can actually reach it.
+ * the backend's IsVolunteerOrAbove), so a VOLUNTEER account - which exists
+ * specifically to scan check-ins and nothing else - can actually reach it.
  */
 export default function VolunteerAttendanceScanPage() {
   return (

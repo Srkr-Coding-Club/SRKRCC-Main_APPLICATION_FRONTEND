@@ -9,12 +9,12 @@ import { useToast } from '@/context/ToastContext';
 /**
  * Sensible out-of-the-box validation for a newly-added field, so an admin
  * gets working validation without having to discover and hand-configure the
- * Response Validation panel. Only PHONE has one today — a phone number field
+ * Response Validation panel. Only PHONE has one today - a phone number field
  * with no digit constraint is effectively unvalidated (the builder's old
  * "Number / Phone" button created a bare NUMBER field, whose only rules are
  * numeric-value range checks, useless for enforcing a 10-digit phone number,
  * and its baseline `Number(value)` check even rejects a phone typed with a
- * '+' or spaces). Other types intentionally get no default — e.g. TEXT is
+ * '+' or spaces). Other types intentionally get no default - e.g. TEXT is
  * general-purpose (names, addresses, free text), so guessing a format would
  * be wrong as often as right; the admin picks one (e.g. "Alphabetic") from
  * the same Response Validation panel.
@@ -67,7 +67,7 @@ interface AuditLogRecord {
 /**
  * Conditional rules and cross-field rules reference sibling fields by their id.
  * A brand-new field only has a client-side placeholder id (e.g. a Date.now()
- * number) until the form is first saved and the backend assigns a real id — so
+ * number) until the form is first saved and the backend assigns a real id - so
  * a rule wired against an unsaved field ends up pointing at a stale placeholder,
  * which the publish gate then rejects ("references a field not on this form").
  *
@@ -153,10 +153,10 @@ export function useAdminData(options?: UseAdminDataOptions) {
   const wantsAudit = include.includes('audit');
   const wantsSubmissions = include.includes('submissions');
 
-  // Dynamic Flags State — fetched live from backend
+  // Dynamic Flags State - fetched live from backend
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
 
-  // Users State — fetched live from backend
+  // Users State - fetched live from backend
   const [usersList, setUsersList] = useState<UserRecord[]>([]);
   const [userSearch, setUserSearch] = useState('');
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
@@ -172,7 +172,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     password: '',
   });
 
-  // Forms State — fetched live from backend
+  // Forms State - fetched live from backend
   const [publishedForms, setPublishedForms] = useState<Form[]>([]);
 
   const [formMeta, setFormMeta] = useState<{
@@ -254,11 +254,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
   const [selectedClosedForm, setSelectedClosedForm] = useState<Form | null>(null);
   const [manualEntryAnswers, setManualEntryAnswers] = useState<Record<string, any>>({});
 
-  // Submissions & Audit Logs State — fetched live from backend
+  // Submissions & Audit Logs State - fetched live from backend
   const [formSubmissions, setFormSubmissions] = useState<FormSubmissionRecord[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
 
-  // Loading States — a type this hook instance was never asked to `include`
+  // Loading States - a type this hook instance was never asked to `include`
   // starts (and stays) non-loading, since it will never be fetched.
   const [isLoadingForms, setIsLoadingForms] = useState(wantsForms);
   const [isLoadingUsers, setIsLoadingUsers] = useState(wantsUsers);
@@ -475,7 +475,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     if (!user) return;
     const previousRole = user.role;
 
-    // Optimistic — flip immediately for instant feedback, then best-effort persist.
+    // Optimistic - flip immediately for instant feedback, then best-effort persist.
     setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
     fetchApi(`/auth/users/${userId}/`, {
       method: 'PATCH',
@@ -486,7 +486,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         toast.success('Role Updated', `${user.name} is now ${role}.`);
       })
       .catch((err: any) => {
-        // Roll the optimistic change back — it never actually persisted, so the
+        // Roll the optimistic change back - it never actually persisted, so the
         // UI must not keep claiming it did.
         setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role: previousRole } : u)));
         toast.error('Not Saved to Server', err?.message || `Could not update role for ${user.name}. Reverted.`);
@@ -498,7 +498,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     if (!user) return;
     const previousStatus = user.membershipStatus;
 
-    // Optimistic — flip immediately for instant feedback, then best-effort persist.
+    // Optimistic - flip immediately for instant feedback, then best-effort persist.
     setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, membershipStatus } : u)));
     fetchApi(`/auth/users/${userId}/`, {
       method: 'PATCH',
@@ -509,7 +509,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         toast.success('Membership Status Updated', `${user.name} is now ${membershipStatus}.`);
       })
       .catch((err: any) => {
-        // Roll the optimistic change back — it never actually persisted, so the
+        // Roll the optimistic change back - it never actually persisted, so the
         // UI must not keep claiming it did.
         setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, membershipStatus: previousStatus } : u)));
         toast.error('Not Saved to Server', err?.message || `Could not update membership status for ${user.name}. Reverted.`);
@@ -517,7 +517,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
   };
 
   // Unlike role/membership status above, a member can self-set their OWN roll
-  // number once via their profile — after that, only an admin can change or
+  // number once via their profile - after that, only an admin can change or
   // clear it (see UserProfileDetailSerializer.validate_roll_number on the
   // backend). This is that admin path. Not optimistic like the two handlers
   // above: it's free-text with server-side uniqueness/format validation, so
@@ -540,13 +540,13 @@ export function useAdminData(options?: UseAdminDataOptions) {
 
   const handleAddFieldFromPalette = (type: FormField['type'], label: string, profileField?: ProfileFieldKey) => {
     // A Section Header isn't answerable (validation always skips it, both here
-    // and server-side) — defaulting it to required is meaningless and only
+    // and server-side) - defaulting it to required is meaningless and only
     // inflates the builder's "N Required" summary.
     setBuilderFields((prev) => [
       ...prev,
       {
         id: Date.now().toString(), label, type, order: prev.length + 1,
-        // A profile-bound field defaults to required — it's on the form
+        // A profile-bound field defaults to required - it's on the form
         // precisely because the registration needs that data one way or
         // another; the admin can still relax it in the field settings.
         is_required: profileField ? true : type !== 'SECTION',
@@ -609,7 +609,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     setSavedCheckpoint(null);
     // Otherwise a previous form's test-fill answers (and its last test
     // submission, if the admin opened that modal) would carry over into a
-    // brand-new form's preview — e.g. text typed for Form A's "Full Name"
+    // brand-new form's preview - e.g. text typed for Form A's "Full Name"
     // field silently pre-filling Form B's field of the same id/type.
     setPreviewAnswers({});
     setSubmittedTestData(null);
@@ -686,7 +686,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
       formMeta: JSON.parse(JSON.stringify(meta)),
       builderFields: JSON.parse(JSON.stringify(fields)),
     });
-    // Same reasoning as resetNewForm() — loading a different existing form
+    // Same reasoning as resetNewForm() - loading a different existing form
     // into the builder must not carry over whatever was test-typed into the
     // PREVIOUS form's preview.
     setPreviewAnswers({});
@@ -701,7 +701,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     // backend's old "not empty string" check but renders as a blank row
     // everywhere the form is listed (the admin's "Select a form" dropdown,
     // the registration-form pickers). Catch it here with an immediate,
-    // specific message instead of a generic save failure — the backend now
+    // specific message instead of a generic save failure - the backend now
     // also rejects it (FormSerializer.validate_title) as a second line of
     // defense for any caller that bypasses this UI.
     if (!formMeta.title.trim()) {
@@ -950,7 +950,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     } catch (err: any) {
       console.error('[Save Form Error]:', err);
 
-      // A 400 from the definition/publish gate is a real, actionable rejection —
+      // A 400 from the definition/publish gate is a real, actionable rejection -
       // surface the per-field problems and do NOT fake a local "saved" form.
       const body = err?.body;
       const fieldErrors: any[] = Array.isArray(body?.errors) ? body.errors : [];
@@ -961,13 +961,13 @@ export function useAdminData(options?: UseAdminDataOptions) {
               (fieldErrors.length > 4 ? `\n…and ${fieldErrors.length - 4} more` : '')
             : body?.detail || err?.message || 'The form has validation problems.';
         toast.error(
-          finalStatus === 'PUBLISHED' ? 'Cannot Publish — Fix These First' : 'Form Not Saved',
+          finalStatus === 'PUBLISHED' ? 'Cannot Publish: Fix These First' : 'Form Not Saved',
           detail,
         );
         return null;
       }
 
-      // Network / server error — keep the old offline-preview fallback.
+      // Network / server error - keep the old offline-preview fallback.
       toast.error('Form Save Failed', err?.message || 'Unable to save form to server. Showing local preview.');
       const fallbackForm: Form = {
         id: formMeta.id || Date.now(),
@@ -1006,10 +1006,10 @@ export function useAdminData(options?: UseAdminDataOptions) {
       refetchAll(true);
       return updated;
     } catch (err: any) {
-      // Optimistic local-only fallback (offline/unreachable backend) — the
+      // Optimistic local-only fallback (offline/unreachable backend) - the
       // toast is the only thing telling the admin this never actually
       // persisted, so it must never be silent.
-      toast.error('Not Saved to Server', err?.message || `Could not ${action} this form — showing an unsaved local preview only.`);
+      toast.error('Not Saved to Server', err?.message || `Could not ${action} this form. Showing an unsaved local preview only.`);
       const nextStatusMap: Record<string, Form['status']> = {
         publish: 'PUBLISHED',
         unpublish: 'DRAFT',
@@ -1064,7 +1064,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
       persisted = true;
       refetchAll(true);
     } catch (err: any) {
-      toast.error('Not Saved to Server', err?.message || `Could not record this entry for "${selectedClosedForm.title}" — showing an unsaved local preview only.`);
+      toast.error('Not Saved to Server', err?.message || `Could not record this entry for "${selectedClosedForm.title}". Showing an unsaved local preview only.`);
     }
 
     let foundName = '';
@@ -1100,7 +1100,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
     if (!flag) return;
     const nextEnabled = !flag.is_enabled;
 
-    // Optimistic — flip immediately for instant toggle feedback, then best-effort
+    // Optimistic - flip immediately for instant toggle feedback, then best-effort
     // persist. The backend's FeatureFlagViewSet looks flags up by `key`, not `id`.
     setFlags((prev) => prev.map((f) => (f.id === id ? { ...f, is_enabled: nextEnabled } : f)));
     fetchApi(`/feature-flags/${flag.key}/`, {
@@ -1112,7 +1112,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         toast.success(nextEnabled ? 'Module Enabled' : 'Module Disabled', `"${flag.name}" is now ${nextEnabled ? 'live' : 'hidden'} for all visitors.`);
       })
       .catch((err: any) => {
-        // Roll the optimistic flip back — the toggle above never actually
+        // Roll the optimistic flip back - the toggle above never actually
         // persisted, so the UI must not keep claiming it did.
         setFlags((prev) => prev.map((f) => (f.id === id ? { ...f, is_enabled: !nextEnabled } : f)));
         toast.error('Not Saved to Server', err?.message || `Could not update "${flag.name}". Reverted.`);

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export default function AdminAuditLogsPage() {
   // This page only renders the audit log table, so scope the shared admin
-  // data hook to audit logs — it would otherwise also fetch the full user
+  // data hook to audit logs - it would otherwise also fetch the full user
   // list, all forms, all flags, and all submissions on mount and every poll.
   const { auditLogs, isLoadingAuditLogs } = useAdminData({ include: ['audit'] });
 

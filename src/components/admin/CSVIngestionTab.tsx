@@ -928,7 +928,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                               {row.normalized_data.email ||
                                 row.normalized_data.club_id ||
                                 row.normalized_data.title ||
-                                '—'}
+                                '-'}
                             </td>
                             <td className="p-3 text-slate-600 dark:text-slate-400 truncate max-w-xs">
                               {JSON.stringify(row.normalized_data)}

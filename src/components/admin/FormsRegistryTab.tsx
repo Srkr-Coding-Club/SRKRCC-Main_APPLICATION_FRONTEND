@@ -65,7 +65,7 @@ const STATUS_BORDER: Record<string, string> = {
 
 // Dark-mode-only color values (bare `-400` text on `-500/15` bg with no light
 // variant) read fine on a dark page but fail WCAG AA once the same classes
-// render on a light background — e.g. amber-400 on amber-500/15 is ~1.5:1 on
+// render on a light background - e.g. amber-400 on amber-500/15 is ~1.5:1 on
 // white, nowhere near the 4.5:1 minimum. Every badge/button below now pairs a
 // light-mode-safe `-700 text / -50 bg / -200 border` triad with the existing
 // dark-mode triad via `dark:`, mirroring the pattern already used for
@@ -79,19 +79,19 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 // Solid brand-orange buttons: Tailwind's orange-500 (#F97316) only gives white
-// text ~2.8:1 contrast — same failure class as the nav pill gradient. #C2410C
+// text ~2.8:1 contrast - same failure class as the nav pill gradient. #C2410C
 // (orange-700) is the same accessible value already used to fix that pill.
 const BTN_PRIMARY = 'bg-[#C2410C] hover:bg-[#9A3412] text-white shadow';
 
 // "Ghost" tier for the less-common / cautionary lifecycle actions (Undo
-// Publish, Cancel Schedule, Close Form) — outline-only at rest, so they read
+// Publish, Cancel Schedule, Close Form) - outline-only at rest, so they read
 // as lower-weight than the filled secondary/primary buttons next to them.
 const BTN_GHOST_AMBER =
   'bg-transparent hover:bg-amber-50 dark:hover:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-500/40';
 const BTN_GHOST_SLATE =
   'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700';
 
-// Filled "secondary" tier — the default weight for everything that isn't
+// Filled "secondary" tier - the default weight for everything that isn't
 // primary or ghost.
 const BTN_SECONDARY_BLUE =
   'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 dark:text-blue-400 dark:border-blue-500/30';
@@ -174,7 +174,7 @@ export function FormsRegistryTab({
   }, [activeForms, search, statusFilter, sortBy, localFormOverrides]);
 
   // Per-tab counts respect the search box (so typing narrows every tab
-  // consistently) but not the currently-selected status tab itself —
+  // consistently) but not the currently-selected status tab itself -
   // otherwise every non-active tab would always read 0.
   const statusCounts = useMemo(() => {
     const searched = activeForms.filter((f) => matchesSearch(f, search));
@@ -461,7 +461,7 @@ export function FormsRegistryTab({
           </div>
 
           {/* Forms Card List */}
-          {/* pb-14 lets the last card(s) scroll clear of the bottom-left corner —
+          {/* pb-14 lets the last card(s) scroll clear of the bottom-left corner -
               in dev, Next.js's own dev-tools indicator renders fixed there and can
               sit on top of a card's last line of text otherwise (dev-only chrome,
               stripped from production builds, but this keeps it from blocking
@@ -635,7 +635,7 @@ export function FormsRegistryTab({
 
                 <div className="flex items-center flex-wrap gap-2 pt-1">
                   
-                  {/* Edit in Builder — one of the 2 most-common actions, so it's the
+                  {/* Edit in Builder - one of the 2 most-common actions, so it's the
                       solid/primary button in this toolbar. */}
                   <button
                     onClick={() => {
@@ -662,7 +662,7 @@ export function FormsRegistryTab({
                   {/* Lifecycle: If DRAFT */}
                   {selectedForm.status === 'DRAFT' && (
                     <>
-                      {/* 2-stop gradient (not 3) — the dropped #FFA500 stop gave white
+                      {/* 2-stop gradient (not 3) - the dropped #FFA500 stop gave white
                           text ~2:1 contrast at the light end; #8B2E3B → #C2410C (the
                           same pairing used for the nav pill) stays ~5:1 throughout. */}
                       <button
@@ -686,7 +686,7 @@ export function FormsRegistryTab({
                   {/* Lifecycle: If PUBLISHED */}
                   {selectedForm.status === 'PUBLISHED' && (
                     <>
-                      {/* Ghost tier — less-common/cautionary action, deliberately
+                      {/* Ghost tier - less-common/cautionary action, deliberately
                           lower visual weight than the filled buttons around it. */}
                       <button
                         onClick={() => confirmedAction('unpublish', 'Unpublish this form? It will be hidden from the public forms list and reverted to Draft.')}
@@ -773,7 +773,7 @@ export function FormsRegistryTab({
                     </>
                   )}
 
-                  {/* View Responses — the other of the 2 most-common actions. */}
+                  {/* View Responses - the other of the 2 most-common actions. */}
                   <button
                     onClick={() => onSwitchSubtab('responses', selectedForm.slug)}
                     className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition active:scale-95 ${BTN_PRIMARY}`}
@@ -823,7 +823,7 @@ export function FormsRegistryTab({
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Responses</span>
                       <div className="text-xl font-black text-[#1A1A2E] dark:text-white mt-1">{selectedForm.response_count ?? 0}</div>
                       {(selectedForm.response_count ?? 0) === 0 && (
-                        <p className="text-[10px] text-slate-400 mt-0.5">None yet — share the live link</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">None yet. Share the live link</p>
                       )}
                     </div>
                     <div className="glass-panel p-3 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -867,7 +867,7 @@ export function FormsRegistryTab({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs">
                       <AlertTriangle className="w-4 h-4" />
-                      <span>{selectedForm.status === 'DRAFT' ? 'Draft Mode — Not Published' : 'Form Closed'}</span>
+                      <span>{selectedForm.status === 'DRAFT' ? 'Draft Mode: Not Published' : 'Form Closed'}</span>
                     </div>
 
                     <button

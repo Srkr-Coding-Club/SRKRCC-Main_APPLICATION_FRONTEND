@@ -19,7 +19,7 @@ interface EventItem {
   accent: string;
   formSlug?: string;
   closed: boolean;
-  /** When the linked form stops accepting submissions — distinct from `date`/`time` above (when the event itself happens). */
+  /** When the linked form stops accepting submissions - distinct from `date`/`time` above (when the event itself happens). */
   registrationClosesLabel: string | null;
 }
 
@@ -238,7 +238,7 @@ export default function UpcomingEventsGrid() {
             }
           }}
         >
-          {/* Fixed-height frame — keeps the card from collapsing during a slide  */}
+          {/* Fixed-height frame - keeps the card from collapsing during a slide  */}
           {/* swap, which is what made the Register button appear to flicker in   */}
           {/* and out. Both slides are absolutely stacked so the new one can      */}
           {/* enter while the old one leaves (no empty gap).                      */}

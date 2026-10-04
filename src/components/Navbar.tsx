@@ -52,7 +52,7 @@ const navItems: NavItem[] = [
   { label: 'Blogs', href: '/blogs' },
 ];
 
-// Routes gated by an admin-toggleable module flag — Events itself and its
+// Routes gated by an admin-toggleable module flag - Events itself and its
 // "Upcoming Workshops" child stay unconditional per the club's own rules.
 const GATED_ROUTES: Record<string, string> = {
   '/hackathons': 'hackathons',
@@ -98,7 +98,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
     // The optimistic read above trusts localStorage + a plain role cookie, which
     // can outlive the real server session (expired/invalidated elsewhere) and
     // keep showing a signed-in navbar for a user who isn't actually authenticated.
-    // Validate on mount, and again whenever this tab regains focus — otherwise a
+    // Validate on mount, and again whenever this tab regains focus - otherwise a
     // role change made elsewhere (e.g. an admin promoting this member to
     // CLUB_LEAD) never reaches an already-open tab until a hard refresh.
     syncFromServer();
@@ -145,7 +145,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
     (item) => pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false),
   );
   // The sliding pill sits under the hovered tab, or the active tab when nothing
-  // is hovered — so ONLY that tab gets white text. Previously the active tab
+  // is hovered - so ONLY that tab gets white text. Previously the active tab
   // stayed white after the pill slid away to a hovered sibling, making its
   // label read as invisible on the light bar.
   const pillLabel = hovered ?? activeNavItem?.label ?? null;
@@ -164,7 +164,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
 
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-[72px]'}`}>
-          {/* Logo — sits directly on the bar, no card wrapper */}
+          {/* Logo - sits directly on the bar, no card wrapper */}
           <Link href="/" className="group flex items-center gap-2.5" aria-label="SRKR Coding Club Home">
             <motion.div whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
               <BrainLogo size={30} showRays={false} animated={false} />
@@ -179,7 +179,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             </div>
           </Link>
 
-          {/* Center — segmented sliding-pill nav, a different silhouette than an underline */}
+          {/* Center - segmented sliding-pill nav, a different silhouette than an underline */}
           <nav
             className="hidden md:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
             onMouseLeave={() => setHovered(null)}
@@ -216,7 +216,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                       layoutId="nav-pill"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       className="absolute inset-0 rounded-full -z-0"
-                      // See AdminNavbar.tsx — #FF7A00 fails WCAG AA contrast against
+                      // See AdminNavbar.tsx - #FF7A00 fails WCAG AA contrast against
                       // white pill text (~2.6:1); #C2410C keeps it readable (~5:1).
                       style={{ background: 'linear-gradient(120deg, #8B2E3B, #C2410C)' }}
                     />
@@ -333,7 +333,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
       </div>
     </header>
 
-      {/* Fullscreen mobile menu — rendered as a sibling of <header>, not a       */}
+      {/* Fullscreen mobile menu - rendered as a sibling of <header>, not a       */}
       {/* descendant, because the header's backdrop-blur creates a new           */}
       {/* containing block for fixed-position children (per the CSS spec, any    */}
       {/* ancestor with backdrop-filter/filter/transform does this), which would */}

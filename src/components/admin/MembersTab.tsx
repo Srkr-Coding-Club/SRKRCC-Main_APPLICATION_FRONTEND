@@ -395,18 +395,18 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                       {/* Branch */}
                       <td className="px-5 py-3.5">
                         <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-[10px]">
-                          {m.branch || '—'}
+                          {m.branch || '-'}
                         </span>
                       </td>
 
                       {/* Phone */}
                       <td className="px-5 py-3.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                        {m.phone_number || '—'}
+                        {m.phone_number || '-'}
                       </td>
 
                       {/* Referred By */}
                       <td className="px-5 py-3.5 text-[11px] text-orange-400 font-semibold truncate max-w-[140px]">
-                        {m.referred_by_display || m.referred_by_raw || '—'}
+                        {m.referred_by_display || m.referred_by_raw || '-'}
                       </td>
 
                       {/* Joined Date */}
@@ -415,7 +415,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                           ? new Date(m.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                           : m.created_at
                           ? new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                          : '—'}
+                          : '-'}
                       </td>
 
                       {/* Membership Status */}

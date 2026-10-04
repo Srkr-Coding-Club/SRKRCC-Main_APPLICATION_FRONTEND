@@ -20,7 +20,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
     // localStorage and the non-HttpOnly srkrcc_user_role cookie are both editable from
     // devtools, so they're used only for the optimistic "who am I" display below while
-    // the real check runs — never to decide whether protected content renders. Access
+    // the real check runs - never to decide whether protected content renders. Access
     // is always gated on the authoritative server response.
     if (!silent) {
       setCurrentUser(getStoredUser());
@@ -41,7 +41,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
       // Fail closed on the initial (loud) check: a network error verifying the
       // session is not proof of admin access. A silent background recheck
       // failing is more likely a transient blip from switching tabs, so it
-      // leaves existing access alone rather than yanking it away mid-task —
+      // leaves existing access alone rather than yanking it away mid-task -
       // the next successful check (or the next full page load) will still
       // catch a real revocation.
       if (!silent) {
@@ -58,7 +58,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     checkPermissions();
-    // Silently re-check on focus too — this is the actual access gate, so a
+    // Silently re-check on focus too - this is the actual access gate, so a
     // role change made elsewhere while this tab sat open (promoted to admin,
     // or demoted away from it) should take effect the moment the tab is
     // looked at again, not only at the next hard refresh. Silent so it
@@ -183,7 +183,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     );
   }
 
-  // AdminNavbar renders here, not in the root layout's NavbarSwitcher —
+  // AdminNavbar renders here, not in the root layout's NavbarSwitcher -
   // that way its nav links, module names, and role badge are only ever
   // shown once we've actually confirmed the viewer is an admin/club lead,
   // never just because the URL starts with /admin.

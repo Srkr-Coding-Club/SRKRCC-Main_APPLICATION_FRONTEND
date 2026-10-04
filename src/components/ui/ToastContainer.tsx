@@ -8,7 +8,7 @@ const ToastCard: React.FC<{ toast: ToastItem; onDismiss: (id: string) => void }>
   const [progress, setProgress] = useState(100);
   const duration = toast.duration || 4000;
 
-  // Remaining time (ms) as of the last time the timer was (re)started — used
+  // Remaining time (ms) as of the last time the timer was (re)started - used
   // so hover/focus can pause the countdown and resume from where it left off.
   const remainingRef = useRef(duration);
   const runStartRef = useRef(Date.now());

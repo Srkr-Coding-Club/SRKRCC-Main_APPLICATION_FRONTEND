@@ -27,7 +27,7 @@
   --font-inter: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Theme-aware glow tokens — darker/muted orange in light mode so ambient
+  /* Theme-aware glow tokens - darker/muted orange in light mode so ambient
      glows read as a subtle warm tint instead of a garish wash; vivid in dark */
   --glow-rgb: 154, 52, 18;
   --glow-strong: rgba(154, 52, 18, 0.20);
@@ -192,7 +192,7 @@ html {
   animation: spinSlow 20s linear infinite;
 }
 
-/* Dot-Grid Background — About section's own texture, distinct from the hero's line grid */
+/* Dot-Grid Background - About section's own texture, distinct from the hero's line grid */
 .bg-dot-grid {
   background-image: radial-gradient(rgba(26, 26, 46, 0.14) 1px, transparent 1px);
   background-size: 26px 26px;
@@ -257,7 +257,7 @@ html {
   filter: drop-shadow(0 0 34px var(--glow-mid));
 }
 
-/* Hero — one ambient glow drift + a one-shot rise, both transform-only so
+/* Hero - one ambient glow drift + a one-shot rise, both transform-only so
    they never trigger layout/paint. The global prefers-reduced-motion rule
    further down neutralises the infinite drift automatically. */
 @keyframes heroRise {
@@ -320,7 +320,7 @@ html {
   animation: blinkCursor 1s step-end infinite;
 }
 
-/* Announcement Ticker Marquee — track holds content twice back-to-back and
+/* Announcement Ticker Marquee - track holds content twice back-to-back and
    scrolls exactly -50%, so the loop point is seamless regardless of content
    width (see AnnouncementBannerClient.tsx). */
 @keyframes marqueeScroll {

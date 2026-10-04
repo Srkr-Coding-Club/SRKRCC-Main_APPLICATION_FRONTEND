@@ -12,7 +12,7 @@ export type AnnouncementType = 'INFO' | 'SUCCESS' | 'WARNING' | 'URGENT';
 export interface Announcement {
   id: number;
   title: string;
-  /** Markdown — rendered via MarkdownRenderer, same as Event/Hackathon descriptions. */
+  /** Markdown - rendered via MarkdownRenderer, same as Event/Hackathon descriptions. */
   message: string;
   type: AnnouncementType;
   is_active: boolean;
@@ -59,7 +59,7 @@ export interface Event {
   registration_form?: number | null;
   form_slug?: string;
   form_title?: string;
-  /** When the linked form opens/closes to new submissions — distinct from start_time/end_time (when the event itself happens). */
+  /** When the linked form opens/closes to new submissions - distinct from start_time/end_time (when the event itself happens). */
   registration_opens_at?: string | null;
   registration_closes_at?: string | null;
   registration_count?: number;
@@ -92,6 +92,7 @@ export interface Hackathon {
   team_edits_locked?: boolean;
   required_profile_fields?: ProfileFieldKey[];
   is_registration_open?: boolean;
+  allow_open_innovation?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +111,8 @@ export interface ProblemStatement {
   code: string;
   title: string;
   description: string;
-  category: string;
+  /** The problem's domain (e.g. EdTech). */
+  domain: string;
   tags: string[];
   max_teams: number | null;
   is_active: boolean;
@@ -124,7 +126,16 @@ export interface ProblemStatementBrief {
   id: number;
   code: string;
   title: string;
-  category: string;
+  domain: string;
+}
+
+/** A team's own problem when it goes open innovation instead of picking a statement. */
+export interface OpenInnovationProblem {
+  /** Generated ID, OI-<team id>. */
+  code?: string;
+  title: string;
+  description: string;
+  domain: string;
 }
 
 export interface HackathonTeamMember {
@@ -150,6 +161,7 @@ export interface HackathonTeamInvite {
   invited_user: { id: number; name: string; email: string };
   invited_by_name: string | null;
   problem_statement: ProblemStatementBrief | null;
+  is_open_innovation: boolean;
   member_count: number;
   status: TeamInviteStatus;
   created_at: string;
@@ -174,6 +186,8 @@ export interface HackathonTeam {
   hackathon_slug: string;
   status: HackathonTeamStatus;
   problem_statement: ProblemStatementBrief | null;
+  /** Set (and problem_statement null) when the team brought its own problem. */
+  open_innovation: OpenInnovationProblem | null;
   leader_id: number | null;
   members: HackathonTeamMember[];
   member_count: number;
@@ -252,6 +266,8 @@ export interface AdminRoundEntry {
   leader_email: string | null;
   member_count: number;
   problem_statement: ProblemStatementBrief | null;
+  /** PS-001 for a statement, OI-<id> for open innovation. */
+  problem_code: string | null;
   status: RoundEntryStatus;
   admin_notes: string;
   feedback: string;
@@ -285,12 +301,13 @@ export interface HackathonStats {
   teams_total: number;
   participants: number;
   pending_invites: number;
+  open_innovation_teams: number;
   problem_statements: { id: number; code: string; title: string; teams: number; max_teams: number | null }[];
   rounds: ({ id: number; order: number; name: string; results_published: boolean; total: number; details_submitted: number } & Record<RoundEntryStatus, number>)[];
   is_registration_open: boolean;
 }
 
-/** IconCoders is an individual DSA-challenge competition — its own entity,
+/** IconCoders is an individual DSA-challenge competition - its own entity,
  * not a flagship Hackathon row (they're structurally different: individual
  * vs. team-based). */
 export interface IconCodersChallenge {
@@ -327,7 +344,7 @@ export interface Problem {
   constraints?: string;
   sample_input?: string;
   sample_output?: string;
-  /** Where to actually solve it — a LeetCode/GFG/etc. problem page. No in-house judge exists. */
+  /** Where to actually solve it - a LeetCode/GFG/etc. problem page. No in-house judge exists. */
   external_url?: string;
   external_platform?: string;
 }
@@ -377,7 +394,7 @@ export interface BlogPost {
 }
 
 /**
- * Canonical validation-rule shape — a strict superset of what the builder used to
+ * Canonical validation-rule shape - a strict superset of what the builder used to
  * write. Mirrors `apps/forms/validation/schema.py::RULE_COMPAT` on the backend;
  * both sides enforce the same keys.
  */
@@ -528,7 +545,7 @@ export type FieldType =
   | 'SIGNATURE'
   | 'CLUB_ID';
 
-/** Profile attribute a FormField can be bound to via FormField.profile_field — see apps.forms.models.ProfileField (backend). */
+/** Profile attribute a FormField can be bound to via FormField.profile_field - see apps.forms.models.ProfileField (backend). */
 export type ProfileFieldKey =
   | 'full_name'
   | 'email'
@@ -557,7 +574,7 @@ export interface FormField {
   validation_rules?: ValidationRules;
   order: number;
   is_deleted?: boolean;
-  /** When set, this question is never asked of the user — the server resolves it from the submitter's own profile at submission time and it renders read-only. */
+  /** When set, this question is never asked of the user - the server resolves it from the submitter's own profile at submission time and it renders read-only. */
   profile_field?: ProfileFieldKey | null;
 }
 
@@ -587,7 +604,7 @@ export interface Form {
   club_id_verification_enabled?: boolean;
   confirmation_email_enabled?: boolean;
   confirmation_email_template?: number | string | null;
-  /** QR-code attendance tracking — see apps/forms/models.py's attendance_* fields. */
+  /** QR-code attendance tracking - see apps/forms/models.py's attendance_* fields. */
   attendance_enabled?: boolean;
   attendance_start_date?: string | null;
   attendance_days?: number;
@@ -600,10 +617,10 @@ export interface Form {
 }
 
 // ---------------------------------------------------------------------------
-// QR-code attendance types — see apps/attendance/serializers.py & views.py
+// QR-code attendance types - see apps/attendance/serializers.py & views.py
 // ---------------------------------------------------------------------------
 
-/** GET /api/forms/<id>/attendance/sessions/ — one row per scannable session. */
+/** GET /api/forms/<id>/attendance/sessions/ - one row per scannable session. */
 export interface AttendanceSession {
   id: number;
   form: number;
@@ -615,7 +632,7 @@ export interface AttendanceSession {
   closes_at: string | null;
 }
 
-/** GET /api/forms/<id>/attendance/my-badge/ — the caller's own badge. */
+/** GET /api/forms/<id>/attendance/my-badge/ - the caller's own badge. */
 export interface AttendanceBadge {
   token: string;
   response_id: number;
@@ -661,7 +678,7 @@ export interface AttendanceReport {
   registrants: AttendanceRegistrantRow[];
 }
 
-/** GET /api/forms/<id>/attendance/my-record/ — the caller's own session-by-session attendance. */
+/** GET /api/forms/<id>/attendance/my-record/ - the caller's own session-by-session attendance. */
 export interface MyAttendanceSessionRow {
   id: number;
   day_index: number;

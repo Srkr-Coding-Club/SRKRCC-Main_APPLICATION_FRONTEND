@@ -1,6 +1,6 @@
 /**
  * src/lib/dmc-api.ts
- * DMC API client — thin wrapper over fetchApi for all DMC endpoints.
+ * DMC API client - thin wrapper over fetchApi for all DMC endpoints.
  */
 
 import { fetchApi } from './api-client';

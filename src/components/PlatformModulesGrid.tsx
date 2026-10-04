@@ -109,7 +109,7 @@ function RailColumn({ m, isActive, enabled, onActivate }: { m: ModuleItem; isAct
               <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-3xl opacity-40 pointer-events-none" style={{ background: m.accent }} />
             )}
 
-            {/* Giant watermark icon — premium background texture when expanded */}
+            {/* Giant watermark icon - premium background texture when expanded */}
             <motion.div
               className="absolute -right-6 -bottom-6 pointer-events-none"
               animate={{ opacity: isActive ? 1 : 0, scale: isActive ? 1 : 0.85 }}
@@ -118,7 +118,7 @@ function RailColumn({ m, isActive, enabled, onActivate }: { m: ModuleItem; isAct
               <Icon className="w-40 h-40" strokeWidth={0.75} style={{ color: m.accent, opacity: 0.08 }} />
             </motion.div>
 
-            {/* Icon — always present, slides position */}
+            {/* Icon - always present, slides position */}
             <div
               className="absolute rounded-full flex items-center justify-center border transition-all duration-500"
               style={{
@@ -315,7 +315,7 @@ export default function PlatformModulesGrid({ enabledMap }: { enabledMap: Record
           </motion.p>
         </div>
 
-        {/* Desktop — expanding rail. A single grid-template-columns transition on
+        {/* Desktop - expanding rail. A single grid-template-columns transition on
             this container (rather than a flex-grow transition on every column)
             keeps the reflow-on-hover contained to one property on one element
             instead of six. */}
@@ -338,7 +338,7 @@ export default function PlatformModulesGrid({ enabledMap }: { enabledMap: Record
           ))}
         </motion.div>
 
-        {/* Mobile / tablet — accordion */}
+        {/* Mobile / tablet - accordion */}
         <div className="lg:hidden border-t border-black/[0.06] dark:border-white/[0.08]">
           {MODULES.map((m) => (
             <AccordionRow

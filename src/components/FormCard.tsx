@@ -113,7 +113,7 @@ return (
     <div ref={cardRef} className="h-full w-full pt-2 pb-6">
       <div className="form-card glass-panel group relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-white/10">
         {/* ========================================= */}
-        {/* POSTER — glassmorphic gradient background */}
+        {/* POSTER - glassmorphic gradient background */}
         {/* ========================================= */}
 
         <div className="relative h-48 w-full overflow-hidden rounded-t-xl">
@@ -190,7 +190,7 @@ return (
         </div>
 
         {/* ========================================= */}
-        {/* BOTTOM CONTENT — unchanged */}
+        {/* BOTTOM CONTENT - unchanged */}
         {/* ========================================= */}
 
         <div

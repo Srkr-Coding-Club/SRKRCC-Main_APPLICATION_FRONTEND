@@ -7,7 +7,7 @@ import { EmailTemplateSummary } from '@/lib/types';
 import { useToast } from '@/context/ToastContext';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
-// Mirrors GLOBAL_ALLOWED_PARAMETERS in apps/core/services/email_service.py — every
+// Mirrors GLOBAL_ALLOWED_PARAMETERS in apps/core/services/email_service.py - every
 // chip inserted here is guaranteed to render server-side, since the backend rejects
 // any {{param}} outside this whitelist rather than executing arbitrary template code.
 const PLACEHOLDER_CHIPS = [
@@ -167,7 +167,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
       }
     } else if (saveAsTemplate) {
       // Persist the broadcast as a real, reusable EmailTemplate before dispatching so it
-      // isn't lost after this one send — same pattern as the mode === 'select' branch above.
+      // isn't lost after this one send - same pattern as the mode === 'select' branch above.
       setSubmitting(true);
       try {
         const name = `dmc_broadcast_${Date.now().toString(36)}`;
@@ -211,7 +211,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
         body: JSON.stringify({
           ...templateRef,
           recipients: recipients.map((r) => r.email),
-          campaign_name: campaignName || `Data Explorer Broadcast — ${new Date().toLocaleDateString()}`,
+          campaign_name: campaignName || `Data Explorer Broadcast: ${new Date().toLocaleDateString()}`,
         }),
       });
       toast.success('Email Dispatched', `Sent to ${result.sent_count}/${result.total_recipients} recipient(s).`);
@@ -285,7 +285,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
               </div>
             ) : templates.length === 0 ? (
               <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-6">
-                No saved templates yet — switch to &quot;Draft New&quot; to create one.
+                No saved templates yet. Switch to &quot;Draft New&quot; to create one.
               </p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -401,7 +401,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
                     ))}
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Only these placeholders are recognized — anything else is rejected before sending.
+                    Only these placeholders are recognized: anything else is rejected before sending.
                   </p>
                 </div>
               </>

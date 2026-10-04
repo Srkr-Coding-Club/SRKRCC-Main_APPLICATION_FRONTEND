@@ -2,7 +2,7 @@
  * Field rules for the signup and sign-in forms.
  *
  * These mirror `apps/accounts/validators.py` and `RegisterSerializer` on the
- * Django side. The server is the authority — this copy exists so a member sees
+ * Django side. The server is the authority - this copy exists so a member sees
  * the problem as they type instead of after a round trip. If a rule changes in
  * one place it must change in the other, or the form will accept input the API
  * then rejects.
@@ -73,7 +73,7 @@ export function sanitizeRollNumberInput(value: string): string {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, ROLL_NUMBER_LENGTH);
 }
 
-/** Optional field — an empty value is valid (nothing to validate). */
+/** Optional field - an empty value is valid (nothing to validate). */
 export function validateRollNumber(value: string): string | undefined {
   const roll = sanitizeRollNumberInput(value);
   if (!roll) return undefined;
@@ -96,7 +96,7 @@ export function sanitizePhoneNumberInput(value: string): string {
   return value.replace(/\D/g, '').slice(0, PHONE_NUMBER_LENGTH);
 }
 
-/** Optional field — an empty value is valid (nothing to validate). */
+/** Optional field - an empty value is valid (nothing to validate). */
 export function validatePhoneNumber(value: string): string | undefined {
   const phone = value.replace(/\D/g, '');
   if (!phone) return undefined;
@@ -121,7 +121,7 @@ export function validateAffiliateId(value: string): string | undefined {
   if (!id) return 'Affiliate ID is required when you mark yourself as an affiliate.';
   const match = AFFILIATE_ID_REGEX.exec(id);
   if (!match) {
-    return 'Affiliate ID must look like 25SCC277 — two-digit year, three letters, then the number.';
+    return 'Affiliate ID must look like 25SCC277: two-digit year, three letters, then the number.';
   }
   if (match[2] !== AFFILIATE_PREFIX) {
     return `Affiliate ID prefix must be ${AFFILIATE_PREFIX}, e.g. 25${AFFILIATE_PREFIX}277.`;
@@ -141,8 +141,8 @@ export interface PasswordRule {
 }
 
 /**
- * Extracts the identity fragments a password must not contain — the local
- * part of an email, and each word of a name — mirroring what Django's
+ * Extracts the identity fragments a password must not contain - the local
+ * part of an email, and each word of a name - mirroring what Django's
  * UserAttributeSimilarityValidator checks server-side. Fragments under 4
  * characters are skipped: they'd false-positive on common short syllables.
  */
@@ -167,7 +167,7 @@ function containsIdentityFragment(password: string, identifiers: Array<string | 
 
 /**
  * The checklist rendered under the password field. Same rules the server
- * enforces — the "no personal info" rule only appears when `identifiers` is
+ * enforces - the "no personal info" rule only appears when `identifiers` is
  * given, so the meter and checklist never disagree with the blocking error:
  * a password can't show as fully green/"Strong" while still being rejected
  * for containing the member's own name or email.
@@ -224,7 +224,7 @@ export function validatePasswordConfirmation(password: string, confirmation: str
 
 /**
  * 0–4 score driving the strength meter. Presentation only; not a gate on its
- * own — but it factors in the identity rule (when `identifiers` is passed) so
+ * own - but it factors in the identity rule (when `identifiers` is passed) so
  * it can never read "Strong" while that rule is the reason submission is
  * blocked.
  */

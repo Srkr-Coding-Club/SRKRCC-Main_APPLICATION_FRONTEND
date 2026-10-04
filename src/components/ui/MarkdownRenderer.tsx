@@ -77,11 +77,11 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
         continue;
       }
 
-      // Image: ![alt](url) — must be checked before the link pattern below,
+      // Image: ![alt](url) - must be checked before the link pattern below,
       // since "![alt](url)" would otherwise fall through un-matched on the
       // leading "!" (it isn't "[", so the link regex never fires on it), then
       // the next pass sees a bare "[alt](url)" and renders it as a clickable
-      // text link instead of an image — the exact bug this fixes.
+      // text link instead of an image - the exact bug this fixes.
       const imageMatch = remaining.match(/^!\[([^\]]*)\]\(([^)]+)\)/);
       if (imageMatch) {
         const [, alt, src] = imageMatch;
@@ -148,13 +148,13 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
         continue;
       }
 
-      // Plain text character chunk — "!" is included here (even though it has
+      // Plain text character chunk - "!" is included here (even though it has
       // no rendering of its own) so a chunk never swallows the "!" that
       // belongs to a following "![alt](url)" image marker. Without it, this
       // scan finds the "[" one character later, the chunk ends up including
       // "...text!" with the "!" glued onto its end, and by the time control
       // returns to the top of the loop "remaining" starts with "[alt](url)"
-      // — the image branch above never gets to see the "!" it requires.
+      // - the image branch above never gets to see the "!" it requires.
       const nextSpecial = remaining.search(/[`\[\*_!]/);
       if (nextSpecial === -1) {
         tokens.push(<span key={keyIdx++}>{remaining}</span>);
@@ -205,7 +205,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       continue;
     }
 
-    // GFM Table — a row containing "|" whose very next line is a separator
+    // GFM Table - a row containing "|" whose very next line is a separator
     // row (| --- | --- |) is a table header; every following "|"-row is a
     // body row until a blank line or a line that stops containing "|".
     if (trimmed.includes('|') && i + 1 < lines.length && isTableSeparatorRow(lines[i + 1])) {

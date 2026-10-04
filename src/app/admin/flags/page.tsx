@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export default function AdminFlagsPage() {
   // This page only renders feature-flag toggles, so scope the shared admin
-  // data hook to flags — it would otherwise also fetch the full user list,
+  // data hook to flags - it would otherwise also fetch the full user list,
   // all forms, all audit logs, and all submissions on mount and every poll.
   const { flags, handleToggleFlag, isLoadingFlags } = useAdminData({ include: ['flags'] });
 

@@ -4,13 +4,13 @@ const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PU
 
 // This proxy deliberately does NOT attempt its own token refresh (it used to,
 // proactively when the access token cookie was missing and reactively on a
-// 401 — see git history). That relied on an in-memory Map in
+// 401 - see git history). That relied on an in-memory Map in
 // src/lib/server/tokenRefresh.ts to dedupe concurrent refresh attempts for
 // the same refresh token, on the assumption that concurrent requests share
 // one Node.js process/module instance. Verified false under real concurrent
 // load (multiple fetchApi calls firing on one page load): of 6 simultaneous
 // requests hitting this route with a valid-but-unused refresh token, only 2
-// got a successful refresh — the other 4 got 401 and the user was logged out
+// got a successful refresh - the other 4 got 401 and the user was logged out
 // even though their session was perfectly valid. Route handlers are not
 // guaranteed to share process-level memory (Next.js's dev server alone can
 // dispatch them across workers), so an in-memory dedup Map is not a reliable
@@ -20,7 +20,7 @@ const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PU
 // refreshAccessToken, called from fetchApi and fetchAndSyncCurrentUser),
 // guarded by a module-level `activeRefreshPromise` singleton. That guarantee
 // IS reliable, because a single browser tab's JS is genuinely single-threaded
-// — there is no equivalent multi-worker ambiguity. This proxy just forwards
+// - there is no equivalent multi-worker ambiguity. This proxy just forwards
 // whatever token exists (or none) and returns Django's response verbatim,
 // including a 401; the client is responsible for refreshing and retrying.
 async function handleProxy(request: NextRequest, params: { path: string[] }) {
@@ -33,12 +33,12 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     const search = request.nextUrl.search || '';
     const targetUrl = `${DJANGO_API_URL}/${normalizedPath}${search}`;
 
-    // Read HttpOnly access token from request cookies — forwarded as-is, no
+    // Read HttpOnly access token from request cookies - forwarded as-is, no
     // refresh attempted here (see module comment above).
     const accessToken = request.cookies.get('srkrcc_access_token')?.value;
     const refreshToken = request.cookies.get('srkrcc_refresh_token')?.value;
 
-    // Short-circuit auth/me if user has neither access nor refresh token —
+    // Short-circuit auth/me if user has neither access nor refresh token -
     // saves a pointless round-trip to Django for a request that can only 401.
     if ((subPath === 'auth/me' || subPath === 'auth/me/') && !accessToken && !refreshToken) {
       return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
@@ -91,7 +91,7 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
       responseHeaders['content-disposition'] = respContentDisposition;
     }
 
-    // No cookie writes here — this route never refreshes, so there is
+    // No cookie writes here - this route never refreshes, so there is
     // nothing rotated to persist and nothing to clear (a genuinely dead
     // refresh token is discovered and cleared by /api/auth/refresh itself,
     // the only place that ever calls Django's token/refresh/ endpoint).

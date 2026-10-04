@@ -24,7 +24,7 @@ import ScrollReveal from '@/components/ScrollReveal';
 export const metadata: Metadata = {
   title: 'About the SRKR Coding Club',
   description:
-    'SRKR Coding Club is a student-run developer community at SRKR Engineering College — we help students learn to code, build real projects, and compete together through events, hackathons, and daily challenges.',
+    'SRKR Coding Club is a student-run developer community at SRKR Engineering College. We help students learn to code, build real projects, and compete together through events, hackathons, and daily challenges.',
 };
 
 const VALUES = [
@@ -32,7 +32,7 @@ const VALUES = [
     icon: Code2,
     title: 'Learn',
     accent: '#8B2E3B',
-    desc: 'Curiosity becomes capability. We run hands-on sessions on fundamentals, development, and emerging tech — open to every branch and every skill level.',
+    desc: 'Curiosity becomes capability. We run hands-on sessions on fundamentals, development, and emerging tech, open to every branch and every skill level.',
   },
   {
     icon: Rocket,
@@ -77,7 +77,7 @@ const MODULES = [
     icon: Terminal,
     title: 'CodeQuest Daily',
     href: '/codequest',
-    desc: 'A fresh algorithmic problem every day to keep your problem-solving sharp — and your streak alive.',
+    desc: 'A fresh algorithmic problem every day to keep your problem-solving sharp, and your streak alive.',
   },
   {
     icon: Briefcase,
@@ -123,11 +123,11 @@ export default function AboutPage() {
               </h2>
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
                 The SRKR Coding Club started with a handful of students who wanted a space to build
-                together outside the classroom. That idea hasn&apos;t changed — it has just grown.
+                together outside the classroom. That idea hasn&apos;t changed. It has just grown.
               </p>
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
                 Today the club runs workshops, hackathons, a daily problem challenge, a technical blog,
-                and a career hub — all on one platform that members and organisers use every week. We
+                and a career hub, all on one platform that members and organisers use every week. We
                 stay deliberately open: no entry test, no fees to participate, and every branch is
                 welcome.
               </p>
@@ -207,7 +207,7 @@ export default function AboutPage() {
               icon={Rocket}
               eyebrow="What We Run"
               title="One club, six ways to get involved"
-              description="Pick whichever fits how you like to learn — or do all of them."
+              description="Pick whichever fits how you like to learn, or do all of them."
             />
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
               {MODULES.map((m) => (

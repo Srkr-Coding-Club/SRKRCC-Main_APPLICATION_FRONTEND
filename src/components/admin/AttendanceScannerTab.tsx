@@ -222,7 +222,7 @@ export function AttendanceScannerTab({ hideReportTab = false }: AttendanceScanne
             sessionText,
             formTitle,
           });
-          toast.success('Checked In', `${res.display_name} — attendance recorded.`);
+          toast.success('Checked In', `${res.display_name}: attendance recorded.`);
         } else {
           setResultBanner({ kind: 'already', displayName: res.display_name, scannedAt: res.scanned_at });
           setRecentScans((prev) => [
@@ -376,7 +376,7 @@ export function AttendanceScannerTab({ hideReportTab = false }: AttendanceScanne
     };
   }, []);
 
-  // Camera lifecycle — single start call without pre-stop races
+  // Camera lifecycle - single start call without pre-stop races
   useEffect(() => {
     if (!cameraActive) {
       setCameraStarting(false);

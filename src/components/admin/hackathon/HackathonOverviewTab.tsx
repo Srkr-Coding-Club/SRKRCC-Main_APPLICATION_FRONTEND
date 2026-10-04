@@ -43,6 +43,9 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
       <div className="grid gap-6 lg:grid-cols-2">
         <section className={`${PANEL} space-y-3`}>
           <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Target className="h-4 w-4 text-[#FF7A00]" /> Problem statement uptake</h3>
+          <p className="text-xs text-slate-500">
+            <span className="font-bold text-[#1A1A2E] dark:text-white">{stats.open_innovation_teams}</span> active team{stats.open_innovation_teams === 1 ? '' : 's'} brought their own problem (open innovation).
+          </p>
           {stats.problem_statements.length === 0 ? (
             <p className="text-sm text-slate-500">No problem statements yet.</p>
           ) : (
@@ -52,7 +55,7 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
                 return (
                   <li key={p.id} className="space-y-1">
                     <div className="flex justify-between gap-2 text-xs">
-                      <span className="font-semibold text-[#1A1A2E] dark:text-white truncate">{p.code} — {p.title}</span>
+                      <span className="font-semibold text-[#1A1A2E] dark:text-white truncate">{p.code}: {p.title}</span>
                       <span className="text-slate-500 shrink-0">{p.teams}{p.max_teams ? ` / ${p.max_teams}` : ''} teams</span>
                     </div>
                     {pct !== null && (

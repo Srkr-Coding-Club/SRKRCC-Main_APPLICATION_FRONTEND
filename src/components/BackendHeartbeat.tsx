@@ -19,7 +19,7 @@ export default function BackendHeartbeat() {
           keepalive: true,
         });
       } catch {
-        // Silent failure — keepalive is non-intrusive and never interrupts user flow
+        // Silent failure - keepalive is non-intrusive and never interrupts user flow
       }
     };
 

@@ -232,12 +232,14 @@ export function EventsHackathonsTab() {
                 <div className="flex items-center flex-wrap gap-x-4 gap-y-1 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500">
                   <span className="flex items-center gap-1">
                     <Users className="w-3.5 h-3.5 text-[#FF7A00]" />
-                    {h.registration_count ?? 0} registrations · {h.team_count ?? 0} teams
+                    {h.team_count ?? 0} teams · size {h.min_team_size ?? 1}–{h.max_team_size ?? 4}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Link2 className="w-3.5 h-3.5 text-[#FF7A00]" />
-                    {h.form_title || 'No form linked'}
-                  </span>
+                  {h.form_title && (
+                    <span className="flex items-center gap-1" title="Legacy registration form: teams now register from the participant dashboard">
+                      <Link2 className="w-3.5 h-3.5 text-[#FF7A00]" />
+                      Legacy form: {h.form_title}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">

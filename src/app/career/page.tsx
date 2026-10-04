@@ -70,7 +70,7 @@ export default async function CareerPage() {
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
               <Briefcase className="h-8 w-8 text-slate-300 dark:text-slate-700" />
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No open opportunities right now.</p>
-              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon — new internships and placement drives are posted regularly.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon. New internships and placement drives are posted regularly.</p>
             </div>
           )}
 

@@ -10,7 +10,7 @@ import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 
 interface HackathonFormPanelProps {
   isOpen: boolean;
-  /** Present in edit mode — the panel is pre-filled and PATCHes this hackathon instead of creating a new one. */
+  /** Present in edit mode - the panel is pre-filled and PATCHes this hackathon instead of creating a new one. */
   hackathon?: Hackathon | null;
   onClose: () => void;
   onSaved: (hackathon: Hackathon) => void;
@@ -156,7 +156,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
           <div className="flex items-center space-x-2">
             <Trophy className="w-5 h-5 text-[#FF7A00]" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
-              {isEditMode ? `Edit Hackathon — ${hackathon!.title}` : 'Launch New Hackathon'}
+              {isEditMode ? `Edit Hackathon: ${hackathon!.title}` : 'Launch New Hackathon'}
             </h3>
           </div>
           <button
@@ -268,7 +268,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
           </div>
 
           <div>
-            <label className={labelClasses}>Registration Form</label>
+            <label className={labelClasses}>Legacy Registration Form <span className="normal-case font-medium text-slate-400">(optional)</span></label>
             <select
               value={registrationForm}
               onChange={(e) => setRegistrationForm(e.target.value)}
@@ -282,7 +282,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
               ))}
             </select>
             <p className="mt-1 text-[11px] text-slate-400">
-              "Register Team" on the public hackathon card will link to this form.
+              Not needed: teams register from the participant dashboard. Set team size, the registration window and problem statements under Manage after saving.
             </p>
           </div>
 

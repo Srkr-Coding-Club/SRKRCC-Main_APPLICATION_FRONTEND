@@ -67,7 +67,7 @@ export default async function EventsPage() {
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
               <Calendar className="h-8 w-8 text-slate-300 dark:text-slate-700" />
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No upcoming events right now.</p>
-              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon — new workshops and seminars are announced regularly.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon. New workshops and seminars are announced regularly.</p>
             </div>
           )}
         </div>

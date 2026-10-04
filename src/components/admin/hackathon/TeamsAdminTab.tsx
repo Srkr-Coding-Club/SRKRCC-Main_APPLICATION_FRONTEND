@@ -19,6 +19,11 @@ const STATUS_OPTIONS = [
   { value: 'WITHDRAWN', label: 'Withdrawn' },
 ];
 
+const OPEN_INNOVATION = 'open_innovation';
+
+/** The ID a team's problem is known by: PS-001, or OI-<id> for open innovation. */
+const problemCode = (t: HackathonTeam) => t.problem_statement?.code ?? t.open_innovation?.code ?? '-';
+
 export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
   const slug = hackathon.slug;
   const { toast } = useToast();
@@ -45,7 +50,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
     const q = search.trim().toLowerCase();
     return teams.filter((t) =>
       (!status || t.status === status)
-      && (!ps || String(t.problem_statement?.id) === ps)
+      && (!ps || (ps === OPEN_INNOVATION ? !!t.open_innovation : String(t.problem_statement?.id) === ps))
       && (!q || t.name.toLowerCase().includes(q) || t.members.some((m) => `${m.name} ${m.email} ${m.roll_number ?? ''}`.toLowerCase().includes(q))),
     );
   }, [teams, search, status, ps]);
@@ -69,7 +74,10 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
     const rows = filtered.flatMap((t) => t.members.map((m) => ({
       team: t.name,
       team_status: t.status,
-      problem_statement: t.problem_statement ? `${t.problem_statement.code} — ${t.problem_statement.title}` : '',
+      problem_id: t.problem_statement?.code ?? t.open_innovation?.code ?? '',
+      problem_title: t.problem_statement?.title ?? t.open_innovation?.title ?? '',
+      problem_domain: t.problem_statement?.domain ?? t.open_innovation?.domain ?? '',
+      open_innovation: t.open_innovation ? 'yes' : 'no',
       role: m.role,
       name: m.name,
       email: m.email,
@@ -94,8 +102,11 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
           className="w-56"
           value={ps}
           onChange={setPs}
-          options={problems.map((p) => ({ value: String(p.id), label: `${p.code} — ${p.title}` }))}
-          placeholder="All problem statements"
+          options={[
+            ...problems.map((p) => ({ value: String(p.id), label: `${p.code}: ${p.title}` })),
+            { value: OPEN_INNOVATION, label: 'Open innovation (own problem)' },
+          ]}
+          placeholder="All problems"
         />
         <button onClick={exportCsv} disabled={filtered.length === 0} className={BTN_GHOST}><Download className="h-3.5 w-3.5" /> Export CSV</button>
       </div>
@@ -122,12 +133,12 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                 return (
                   <tr key={t.id} onClick={() => setSelectedId(t.id)} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03]">
                     <td className="py-2.5 pr-3 font-semibold text-[#1A1A2E] dark:text-white">{t.name}</td>
-                    <td className="py-2.5 pr-3 text-xs text-slate-500">{t.leader_email ?? '—'}</td>
+                    <td className="py-2.5 pr-3 text-xs text-slate-500">{t.leader_email ?? '-'}</td>
                     <td className="py-2.5 pr-3 text-xs">{t.member_count}{t.pending_invites.length ? ` (+${t.pending_invites.length} invited)` : ''}</td>
-                    <td className="py-2.5 pr-3 text-xs font-mono">{t.problem_statement?.code ?? '—'}</td>
+                    <td className="py-2.5 pr-3 text-xs font-mono" title={t.open_innovation ? `Open innovation: ${t.open_innovation.title}` : t.problem_statement?.title}>{problemCode(t)}</td>
                     <td className="py-2.5 pr-3">{pill && <StatusPill tone={pill.tone}>{pill.label}</StatusPill>}</td>
                     <td className="py-2.5 pr-3 text-xs">
-                      {latest ? <span className="flex items-center gap-1.5">R{latest.round_order} <StatusPill tone={ENTRY_STATUS_PILL[latest.status].tone}>{ENTRY_STATUS_PILL[latest.status].label}</StatusPill></span> : '—'}
+                      {latest ? <span className="flex items-center gap-1.5">R{latest.round_order} <StatusPill tone={ENTRY_STATUS_PILL[latest.status].tone}>{ENTRY_STATUS_PILL[latest.status].label}</StatusPill></span> : '-'}
                     </td>
                   </tr>
                 );
@@ -143,8 +154,17 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-2">
                 {TEAM_STATUS_PILL[selected.status] && <StatusPill tone={TEAM_STATUS_PILL[selected.status].tone}>{TEAM_STATUS_PILL[selected.status].label}</StatusPill>}
-                {selected.problem_statement && <span className="text-xs font-semibold text-slate-500">{selected.problem_statement.code} — {selected.problem_statement.title}</span>}
+                {selected.problem_statement && <span className="text-xs font-semibold text-slate-500">{selected.problem_statement.code}: {selected.problem_statement.title}</span>}
+                {selected.open_innovation && <StatusPill tone="purple">Open innovation</StatusPill>}
               </div>
+
+              {selected.open_innovation && (
+                <div className="space-y-1 rounded-lg border border-purple-500/30 bg-purple-500/5 p-3 text-xs">
+                  <p className="font-mono font-bold text-[#8B2E3B] dark:text-rose-300">{selected.open_innovation.code} · {selected.open_innovation.domain}</p>
+                  <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{selected.open_innovation.title}</p>
+                  <p className="whitespace-pre-line text-slate-600 dark:text-slate-300">{selected.open_innovation.description}</p>
+                </div>
+              )}
 
               <div>
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Members</p>
@@ -185,7 +205,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                 <div>
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Pending invites</p>
                   <ul className="space-y-1 text-xs text-slate-500">
-                    {selected.pending_invites.map((i) => <li key={i.id}>{i.invited_user.name} — {i.invited_user.email}</li>)}
+                    {selected.pending_invites.map((i) => <li key={i.id}>{i.invited_user.name} ({i.invited_user.email})</li>)}
                   </ul>
                 </div>
               )}

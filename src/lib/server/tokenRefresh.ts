@@ -10,7 +10,7 @@ export interface RefreshedTokens {
 // each independently POSTing /auth/token/refresh/. That matters because the
 // backend has ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION enabled: the
 // old refresh token is single-use, so a second concurrent call with the same
-// old value gets rejected as "blacklisted" — which the caller (e.g.
+// old value gets rejected as "blacklisted" - which the caller (e.g.
 // fetchAndSyncCurrentUser) previously treated as an expired session and
 // logged the user out, even though the first call's refresh had actually
 // succeeded. This dedup makes every concurrent caller await and share that

@@ -410,7 +410,7 @@ export default function LoginCard({
                 ) : success ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-white" />
-                    <span>{redirecting ? 'Signed in — redirecting…' : 'Signed in'}</span>
+                    <span>{redirecting ? 'Signed in, redirecting…' : 'Signed in'}</span>
                     {redirecting && <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />}
                   </>
                 ) : (

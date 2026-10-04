@@ -1,5 +1,5 @@
 // Only http(s)/mailto/tel and in-app relative paths are safe to hand to a
-// DOM `href`/`src` — blocks `javascript:`/`data:` payloads embedded in
+// DOM `href`/`src` - blocks `javascript:`/`data:` payloads embedded in
 // untrusted content (authored Markdown, form-response file answers) from
 // executing when another viewer clicks or the resource loads.
 const SAFE_URL_SCHEME = /^(https?:|mailto:|tel:)/i;

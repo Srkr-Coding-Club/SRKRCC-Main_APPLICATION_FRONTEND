@@ -66,7 +66,7 @@ export function MarkdownEditor({
   };
 
   /** Inserts a multi-line block (e.g. a table template) at the cursor,
-   * padded with blank lines so it doesn't run into surrounding text — unlike
+   * padded with blank lines so it doesn't run into surrounding text - unlike
    * applyFormat/applyLinePrefix, which wrap/prefix the current selection or
    * line rather than dropping in new standalone lines. */
   const insertBlock = (block: string) => {

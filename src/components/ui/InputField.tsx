@@ -3,7 +3,7 @@
 /**
  * Plain form-field primitives. Same exported API as before
  * (SpotlightInput / SpotlightTextarea / SpotlightSelect / FieldLabel /
- * BottomGradient) so callers don't change — but no mouse-tracking spotlight,
+ * BottomGradient) so callers don't change - but no mouse-tracking spotlight,
  * no motion, no glow. Just a labelled input that looks like a form.
  */
 

@@ -1,7 +1,7 @@
 /**
  * Client-side mirror of the backend validation engine
  * (`apps/forms/validation/`). The backend is the source of truth and
- * re-validates every submission — this module exists so the user gets instant
+ * re-validates every submission - this module exists so the user gets instant
  * per-field feedback and we never POST something the server will reject.
  *
  * `validateSubmission()` is the parity entry point; `validateFieldValue()` is a
@@ -184,7 +184,7 @@ function fieldTypeErrors(field: FormField, value: any): string[] {
       }
       break;
     }
-    // Mirrors backend field_types.py::_validate_matrix — unknown row / unknown
+    // Mirrors backend field_types.py::_validate_matrix - unknown row / unknown
     // column checks, plus "one selection per row" for MATRIX_RADIO.
     case 'MATRIX_RADIO':
     case 'MATRIX_CHECKBOX': {
@@ -312,7 +312,7 @@ function ruleErrors(field: FormField, value: any): string[] {
     if (r.exactSelected != null && arr.length !== r.exactSelected) push(`Select exactly ${r.exactSelected} option(s).`);
   }
 
-  // matrix — mirrors backend rules.py::_required_rows / _all_rows_required / _min_per_row / _max_per_row
+  // matrix - mirrors backend rules.py::_required_rows / _all_rows_required / _min_per_row / _max_per_row
   if (field.type === 'MATRIX_RADIO' || field.type === 'MATRIX_CHECKBOX') {
     const matrixVal: Record<string, any> | null = value && typeof value === 'object' && !Array.isArray(value) ? value : null;
     if (matrixVal) {
@@ -363,7 +363,7 @@ function ruleErrors(field: FormField, value: any): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// Per-field (light) — kept for on-change hints
+// Per-field (light) - kept for on-change hints
 // ---------------------------------------------------------------------------
 
 export function validateFieldValue(field: FormField, value: any, requiredOverride?: boolean): string | null {
@@ -375,7 +375,7 @@ export function validateFieldValue(field: FormField, value: any, requiredOverrid
 }
 
 /**
- * Single-field cross-field check — the same crossField logic `validateSubmission`
+ * Single-field cross-field check - the same crossField logic `validateSubmission`
  * applies across the whole form, scoped to one field so it can be re-run cheaply
  * whenever the field it depends on changes (see page.tsx::handleInputChange).
  */
@@ -422,7 +422,7 @@ export function getCrossFieldError(
 export interface ClientValidationResult {
   errors: SubmissionErrorItem[];
   layout: Layout;
-  /** answers to actually submit — visible, non-empty fields only */
+  /** answers to actually submit - visible, non-empty fields only */
   payload: Record<string, any>;
 }
 

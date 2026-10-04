@@ -52,6 +52,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
   const [publishOpen, setPublishOpen] = useState(false);
   const [announce, setAnnounce] = useState(true);
   const [announceMsg, setAnnounceMsg] = useState('');
+  const [emailShortlisted, setEmailShortlisted] = useState(false);
 
   const loadRounds = useCallback(async () => {
     const r = await hackathonApi.admin.rounds(slug).catch(() => [] as HackathonRound[]);
@@ -184,7 +185,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
   const publish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!round) return;
-    const ok = await run(() => hackathonApi.admin.publishRound(slug, round.id, { announce, message: announceMsg.trim() }), 'Results published');
+    const ok = await run(() => hackathonApi.admin.publishRound(slug, round.id, { announce, message: announceMsg.trim(), email: announce && emailShortlisted }), 'Results published');
     if (ok) setPublishOpen(false);
   };
 
@@ -238,7 +239,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
                   <Link href={`/admin/responses?form=${round.details_form_slug}`} className="font-bold text-[#FF7A00] hover:underline">View responses</Link>
                 </p>
               ) : (
-                <p className="text-xs text-slate-400">No details form attached — edit the round to re-collect details from shortlisted teams.</p>
+                <p className="text-xs text-slate-400">No details form attached. Edit the round to re-collect details from shortlisted teams.</p>
               )}
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -251,7 +252,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
                   <EyeOff className="h-3.5 w-3.5" /> Unpublish
                 </button>
               ) : (
-                <button onClick={() => { setAnnounce(true); setAnnounceMsg(''); setPublishOpen(true); }} disabled={busy} className={BTN_PRIMARY}>
+                <button onClick={() => { setAnnounce(true); setAnnounceMsg(''); setEmailShortlisted(false); setPublishOpen(true); }} disabled={busy} className={BTN_PRIMARY}>
                   <Eye className="h-3.5 w-3.5" /> Publish results
                 </button>
               )}
@@ -314,9 +315,9 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
                         <p className="font-semibold text-[#1A1A2E] dark:text-white">{e.team_name}</p>
                         <p className="text-[11px] text-slate-500">{e.leader_email} · {e.member_count} members</p>
                       </td>
-                      <td className="py-2.5 pr-3 text-xs font-mono">{e.problem_statement?.code ?? '—'}</td>
+                      <td className="py-2.5 pr-3 text-xs font-mono">{e.problem_code ?? '-'}</td>
                       <td className="py-2.5 pr-3"><StatusPill tone={ENTRY_STATUS_PILL[e.status].tone}>{ENTRY_STATUS_PILL[e.status].label}</StatusPill></td>
-                      <td className="py-2.5 pr-3 text-xs">{e.details_response_id ? <span className="text-emerald-600 font-semibold">Submitted</span> : <span className="text-slate-400">—</span>}</td>
+                      <td className="py-2.5 pr-3 text-xs">{e.details_response_id ? <span className="text-emerald-600 font-semibold">Submitted</span> : <span className="text-slate-400">-</span>}</td>
                       <td className="py-2.5 pr-3 text-[11px] text-slate-500 max-w-[260px]">
                         {e.feedback && <p className="truncate" title={e.feedback}><span className="font-semibold">Feedback:</span> {e.feedback}</p>}
                         {e.admin_notes && <p className="truncate text-slate-400" title={e.admin_notes}><span className="font-semibold">Note:</span> {e.admin_notes}</p>}
@@ -359,7 +360,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
             <label className={LABEL}>Details form (re-collect from shortlisted teams)</label>
             <FormSelect value={draft.details_form} onChange={(v) => setDraft((d) => ({ ...d, details_form: v }))} options={formOptions} placeholder="No form" />
             <p className="mt-1 text-[11px] text-slate-400">
-              Build it in the Form Builder (Profile Auto-fill fields work here). Only leaders of teams shortlisted in this round can submit it, once results are published — one response per team.
+              Build it in the Form Builder (Profile Auto-fill fields work here). Only leaders of teams shortlisted in this round can submit it, once results are published. One response per team.
             </p>
           </div>
           <MarkdownEditor label="Description (shown to teams)" value={draft.description} onChange={(v) => setDraft((d) => ({ ...d, description: v }))} placeholder="What happens in this round, what to submit…" />
@@ -400,7 +401,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
           <p className="text-sm text-slate-600 dark:text-slate-300">
             Teams will see whether they were shortlisted, plus any feedback. Shortlisted leaders can then submit the details form.
             {round && round.entry_counts.PENDING > 0 && (
-              <span className="mt-2 block font-semibold text-amber-600">{round.entry_counts.PENDING} team(s) are still pending — they&apos;ll see &quot;Under review&quot;.</span>
+              <span className="mt-2 block font-semibold text-amber-600">{round.entry_counts.PENDING} team(s) are still pending, so they&apos;ll see &quot;Under review&quot;.</span>
             )}
           </p>
           <label className="flex items-center gap-2 text-sm">
@@ -408,7 +409,13 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
             Post an announcement to the shortlisted teams
           </label>
           {announce && (
-            <textarea value={announceMsg} onChange={(e) => setAnnounceMsg(e.target.value)} rows={3} className={INPUT} placeholder="Optional custom message (Markdown). Leave blank for a default congratulations note." />
+            <>
+              <textarea value={announceMsg} onChange={(e) => setAnnounceMsg(e.target.value)} rows={3} className={INPUT} placeholder="Optional custom message (Markdown). Leave blank for a default congratulations note." />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={emailShortlisted} onChange={(e) => setEmailShortlisted(e.target.checked)} className="accent-[#FF7A00]" />
+                Also email it to every member of the shortlisted teams
+              </label>
+            </>
           )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setPublishOpen(false)} disabled={busy} className={BTN_GHOST}>Cancel</button>

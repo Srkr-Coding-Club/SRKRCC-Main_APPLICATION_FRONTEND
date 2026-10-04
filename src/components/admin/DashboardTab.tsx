@@ -82,7 +82,7 @@ export function DashboardTab({
   const publishedCount = publishedForms.filter((f) => f.status === 'PUBLISHED').length;
   const scheduledCount = publishedForms.filter((f) => f.status === 'SCHEDULED').length;
 
-  // --- "Last synced at" feedback — fires whenever isLoading transitions
+  // --- "Last synced at" feedback - fires whenever isLoading transitions
   // true -> false, which only happens on an explicit Sync Now click (the
   // background poll in useAdminData runs silently and never touches
   // isLoading), not on every 8s poll tick.
@@ -251,7 +251,7 @@ export function DashboardTab({
                     {bar.count} registration{bar.count === 1 ? '' : 's'}
                   </div>
                 )}
-                {/* Always-visible data label — resolves "can't tell the actual
+                {/* Always-visible data label - resolves "can't tell the actual
                     numbers" without adding a full Y-axis to a chart this small. */}
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 font-mono">{bar.count}</span>
                 <div
