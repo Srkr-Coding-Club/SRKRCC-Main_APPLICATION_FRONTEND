@@ -9,6 +9,7 @@ import ModuleUnavailable from '@/components/ModuleUnavailable';
 import PageHero from '@/components/PageHero';
 import ProblemCard from '@/components/ProblemCard';
 import SectionHeading from '@/components/SectionHeading';
+import EventsRow from '@/components/EventsRow';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,27 +53,39 @@ export default async function CodeQuestPage() {
           description="A new challenge unlocks at midnight. Solve today's problem, keep your streak alive, and return tomorrow for the next quest."
         />
 
-        <Card>
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+        <Card className="hover:-translate-y-0.5 motion-reduce:transform-none">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <div className="rounded-xl bg-orange-50 p-3 text-[#FF7A00] dark:bg-orange-950/40">
-                <Flame className="h-8 w-8" />
+              <div className="rounded-2xl border border-orange-500/10 bg-orange-500/[0.06] p-3.5 text-[#FF7A00] transition-transform duration-500 ease-out group-hover:rotate-3 group-hover:scale-105 motion-reduce:transition-none">
+                <Flame className="h-7 w-7" strokeWidth={1.8} />
               </div>
-              <div>
-                <p className="text-xs font-bold uppercase text-slate-400">Next CodeQuest unlocks in</p>
-                <h2 className="text-lg font-extrabold text-[#1A1A2E] dark:text-white">One challenge per day</h2>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  Next CodeQuest unlocks in
+                </p>
+                <h2 className="text-lg font-bold text-[var(--foreground)]">One challenge per day</h2>
               </div>
             </div>
-            <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400">
-              <MidnightCountdown />
-            </span>
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200/80 bg-slate-100/70 px-3.5 py-2 text-xs font-medium text-slate-600 transition-colors duration-300 group-hover:border-orange-500/20 dark:border-slate-700/70 dark:bg-slate-800/60 dark:text-slate-300">
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 rounded-full bg-[#FF7A00] motion-safe:animate-pulse"
+              />
+              <span className="font-mono tabular-nums">
+                <MidnightCountdown />
+              </span>
+            </div>
           </div>
         </Card>
 
         <section className="space-y-6">
           <SectionHeading icon={Code2} title="Today's challenge and archive" />
           {problems.length > 0 ? (
-            problems.map((problem) => <ProblemCard key={problem.id} problem={problem} />)
+            <EventsRow
+              cards={problems.map((problem, index) => (
+                <ProblemCard key={problem.id} problem={problem} index={index} />
+              ))}
+            />
           ) : (
             <Card>
               <div className="py-8 text-center">
