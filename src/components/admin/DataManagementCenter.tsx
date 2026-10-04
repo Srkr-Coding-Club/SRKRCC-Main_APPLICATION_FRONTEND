@@ -8,7 +8,7 @@ import {
   Search, Settings, SlidersHorizontal, X, Info, AlertCircle,
   CheckCircle2, Circle, Minus, HelpCircle, ArrowUpDown, ArrowUp, ArrowDown,
   ExternalLink, Users, FileSpreadsheet, Trophy, Calendar, Code2, Briefcase,
-  Layers, ShieldAlert, Sparkles, Mail, Menu
+  Layers, ShieldAlert, Sparkles, Mail, Menu, Plus
 } from 'lucide-react';
 
 import { useDMCCatalog } from '@/hooks/dmc/useDMCCatalog';
@@ -18,7 +18,7 @@ import { useDMCSchema } from '@/hooks/dmc/useDMCSchema';
 import { dmcApi } from '@/lib/dmc-api';
 import type {
   CanonicalValue, ColumnDefinition, DatasetDefinition,
-  ExportFormat, FilterClause, FilterDefinition, SortClause
+  ExportFormat, FilterClause, FilterDefinition, FilterOption, FilterType, FilterOperator, SortClause
 } from '@/lib/types/dmc';
 import EmailTemplateEditor, { EmailRecipient } from '@/components/admin/EmailTemplateEditor';
 
@@ -118,6 +118,22 @@ function StateBadge({ cv, col }: { cv: CanonicalValue | undefined; col: ColumnDe
         <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-70" />
       </a>
     );
+  }
+
+  if (col.renderer === 'date' || col.type === 'date' || col.type === 'datetime') {
+    let formatted = text;
+    try {
+      const d = new Date(text);
+      if (!isNaN(d.getTime())) {
+        formatted = d.toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          ...(col.type === 'datetime' ? { hour: '2-digit', minute: '2-digit' } : {}),
+        });
+      }
+    } catch {}
+    return <span className="text-slate-700 dark:text-slate-300 font-medium text-xs whitespace-nowrap">{formatted}</span>;
   }
 
   return <span className="text-slate-900 dark:text-slate-100 font-medium text-xs sm:text-sm truncate">{text}</span>;
@@ -280,19 +296,194 @@ function ColumnPanel({
 }
 
 // ============================================================================
-// Filter Bar
+// Filter Bar & Column Filter Generator
 // ============================================================================
 
+interface EffectiveFilterDef {
+  key: string;
+  label: string;
+  type: FilterType;
+  category: string;
+  operators: { op: FilterOperator; label: string }[];
+  options?: FilterOption[];
+}
+
+function buildEffectiveFilters(
+  allColumns: ColumnDefinition[],
+  schemaFilters: FilterDefinition[]
+): EffectiveFilterDef[] {
+  const schemaFilterMap = new Map(schemaFilters.map((f) => [f.key, f]));
+
+  return allColumns.map((col) => {
+    const fromSchema = schemaFilterMap.get(col.key);
+    if (fromSchema) {
+      const opLabels: Record<string, string> = {
+        eq: 'equals',
+        neq: 'not equals',
+        contains: 'contains',
+        starts_with: 'starts with',
+        between: 'between',
+        gte: '>=',
+        lte: '<=',
+        gt: '>',
+        lt: '<',
+        empty: 'is empty',
+        not_empty: 'is not empty',
+      };
+      return {
+        key: col.key,
+        label: col.label,
+        type: fromSchema.type,
+        category: col.category,
+        operators: fromSchema.operators.map((op) => ({ op, label: opLabels[op] ?? op })),
+        options: fromSchema.options,
+      };
+    }
+
+    if (col.type === 'boolean') {
+      return {
+        key: col.key,
+        label: col.label,
+        type: 'boolean',
+        category: col.category,
+        operators: [{ op: 'eq', label: 'is' }],
+        options: [
+          { label: 'Yes', value: 'true' },
+          { label: 'No', value: 'false' },
+        ],
+      };
+    }
+
+    if (col.type === 'number' || col.type === 'rating') {
+      return {
+        key: col.key,
+        label: col.label,
+        type: 'number_range',
+        category: col.category,
+        operators: [
+          { op: 'eq', label: '=' },
+          { op: 'neq', label: '!=' },
+          { op: 'gte', label: '>=' },
+          { op: 'lte', label: '<=' },
+          { op: 'gt', label: '>' },
+          { op: 'lt', label: '<' },
+          { op: 'empty', label: 'is empty' },
+          { op: 'not_empty', label: 'is not empty' },
+        ],
+      };
+    }
+
+    if (col.type === 'date' || col.type === 'datetime') {
+      return {
+        key: col.key,
+        label: col.label,
+        type: 'date_range',
+        category: col.category,
+        operators: [
+          { op: 'gte', label: 'on or after' },
+          { op: 'lte', label: 'on or before' },
+          { op: 'eq', label: 'on date' },
+          { op: 'empty', label: 'is empty' },
+          { op: 'not_empty', label: 'is not empty' },
+        ],
+      };
+    }
+
+    if (col.type === 'badge') {
+      const commonBadgeOptions: Record<string, FilterOption[]> = {
+        role: [
+          { label: 'Affiliate', value: 'AFFILIATE' },
+          { label: 'Non-Affiliate', value: 'NON_AFFILIATE' },
+          { label: 'Volunteer', value: 'VOLUNTEER' },
+          { label: 'Judge', value: 'JUDGE' },
+          { label: 'Club Lead', value: 'CLUB_LEAD' },
+          { label: 'Admin', value: 'ADMIN' },
+        ],
+        membership_status: [
+          { label: 'Active', value: 'ACTIVE' },
+          { label: 'Inactive', value: 'INACTIVE' },
+          { label: 'Alumni', value: 'ALUMNI' },
+          { label: 'Suspended', value: 'SUSPENDED' },
+          { label: 'Pending', value: 'PENDING' },
+        ],
+        branch: [
+          { label: 'CSE', value: 'CSE' },
+          { label: 'IT', value: 'IT' },
+          { label: 'AIDS', value: 'AIDS' },
+          { label: 'AIML', value: 'AIML' },
+          { label: 'ECE', value: 'ECE' },
+          { label: 'EEE', value: 'EEE' },
+          { label: 'MECH', value: 'MECH' },
+          { label: 'CIVIL', value: 'CIVIL' },
+          { label: 'CSBS', value: 'CSBS' },
+        ],
+        difficulty: [
+          { label: 'Easy', value: 'EASY' },
+          { label: 'Medium', value: 'MEDIUM' },
+          { label: 'Hard', value: 'HARD' },
+        ],
+      };
+
+      const options = commonBadgeOptions[col.key];
+      return {
+        key: col.key,
+        label: col.label,
+        type: options ? 'select' : 'text',
+        category: col.category,
+        operators: [
+          { op: 'eq', label: 'equals' },
+          { op: 'neq', label: 'not equals' },
+          { op: 'contains', label: 'contains' },
+          { op: 'empty', label: 'is empty' },
+          { op: 'not_empty', label: 'is not empty' },
+        ],
+        options,
+      };
+    }
+
+    return {
+      key: col.key,
+      label: col.label,
+      type: 'text',
+      category: col.category,
+      operators: [
+        { op: 'contains', label: 'contains' },
+        { op: 'eq', label: 'equals' },
+        { op: 'neq', label: 'not equals' },
+        { op: 'starts_with', label: 'starts with' },
+        { op: 'empty', label: 'is empty' },
+        { op: 'not_empty', label: 'is not empty' },
+      ],
+    };
+  });
+}
+
 function FilterBar({
-  filters, activeFilters, onFilterChange, onClearAll
+  allColumns,
+  schemaFilters,
+  activeFilters,
+  onFilterChange,
+  onClearAll,
 }: {
-  filters: FilterDefinition[];
+  allColumns: ColumnDefinition[];
+  schemaFilters: FilterDefinition[];
   activeFilters: FilterClause[];
   onFilterChange: (clauses: FilterClause[]) => void;
   onClearAll: () => void;
 }) {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [columnSearch, setColumnSearch] = useState('');
   const addFilterMenuRef = useRef<HTMLDivElement>(null);
+
+  const effectiveFilters = useMemo(
+    () => buildEffectiveFilters(allColumns, schemaFilters),
+    [allColumns, schemaFilters]
+  );
+
+  const effectiveFilterMap = useMemo(
+    () => new Map(effectiveFilters.map((f) => [f.key, f])),
+    [effectiveFilters]
+  );
 
   useEffect(() => {
     if (!showFilterMenu) return;
@@ -305,16 +496,50 @@ function FilterBar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilterMenu]);
 
-  const addFilter = (filter: FilterDefinition) => {
-    if (activeFilters.find(f => f.field === filter.key)) return;
-    const def = filter.options[0];
-    onFilterChange([...activeFilters, { field: filter.key, operator: filter.operators[0], value: def?.value ?? '' }]);
+  const addFilter = (filterDef: EffectiveFilterDef) => {
+    const firstOp = filterDef.operators[0]?.op ?? 'contains';
+    const defaultValue =
+      firstOp === 'empty' || firstOp === 'not_empty'
+        ? ''
+        : filterDef.options && filterDef.options.length > 0
+        ? String(filterDef.options[0].value)
+        : filterDef.type === 'boolean'
+        ? 'true'
+        : '';
+
+    onFilterChange([
+      ...activeFilters,
+      {
+        field: filterDef.key,
+        operator: firstOp,
+        value: defaultValue,
+      },
+    ]);
     setShowFilterMenu(false);
+    setColumnSearch('');
   };
 
   const updateFilter = (idx: number, partial: Partial<FilterClause>) => {
     const updated = [...activeFilters];
-    updated[idx] = { ...updated[idx], ...partial };
+    const current = updated[idx];
+    const nextField = partial.field ?? current.field;
+
+    // If switching field, ensure operator and value are valid for that field
+    if (partial.field && partial.field !== current.field) {
+      const newDef = effectiveFilterMap.get(partial.field);
+      const newOp = newDef?.operators[0]?.op ?? 'contains';
+      const newVal =
+        newOp === 'empty' || newOp === 'not_empty'
+          ? ''
+          : newDef?.options && newDef.options.length > 0
+          ? String(newDef.options[0].value)
+          : newDef?.type === 'boolean'
+          ? 'true'
+          : '';
+      updated[idx] = { field: nextField, operator: newOp, value: newVal };
+    } else {
+      updated[idx] = { ...current, ...partial };
+    }
     onFilterChange(updated);
   };
 
@@ -322,71 +547,202 @@ function FilterBar({
     onFilterChange(activeFilters.filter((_, i) => i !== idx));
   };
 
-  const availableFilters = filters.filter(f => !activeFilters.find(a => a.field === f.key));
+  const filteredColumnsForMenu = useMemo(() => {
+    const q = columnSearch.toLowerCase().trim();
+    if (!q) return effectiveFilters;
+    return effectiveFilters.filter(
+      (f) =>
+        f.label.toLowerCase().includes(q) ||
+        f.key.toLowerCase().includes(q) ||
+        f.category.toLowerCase().includes(q)
+    );
+  }, [effectiveFilters, columnSearch]);
+
+  const menuCategories = useMemo(() => {
+    return [...new Set(filteredColumnsForMenu.map((f) => f.category))];
+  }, [filteredColumnsForMenu]);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 py-2 px-1">
+    <div className="flex flex-wrap items-center gap-2.5 py-2 px-1">
+      {/* Active Filter Chips */}
       {activeFilters.map((af, idx) => {
-        const def = filters.find(f => f.key === af.field);
-        if (!def) return null;
+        const def = effectiveFilterMap.get(af.field) ?? {
+          key: af.field,
+          label: af.field,
+          type: 'text' as FilterType,
+          category: 'common',
+          operators: [{ op: af.operator, label: af.operator }],
+        };
+
+        const isUnary = af.operator === 'empty' || af.operator === 'not_empty';
+
         return (
-          <div key={idx} className="flex items-center gap-2 bg-blue-50 dark:bg-blue-600/20 border border-blue-200 dark:border-blue-500/40 rounded-lg px-3 py-1.5 text-xs shadow-xs">
-            <span className="text-blue-900 dark:text-blue-300 font-bold">{def.label}:</span>
-            {def.type === 'select' && (
+          <div
+            key={`${af.field}-${idx}`}
+            className="flex items-center gap-1.5 bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-700/60 rounded-xl px-2.5 py-1.5 text-xs shadow-xs transition-all hover:border-blue-300 dark:hover:border-blue-500"
+          >
+            {/* Column Selector */}
+            <select
+              value={af.field}
+              onChange={(e) => updateFilter(idx, { field: e.target.value })}
+              className="bg-transparent text-blue-900 dark:text-blue-200 font-bold outline-none cursor-pointer text-xs pr-1 border-r border-blue-200 dark:border-blue-800"
+            >
+              {effectiveFilters.map((col) => (
+                <option
+                  key={col.key}
+                  value={col.key}
+                  className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-normal"
+                >
+                  {col.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Operator Selector */}
+            <select
+              value={af.operator}
+              onChange={(e) => updateFilter(idx, { operator: e.target.value as FilterOperator })}
+              className="bg-transparent text-slate-600 dark:text-slate-300 font-medium outline-none cursor-pointer text-xs pr-1 border-r border-blue-200 dark:border-blue-800"
+            >
+              {def.operators.map((opObj) => (
+                <option
+                  key={opObj.op}
+                  value={opObj.op}
+                  className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                >
+                  {opObj.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Value Input */}
+            {isUnary ? (
+              <span className="text-[11px] italic text-slate-400 dark:text-slate-500 px-1 select-none">
+                (any value)
+              </span>
+            ) : def.options && def.options.length > 0 ? (
               <select
                 value={String(af.value)}
-                onChange={e => updateFilter(idx, { value: e.target.value })}
-                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer"
+                onChange={(e) => updateFilter(idx, { value: e.target.value })}
+                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-semibold outline-none cursor-pointer min-w-[80px]"
               >
-                {def.options.map(o => <option key={String(o.value)} value={String(o.value)} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{o.label}</option>)}
+                {def.options.map((o) => (
+                  <option
+                    key={String(o.value)}
+                    value={String(o.value)}
+                    className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  >
+                    {o.label}
+                  </option>
+                ))}
               </select>
-            )}
-            {def.type === 'boolean' && (
-              <select
-                value={String(af.value)}
-                onChange={e => updateFilter(idx, { value: e.target.value === 'true' })}
-                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-medium outline-none cursor-pointer"
-              >
-                <option value="true" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Yes</option>
-                <option value="false" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">No</option>
-              </select>
-            )}
-            {def.type === 'text' && (
+            ) : def.type === 'date_range' ? (
               <input
+                type="date"
                 value={String(af.value)}
-                onChange={e => updateFilter(idx, { value: e.target.value })}
-                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-medium outline-none w-28 placeholder-slate-400"
-                placeholder="Type value..."
+                onChange={(e) => updateFilter(idx, { value: e.target.value })}
+                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-semibold outline-none w-32 cursor-pointer"
+              />
+            ) : def.type === 'number_range' ? (
+              <input
+                type="number"
+                value={String(af.value)}
+                onChange={(e) => updateFilter(idx, { value: e.target.value })}
+                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-semibold outline-none w-20 placeholder-slate-400"
+                placeholder="0"
+              />
+            ) : (
+              <input
+                type="text"
+                value={String(af.value)}
+                onChange={(e) => updateFilter(idx, { value: e.target.value })}
+                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-semibold outline-none w-28 placeholder-slate-400"
+                placeholder="Type value…"
               />
             )}
-            <button onClick={() => removeFilter(idx)} className="flex items-center justify-center min-h-8 min-w-8 p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 ml-1 transition-transform duration-100 active:scale-90"><X className="w-3.5 h-3.5" /></button>
+
+            {/* Remove button */}
+            <button
+              onClick={() => removeFilter(idx)}
+              title="Remove filter"
+              className="flex items-center justify-center p-1 rounded-md text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 ml-0.5 transition-transform duration-100 active:scale-90"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         );
       })}
-      {availableFilters.length > 0 && (
-        <div className="relative" ref={addFilterMenuRef}>
-          <button
-            onClick={() => setShowFilterMenu(v => !v)}
-            aria-haspopup="true"
-            aria-expanded={showFilterMenu}
-            className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-dashed border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 hover:border-slate-400 bg-white dark:bg-slate-800 shadow-xs transition-colors active:scale-95"
-          >
-            <Filter className="w-3 h-3 text-blue-500" /> Add Filter
-          </button>
-          {showFilterMenu && (
-            <div className="absolute top-10 left-0 z-40 glass-panel-solid rounded-xl shadow-2xl w-52 py-1">
-              {availableFilters.map(f => (
-                <button key={f.key} onClick={() => addFilter(f)} className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 transition active:scale-[0.98]">
-                  {f.label}
-                </button>
-              ))}
+
+      {/* Add Filter Button & Column Dropdown */}
+      <div className="relative" ref={addFilterMenuRef}>
+        <button
+          onClick={() => setShowFilterMenu((v) => !v)}
+          aria-haspopup="true"
+          aria-expanded={showFilterMenu}
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-xl px-3 py-1.5 bg-white dark:bg-slate-900 shadow-xs transition-all active:scale-95"
+        >
+          <Plus className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Add Filter
+        </button>
+
+        {showFilterMenu && (
+          <div className="absolute top-10 left-0 z-50 glass-panel-solid rounded-xl shadow-2xl w-64 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+            {/* Search within column picker */}
+            <div className="px-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                <input
+                  type="text"
+                  value={columnSearch}
+                  onChange={(e) => setColumnSearch(e.target.value)}
+                  placeholder="Search column…"
+                  autoFocus
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-7 pr-2 py-1 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500"
+                />
+              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* List of Columns grouped by category */}
+            <div className="max-h-64 overflow-y-auto py-1">
+              {filteredColumnsForMenu.length === 0 ? (
+                <div className="px-4 py-3 text-xs text-slate-400 text-center">
+                  No matching columns
+                </div>
+              ) : (
+                menuCategories.map((cat) => {
+                  const items = filteredColumnsForMenu.filter((f) => f.category === cat);
+                  return (
+                    <div key={cat} className="mb-1">
+                      <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/60 dark:bg-slate-800/40">
+                        {cat}
+                      </div>
+                      {items.map((col) => (
+                        <button
+                          key={col.key}
+                          onClick={() => addFilter(col)}
+                          className="w-full text-left px-3.5 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between transition active:scale-[0.98]"
+                        >
+                          <span className="truncate">{col.label}</span>
+                          <span className="text-[10px] text-slate-400 font-mono lowercase shrink-0 ml-2 px-1 rounded bg-slate-100 dark:bg-slate-800">
+                            {col.type}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Clear All */}
       {activeFilters.length > 0 && (
-        <button onClick={onClearAll} className="text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 ml-1 transition-transform duration-100 active:scale-95">
-          <X className="w-3 h-3" /> Clear All
+        <button
+          onClick={onClearAll}
+          className="text-xs font-medium text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 flex items-center gap-1 ml-1 transition-transform duration-100 active:scale-95"
+        >
+          <X className="w-3 h-3" /> Clear All ({activeFilters.length})
         </button>
       )}
     </div>
@@ -897,7 +1253,7 @@ export default function DataManagementCenter() {
                 </div>
 
                 {/* Filters toggle */}
-                {filterDefs.length > 0 && (
+                {allColumns.length > 0 && (
                   <button
                     onClick={() => setShowFilters(!showFilters)}
                     className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-colors shadow-xs active:scale-95
@@ -949,9 +1305,15 @@ export default function DataManagementCenter() {
 
               {/* Filter bar dropdown */}
               <AnimatePresence>
-                {showFilters && filterDefs.length > 0 && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                    <FilterBar filters={filterDefs} activeFilters={activeFilters} onFilterChange={handleFilterChange} onClearAll={() => handleFilterChange([])} />
+                {showFilters && allColumns.length > 0 && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <FilterBar
+                      allColumns={allColumns}
+                      schemaFilters={filterDefs}
+                      activeFilters={activeFilters}
+                      onFilterChange={handleFilterChange}
+                      onClearAll={() => handleFilterChange([])}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
