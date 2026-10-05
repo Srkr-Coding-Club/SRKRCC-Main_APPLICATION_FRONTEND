@@ -177,3 +177,63 @@ Backend contract: `apps/hackathons` — see the backend repo's `docs/modules/hac
 | `src/components/ui/FormSelect.tsx` | Themed listbox replacing native `<select>` (whose OS-drawn popup ignores the dark theme). Props: `value`, `options` (`{value, label, hint?, disabled?}`), `placeholder`, `onChange`, `allowClear`, `disabled`. Used by the responses viewer and the hackathon screens. |
 | `src/components/ui/Modal.tsx` | Dialog shell with focus trap (`useFocusTrap`), Escape-to-close, backdrop click and body scroll lock. `busy` blocks closing while a request is in flight. |
 | `src/components/ui/StatusPill.tsx` | Coloured status pill plus label/tone maps for team, round and round-entry statuses. |
+
+---
+
+## 11. Home Hero Scroll Intro
+
+`src/components/hero-intro/` wraps `HeroSection` on `/` (`<HeroIntro><HeroSection /></HeroIntro>` in `src/app/page.tsx`). It is a WebGL scene (Three.js) pinned under the navbar for 280% of the viewport height: the visitor enters a dark computing laboratory, travels toward the SRKR intelligence core, passes into it, and the home page emerges from its light.
+
+| Phase (scroll) | What happens |
+|---|---|
+| Awaken (0-25%) | Near-black. A distant point of light appears, the exposure rises and the camera drifts in on its own; silhouettes of the lab emerge from fog as scrolling starts. |
+| Transit (25-55%) | The camera travels through structural gates past data racks; a few code fragments are discovered along the way. |
+| Core (55-85%) | The environment quietens (fog thickens, detail recedes) and the core dominates: glass shell, brushed-metal ring, energy field, embedded emblem, three orbits. |
+| Launch (85-100%) | The camera crosses the shell; warm light fills the frame, "Building coders. Creating innovators." appears in it, and the hero's emblem, headline and actions emerge as the light clears. |
+
+**Architecture**
+
+| File | Responsibility |
+|---|---|
+| `HeroIntro.tsx` | Scroll pin (ScrollTrigger, no scrub), the DOM handoff timeline, cinema mode, skip/Escape/focus handling, loader, pointer and tilt input. Lazily imports the WebGL scene. |
+| `timeline.ts` | The narrative as functions of progress: `PHASES`, the `LAUNCH` beats, and spline tracks for the camera path and world response (fog, core light, energy, environment presence). Shared by the scene and the DOM. |
+| `introMath.ts` | `createTrack` (Catmull-Rom keyframes) and `smoothDamp` (critically damped follow). |
+| `introEligibility.ts` | Who gets the intro, and the matching pre-paint script for cinema mode. |
+| `IntroHud.tsx` | The only chrome: "SRKR // Coding Club" and one status line (Initializing, Signal found, Core online, Entering). |
+| `webgl/createIntroScene.ts` | Renderer, camera rig and render loop. Owns all high-frequency state; React never re-renders per frame. |
+| `webgl/intelligenceCore.ts`, `orbitalSystem.ts`, `laboratory.ts`, `dataArtifacts.ts`, `atmosphere.ts` | The world, in depth layers. |
+| `webgl/quality.ts` | Device tier (high/medium/low) and the frame monitor that downgrades detail when FPS sags. |
+| `webgl/textures.ts` | Generated glow and label textures, texture loading. |
+
+- **Camera inertia.** Scroll sets a *target* progress; the loop eases the actual progress toward it with `smoothDamp`, samples the camera path from it, and damps the camera again. Fast scrolling accelerates, slowing settles, and reversing turns round smoothly. The pointer (or phone tilt) only adds a glance of about ±3°.
+- **Occlusion.** Inside-the-core layers draw first; the glass shell then writes depth so orbit segments behind the core are hidden (`RENDER_ORDER` in `intelligenceCore.ts`).
+- **Restraint by design.** Gold is reserved for the core, its edge, the primary orbit and a few accents; everything else is matte and revealed only by the core's light. There are exactly six code fragments, each fading in at reading distance.
+- **Adaptive quality.** The tier sets pixel ratio, antialiasing, dust count, rack density, reflections and curve segments. If sustained FPS drops below 42, the monitor lowers the pixel ratio, then hides secondary detail, then lowers the pixel ratio again.
+- **Handoff.** The DOM timeline is a paused GSAP timeline played by the damped progress, so the wash, tagline and hero reveal stay in lockstep with the camera. `HeroSection` exposes `data-hero-emblem`, `data-hero-title` and `data-hero-reveal`. The intro animates the `--intro-rise`, `--intro-scale` and `--intro-filter` variables (see `globals.css`), which drive the independent `translate`/`scale`/`filter` properties and leave Framer Motion's `transform` alone.
+- **Cinema mode.** While the intro plays, `<html data-intro-cinema>` hides every `[data-site-chrome]` element (the navbar and announcement banner). The root layout sets it before first paint via `INTRO_CINEMA_SCRIPT`; HeroIntro clears it as the page emerges, on skip, and on unmount. A CSS failsafe restores the chrome after 4 s if the intro never mounts.
+- **Ways out.** *Skip intro* (fixed bottom-right, outside the pinned root), `Escape`, and tabbing into the hero all jump to the end.
+- **Fallbacks.** `prefers-reduced-motion`, Save-Data, low-power touch devices and anyone who saw the intro in the last 7 days (`srkrcc_intro_seen_at` in localStorage) get the plain hero, with no pinned scroll. If WebGL fails to initialise, the intro removes itself and shows the plain hero.
+- **Bundle.** `three` is only imported by the lazily loaded `webgl/` modules, so it never lands in the shared bundle.
+
+---
+
+## 12. Home Page Journey
+
+The home page (`src/app/page.tsx`) tells one story: **from your first `printf` to your first hackathon**. Order: intro (Chapter 00) → hero → The Path (seven program chapters) → Up next → Built by students → Your turn. Section components live in `src/components/landing/`.
+
+**Data.** `getLandingData()` in `src/lib/landing.ts` runs on the server and fetches `/events/`, `/hackathons/` and `/codequest/` in parallel; any failure yields `null`/empty, never an error page. It matches programs by name (`PROGRAM_PATTERNS`: awareness, C workshop, DSA, EdgeCase, HackOverflow, IconCoders), derives registration state, and formats dates in `Asia/Kolkata` on the server so server and client render identical text. Nothing about a program is shown unless the API provides it. Copy in `journeyContent.ts` only states confirmed facts (the programs, CodeQuest's daily problems, EdgeCase's two-week cadence, HackOverflow's 24-hour format).
+
+| Piece | Notes |
+|---|---|
+| `JourneyTrace` | The signature line down the left that draws with scroll and ends on the final "Join the club" button. Sets `--trace-x` / `--trace-pad`; `PathNode` uses them to land on the line and lights up when its section arrives. |
+| `Chapter` | Narrative + demonstration + outcome + one action. `tone` (`quiet`/`interactive`/`energetic`/`climax`) sets the rhythm. |
+| `demos/*` | Terminal (Awareness), `hello.c` compile (C), bubble sort (DSA), streak route (CodeQuest), contest round (EdgeCase, labelled as an illustration), 24-hour dial (HackOverflow, over `DawnBackdrop`). |
+| `useScrollSteps` | Maps a demo's scroll position to a step. Starts at the finished step, so server render, no-JS and reduced-motion all show the complete demo; React re-renders only when the step changes. |
+| `UpNext` | Agenda list (date, title, status, one action) from the API, with an empty state pointing to `/events`. |
+| `BuiltByStudents` | Renders only when `src/content/community.ts` has entries. Add real event photos there (WebP/AVIF in `public/community/`, specific `alt` text); no stock or AI-generated images. |
+| `LiveLine`, `ActionLink`, `DemoFrame` | Shared status line, the two action styles (one gold pill per screen, underlined text links otherwise), and the demo surface. |
+
+**Design tokens.** The journey uses the club's brand palette, the same one as the rest of the site. `journey-*` colors in `tailwind.config.ts` read RGB variables from `globals.css` and flip with the theme. Dark: background `#0D0E15`, surface `#151722`, text `#F5F5F5`, muted slate, accent brand orange `#FF7A00`, live states brand gold `#FFA500`. Light: the site's `#FAFAFC` and navy `#1A1A2E`, accent `#C2410C` (orange that keeps 4.5:1 contrast), live states burgundy `#8B2E3B`. The primary action uses the brand gradient (`#8B2E3B` to `#FF7A00` to `#FFA500`), matching `PillButton`. Type: Archivo (`font-display`, semi-expanded via `font-stretch: 112%`) for headings, Inter for body, JetBrains Mono only inside demonstrations.
+
+**Fonts.** All four families load through `next/font/google` in `src/app/layout.tsx` (self-hosted, applied as CSS variables on `<body>`). The previous `@import` of Google Fonts in `globals.css` was being dropped by the bundler, so those fonts never loaded.
+

@@ -154,6 +154,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   return (
     <>
     <header
+      data-site-chrome
       className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
         scrolled
           ? 'bg-[var(--background)]/90 backdrop-blur-xl border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_0_rgba(0,0,0,0.02)]'
