@@ -20,6 +20,39 @@ export interface Announcement {
   updated_at: string;
 }
 
+export type NotificationCategory = 'GENERAL' | 'HACKATHON' | 'EVENT' | 'FORM' | 'TEAM' | 'SYSTEM';
+
+export interface UserNotification {
+  id: number;
+  title: string;
+  message: string;
+  type: AnnouncementType;
+  category: NotificationCategory;
+  link_url?: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+  created_by_name: string;
+}
+
+export interface NotificationListResponse {
+  unread_count: number;
+  results: UserNotification[];
+}
+
+export interface BroadcastPayload {
+  title: string;
+  message: string;
+  type?: AnnouncementType;
+  category?: NotificationCategory;
+  link_url?: string;
+  channels: ('IN_APP' | 'EMAIL')[];
+  audience: 'ALL' | 'ROLE' | 'HACKATHON' | 'USERS';
+  target_role?: string;
+  target_hackathon_slug?: string;
+  target_user_ids?: number[];
+}
+
 export interface User {
   id: number;
   username: string;
@@ -118,6 +151,7 @@ export interface ProblemStatement {
   is_active: boolean;
   order: number;
   team_count: number;
+  total_teams_count?: number;
   /** null = unlimited */
   slots_left: number | null;
 }
@@ -239,6 +273,7 @@ export interface UserLookupResult {
   club_id?: string | null;
   can_invite: boolean;
   reason: string;
+  results?: UserLookupResult[];
 }
 
 export interface HackathonRound {
@@ -253,7 +288,13 @@ export interface HackathonRound {
   details_form_slug?: string | null;
   details_form_title?: string | null;
   results_published: boolean;
-  entry_counts: Record<RoundEntryStatus, number> & { total: number; details_submitted: number };
+  entry_counts: Record<RoundEntryStatus, number> & {
+    total: number;
+    details_submitted: number;
+    next_round_id?: number | null;
+    next_round_name?: string | null;
+    promoted_to_next?: number;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -274,6 +315,7 @@ export interface AdminRoundEntry {
   decided_by_name: string | null;
   decided_at: string | null;
   details_response_id: number | null;
+  is_promoted_to_next?: boolean;
 }
 
 export interface HackathonAnnouncement {
