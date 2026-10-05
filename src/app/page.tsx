@@ -1,51 +1,49 @@
-import { Suspense } from 'react';
 import type { Metadata } from 'next';
 
 import AnnouncementBanner from '@/components/AnnouncementBanner';
 import HeroSection from '@/components/HeroSection';
-import StatsBar from '@/components/StatsBar';
-import AboutSection from '@/components/AboutSection';
-import WhatWeDoSection from '@/components/WhatWeDoSection';
-import UpcomingEventsGrid from '@/components/UpcomingEventsGrid';
-import PlatformModulesSection from '@/components/PlatformModulesSection';
-import PlatformModulesSkeleton from '@/components/PlatformModulesSkeleton';
-import CallToActionBanner from '@/components/CallToActionBanner';
+import HeroIntro from '@/components/hero-intro/HeroIntro';
+import BuiltByStudents from '@/components/landing/BuiltByStudents';
+import JourneyTrace from '@/components/landing/JourneyTrace';
+import ThePath from '@/components/landing/ThePath';
+import UpNext from '@/components/landing/UpNext';
+import YourTurn from '@/components/landing/YourTurn';
+import { getLandingData } from '@/lib/landing';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Home | Innovate, Code, Excel',
   description:
-    'Official portal of SRKR Coding Club. Explore annual hackathons, daily CodeQuest coding challenges, developer workshops, technical blogs, and active registrations.',
+    'SRKR Coding Club: from your first program to your first hackathon. Awareness sessions, C workshops, the DSA crash course, daily CodeQuest problems, EdgeCase contests, HackOverflow and IconCoders.',
 };
 
-export default function HomePage() {
+/* ------------------------------------------------------------------ */
+/* Home: one story, start to finish.                                  */
+/*   Enter (intro) -> where you are (hero) -> how you grow (the path) */
+/*   -> what's on (up next) -> who with (built by students)           */
+/*   -> your turn.                                                    */
+/* ------------------------------------------------------------------ */
+export default async function HomePage() {
+  const data = await getLandingData();
+
   return (
-    <div className="min-h-screen bg-[var(--background)] transition-colors duration-300">
-      {/* Active announcements banner */}
+    <div className="min-h-screen overflow-x-clip bg-journey-bg">
       <AnnouncementBanner />
 
-      {/* 1. Hero Section */}
-      <HeroSection />
+      <HeroIntro>
+        <HeroSection nextUp={data.nextUp} />
+      </HeroIntro>
 
-      {/* 2. Key Metrics Stats Bar */}
-      <StatsBar />
-
-      {/* 3. About Us Section */}
-      <AboutSection />
-
-      {/* 4. What We Do Section */}
-      <WhatWeDoSection />
-
-      {/* 5. Upcoming Events Grid */}
-      <UpcomingEventsGrid />
-
-      {/* 6. Dynamic Platform Modules Section - streamed independently so a slow  */}
-      {/* or offline backend never blocks the rest of the page from rendering.   */}
-      <Suspense fallback={<PlatformModulesSkeleton />}>
-        <PlatformModulesSection />
-      </Suspense>
-
-      {/* 7. Call To Action Banner */}
-      <CallToActionBanner />
+      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        <JourneyTrace>
+          <ThePath data={data} />
+          <UpNext items={data.agenda} />
+          <BuiltByStudents />
+          <YourTurn />
+        </JourneyTrace>
+        <div aria-hidden="true" className="h-32 sm:h-44" />
+      </div>
     </div>
   );
 }

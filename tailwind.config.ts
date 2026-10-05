@@ -11,6 +11,15 @@ const config: Config = {
     extend: {
       colors: {
         background: "var(--background)",
+        // Home journey palette - flips with the theme (see globals.css).
+        journey: {
+          bg: "rgb(var(--journey-bg) / <alpha-value>)",
+          surface: "rgb(var(--journey-surface) / <alpha-value>)",
+          text: "rgb(var(--journey-text) / <alpha-value>)",
+          muted: "rgb(var(--journey-muted) / <alpha-value>)",
+          accent: "rgb(var(--journey-accent) / <alpha-value>)",
+          live: "rgb(var(--journey-live) / <alpha-value>)",
+        },
         foreground: "var(--foreground)",
         brand: {
           orange: "#FF7A00",
@@ -32,6 +41,7 @@ const config: Config = {
         poppins: ["var(--font-poppins)", "Poppins", "sans-serif"],
         inter: ["var(--font-inter)", "Inter", "sans-serif"],
         mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
+        display: ["var(--font-display)", "Archivo", "sans-serif"],
       },
       // Project-wide cap: nothing rounder than 10px (except `rounded-full`
       // pills / circles). Overrides Tailwind's larger defaults.

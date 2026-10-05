@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/context/ToastContext";
 import { fetchApi } from "@/lib/api-client";
 import type { CodeQuestSubmission, Problem } from "@/lib/types";
+import PillButton from "@/components/PillButton";
 
 type Difficulty = Problem["difficulty"];
 type ProblemForm = {
@@ -79,6 +80,8 @@ export function CodeQuestTab() {
   const [query, setQuery] = useState(""),
     [filter, setFilter] = useState<Difficulty | "ALL">("ALL");
 
+  const [userRole, setUserRole] = useState<'ADMIN' | 'CLUB_LEAD' | null>(null);
+
   const [form, setForm] = useState<ProblemForm>(blank),
     [editing, setEditing] = useState<Problem | null>(null),
     [editorOpen, setEditorOpen] = useState(false),
@@ -102,6 +105,26 @@ export function CodeQuestTab() {
   };
   useEffect(() => {
     void load();
+  }, []);
+
+  useEffect(() => {
+    async function fetchUserRole() {
+      try {
+        const response = await fetchApi<{
+          role?: 'ADMIN' | 'CLUB_LEAD';
+        }>('/api/auth/me/', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (response && response.role) {
+          setUserRole(response.role);
+        }
+      } catch {
+        // If auth check fails, hide the button for safety
+      }
+    }
+    fetchUserRole();
   }, []);
 
   const shown = useMemo(
@@ -253,6 +276,14 @@ export function CodeQuestTab() {
             >
               <Plus className="h-4 w-4" /> Schedule problem
             </button>
+           {(userRole === 'ADMIN' || userRole === 'CLUB_LEAD') && (
+  <PillButton
+    href="/codequest/batch-schedule"
+    className="inline-flex items-center gap-2 rounded-lg bg-[#FF7A00] px-4 py-2.5 text-sm font-bold text-white"
+  >
+    <i className="fa fa-tags mr-2" /> Batch Schedule
+  </PillButton>
+)}
           </div>
         </header>
         <section className="grid gap-4 sm:grid-cols-3">

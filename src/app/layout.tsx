@@ -4,8 +4,18 @@ import './globals.css';
 import NavbarSwitcher from '@/components/NavbarSwitcher';
 import Footer from '@/components/Footer';
 import { getModuleFlags } from '@/lib/moduleFlags';
+import { INTRO_CINEMA_SCRIPT } from '@/components/hero-intro/introEligibility';
 
 import type { Metadata } from 'next';
+import { Archivo, Inter, JetBrains_Mono, Poppins } from 'next/font/google';
+
+/* Self-hosted by next/font. Each sets the CSS variable globals.css and
+   tailwind.config.ts read (--font-inter, --font-display, ...); applied on
+   <body>, so they override the plain-name fallbacks declared on :root. */
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-display', display: 'swap' });
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-mono', display: 'swap' });
+const poppins = Poppins({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-poppins', display: 'swap' });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://srkrcc.com'),
@@ -87,7 +97,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col antialiased">
+      <body className={`${inter.variable} ${archivo.variable} ${jetbrainsMono.variable} ${poppins.variable} min-h-screen flex flex-col antialiased`}>
         {/* Blocking, runs before first paint - sets the `dark` class synchronously
             so there's no flash of the light theme while React hydrates. Dark is
             the default; a stored 'light' choice from a previous visit wins. */}
@@ -96,6 +106,9 @@ export default async function RootLayout({
             __html: `try{var t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t?t==='dark':true);}catch(e){document.documentElement.classList.add('dark');}`,
           }}
         />
+        {/* Also pre-paint: hides the navbar and banner on the home page while its
+            scroll intro plays, so they don't flash in and out (see HeroIntro). */}
+        <script dangerouslySetInnerHTML={{ __html: INTRO_CINEMA_SCRIPT }} />
         <ToastProvider>
           <BackendHeartbeat />
           <NavbarSwitcher moduleFlags={moduleFlags} />

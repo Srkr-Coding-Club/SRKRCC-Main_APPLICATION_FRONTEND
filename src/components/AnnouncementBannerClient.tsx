@@ -88,7 +88,7 @@ export default function AnnouncementBannerClient({ announcements }: { announceme
   if (visible.length === 0) return null;
 
   return (
-    <div>
+    <div data-site-chrome>
       <div className="group flex items-center bg-white/90 dark:bg-[#0D0E15]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-1.5 pl-4 pr-3 py-2 shrink-0 border-r border-slate-200 dark:border-slate-800 text-[#FF7A00]">
           <Megaphone className="w-4 h-4" />
