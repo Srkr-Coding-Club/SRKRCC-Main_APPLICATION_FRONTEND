@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { clamp, easeOutCubic, smoothDamp, type DampState } from '../introMath';
 import { PLANETS } from '../solarSystem';
 import { createJourneyPath, planetProximity, sunBrightness, systemPresence } from './journeyPath';
@@ -6,7 +7,7 @@ import { createPlanet } from './planet';
 import { createFrameMonitor, nextPixelRatio, type QualitySettings } from './quality';
 import { createDust, createOrbits, createStarfield } from './space';
 import { createSun } from './sun';
-import { createGlowTexture, loadTexture } from './textures';
+import { createGlowTexture } from './textures';
 
 /* ------------------------------------------------------------------ */
 /* The solar-system journey and its render loop.                      */
@@ -26,7 +27,7 @@ const PORTRAIT_ASPECT = 0.8;
 const NEAR = 0.05;
 const FAR = 1400;
 
-const PROGRESS_SMOOTH_TIME = 0.6;
+const PROGRESS_SMOOTH_TIME = 0.7;
 const CAMERA_SMOOTH_TIME = 0.22;
 const LOOK_SMOOTH_TIME = 0.3;
 const GLANCE_YAW_MAX = THREE.MathUtils.degToRad(3);
@@ -36,6 +37,7 @@ const BANK_MAX = THREE.MathUtils.degToRad(4);
 const BANK_PER_SPEED = 0.004;
 const MAX_FRAME_SECONDS = 1 / 20;
 const AWAKEN_SECONDS = 2.4;
+const ENVIRONMENT_INTENSITY = 0.35;
 
 export interface IntroScene {
   setTargetProgress: (progress: number) => void;
@@ -68,21 +70,25 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
   scene.fog = new THREE.FogExp2(BACKGROUND, 0.0016);
   const camera = new THREE.PerspectiveCamera(FOV_LANDSCAPE, 1, NEAR, FAR);
 
-  onLoadProgress(0.2);
-  const logoTexture = await loadTexture('/logonobg.webp');
-  onLoadProgress(0.45);
+  onLoadProgress(0.35);
 
   const glowTexture = createGlowTexture();
   const starfield = createStarfield(quality, glowTexture);
   const orbits = createOrbits();
   const dust = createDust(quality);
-  const sun = createSun({ logoTexture, glowTexture, quality });
+  const sun = createSun({ glowTexture, quality });
   scene.add(starfield.group, orbits.group, dust.points, sun.group);
   onLoadProgress(0.65);
 
-  const planets = PLANETS.map((spec, i) => createPlanet(spec, i, quality));
+  const planets = PLANETS.map((spec) => createPlanet(spec));
   planets.forEach((planet) => scene.add(planet.group));
   scene.add(new THREE.AmbientLight('#1A2233', 0.45));
+  // Soft studio reflections for the glossy technology emblems (planet shaders ignore it).
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+  scene.environment = environment;
+  scene.environmentIntensity = ENVIRONMENT_INTENSITY;
   onLoadProgress(0.9);
 
   /* --- Camera rig ------------------------------------------------- */
@@ -183,10 +189,10 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
     renderer.toneMappingExposure = awaken;
     const presence = systemPresence(p);
 
-    sun.update(elapsed, sunBrightness(p));
+    sun.update(elapsed, sunBrightness(p), camera.position);
     planets.forEach((planet, i) => {
       proximities[i] = planetProximity(p, i);
-      planet.update(dt, elapsed, p);
+      planet.update(elapsed, p, camera.position);
       planet.group.visible = presence > 0.01;
     });
     orbits.update(proximities, presence);
@@ -238,8 +244,8 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
         materials.forEach((material) => material.dispose());
       });
       sun.dispose();
-      logoTexture.dispose();
       glowTexture.dispose();
+      environment.dispose();
       renderer.dispose();
     },
   };

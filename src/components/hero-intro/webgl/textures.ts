@@ -19,17 +19,3 @@ export function createGlowTexture(size = 128) {
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
-
-export function loadTexture(url: string) {
-  return new Promise<THREE.Texture>((resolve, reject) => {
-    new THREE.TextureLoader().load(
-      url,
-      (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        resolve(texture);
-      },
-      undefined,
-      reject,
-    );
-  });
-}
