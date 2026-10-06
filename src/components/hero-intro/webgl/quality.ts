@@ -9,17 +9,16 @@ export interface QualitySettings {
   tier: QualityTier;
   maxPixelRatio: number;
   antialias: boolean;
+  starCount: number;
   dustCount: number;
-  rackRows: number;
-  reflections: boolean;
   curveSegments: number;
   sphereSegments: number;
 }
 
 const SETTINGS: Record<QualityTier, Omit<QualitySettings, 'tier'>> = {
-  high: { maxPixelRatio: 2, antialias: true, dustCount: 700, rackRows: 9, reflections: true, curveSegments: 220, sphereSegments: 64 },
-  medium: { maxPixelRatio: 1.5, antialias: true, dustCount: 380, rackRows: 6, reflections: true, curveSegments: 160, sphereSegments: 48 },
-  low: { maxPixelRatio: 1, antialias: false, dustCount: 160, rackRows: 4, reflections: false, curveSegments: 110, sphereSegments: 32 },
+  high: { maxPixelRatio: 2, antialias: true, starCount: 2400, dustCount: 900, curveSegments: 160, sphereSegments: 64 },
+  medium: { maxPixelRatio: 1.5, antialias: true, starCount: 1600, dustCount: 500, curveSegments: 120, sphereSegments: 48 },
+  low: { maxPixelRatio: 1, antialias: false, starCount: 900, dustCount: 220, curveSegments: 80, sphereSegments: 32 },
 };
 
 const PHONE_MAX_WIDTH = 768;

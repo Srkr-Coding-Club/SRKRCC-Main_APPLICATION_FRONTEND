@@ -1,47 +1,41 @@
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { clamp, easeOutCubic, smoothDamp, type DampState } from '../introMath';
-import { cameraTrack, worldTrack } from '../timeline';
-import { createAtmosphere } from './atmosphere';
-import { createDataArtifacts } from './dataArtifacts';
-import { createIntelligenceCore } from './intelligenceCore';
-import { createLaboratory } from './laboratory';
-import { createOrbitalSystem } from './orbitalSystem';
+import { PLANETS } from '../solarSystem';
+import { createJourneyPath, planetProximity, sunBrightness, systemPresence } from './journeyPath';
+import { createPlanet } from './planet';
 import { createFrameMonitor, nextPixelRatio, type QualitySettings } from './quality';
+import { createDust, createOrbits, createStarfield } from './space';
+import { createSun } from './sun';
 import { createGlowTexture, loadTexture } from './textures';
 
 /* ------------------------------------------------------------------ */
-/* The intro's WebGL world and its render loop.                       */
+/* The solar-system journey and its render loop.                      */
 /*                                                                    */
 /* Input never drives the camera directly:                            */
 /*   scroll -> target progress -> damped progress (inertia)           */
-/*          -> camera pose from timeline tracks -> damped camera      */
-/* so fast scrolling accelerates the camera, slowing settles it, and  */
+/*          -> camera pose on the journey spline -> damped camera     */
+/* so fast scrolling accelerates the flight, slowing settles it, and  */
 /* reversing turns it round without a jolt. The pointer only nudges   */
 /* where the camera looks (a few degrees), never the world.           */
 /* ------------------------------------------------------------------ */
 
-const BACKGROUND = '#0D0E15';
-const FOV_LANDSCAPE = 40;
-const FOV_PORTRAIT = 56;
+const BACKGROUND = '#05060A';
+const FOV_LANDSCAPE = 42;
+const FOV_PORTRAIT = 62;
 const PORTRAIT_ASPECT = 0.8;
-const PORTRAIT_PATH_SCALE = 0.5;
-const NEAR = 0.03;
-const FAR = 160;
+const NEAR = 0.05;
+const FAR = 1400;
 
-const PROGRESS_SMOOTH_TIME = 0.55;
-const CAMERA_SMOOTH_TIME = 0.18;
-const LOOK_YAW_MAX = THREE.MathUtils.degToRad(3);
-const LOOK_PITCH_MAX = THREE.MathUtils.degToRad(2);
-const LOOK_SMOOTH_TIME = 0.35;
-const BANK_PER_UNIT_DRIFT = 0.18;
-const BANK_MAX = THREE.MathUtils.degToRad(3);
+const PROGRESS_SMOOTH_TIME = 0.6;
+const CAMERA_SMOOTH_TIME = 0.22;
+const LOOK_SMOOTH_TIME = 0.3;
+const GLANCE_YAW_MAX = THREE.MathUtils.degToRad(3);
+const GLANCE_PITCH_MAX = THREE.MathUtils.degToRad(2);
+const GLANCE_SMOOTH_TIME = 0.35;
+const BANK_MAX = THREE.MathUtils.degToRad(4);
+const BANK_PER_SPEED = 0.004;
 const MAX_FRAME_SECONDS = 1 / 20;
-
-/* Awakening: on load, the dark resolves and the camera drifts in a little before any scroll. */
-const AWAKEN_SECONDS = 2.6;
-const AWAKEN_DRIFT_SECONDS = 9;
-const AWAKEN_DRIFT_DISTANCE = 5;
+const AWAKEN_SECONDS = 2.4;
 
 export interface IntroScene {
   setTargetProgress: (progress: number) => void;
@@ -57,6 +51,8 @@ export interface IntroSceneOptions {
   onFrame: (progress: number) => void;
 }
 
+const damp = (): DampState => ({ value: 0, velocity: 0 });
+
 export async function createIntroScene(canvas: HTMLCanvasElement, options: IntroSceneOptions): Promise<IntroScene> {
   const { quality, onLoadProgress, onFrame } = options;
 
@@ -69,57 +65,41 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
   renderer.toneMappingExposure = 0;
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(BACKGROUND, worldTrack.fogDensity(0));
+  scene.fog = new THREE.FogExp2(BACKGROUND, 0.0016);
   const camera = new THREE.PerspectiveCamera(FOV_LANDSCAPE, 1, NEAR, FAR);
 
-  onLoadProgress(0.15);
-  const [emblemTexture] = await Promise.all([
-    loadTexture('/logo-mark.png'),
-    document.fonts?.load('500 26px "JetBrains Mono"').catch(() => undefined),
-  ]);
-  onLoadProgress(0.6);
+  onLoadProgress(0.2);
+  const logoTexture = await loadTexture('/logonobg.webp');
+  onLoadProgress(0.45);
 
-  let environmentMap: THREE.Texture | null = null;
-  let pmrem: THREE.PMREMGenerator | null = null;
-  if (quality.reflections) {
-    pmrem = new THREE.PMREMGenerator(renderer);
-    environmentMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  }
   const glowTexture = createGlowTexture();
+  const starfield = createStarfield(quality, glowTexture);
+  const orbits = createOrbits();
+  const dust = createDust(quality);
+  const sun = createSun({ logoTexture, glowTexture, quality });
+  scene.add(starfield.group, orbits.group, dust.points, sun.group);
+  onLoadProgress(0.65);
 
-  const core = createIntelligenceCore({ emblemTexture, glowTexture, environmentMap, quality });
-  const orbits = createOrbitalSystem(quality);
-  const lab = createLaboratory(quality);
-  const artifacts = createDataArtifacts();
-  const atmosphere = createAtmosphere(quality);
-  scene.add(core.group, orbits.group, lab.group, artifacts.group, atmosphere.points);
-
-  scene.add(new THREE.AmbientLight('#1b1814', 0.35));
-  const rim = new THREE.DirectionalLight('#D8D2C8', 0.28);
-  rim.position.set(-6, 10, -14);
-  scene.add(rim);
+  const planets = PLANETS.map((spec, i) => createPlanet(spec, i, quality));
+  planets.forEach((planet) => scene.add(planet.group));
+  scene.add(new THREE.AmbientLight('#1A2233', 0.45));
   onLoadProgress(0.9);
 
   /* --- Camera rig ------------------------------------------------- */
-  const progress: DampState = { value: 0, velocity: 0 };
+  const progress = damp();
   let targetProgress = 0;
-  const camX: DampState = { value: 0, velocity: 0 };
-  const camY: DampState = { value: 0, velocity: 0 };
-  const camZ: DampState = { value: 0, velocity: 0 };
-  const yaw: DampState = { value: 0, velocity: 0 };
-  const pitch: DampState = { value: 0, velocity: 0 };
-  let lookX = 0;
-  let lookY = 0;
-  let pathScale = 1;
+  const position = [damp(), damp(), damp()];
+  const look = [damp(), damp(), damp()];
+  const yaw = damp();
+  const pitch = damp();
+  let glanceX = 0;
+  let glanceY = 0;
+  let portrait = false;
+  let path = createJourneyPath(false);
   const lookTarget = new THREE.Vector3();
-  const lookEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-  const lookQuaternion = new THREE.Quaternion();
-
-  const pose = new THREE.Vector3();
-  const poseAt = (p: number, elapsed: number) => {
-    const drift = AWAKEN_DRIFT_DISTANCE * (1 - easeOutCubic(elapsed / AWAKEN_DRIFT_SECONDS));
-    return pose.set(cameraTrack.x(p) * pathScale, cameraTrack.y(p), cameraTrack.z(p) + drift);
-  };
+  const glanceEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+  const glanceQuaternion = new THREE.Quaternion();
+  const proximities = PLANETS.map(() => 0);
 
   const resize = () => {
     const width = canvas.clientWidth;
@@ -128,8 +108,12 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
     renderer.setSize(width, height, false);
     const aspect = width / height;
     camera.aspect = aspect;
-    camera.fov = aspect < PORTRAIT_ASPECT ? FOV_PORTRAIT : FOV_LANDSCAPE;
-    pathScale = aspect < PORTRAIT_ASPECT ? PORTRAIT_PATH_SCALE : 1;
+    const nextPortrait = aspect < PORTRAIT_ASPECT;
+    camera.fov = nextPortrait ? FOV_PORTRAIT : FOV_LANDSCAPE;
+    if (nextPortrait !== portrait) {
+      portrait = nextPortrait;
+      path = createJourneyPath(portrait);
+    }
     camera.updateProjectionMatrix();
   };
   const resizeObserver = new ResizeObserver(resize);
@@ -137,11 +121,14 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
   resize();
 
   const snapCamera = (p: number) => {
-    poseAt(p, elapsed);
-    camX.value = pose.x;
-    camY.value = pose.y;
-    camZ.value = pose.z;
-    camX.velocity = camY.velocity = camZ.velocity = 0;
+    path.position.forEach((track, axis) => {
+      position[axis].value = track(p);
+      position[axis].velocity = 0;
+    });
+    path.look.forEach((track, axis) => {
+      look[axis].value = track(p);
+      look[axis].velocity = 0;
+    });
   };
 
   /* --- Adaptive quality ------------------------------------------- */
@@ -153,8 +140,7 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
       return true;
     }
     if (step === 2) {
-      lab.setDetailReduced(true);
-      atmosphere.points.visible = false;
+      dust.points.visible = false;
       return true;
     }
     return false;
@@ -172,42 +158,40 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
     monitor.sample(dt);
 
     const p = smoothDamp(progress, targetProgress, PROGRESS_SMOOTH_TIME, dt);
-    poseAt(p, elapsed);
-    const prevX = camX.value;
     camera.position.set(
-      smoothDamp(camX, pose.x, CAMERA_SMOOTH_TIME, dt),
-      smoothDamp(camY, pose.y, CAMERA_SMOOTH_TIME, dt),
-      Math.max(0.2, smoothDamp(camZ, pose.z, CAMERA_SMOOTH_TIME, dt)),
+      smoothDamp(position[0], path.position[0](p), CAMERA_SMOOTH_TIME, dt),
+      smoothDamp(position[1], path.position[1](p), CAMERA_SMOOTH_TIME, dt),
+      smoothDamp(position[2], path.position[2](p), CAMERA_SMOOTH_TIME, dt),
     );
-
-    // Look at the core, bank gently into lateral drift, then add the pointer's small glance.
-    lookTarget.set(camera.position.x * 0.25, camera.position.y * 0.15, 0);
+    lookTarget.set(
+      smoothDamp(look[0], path.look[0](p), LOOK_SMOOTH_TIME, dt),
+      smoothDamp(look[1], path.look[1](p), LOOK_SMOOTH_TIME, dt),
+      smoothDamp(look[2], path.look[2](p), LOOK_SMOOTH_TIME, dt),
+    );
     camera.lookAt(lookTarget);
-    const drift = dt > 0 ? (camX.value - prevX) / dt : 0;
-    lookEuler.set(
-      smoothDamp(pitch, lookY * LOOK_PITCH_MAX, LOOK_SMOOTH_TIME, dt),
-      smoothDamp(yaw, -lookX * LOOK_YAW_MAX, LOOK_SMOOTH_TIME, dt),
-      clamp(-drift * BANK_PER_UNIT_DRIFT, -BANK_MAX, BANK_MAX),
-    );
-    camera.quaternion.multiply(lookQuaternion.setFromEuler(lookEuler));
 
-    const presence = worldTrack.environment(p);
+    // Bank gently into the turn (lateral speed), then add the pointer's small glance.
+    const lateralSpeed = position[0].velocity * Math.cos(camera.rotation.y) - position[2].velocity * Math.sin(camera.rotation.y);
+    glanceEuler.set(
+      smoothDamp(pitch, glanceY * GLANCE_PITCH_MAX, GLANCE_SMOOTH_TIME, dt),
+      smoothDamp(yaw, -glanceX * GLANCE_YAW_MAX, GLANCE_SMOOTH_TIME, dt),
+      clamp(-lateralSpeed * BANK_PER_SPEED, -BANK_MAX, BANK_MAX),
+    );
+    camera.quaternion.multiply(glanceQuaternion.setFromEuler(glanceEuler));
+
     const awaken = easeOutCubic(elapsed / AWAKEN_SECONDS);
     renderer.toneMappingExposure = awaken;
-    (scene.fog as THREE.FogExp2).density = worldTrack.fogDensity(p);
+    const presence = systemPresence(p);
 
-    core.update({
-      time: elapsed,
-      light: worldTrack.coreLight(p) * awaken,
-      energy: worldTrack.energy(p),
-      // The beacon leads the awakening: it is visible before the exposure comes up.
-      beacon: worldTrack.beacon(p) * Math.min(1, elapsed / (AWAKEN_SECONDS * 0.5)),
-      cameraDistance: camera.position.length(),
+    sun.update(elapsed, sunBrightness(p));
+    planets.forEach((planet, i) => {
+      proximities[i] = planetProximity(p, i);
+      planet.update(dt, elapsed, p);
+      planet.group.visible = presence > 0.01;
     });
-    orbits.update(dt, worldTrack.orbitSpeed(p));
-    lab.update(dt, presence);
-    artifacts.update(camera.position, presence);
-    atmosphere.update(dt, presence);
+    orbits.update(proximities, presence);
+    dust.update(dt, presence);
+    starfield.stars.rotation.y += dt * 0.002;
 
     renderer.render(scene, camera);
     // Schedule first, so onFrame may stop the loop (setActive(false) cancels this request).
@@ -240,8 +224,8 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
       onFrame(targetProgress);
     },
     setLook: (x, y) => {
-      lookX = clamp(x, -1, 1);
-      lookY = clamp(y, -1, 1);
+      glanceX = clamp(x, -1, 1);
+      glanceY = clamp(y, -1, 1);
     },
     setActive,
     destroy: () => {
@@ -253,10 +237,9 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
         const materials = Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : [];
         materials.forEach((material) => material.dispose());
       });
-      emblemTexture.dispose();
+      sun.dispose();
+      logoTexture.dispose();
       glowTexture.dispose();
-      environmentMap?.dispose();
-      pmrem?.dispose();
       renderer.dispose();
     },
   };

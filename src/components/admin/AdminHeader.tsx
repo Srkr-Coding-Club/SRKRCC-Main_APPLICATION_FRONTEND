@@ -9,7 +9,7 @@ export function AdminHeader() {
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
       <div className="flex items-center space-x-4">
         <div className="p-3 rounded-lg bg-[#FFE5CC] dark:bg-[#8B2E3B]/30 text-[#FF7A00] flex-shrink-0">
-          <img src="/logonobg.png" alt="SRKRCC Logo" className="w-10 h-10 object-contain" />
+          <img src="/logonobg.webp" alt="SRKRCC Logo" className="w-10 h-10 object-contain" />
         </div>
         <div>
           <div className="flex items-center space-x-2">

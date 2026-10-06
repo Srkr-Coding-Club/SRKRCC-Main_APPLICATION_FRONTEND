@@ -180,40 +180,47 @@ Backend contract: `apps/hackathons` — see the backend repo's `docs/modules/hac
 
 ---
 
-## 11. Home Hero Scroll Intro
+## 11. Home Hero Scroll Intro: the Solar-System Journey
 
-`src/components/hero-intro/` wraps `HeroSection` on `/` (`<HeroIntro><HeroSection /></HeroIntro>` in `src/app/page.tsx`). It is a WebGL scene (Three.js) pinned under the navbar for 280% of the viewport height: the visitor enters a dark computing laboratory, travels toward the SRKR intelligence core, passes into it, and the home page emerges from its light.
+`src/components/hero-intro/` wraps `HeroSection` on `/` (`<HeroIntro><HeroSection /></HeroIntro>` in `src/app/page.tsx`). It is a WebGL scene (Three.js) pinned under the navbar for 1100% of the viewport height. The club is the Sun, with the real logo on its face. Twelve planets orbit it: four technology eras (foundations and C, the web era, building systems, DSA), then eight club programs (awareness sessions, C workshops, the DSA crash course, coding events, HACKoverflow, CodeQuest, IconCoders, EdgeCase). Scrolling flies the camera from deep space to the Sun, past every planet in turn, out to the edge of the system, and back to the Sun, where the home page emerges from its light.
 
-| Phase (scroll) | What happens |
+| Scene (scroll progress) | What happens |
 |---|---|
-| Awaken (0-25%) | Near-black. A distant point of light appears, the exposure rises and the camera drifts in on its own; silhouettes of the lab emerge from fog as scrolling starts. |
-| Transit (25-55%) | The camera travels through structural gates past data racks; a few code fragments are discovered along the way. |
-| Core (55-85%) | The environment quietens (fog thickens, detail recedes) and the core dominates: glass shell, brushed-metal ring, energy field, embedded emblem, three orbits. |
-| Launch (85-100%) | The camera crosses the shell; warm light fills the frame, "Building coders. Creating innovators." appears in it, and the hero's emblem, headline and actions emerge as the light clears. |
+| Void (0-0.08) | Near-black space and a distant Sun. "Every journey begins with curiosity." then "Every generation builds on what came before." A mouse cue ("Enter the orbit", a swipe hint on touch) invites scrolling. |
+| Sun reveal (0.085-0.135) | The camera arrives at the Sun: "SRKR CODING CLUB" and "Coding · Creativity · Community". |
+| Encounters (0.17 + 0.06 per planet) | For each planet the camera approaches, passes close and departs. A mission-control panel (index, chapter, title, one line, link) holds the side of the frame opposite the planet, and the planet's orbit line warms on approach and fades out at the encounter so it never cuts across the planet. |
+| Outer space (0.885) | The camera pulls far out above the system. |
+| Final reveal (0.912-0.962) | Back at the Sun, held high in the frame: "SRKR CODING CLUB", "Where curiosity becomes code. Where code becomes capability. Where builders find their orbit.", *Join the journey* (`/signup`) and *Explore events*. |
+| Launch (0.968-1) | The camera dives into the Sun, light fills the frame, and the hero's emblem, headline and actions emerge as it clears. |
 
 **Architecture**
 
 | File | Responsibility |
 |---|---|
-| `HeroIntro.tsx` | Scroll pin (ScrollTrigger, no scrub), the DOM handoff timeline, cinema mode, skip/Escape/focus handling, loader, pointer and tilt input. Lazily imports the WebGL scene. |
-| `timeline.ts` | The narrative as functions of progress: `PHASES`, the `LAUNCH` beats, and spline tracks for the camera path and world response (fog, core light, energy, environment presence). Shared by the scene and the DOM. |
+| `solarSystem.ts` | The single source of truth: `PLANETS` (copy, link, orbit, starting angle, size, axial tilt, surface family, palette, atmosphere strength, clouds, rings, moons, which side of the frame the planet holds), `JOURNEY` and `LAUNCH` (the scene timings), `encounterAt(i)` and `planetPosition(planet, progress)`. Planets orbit the Sun as the journey progresses (outer ones slower, as orbit^-1.5). The scene, the story layer and the HUD all read from it. |
+| `HeroIntro.tsx` | Scroll pin (ScrollTrigger, no scrub), the DOM handoff timeline, cinema mode, skip/Escape/focus handling, the loader ("Initializing CCC system", then loading orbits, calibrating planets, system ready), HUD updates and orbit navigation. Lazily imports the WebGL scene. |
+| `IntroStory.tsx` | The words of the journey in the DOM (readable, accessible), above the canvas: opening lines, the Sun title, one panel per planet and the final invitation. `choreographStory()` adds their tweens to the handoff timeline. |
+| `IntroHud.tsx` | Mission control: "SRKR // Coding Club" with a status line, the "03 / 12" counter with the Technology to Community chapter, and (xl screens) an orbital nav down the right edge that jumps to any planet. HeroIntro writes the active planet via `data-active` and text content, never via React re-renders. |
 | `introMath.ts` | `createTrack` (Catmull-Rom keyframes) and `smoothDamp` (critically damped follow). |
 | `introEligibility.ts` | Who gets the intro, and the matching pre-paint script for cinema mode. |
-| `IntroHud.tsx` | The only chrome: "SRKR // Coding Club" and one status line (Initializing, Signal found, Core online, Entering). |
-| `webgl/createIntroScene.ts` | Renderer, camera rig and render loop. Owns all high-frequency state; React never re-renders per frame. |
-| `webgl/intelligenceCore.ts`, `orbitalSystem.ts`, `laboratory.ts`, `dataArtifacts.ts`, `atmosphere.ts` | The world, in depth layers. |
-| `webgl/quality.ts` | Device tier (high/medium/low) and the frame monitor that downgrades detail when FPS sags. |
-| `webgl/textures.ts` | Generated glow and label textures, texture loading. |
+| `webgl/createIntroScene.ts` | Renderer, camera rig and render loop. Owns all high-frequency state. |
+| `webgl/journeyPath.ts` | The camera's flight, built from the planets themselves: one pose per scene, joined by splines. Each encounter is framed the way space photography frames a world: the camera stands on the day side, swung `PHASE` off the planet-Sun line and raised `ELEVATION` above the orbital plane, so the Sun is out of frame behind the viewer, the planet shows a lit face with a soft terminator, and the other planets fall away above the frame instead of crowding the planet or the panel. The swing is chosen so sunlight falls from the panel's side. On portrait screens the planet sits above the panel. Also `planetProximity`, `systemPresence` and `sunBrightness`. |
+| `webgl/sun.ts` | Procedural photosphere (supergranule cells, fine granulation, small sunspots, faculae, limb darkening), corona, halo and faint turning rays, and the point light. The club logo is projected in the shader onto the face toward the camera and burned into the plasma as cooler, darker gas, so it reads from every angle and planets passing in front hide it naturally. |
+| `webgl/planet.ts` | Realistic surface families in one shader: `rocky` (craters, maria), `terran` (continents, mountain chains, deserts, shallows, ice caps, ocean glint, city lights on the night side, plus a separate cloud layer), `gas` (turbulent drifting bands and a great storm), `ice` (methane haze) and `lava` (glowing, pulsing cracks). One light (the Sun), proper tone mapping and colour space, a thin atmosphere shell that scatters light along the lit limb, banded rings with a division and the planet's shadow, and moons. Each planet spins on its tilted axis; clouds drift faster than the surface. |
+| `webgl/space.ts` | The starfield (with a galactic band like the Milky Way) and distant galaxies, orbit lines, and drifting dust. |
+| `webgl/noise.ts` | Shared GLSL noise (`fbm`, `ridged`). |
+| `webgl/quality.ts` | Device tier (high/medium/low: pixel ratio, star and dust counts, sphere detail) and the frame monitor that downgrades when FPS sags. |
+| `webgl/textures.ts` | The generated glow texture and texture loading. |
 
-- **Camera inertia.** Scroll sets a *target* progress; the loop eases the actual progress toward it with `smoothDamp`, samples the camera path from it, and damps the camera again. Fast scrolling accelerates, slowing settles, and reversing turns round smoothly. The pointer (or phone tilt) only adds a glance of about ±3°.
-- **Occlusion.** Inside-the-core layers draw first; the glass shell then writes depth so orbit segments behind the core are hidden (`RENDER_ORDER` in `intelligenceCore.ts`).
-- **Restraint by design.** Gold is reserved for the core, its edge, the primary orbit and a few accents; everything else is matte and revealed only by the core's light. There are exactly six code fragments, each fading in at reading distance.
-- **Adaptive quality.** The tier sets pixel ratio, antialiasing, dust count, rack density, reflections and curve segments. If sustained FPS drops below 42, the monitor lowers the pixel ratio, then hides secondary detail, then lowers the pixel ratio again.
-- **Handoff.** The DOM timeline is a paused GSAP timeline played by the damped progress, so the wash, tagline and hero reveal stay in lockstep with the camera. `HeroSection` exposes `data-hero-emblem`, `data-hero-title` and `data-hero-reveal`. The intro animates the `--intro-rise`, `--intro-scale` and `--intro-filter` variables (see `globals.css`), which drive the independent `translate`/`scale`/`filter` properties and leave Framer Motion's `transform` alone.
+- **Camera inertia.** Scroll sets a *target* progress; the loop eases the actual progress toward it with `smoothDamp`, samples the camera path from it, and damps the camera again, then banks slightly into turns. Fast scrolling accelerates, slowing settles, and reversing turns round smoothly. The pointer (or phone tilt) only adds a glance of about ±3°.
+- **Story in lockstep.** Every DOM beat (opening lines, panels, final scene, wash, hero reveal) lives on one paused GSAP timeline played by the damped progress, so text and camera never drift apart.
+- **Orbit navigation.** Nav buttons scroll to `trigger.start + encounterAt(i) * (end - start)`; the camera then flies there through the intervening planets.
+- **Handoff.** `HeroSection` exposes `data-hero-emblem`, `data-hero-title` and `data-hero-reveal`. The intro animates the `--intro-rise`, `--intro-scale` and `--intro-filter` variables (see `globals.css`), which drive the independent `translate`/`scale`/`filter` properties and leave Framer Motion's `transform` alone.
 - **Cinema mode.** While the intro plays, `<html data-intro-cinema>` hides every `[data-site-chrome]` element (the navbar and announcement banner). The root layout sets it before first paint via `INTRO_CINEMA_SCRIPT`; HeroIntro clears it as the page emerges, on skip, and on unmount. A CSS failsafe restores the chrome after 4 s if the intro never mounts.
 - **Ways out.** *Skip intro* (fixed bottom-right, outside the pinned root), `Escape`, and tabbing into the hero all jump to the end.
 - **Fallbacks.** `prefers-reduced-motion`, Save-Data, low-power touch devices and anyone who saw the intro in the last 7 days (`srkrcc_intro_seen_at` in localStorage) get the plain hero, with no pinned scroll. If WebGL fails to initialise, the intro removes itself and shows the plain hero.
 - **Bundle.** `three` is only imported by the lazily loaded `webgl/` modules, so it never lands in the shared bundle.
+- **Editing the journey.** To change a planet's words, link or look, edit its entry in `PLANETS`. Starting angles were tuned so no planet crosses the camera's path or crowds another planet's encounter; after changing an orbit, angle, size or the number of planets, re-check that (for example by sampling `createJourneyPath` against `planetPosition`) and check `JOURNEY.encounterStep`/`outerSpace` so the last encounter still ends before outer space.
 
 ---
 

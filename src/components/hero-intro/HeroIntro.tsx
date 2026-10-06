@@ -4,9 +4,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import IntroHud from './IntroHud';
+import IntroStory, { choreographStory } from './IntroStory';
 import { CHROME_MANAGED_ATTR, CINEMA_ATTR, markIntroSeen, shouldPlayIntro } from './introEligibility';
 import { clamp } from './introMath';
-import { LAUNCH, phaseIndexAt } from './timeline';
+import { encounterAt, JOURNEY, LAUNCH, PLANETS } from './solarSystem';
 import { detectQuality } from './webgl/quality';
 import type { IntroScene } from './webgl/createIntroScene';
 
@@ -14,7 +15,7 @@ gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
 
 const NAVBAR_HEIGHT_PX = 64;
-const SCROLL_DISTANCE = '+=280%';
+const SCROLL_DISTANCE = '+=1100%';
 const DONE_PROGRESS = 0.999;
 const LOADER_DELAY_MS = 300;
 const LOADER_CELLS = 10;
@@ -30,17 +31,42 @@ function canUseTilt() {
   return !needsPermission && window.matchMedia('(pointer: coarse)').matches;
 }
 
+/* Loading readout: what the system is doing, by how far loading has got. */
+const LOAD_STAGES: Array<[upTo: number, label: string]> = [
+  [0.3, 'Initializing system'],
+  [0.6, 'Loading orbits'],
+  [0.95, 'Calibrating planets'],
+  [1, 'System ready'],
+];
+
+/* The planet whose encounter the journey is in, or -1 between scenes. */
+function activePlanetAt(progress: number) {
+  const index = Math.round((progress - JOURNEY.firstEncounter) / JOURNEY.encounterStep);
+  if (index < 0 || index >= PLANETS.length) return -1;
+  return Math.abs(progress - encounterAt(index)) <= JOURNEY.encounterStep / 2 ? index : -1;
+}
+
+/* What the status line says outside planet encounters. */
+function journeyStatus(progress: number, planet: number) {
+  if (planet >= 0) return `Orbit ${String(planet + 1).padStart(2, '0')} · ${PLANETS[planet].eyebrow}`;
+  if (progress < JOURNEY.sunReveal.start) return 'Deep space';
+  if (progress < encounterAt(0)) return 'Approaching the Sun';
+  if (progress < JOURNEY.finalReveal.start) return 'Outer system';
+  return 'Returning to the Sun';
+}
+
 /* Cinema mode hides the navbar and announcement banner (see globals.css). */
 function setCinema(on: boolean) {
   document.documentElement.toggleAttribute(CINEMA_ATTR, on);
 }
 
 /* ------------------------------------------------------------------ */
-/* A cinematic entry into the SRKR intelligence core, pinned over the */
-/* hero. The WebGL world (./webgl) owns the camera and render loop;   */
-/* this component owns scroll, the HUD, skipping and the handoff: as  */
-/* the camera passes into the core, light fills the frame and the     */
-/* page - emblem, headline, actions - emerges from it.                */
+/* A journey through the SRKR Coding Club solar system, pinned over   */
+/* the hero: the club is the Sun, and every technology era and club  */
+/* program is a planet the camera visits. The WebGL world (./webgl)   */
+/* owns the camera and render loop; this component owns scroll, the   */
+/* story and HUD, skipping and the handoff: back at the Sun, the      */
+/* camera dives in, light fills the frame and the page emerges.       */
 /*                                                                    */
 /* The hero (`children`) is always in the DOM and painted underneath, */
 /* so SEO and LCP are unaffected; see introEligibility for who skips. */
@@ -50,6 +76,7 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
   const skipIntroRef = useRef<() => void>(() => {});
+  const navigateRef = useRef<(progress: number) => void>(() => {});
   const [enabled, setEnabled] = useState(true);
 
   useEffect(() => {
@@ -61,10 +88,14 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
     const root = rootRef.current;
     const canvas = canvasRef.current;
     const hud = root?.querySelector<HTMLElement>('[data-intro="hud"]');
+    const hudStatus = root?.querySelector<HTMLElement>('[data-intro="hud-status"]');
+    const hudCount = root?.querySelector<HTMLElement>('[data-intro="hud-count"]');
+    const hudChapter = root?.querySelector<HTMLElement>('[data-intro="hud-chapter"]');
+    const navItems = Array.from(root?.querySelectorAll<HTMLElement>('[data-orbit-nav]') ?? []);
     const loader = root?.querySelector<HTMLElement>('[data-intro="loader"]');
     const loaderBar = root?.querySelector<HTMLElement>('[data-intro="loader-bar"]');
     const loaderPercent = root?.querySelector<HTMLElement>('[data-intro="loader-percent"]');
-    if (!root || !canvas || !hud || !loader || !loaderBar || !loaderPercent) return;
+    if (!root || !canvas || !hud || !hudStatus || !hudCount || !hudChapter || !loader || !loaderBar || !loaderPercent) return;
 
     const html = document.documentElement;
     html.setAttribute(CHROME_MANAGED_ATTR, '');
@@ -76,50 +107,59 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
     let target = 0;
     let cinema = true;
     let done = false;
-    let phase = 0;
+    let activePlanet = -2;
+    let status = '';
 
     const ctx = gsap.context(() => {
       /* The handoff, positioned in scroll progress (0-1) and played by the damped progress. */
       const handoff = gsap
         .timeline({ paused: true, defaults: { ease: 'none' } })
-        .to('[data-intro="cue"]', { autoAlpha: 0, y: 8, duration: 0.04 }, 0.01)
-        .to('[data-intro="hud"]', { autoAlpha: 0, duration: 0.03 }, 0.86)
+        .to('[data-intro="cue"]', { autoAlpha: 0, y: 8, duration: 0.008 }, 0.004)
+        .to('[data-intro="hud"]', { autoAlpha: 0, duration: 0.01 }, JOURNEY.finalReveal.start)
         .fromTo(
           '[data-intro="wash"]',
           { autoAlpha: 0 },
           { autoAlpha: 1, duration: LAUNCH.lightFull - LAUNCH.shellCrossing, ease: 'power1.in' },
           LAUNCH.shellCrossing,
         )
-        .to('[data-intro="stage"], [data-intro="bleed"]', { autoAlpha: 0, duration: 0.012 }, LAUNCH.lightFull + 0.005)
-        .fromTo('[data-intro="tagline"]', { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: 0.025, ease: 'power2.out' }, LAUNCH.taglineIn)
-        .to('[data-intro="tagline"]', { autoAlpha: 0, y: -36, duration: 0.011, ease: 'power2.in' }, LAUNCH.taglineOut)
-        .to('[data-intro="wash"]', { autoAlpha: 0, duration: 0.04, ease: 'power2.out' }, LAUNCH.pageEmerges)
+        .to('[data-intro="stage"], [data-intro="bleed"]', { autoAlpha: 0, duration: 0.004 }, LAUNCH.lightFull + 0.002)
+        .to('[data-intro="wash"]', { autoAlpha: 0, duration: 0.012, ease: 'power2.out' }, LAUNCH.pageEmerges)
         .fromTo(
           '[data-hero-emblem]',
           { '--intro-scale': 1.5, '--intro-filter': 'brightness(2.6) blur(10px)' },
-          { '--intro-scale': 1, '--intro-filter': 'brightness(1) blur(0px)', duration: 0.045, ease: 'power2.out' },
-          LAUNCH.pageEmerges - 0.005,
+          { '--intro-scale': 1, '--intro-filter': 'brightness(1) blur(0px)', duration: 0.012, ease: 'power2.out' },
+          LAUNCH.pageEmerges,
         )
         .fromTo(
           '[data-hero-title]',
           { '--intro-scale': 1.18, '--intro-filter': 'blur(12px)' },
-          { '--intro-scale': 1, '--intro-filter': 'blur(0px)', duration: 0.035, ease: 'power3.out' },
-          LAUNCH.pageEmerges + 0.005,
+          { '--intro-scale': 1, '--intro-filter': 'blur(0px)', duration: 0.01, ease: 'power3.out' },
+          LAUNCH.pageEmerges + 0.002,
         )
         .fromTo(
           '[data-hero-reveal]',
           { '--intro-rise': '32px', '--intro-filter': 'opacity(0) blur(6px)' },
-          { '--intro-rise': '0px', '--intro-filter': 'opacity(1) blur(0px)', duration: 0.02, stagger: 0.004, ease: 'power2.out' },
-          LAUNCH.pageEmerges + 0.01,
+          { '--intro-rise': '0px', '--intro-filter': 'opacity(1) blur(0px)', duration: 0.006, stagger: 0.0012, ease: 'power2.out' },
+          LAUNCH.pageEmerges + 0.003,
         )
         .set('[data-hero-emblem], [data-hero-title], [data-hero-reveal]', { '--intro-filter': 'none' }, 1);
+      choreographStory(handoff);
 
       const syncFrame = (progress: number) => {
         handoff.progress(progress);
-        const nextPhase = phaseIndexAt(progress);
-        if (nextPhase !== phase) {
-          phase = nextPhase;
-          hud.dataset.phase = String(phase);
+        const nextPlanet = activePlanetAt(progress);
+        if (nextPlanet !== activePlanet) {
+          activePlanet = nextPlanet;
+          navItems.forEach((item, i) => item.setAttribute('data-active', String(i === activePlanet)));
+          if (activePlanet >= 0) {
+            hudCount.textContent = String(activePlanet + 1).padStart(2, '0');
+            hudChapter.dataset.chapter = PLANETS[activePlanet].chapter;
+          }
+        }
+        const nextStatus = journeyStatus(progress, activePlanet);
+        if (nextStatus !== status) {
+          status = nextStatus;
+          hudStatus.textContent = status;
         }
         const nextCinema = progress < LAUNCH.pageEmerges;
         if (nextCinema !== cinema) {
@@ -160,6 +200,10 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
       });
       target = trigger.progress;
 
+      navigateRef.current = (progress: number) => {
+        window.scrollTo({ top: trigger.start + progress * (trigger.end - trigger.start), behavior: 'instant' });
+      };
+
       skipIntroRef.current = () => {
         target = 1;
         window.scrollTo({ top: trigger.end, behavior: 'instant' });
@@ -172,6 +216,7 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
         if (!scene) gsap.to(loader, { autoAlpha: 1, duration: 0.4, overwrite: true });
       }, LOADER_DELAY_MS);
       const showLoadProgress = (fraction: number) => {
+        hudStatus.textContent = (LOAD_STAGES.find(([upTo]) => fraction <= upTo) ?? LOAD_STAGES[LOAD_STAGES.length - 1])[1];
         const filled = Math.round(fraction * LOADER_CELLS);
         loaderBar.textContent = '█'.repeat(filled) + '░'.repeat(LOADER_CELLS - filled);
         loaderPercent.textContent = `${Math.round(fraction * 100)}%`;
@@ -252,6 +297,7 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
       ctx.revert();
       scene?.destroy();
       skipIntroRef.current = () => {};
+      navigateRef.current = () => {};
       setCinema(false);
       html.removeAttribute(CHROME_MANAGED_ATTR);
     };
@@ -287,24 +333,23 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
             <div
               data-intro="bleed"
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 bottom-full z-20 h-[100vh] bg-[#0D0E15] motion-reduce:hidden group-data-[intro-done=true]/intro:invisible"
+              className="pointer-events-none absolute inset-x-0 bottom-full z-20 h-[100vh] bg-[#05060A] motion-reduce:hidden group-data-[intro-done=true]/intro:invisible"
             />
 
             {/* The stage runs up under the hidden navbar so the world fills the screen edge to edge. */}
             <div
               data-intro="stage"
               aria-hidden="true"
-              className="absolute inset-x-0 bottom-0 top-[calc(var(--navbar-offset)*-1)] z-20 overflow-hidden bg-[#0D0E15] motion-reduce:hidden group-data-[intro-done=true]/intro:invisible"
+              className="absolute inset-x-0 bottom-0 top-[calc(var(--navbar-offset)*-1)] z-20 overflow-hidden bg-[#05060A] motion-reduce:hidden group-data-[intro-done=true]/intro:invisible"
             >
               <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
-              <IntroHud />
 
               <div
                 data-intro="loader"
                 className="invisible absolute inset-x-0 bottom-14 flex items-center justify-center gap-3 font-mono text-[11px] text-[#64748B] opacity-0"
               >
-                <span className="text-[#94A3B8]">Initializing experience</span>
+                <span className="text-[#94A3B8]">Initializing CCC system</span>
                 <span data-intro="loader-bar" className="tracking-[-0.05em] text-[#FFA500]/70">
                   ░░░░░░░░░░
                 </span>
@@ -315,13 +360,23 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
 
               <div data-intro="cue" className="absolute inset-x-0 bottom-16 flex justify-center sm:bottom-12">
                 <span data-intro="cue-text" className="flex flex-col items-center gap-3 text-[13px] text-[#94A3B8] opacity-0">
-                  Scroll to enter
-                  <span className="h-8 w-px origin-top bg-gradient-to-b from-[#FFA500]/70 to-transparent animate-[introCue_2.4s_ease-in-out_infinite]" />
+                  {/* A mouse with a rolling wheel where there is a mouse; a swipe hint on touch screens. */}
+                  <span className="hidden h-10 w-6 justify-center rounded-full border-2 border-[#F5F5F5]/50 [@media(hover:hover)]:flex">
+                    <span className="mt-2 h-2 w-1 rounded-full bg-[#FFA500] animate-[introWheel_1.8s_ease-in-out_infinite]" />
+                  </span>
+                  <span className="h-8 w-px origin-top bg-gradient-to-b from-[#FFA500]/70 to-transparent animate-[introCue_2.4s_ease-in-out_infinite] [@media(hover:hover)]:hidden" />
+                  <span className="font-mono text-xs uppercase tracking-[0.3em] text-[#F5F5F5]/80">Enter the orbit</span>
+                  <span className="[@media(hover:hover)]:hidden">Swipe up to begin</span>
+                  <span className="hidden [@media(hover:hover)]:inline">Scroll to begin</span>
                 </span>
               </div>
             </div>
 
-            {/* The handoff: light fills the frame as the camera enters the core, and the page emerges from it. */}
+            {/* The story and mission-control HUD: real DOM, outside the hidden 3D stage, so links work. */}
+            <IntroStory />
+            <IntroHud onNavigate={(progress) => navigateRef.current(progress)} />
+
+            {/* The handoff: light fills the frame as the camera enters the Sun, and the page emerges from it. */}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 bottom-0 top-[calc(var(--navbar-offset)*-1)] z-30 motion-reduce:hidden group-data-[intro-done=true]/intro:invisible"
@@ -330,16 +385,6 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
                 data-intro="wash"
                 className="invisible absolute inset-0 bg-[radial-gradient(circle_at_50%_46%,#FFF8F0_0%,#FFD39A_26%,#FF7A00_58%,#8B2E3B_100%)] opacity-0"
               />
-              <div className="absolute inset-0 flex items-center justify-center px-6">
-                <p
-                  data-intro="tagline"
-                  className="invisible text-center font-display text-[clamp(2.6rem,7.6vw,6rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-[#2A0F0A] opacity-0 [font-stretch:112%]"
-                >
-                  Building coders.
-                  <br />
-                  Creating innovators.
-                </p>
-              </div>
             </div>
           </>
         )}
