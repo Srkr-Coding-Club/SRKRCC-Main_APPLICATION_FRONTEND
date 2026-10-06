@@ -137,7 +137,7 @@ export default function HeroSection({ nextUp }: { nextUp: AgendaItem | null }) {
             >
               <div className="relative flex h-[104px] w-[104px] items-center justify-center rounded-full bg-[var(--background)] sm:h-[120px] sm:w-[120px]">
                 <div className="relative h-[84%] w-[84%]">
-                  <Image src="/logonobg.png" alt="" fill priority sizes="120px" className="object-contain" />
+                  <Image src="/logonobg.webp" alt="" fill priority sizes="120px" className="object-contain" />
                 </div>
               </div>
             </motion.div>
