@@ -16,8 +16,8 @@ const FINAL_LINES = ['Where curiosity becomes code.', 'Where code becomes capabi
 export function choreographStory(timeline: gsap.core.Timeline) {
   JOURNEY.openingLines.forEach((line, i) => {
     timeline
-      .fromTo(`[data-opening="${i}"]`, { autoAlpha: 0, y: 14, filter: 'blur(8px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 0.012 }, line.start)
-      .to(`[data-opening="${i}"]`, { autoAlpha: 0, y: -10, filter: 'blur(6px)', duration: 0.01 }, line.end - 0.01);
+      .fromTo(`[data-opening="${i}"]`, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.012 }, line.start)
+      .to(`[data-opening="${i}"]`, { autoAlpha: 0, y: -10, duration: 0.01 }, line.end - 0.01);
   });
 
   timeline
@@ -32,16 +32,16 @@ export function choreographStory(timeline: gsap.core.Timeline) {
     timeline
       .fromTo(
         `[data-planet-panel="${i}"]`,
-        { autoAlpha: 0, x: 24, filter: 'blur(10px)' },
-        { autoAlpha: 1, x: 0, filter: 'blur(0px)', duration: reach * 0.5, ease: 'power2.out' },
+        { autoAlpha: 0, x: 24 },
+        { autoAlpha: 1, x: 0, duration: reach * 0.5, ease: 'power2.out' },
         at - reach,
       )
-      .to(`[data-planet-panel="${i}"]`, { autoAlpha: 0, x: -16, filter: 'blur(8px)', duration: reach * 0.4, ease: 'power2.in' }, at + reach * 0.6);
+      .to(`[data-planet-panel="${i}"]`, { autoAlpha: 0, x: -16, duration: reach * 0.4, ease: 'power2.in' }, at + reach * 0.6);
   });
 
   timeline
     .fromTo('[data-intro="final"]', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.008 }, JOURNEY.finalReveal.start)
-    .fromTo('[data-intro="final-title"]', { y: 24, filter: 'blur(12px)' }, { y: 0, filter: 'blur(0px)', duration: 0.014, ease: 'power3.out' }, JOURNEY.finalReveal.start)
+    .fromTo('[data-intro="final-title"]', { y: 24 }, { y: 0, duration: 0.014, ease: 'power3.out' }, JOURNEY.finalReveal.start)
     .fromTo('[data-final-line]', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.006, stagger: 0.003 }, JOURNEY.finalReveal.start + 0.004)
     // Everything is in place by about a third of the way in, so the invitation holds for most of the scene.
     .fromTo('[data-intro="final-actions"]', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.006 }, JOURNEY.finalReveal.start + 0.012)
@@ -93,7 +93,7 @@ export default function IntroStory() {
           <article
             data-planet-panel={i}
             aria-label={`${planet.eyebrow}: ${planet.title}`}
-            className="pointer-events-auto invisible rounded-xl border border-white/10 bg-[#05060A]/55 p-5 opacity-0 backdrop-blur-md sm:p-6"
+            className="pointer-events-auto invisible rounded-xl border border-white/10 bg-[#07080D]/80 p-5 opacity-0 shadow-[0_24px_60px_rgba(0,0,0,0.45)] sm:p-6"
           >
             <div className="flex items-center justify-between font-mono text-[11px] text-[#94A3B8]">
               <span className="flex items-center gap-3">

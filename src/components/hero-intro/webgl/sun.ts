@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SUN_RADIUS } from '../solarSystem';
+import { CLUB_LOGO_INK, CLUB_LOGO_RAYS, type LogoShape } from './clubLogo';
 import { NOISE_GLSL } from './noise';
 import type { QualitySettings } from './quality';
 
@@ -7,18 +8,21 @@ import type { QualitySettings } from './quality';
 /* The Sun: SRKR Coding Club. A churning photosphere - fine           */
 /* granulation, slow supergranule cells, a few sunspots, bright       */
 /* faculae and limb darkening - inside a soft corona. The club's logo */
-/* is not a sticker on top: the shader projects it onto the face      */
-/* toward the camera and burns it into the plasma as cooler, darker   */
-/* gas (the way sunspots read), so it stays legible from every angle  */
-/* and passing planets hide it naturally.                             */
+/* is real 3D geometry, extruded from its traced outlines: a lacquered*/
+/* maroon bulb and brain with metal-orange rays, standing just off    */
+/* the face toward the camera so it reads, with depth, from any angle.*/
 /* ------------------------------------------------------------------ */
 
 const CORONA_SCALE = SUN_RADIUS * 5.2;
 const HALO_SCALE = SUN_RADIUS * 12;
 const RAYS_SCALE = SUN_RADIUS * 6;
 const RAYS_SPIN = 0.012;
-/* Half-width of the logo image on the Sun's face, as a fraction of its radius. */
+/* Half-width of the logo on the Sun's face, and how far it stands off the surface, in Sun radii. */
 const LOGO_SPAN = 0.82;
+const LOGO_STANDOFF = 1.03;
+const LOGO_DEPTH = 0.06;
+/* The logo steps aside when the camera dives into the Sun at the end of the journey. */
+const LOGO_HIDE_DISTANCE = SUN_RADIUS * 1.9;
 
 const vertex = /* glsl */ `
   varying vec3 vNormal;
@@ -36,8 +40,6 @@ const vertex = /* glsl */ `
 const fragment = /* glsl */ `
   uniform float uTime;
   uniform float uIntensity;
-  uniform sampler2D uLogo;
-  uniform float uLogoSpan;
   varying vec3 vNormal;
   varying vec3 vView;
   varying vec3 vLocal;
@@ -59,19 +61,6 @@ const fragment = /* glsl */ `
     // Faculae: bright patches near the limb.
     float mu = max(dot(normalize(vNormal), vView), 0.0);
     color += vec3(1.0, 0.7, 0.35) * smoothstep(0.62, 0.75, fbm(p * 6.0 + 9.0)) * (1.0 - mu) * 0.35;
-
-    // The club's mark, projected orthographically toward the viewer (sun at the origin), so it
-    // reads undistorted from the camera. White in the image is plasma; ink is cooler, darker gas.
-    vec3 c = normalize(cameraPosition);
-    vec3 upRef = abs(c.y) > 0.98 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-    vec3 right = normalize(cross(upRef, c));
-    vec3 up = cross(c, right);
-    vec2 uv = vec2(dot(p, right), dot(p, up)) / uLogoSpan * 0.5 + 0.5;
-    if (dot(p, c) > 0.0 && uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) {
-      vec4 logo = texture2D(uLogo, uv);
-      float ink = smoothstep(0.2, 0.75, (1.0 - dot(logo.rgb, vec3(0.299, 0.587, 0.114))) * logo.a);
-      color = mix(color, color * vec3(0.3, 0.06, 0.04), ink * 0.92);
-    }
 
     // Limb darkening: the edge is cooler and dimmer than the centre.
     color *= mix(vec3(0.55, 0.32, 0.2), vec3(1.0), pow(mu, 0.45));
@@ -106,8 +95,41 @@ function createRayTexture(size = 256) {
   return texture;
 }
 
-export function createSun(options: { logoTexture: THREE.Texture; glowTexture: THREE.Texture; quality: QualitySettings }) {
-  const { logoTexture, glowTexture, quality } = options;
+/* Extrudes traced outlines (holes included) into one bevelled geometry. */
+function logoGeometry(shapes: LogoShape[]) {
+  const toShape = ({ outer, holes }: LogoShape) => {
+    const shape = new THREE.Shape(outer.map(([x, y]) => new THREE.Vector2(x, y)));
+    shape.holes = holes.map((hole) => new THREE.Path(hole.map(([x, y]) => new THREE.Vector2(x, y))));
+    return shape;
+  };
+  return new THREE.ExtrudeGeometry(shapes.map(toShape), {
+    depth: LOGO_DEPTH,
+    bevelEnabled: true,
+    bevelThickness: 0.012,
+    bevelSize: 0.006,
+    bevelSegments: 3,
+    curveSegments: 4,
+  });
+}
+
+function createLogo() {
+  const logo = new THREE.Group();
+  logo.add(
+    new THREE.Mesh(
+      logoGeometry(CLUB_LOGO_INK),
+      new THREE.MeshPhysicalMaterial({ color: '#7A1C2A', roughness: 0.3, metalness: 0.15, clearcoat: 1, clearcoatRoughness: 0.08, emissive: '#3A0A10', emissiveIntensity: 0.6 }),
+    ),
+    new THREE.Mesh(
+      logoGeometry(CLUB_LOGO_RAYS),
+      new THREE.MeshPhysicalMaterial({ color: '#FFB347', roughness: 0.25, metalness: 0.7, emissive: '#C46200', emissiveIntensity: 1.4 }),
+    ),
+  );
+  logo.scale.setScalar(SUN_RADIUS * LOGO_SPAN);
+  return logo;
+}
+
+export function createSun(options: { glowTexture: THREE.Texture; quality: QualitySettings }) {
+  const { glowTexture, quality } = options;
   const group = new THREE.Group();
 
   const material = new THREE.ShaderMaterial({
@@ -116,12 +138,10 @@ export function createSun(options: { logoTexture: THREE.Texture; glowTexture: TH
     uniforms: {
       uTime: { value: 0 },
       uIntensity: { value: 1 },
-      uLogo: { value: logoTexture },
-      uLogoSpan: { value: LOGO_SPAN },
     },
     toneMapped: false,
   });
-  const segments = Math.max(quality.sphereSegments, 64);
+  const segments = quality.sphereSegments;
   group.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_RADIUS, segments, segments / 2), material));
 
   const glow = (color: string, scale: number, opacity: number) => {
@@ -142,10 +162,19 @@ export function createSun(options: { logoTexture: THREE.Texture; glowTexture: TH
   rays.scale.setScalar(RAYS_SCALE);
   group.add(rays);
 
-  const light = new THREE.PointLight('#FFE2C0', 2.6, 0, 0);
+  const light = new THREE.PointLight('#FFE2C0', 1.5, 0, 0);
   group.add(light);
 
-  const update = (time: number, brightness: number) => {
+  const logo = createLogo();
+  group.add(logo);
+  const toCamera = new THREE.Vector3();
+
+  const update = (time: number, brightness: number, camera: THREE.Vector3) => {
+    // Keep the logo on the face toward the viewer, standing just off the surface.
+    toCamera.copy(camera).normalize();
+    logo.position.copy(toCamera).multiplyScalar(SUN_RADIUS * LOGO_STANDOFF);
+    logo.lookAt(camera);
+    logo.visible = camera.length() > LOGO_HIDE_DISTANCE;
     material.uniforms.uTime.value = time;
     material.uniforms.uIntensity.value = 1.1 + brightness * 0.3;
     const pulse = 1 + Math.sin(time * 0.8) * 0.02;

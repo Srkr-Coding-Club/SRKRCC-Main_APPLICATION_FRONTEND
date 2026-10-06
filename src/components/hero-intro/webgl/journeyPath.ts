@@ -21,7 +21,7 @@ const LOOK_SHIFT = 1.9;
 const PHASE = 1.05;
 /* The camera looks down on the planet by this angle (radians), so the system's plane - and every  */
 /* other planet in it - falls away above the frame instead of crowding the planet or the panel.    */
-const ELEVATION = 0.62;
+const ELEVATION = 0.7;
 
 interface Pose {
   p: number;
@@ -68,7 +68,8 @@ export function createJourneyPath(portrait: boolean) {
   const poses: Pose[] = [
     { p: 0, position: [0, 70, 300], look: [0, 0, 0] },
     { p: JOURNEY.openingLines[1].start, position: [0, 34, 170], look: [0, 0, 0] },
-    { p: (JOURNEY.sunReveal.start + JOURNEY.sunReveal.end) / 2, position: [0, 4, sunDistance], look: [0, 0, 0] },
+    // The Sun sits a little high in the frame, leaving room for its title below.
+    { p: (JOURNEY.sunReveal.start + JOURNEY.sunReveal.end) / 2, position: [0, 4, sunDistance * 1.1], look: [0, -SUN_RADIUS * 0.3, 0] },
     ...PLANETS.map((_, i) => encounterPose(i, portrait)),
     { p: JOURNEY.outerSpace, position: [0, 120, 210], look: [0, 0, 0] },
     // Back at the Sun, held high in the frame so the closing words sit below it on dark space.

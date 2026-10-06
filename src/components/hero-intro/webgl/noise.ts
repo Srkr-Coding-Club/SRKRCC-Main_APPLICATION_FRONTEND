@@ -25,15 +25,4 @@ export const NOISE_GLSL = /* glsl */ `
     }
     return value;
   }
-  /* Ridged fBm: sharp crests, for mountain chains and lava cracks. */
-  float ridged(vec3 p) {
-    float value = 0.0;
-    float amplitude = 0.5;
-    for (int i = 0; i < 4; i++) {
-      value += amplitude * (1.0 - abs(noise3(p) * 2.0 - 1.0));
-      p *= 2.1;
-      amplitude *= 0.5;
-    }
-    return value;
-  }
 `;
