@@ -31,7 +31,7 @@ export default function BrainLogo({
 
       {/* Official logonobg Image */}
       <img
-        src="/logonobg.png"
+        src="/logonobg.webp"
         alt="SRKR Coding Club Logo"
         width={size}
         height={size}
