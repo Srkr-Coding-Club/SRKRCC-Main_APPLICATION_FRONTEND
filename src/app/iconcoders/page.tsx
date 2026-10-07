@@ -2,13 +2,13 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { IconCodersChallenge, IconCodersHallOfFameEntry } from '@/lib/types';
-import { Sparkles, Trophy } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import IconCodersEditionCard from '@/components/IconCodersEditionCard';
 import IconCodersHallOfFameCard from '@/components/IconCodersHallOfFameCard';
-import EventsRow from '@/components/EventsRow';
+import BounceCards from '@/components/ui/BounceCards';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
@@ -71,7 +71,10 @@ export default async function IconCodersPage() {
           <SectionHeading icon={Sparkles} eyebrow="Current Edition" title="Current Challenge" />
           {challenge ? (
             <div className="max-w-sm">
-              <IconCodersEditionCard challenge={challenge} />
+              <BounceCards
+                layout="bounce-stack"
+                cards={[<IconCodersEditionCard key={challenge.id} challenge={challenge} />]}
+              />
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center dark:border-slate-800">
@@ -86,12 +89,12 @@ export default async function IconCodersPage() {
         </div>
 
         <div className="space-y-6">
-          <SectionHeading icon={Trophy} title="Hall of Fame" />
-          <EventsRow
-            cards={hallOfFame.map((entry) => (
+          <SectionHeading icon={Sparkles} title="Hall of Fame" />
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {hallOfFame.map((entry) => (
               <IconCodersHallOfFameCard key={entry.year} entry={entry} />
             ))}
-          />
+          </div>
         </div>
       </div>
     </div>

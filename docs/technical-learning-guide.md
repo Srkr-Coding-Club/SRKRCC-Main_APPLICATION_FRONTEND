@@ -44,6 +44,9 @@ src/app/
 2. **Client Components (`'use client'`)**:
    - Components requiring interactive state (`useState`, `useEffect`, event listeners) are marked with `'use client'`.
    - Next.js pre-renders HTML on the server and hydrates interactive event listeners in the browser.
+3. **Reusable card showcases and in-place event details**:
+   - Events, Hackathons, IconCoders, and CodeQuest use the shared card showcase for bounce-stack presentation. Their route pages remain Server Components and pass card content into the client-side animation component.
+   - Only Events opens an in-place details dialog from its Details button. The dialog uses the shared stack and modal components; the event slug route and hackathon detail routes remain available for direct visits.
 
 ---
 
@@ -236,4 +239,3 @@ The home page (`src/app/page.tsx`) tells one story: **from your first `printf` t
 **Design tokens.** The journey uses the club's brand palette, the same one as the rest of the site. `journey-*` colors in `tailwind.config.ts` read RGB variables from `globals.css` and flip with the theme. Dark: background `#0D0E15`, surface `#151722`, text `#F5F5F5`, muted slate, accent brand orange `#FF7A00`, live states brand gold `#FFA500`. Light: the site's `#FAFAFC` and navy `#1A1A2E`, accent `#C2410C` (orange that keeps 4.5:1 contrast), live states burgundy `#8B2E3B`. The primary action uses the brand gradient (`#8B2E3B` to `#FF7A00` to `#FFA500`), matching `PillButton`. Type: Archivo (`font-display`, semi-expanded via `font-stretch: 112%`) for headings, Inter for body, JetBrains Mono only inside demonstrations.
 
 **Fonts.** All four families load through `next/font/google` in `src/app/layout.tsx` (self-hosted, applied as CSS variables on `<body>`). The previous `@import` of Google Fonts in `globals.css` was being dropped by the bundler, so those fonts never loaded.
-
