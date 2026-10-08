@@ -7,7 +7,7 @@ import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import HackathonCard from '@/components/HackathonCard';
-import EventsRow from '@/components/EventsRow';
+import BounceCards from '@/components/ui/BounceCards';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
@@ -59,7 +59,8 @@ export default async function HackathonsPage() {
           />
 
           {hackathons.length > 0 ? (
-            <EventsRow
+            <BounceCards
+              layout="bounce-stack"
               cards={hackathons.map((hackathon, index) => (
                 <HackathonCard key={hackathon.id} hackathon={hackathon} index={index} />
               ))}
