@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { planetPosition, type PlanetSpec } from '../solarSystem';
+import { easeOutCubic, lerp, smoothstep } from '../introMath';
+import { JOURNEY, planetArrivalPosition, planetPosition, type PlanetSpec } from '../solarSystem';
 import { createEmblem } from './emblems';
 
 /* ------------------------------------------------------------------ */
@@ -28,8 +29,14 @@ export function createPlanet(spec: PlanetSpec): PlanetBody {
   group.add(facing);
 
   const update = (time: number, progress: number, camera: THREE.Vector3) => {
-    const { x, y, z } = planetPosition(spec, progress);
-    group.position.set(x, y, z);
+    const orbit = planetPosition(spec, progress);
+    const arrival = easeOutCubic(smoothstep(JOURNEY.arrival.start, JOURNEY.arrival.end, progress));
+    if (arrival < 1) {
+      const spawn = planetArrivalPosition(spec, progress);
+      group.position.set(lerp(spawn.x, orbit.x, arrival), lerp(spawn.y, orbit.y, arrival), lerp(spawn.z, orbit.z, arrival));
+    } else {
+      group.position.set(orbit.x, orbit.y, orbit.z);
+    }
     facing.lookAt(camera);
     sway.rotation.y = Math.sin(time * 0.45) * SWAY;
     sway.position.y = Math.sin(time * 0.8) * FLOAT * spec.radius;
