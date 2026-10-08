@@ -8,6 +8,7 @@ import SpotlightCard from '@/components/ui/SpotlightCard';
 interface PublicListingCardProps {
   accent?: string;
   index?: number;
+  entryAnimation?: 'slide' | 'none';
   className?: string;
   category: ReactNode;
   status?: ReactNode;
@@ -23,6 +24,7 @@ interface PublicListingCardProps {
 export default function PublicListingCard({
   accent = '#FF7A00',
   index = 0,
+  entryAnimation = 'slide',
   className = '',
   category,
   status,
@@ -45,6 +47,8 @@ export default function PublicListingCard({
     if (!wrapperRef.current) return;
 
     const context = gsap.context(() => {
+      if (entryAnimation === 'none') return;
+
       gsap.fromTo(
         wrapperRef.current,
         { x: 90, opacity: 0 },
@@ -59,7 +63,7 @@ export default function PublicListingCard({
     }, wrapperRef);
 
     return () => context.revert();
-  }, [index]);
+  }, [entryAnimation, index]);
 
   const handleHoverEnter = () => {
     const leftElements = [
