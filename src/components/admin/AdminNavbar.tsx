@@ -29,6 +29,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
 import ThemeToggle from '../ThemeToggle';
+import { NotificationBell } from '../notifications/NotificationBell';
 import { getStoredUser, AuthUser } from '@/lib/auth';
 
 interface NavChild {
@@ -292,6 +293,8 @@ export default function AdminNavbar() {
 
           {/* Right cluster */}
           <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
+            <NotificationBell />
+
             <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#8B2E3B] text-white whitespace-nowrap">
               {currentUser?.role || 'ADMIN'}
             </span>
@@ -317,6 +320,7 @@ export default function AdminNavbar() {
 
           {/* Mobile trigger */}
           <div className="flex lg:hidden items-center gap-2">
+            <NotificationBell />
             <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}

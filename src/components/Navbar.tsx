@@ -20,6 +20,7 @@ import ThemeToggle from './ThemeToggle';
 import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 import LoginCard from './LoginCard';
 import SignupCard from './SignupCard';
+import { NotificationBell } from './notifications/NotificationBell';
 
 interface NavChild {
   label: string;
@@ -153,6 +154,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   return (
     <>
     <header
+      data-site-chrome
       className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
         scrolled
           ? 'bg-[var(--background)]/90 backdrop-blur-xl border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_0_rgba(0,0,0,0.02)]'
@@ -273,6 +275,8 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
           <div className="hidden md:flex items-center gap-3">
             {isAuth ? (
               <>
+                <NotificationBell />
+
                 {(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD') && (
                   <Link
                     href="/admin"
@@ -317,6 +321,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
 
           {/* Mobile trigger */}
           <div className="flex md:hidden items-center gap-2">
+            {isAuth && <NotificationBell />}
             <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}

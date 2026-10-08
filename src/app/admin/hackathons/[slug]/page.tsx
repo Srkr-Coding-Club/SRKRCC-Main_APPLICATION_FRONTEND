@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: BarChart3 },
-  { key: 'settings', label: 'Registration', icon: Settings },
+  { key: 'settings', label: 'Settings & Details', icon: Settings },
   { key: 'problems', label: 'Problem Statements', icon: Target },
   { key: 'teams', label: 'Teams', icon: Users },
   { key: 'rounds', label: 'Rounds & Shortlisting', icon: Flag },

@@ -41,8 +41,16 @@ export const hackathonApi = {
   myInvites: () => fetchApi<HackathonTeamInvite[]>('/hackathons/my-invites/'),
   createTeam: (slug: string, body: TeamProblemBody & { name: string }) =>
     fetchApi<HackathonTeam>(`/hackathons/${enc(slug)}/teams/`, json(body)),
-  lookupUser: (slug: string, email: string) =>
-    fetchApi<UserLookupResult>(`/hackathons/${enc(slug)}/user-lookup/?email=${enc(email)}`),
+  lookupUser: (slug: string, query: string, teamId?: number) => {
+    const params = new URLSearchParams();
+    if (query.includes('@') && query.includes('.')) {
+      params.set('email', query);
+    } else {
+      params.set('q', query);
+    }
+    if (teamId) params.set('team_id', String(teamId));
+    return fetchApi<UserLookupResult>(`/hackathons/${enc(slug)}/user-lookup/?${params.toString()}`);
+  },
   acceptInvite: (id: number) =>
     fetchApi<{ accepted: true; team: HackathonTeam; hackathon_slug: string }>(`/hackathons/invites/${id}/accept/`, json({})),
   declineInvite: (id: number) => fetchApi<{ declined: true }>(`/hackathons/invites/${id}/decline/`, json({})),
@@ -80,13 +88,20 @@ export const hackathonApi = {
       fetchApi<ProblemStatement>(`/hackathons/${enc(slug)}/problem-statements/`, json(body)),
     updateProblemStatement: (slug: string, id: number, body: Partial<ProblemStatement>) =>
       fetchApi<ProblemStatement>(`/hackathons/${enc(slug)}/problem-statements/${id}/`, patch(body)),
-    deleteProblemStatement: (slug: string, id: number) =>
-      fetchApi<{ deleted: true }>(`/hackathons/${enc(slug)}/problem-statements/${id}/`, { method: 'DELETE' }),
+    deleteProblemStatement: (slug: string, id: number, force = false) =>
+      fetchApi<{ deleted: true; teams_unassigned?: number }>(
+        `/hackathons/${enc(slug)}/problem-statements/${id}/${force ? '?force=true' : ''}`,
+        { method: 'DELETE' }
+      ),
 
     teams: (slug: string, params: Record<string, string> = {}) => {
       const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
       return fetchApi<HackathonTeam[]>(`/hackathons/${enc(slug)}/teams/${qs ? `?${qs}` : ''}`);
     },
+    createTeam: (slug: string, body: TeamProblemBody & { name: string; leader_email?: string }) =>
+      fetchApi<HackathonTeam>(`/hackathons/${enc(slug)}/teams/`, json(body)),
+    deleteTeam: (id: number) =>
+      fetchApi<{ deleted: true; id: number }>(`/hackathons/teams/${id}/`, { method: 'DELETE' }),
     addMember: (teamId: number, email: string) =>
       fetchApi<HackathonTeam>(`/hackathons/teams/${teamId}/admin-add-member/`, json({ email })),
     setTeamStatus: (teamId: number, status: string) =>
@@ -112,6 +127,21 @@ export const hackathonApi = {
       fetchApi<{ round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/unpublish/`, json({})),
     populateRound: (slug: string, id: number) =>
       fetchApi<{ added: number; round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/populate/`, json({})),
+    advanceRound: (slug: string, id: number) =>
+      fetchApi<{ promoted: number; already_in_round: number; target_round: HackathonRound }>(
+        `/hackathons/${enc(slug)}/rounds/${id}/advance/`,
+        json({})
+      ),
+    addTeamToRound: (slug: string, id: number, teamId: number) =>
+      fetchApi<{ added: boolean; entry_id: number; round: HackathonRound }>(
+        `/hackathons/${enc(slug)}/rounds/${id}/add-team/`,
+        json({ team_id: teamId })
+      ),
+    removeTeamFromRound: (slug: string, id: number, teamId: number) =>
+      fetchApi<{ removed: boolean; round: HackathonRound }>(
+        `/hackathons/${enc(slug)}/rounds/${id}/remove-team/`,
+        json({ team_id: teamId })
+      ),
 
     announcements: (slug: string) =>
       fetchApi<HackathonAnnouncement[]>(`/hackathons/${enc(slug)}/announcements/?all=true`),

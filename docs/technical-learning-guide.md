@@ -44,6 +44,9 @@ src/app/
 2. **Client Components (`'use client'`)**:
    - Components requiring interactive state (`useState`, `useEffect`, event listeners) are marked with `'use client'`.
    - Next.js pre-renders HTML on the server and hydrates interactive event listeners in the browser.
+3. **Reusable card showcases and in-place event details**:
+   - Events, Hackathons, IconCoders, and CodeQuest use the shared card showcase for bounce-stack presentation. Their route pages remain Server Components and pass card content into the client-side animation component.
+   - Only Events opens an in-place details dialog from its Details button. The dialog uses the shared stack and modal components; the event slug route and hackathon detail routes remain available for direct visits.
 
 ---
 
@@ -125,6 +128,11 @@ When students open registration forms, the application automatically matches and
 
 `/admin/codequest` follows the standard admin-route pattern: it is a thin route wrapper around
 `components/admin/CodeQuestTab.tsx`, which owns interactive scheduling and review controls.
+`/codequest/batch-schedule` is a force-dynamic route with a server metadata wrapper and a
+client-side batch editor. Admins and Club Leads can schedule up to five complete problems in
+one request, each with its own date. The backend keeps future problems out of public list and
+detail responses until their scheduled local date; the batch form uses the protected backend
+endpoint and reports date conflicts before any rows are created.
 The public `/codequest` page owns the daily member experience and receives today's problem plus
 previously published challenges, never future scheduled problems. The browser never calculates or
 writes a member streak.
@@ -172,3 +180,71 @@ Backend contract: `apps/hackathons` — see the backend repo's `docs/modules/hac
 | `src/components/ui/FormSelect.tsx` | Themed listbox replacing native `<select>` (whose OS-drawn popup ignores the dark theme). Props: `value`, `options` (`{value, label, hint?, disabled?}`), `placeholder`, `onChange`, `allowClear`, `disabled`. Used by the responses viewer and the hackathon screens. |
 | `src/components/ui/Modal.tsx` | Dialog shell with focus trap (`useFocusTrap`), Escape-to-close, backdrop click and body scroll lock. `busy` blocks closing while a request is in flight. |
 | `src/components/ui/StatusPill.tsx` | Coloured status pill plus label/tone maps for team, round and round-entry statuses. |
+
+---
+
+## 11. Home Hero Scroll Intro: the Solar-System Journey
+
+`src/components/hero-intro/` wraps `HeroSection` on `/` (`<HeroIntro><HeroSection /></HeroIntro>` in `src/app/page.tsx`). It is a WebGL scene (Three.js) pinned under the navbar for 1100% of the viewport height. The club is the Sun, with the real logo on its face. Twelve stops orbit it, each a realistic 3D object rather than a planet: four technology eras (the C hexagon, the HTML/CSS/JS shields, the Java cup, a binary tree for DSA), then eight club programs (awareness sessions, C workshops, the DSA crash course, coding events, HACKoverflow, CodeQuest, IconCoders, EdgeCase). Scrolling flies the camera from deep space to the Sun, past every planet in turn, out to the edge of the system, and back to the Sun, where the home page emerges from its light.
+
+| Scene (scroll progress) | What happens |
+|---|---|
+| Void (0-0.08) | Near-black space and a distant Sun. "Every journey begins with curiosity." then "Every generation builds on what came before." A mouse cue ("Enter the orbit", a swipe hint on touch) invites scrolling. |
+| Sun reveal (0.085-0.135) | The camera arrives at the Sun: "SRKR CODING CLUB" and "Coding · Creativity · Community". |
+| Encounters (0.17 + 0.06 per planet) | For each planet the camera approaches, passes close and departs. A mission-control panel (index, chapter, title, one line, link) holds the side of the frame opposite the planet, and the planet's orbit line warms on approach and fades out at the encounter so it never cuts across the planet. |
+| Outer space (0.885) | The camera pulls far out above the system. |
+| Final reveal (0.912-0.962) | Back at the Sun, held high in the frame: "SRKR CODING CLUB", "Where curiosity becomes code. Where code becomes capability. Where builders find their orbit.", *Join the journey* (`/signup`) and *Explore events*. |
+| Launch (0.968-1) | The camera dives into the Sun, light fills the frame, and the hero's emblem, headline and actions emerge as it clears. |
+
+**Architecture**
+
+| File | Responsibility |
+|---|---|
+| `solarSystem.ts` | The single source of truth: `PLANETS` (copy, link, orbit, starting angle, size, the stop's 3D object (`emblem`) and which side of the frame it holds), `JOURNEY` and `LAUNCH` (the scene timings), `encounterAt(i)` and `planetPosition(planet, progress)`. Stops orbit the Sun as the journey progresses (outer ones slower, as orbit^-1.5). The scene, the story layer and the HUD all read from it. |
+| `HeroIntro.tsx` | Scroll pin (ScrollTrigger, no scrub), the DOM handoff timeline, cinema mode, skip/Escape/focus handling, the loader ("Initializing CCC system", then loading orbits, calibrating planets, system ready), HUD updates and orbit navigation. Lazily imports the WebGL scene. |
+| `IntroStory.tsx` | The words of the journey in the DOM (readable, accessible), above the canvas: opening lines, the Sun title, one panel per planet and the final invitation. `choreographStory()` adds their tweens to the handoff timeline. |
+| `IntroHud.tsx` | Mission control: "SRKR // Coding Club" with a status line, the "03 / 12" counter with the Technology to Community chapter, and (xl screens) an orbital nav down the right edge that jumps to any planet. HeroIntro writes the active planet via `data-active` and text content, never via React re-renders. |
+| `introMath.ts` | `createTrack` (Catmull-Rom keyframes) and `smoothDamp` (critically damped follow). |
+| `introEligibility.ts` | Who gets the intro, and the matching pre-paint script for cinema mode. |
+| `webgl/createIntroScene.ts` | Renderer, camera rig and render loop. Owns all high-frequency state. |
+| `webgl/journeyPath.ts` | The camera's flight, built from the planets themselves: one pose per scene, joined by splines. Each encounter is framed the way space photography frames a world: the camera stands on the day side, swung `PHASE` off the planet-Sun line and raised `ELEVATION` above the orbital plane, so the Sun is out of frame behind the viewer, the planet shows a lit face with a soft terminator, and the other planets fall away above the frame instead of crowding the planet or the panel. The swing is chosen so sunlight falls from the panel's side. On portrait screens the planet sits above the panel. Also `planetProximity`, `systemPresence` and `sunBrightness`. |
+| `webgl/sun.ts` | Procedural photosphere (supergranule cells, fine granulation, small sunspots, faculae, limb darkening), corona, halo and faint turning rays, and the point light. The club logo is real 3D geometry: its outlines are traced from `public/logonobg.webp` into `webgl/clubLogo.ts` (generated; regenerate rather than hand-edit) and extruded with a bevel, a lacquered maroon bulb and brain with metal-orange rays. It stands just off the Sun's face toward the camera and steps aside when the camera dives into the Sun. |
+| `webgl/emblems.ts` | Every stop's 3D object, built from geometry (no image assets). Technology eras: the C hexagon in its three blues with a white C, the HTML5 and CSS3 shields and the JavaScript square (numerals and lettering are `TextGeometry` in three's bundled Optimer Bold), the Java cup with two curls of steam, and a binary tree whose nodes light up in level order. Club programs: a glowing filament bulb (awareness), a laptop showing C code (workshops), a running chrome stopwatch (crash course), a gold trophy on a plinth (events), the `</>` mark (HACKoverflow), a brass compass whose needle settles (CodeQuest), a mentor and two builders (IconCoders) and a dark cube with glowing edges (EdgeCase). Bevelled, clear-coated and metal `MeshPhysicalMaterial`, lit by the Sun and soft studio reflections (`RoomEnvironment` set as the scene environment in `createIntroScene.ts`); dials and the screen are canvas textures. |
+| `webgl/planet.ts` | `createPlanet` places a stop's object on its orbit and turns it toward the viewer with a slow sway and float. |
+| `webgl/space.ts` | The starfield (with a galactic band like the Milky Way) and distant galaxies, orbit lines, and drifting dust. |
+| `webgl/noise.ts` | Shared GLSL noise (`fbm`, `ridged`). |
+| `webgl/quality.ts` | Device tier (high/medium/low: pixel ratio, star and dust counts, sphere detail) and the frame monitor that downgrades when FPS sags. |
+| `webgl/textures.ts` | The generated glow texture and texture loading. |
+
+- **Camera inertia.** Scroll sets a *target* progress; the loop eases the actual progress toward it with `smoothDamp`, samples the camera path from it, and damps the camera again, then banks slightly into turns. Fast scrolling accelerates, slowing settles, and reversing turns round smoothly. The pointer (or phone tilt) only adds a glance of about ±3°.
+- **Story in lockstep.** Every DOM beat (opening lines, panels, final scene, wash, hero reveal) lives on one paused GSAP timeline played by the damped progress, so text and camera never drift apart.
+- **Orbit navigation.** Nav buttons scroll to `trigger.start + encounterAt(i) * (end - start)`; the camera then flies there past the intervening stops.
+- **Handoff.** `HeroSection` exposes `data-hero-emblem`, `data-hero-title` and `data-hero-reveal`. The intro animates the `--intro-rise`, `--intro-scale` and `--intro-filter` variables (see `globals.css`), which drive the independent `translate`/`scale`/`filter` properties and leave Framer Motion's `transform` alone.
+- **Cinema mode.** While the intro plays, `<html data-intro-cinema>` hides every `[data-site-chrome]` element (the navbar and announcement banner). The root layout sets it before first paint via `INTRO_CINEMA_SCRIPT`; HeroIntro clears it as the page emerges, on skip, and on unmount. A CSS failsafe restores the chrome after 4 s if the intro never mounts.
+- **Ways out.** *Skip intro* (fixed bottom-right, outside the pinned root), `Escape`, and tabbing into the hero all jump to the end.
+- **Fallbacks.** `prefers-reduced-motion`, Save-Data, low-power touch devices and anyone who saw the intro in the last 7 days (`srkrcc_intro_seen_at` in localStorage) get the plain hero, with no pinned scroll. If WebGL fails to initialise, the intro removes itself and shows the plain hero.
+- **Smooth scrolling.** Scroll only sets a target; the camera and every DOM beat follow the damped progress, so motion glides between wheel steps. The story layer animates only opacity and transform (no animated blur filters, no backdrop blur over the live canvas), which keeps each frame cheap.
+- **Bundle.** `three` is only imported by the lazily loaded `webgl/` modules, so it never lands in the shared bundle.
+- **Editing the journey.** To change a stop's words, link or object, edit its entry in `PLANETS`. Starting angles were tuned so no stop crosses the camera's path or crowds another stop's encounter; after changing an orbit, angle, size or the number of planets, re-check that (for example by sampling `createJourneyPath` against `planetPosition`) and check `JOURNEY.encounterStep`/`outerSpace` so the last encounter still ends before outer space.
+
+---
+
+## 12. Home Page Journey
+
+The home page (`src/app/page.tsx`) tells one story: **from your first `printf` to your first hackathon**. Order: intro (Chapter 00) → hero → The Path (seven program chapters) → Up next → Built by students → Your turn. Section components live in `src/components/landing/`.
+
+**Data.** `getLandingData()` in `src/lib/landing.ts` runs on the server and fetches `/events/`, `/hackathons/` and `/codequest/` in parallel; any failure yields `null`/empty, never an error page. It matches programs by name (`PROGRAM_PATTERNS`: awareness, C workshop, DSA, EdgeCase, HackOverflow, IconCoders), derives registration state, and formats dates in `Asia/Kolkata` on the server so server and client render identical text. Nothing about a program is shown unless the API provides it. Copy in `journeyContent.ts` only states confirmed facts (the programs, CodeQuest's daily problems, EdgeCase's two-week cadence, HackOverflow's 24-hour format).
+
+| Piece | Notes |
+|---|---|
+| `JourneyTrace` | The signature line down the left that draws with scroll and ends on the final "Join the club" button. Sets `--trace-x` / `--trace-pad`; `PathNode` uses them to land on the line and lights up when its section arrives. |
+| `Chapter` | Narrative + demonstration + outcome + one action. `tone` (`quiet`/`interactive`/`energetic`/`climax`) sets the rhythm. |
+| `demos/*` | Terminal (Awareness), `hello.c` compile (C), bubble sort (DSA), streak route (CodeQuest), contest round (EdgeCase, labelled as an illustration), 24-hour dial (HackOverflow, over `DawnBackdrop`). |
+| `useScrollSteps` | Maps a demo's scroll position to a step. Starts at the finished step, so server render, no-JS and reduced-motion all show the complete demo; React re-renders only when the step changes. |
+| `UpNext` | Agenda list (date, title, status, one action) from the API, with an empty state pointing to `/events`. |
+| `BuiltByStudents` | Renders only when `src/content/community.ts` has entries. Add real event photos there (WebP/AVIF in `public/community/`, specific `alt` text); no stock or AI-generated images. |
+| `LiveLine`, `ActionLink`, `DemoFrame` | Shared status line, the two action styles (one gold pill per screen, underlined text links otherwise), and the demo surface. |
+
+**Design tokens.** The journey uses the club's brand palette, the same one as the rest of the site. `journey-*` colors in `tailwind.config.ts` read RGB variables from `globals.css` and flip with the theme. Dark: background `#0D0E15`, surface `#151722`, text `#F5F5F5`, muted slate, accent brand orange `#FF7A00`, live states brand gold `#FFA500`. Light: the site's `#FAFAFC` and navy `#1A1A2E`, accent `#C2410C` (orange that keeps 4.5:1 contrast), live states burgundy `#8B2E3B`. The primary action uses the brand gradient (`#8B2E3B` to `#FF7A00` to `#FFA500`), matching `PillButton`. Type: Archivo (`font-display`, semi-expanded via `font-stretch: 112%`) for headings, Inter for body, JetBrains Mono only inside demonstrations.
+
+**Fonts.** All four families load through `next/font/google` in `src/app/layout.tsx` (self-hosted, applied as CSS variables on `<body>`). The previous `@import` of Google Fonts in `globals.css` was being dropped by the bundler, so those fonts never loaded.
