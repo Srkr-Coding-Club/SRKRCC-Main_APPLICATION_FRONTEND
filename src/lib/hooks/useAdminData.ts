@@ -24,8 +24,21 @@ function defaultValidationRulesFor(type: FormField['type']): Partial<ValidationR
   return undefined;
 }
 
+export function formatYearOrdinal(y: number | string | null | undefined): string {
+  if (!y) return '1st Year';
+  const n = typeof y === 'string' ? parseInt(y.match(/\d+/)?.[0] || '1', 10) : Number(y);
+  if (n === 1) return '1st Year';
+  if (n === 2) return '2nd Year';
+  if (n === 3) return '3rd Year';
+  if (n === 4) return '4th Year';
+  if (n === 5) return '5th Year';
+  return `${n}th Year`;
+}
+
 export interface UserRecord {
   id: number;
+  firstName?: string | null;
+  lastName?: string | null;
   name: string;
   email: string;
   rollNumber: string;
@@ -200,6 +213,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
     club_id_verification_enabled?: boolean;
     confirmation_email_enabled?: boolean;
     confirmation_email_template?: number | string | null;
+    confirmation_notification_enabled?: boolean;
+    notify_admin_on_submission?: boolean;
+    notify_members_on_publish?: boolean;
+    notification_title?: string;
+    notification_message?: string;
     attendance_enabled?: boolean;
     attendance_start_date?: string | null;
     attendance_days?: number;
@@ -227,6 +245,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
     club_id_verification_enabled: false,
     confirmation_email_enabled: false,
     confirmation_email_template: null,
+    confirmation_notification_enabled: false,
+    notify_admin_on_submission: false,
+    notify_members_on_publish: false,
+    notification_title: '',
+    notification_message: '',
     attendance_enabled: false,
     attendance_start_date: null,
     attendance_days: 1,
@@ -308,11 +331,13 @@ export function useAdminData(options?: UseAdminDataOptions) {
           setUsersList(
             usersArray.map((u: any) => ({
               id: u.id,
+              firstName: u.first_name || null,
+              lastName: u.last_name || null,
               name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email,
               email: u.email,
               rollNumber: u.roll_number || 'Not set',
               branch: u.branch || 'CSE',
-              year: u.year ? `${u.year}th Year` : '1st Year',
+              year: formatYearOrdinal(u.year),
               role: u.role || 'NON_AFFILIATE',
               membershipStatus: u.membership_status || 'ACTIVE',
               isActive: u.is_active !== false,
@@ -470,27 +495,48 @@ export function useAdminData(options?: UseAdminDataOptions) {
     }
   };
 
-  const handleRoleChange = (userId: number, role: UserRecord['role']) => {
+  const handleRoleChange = async (userId: number, role: UserRecord['role'], clubId?: string) => {
     const user = usersList.find((u) => u.id === userId);
     if (!user) return;
     const previousRole = user.role;
+    const previousClubId = user.clubId;
+
+    const payload: { role: UserRecord['role']; club_id?: string } = { role };
+    if (clubId !== undefined) {
+      payload.club_id = clubId;
+    }
 
     // Optimistic - flip immediately for instant feedback, then best-effort persist.
-    setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
-    fetchApi(`/auth/users/${userId}/`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role }),
-    })
-      .then(() => {
-        toast.success('Role Updated', `${user.name} is now ${role}.`);
-      })
-      .catch((err: any) => {
-        // Roll the optimistic change back - it never actually persisted, so the
-        // UI must not keep claiming it did.
-        setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role: previousRole } : u)));
-        toast.error('Not Saved to Server', err?.message || `Could not update role for ${user.name}. Reverted.`);
+    setUsersList((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? { ...u, role, ...(clubId !== undefined ? { clubId: clubId || null } : {}) }
+          : u
+      )
+    );
+
+    try {
+      const response = await fetchApi<any>(`/auth/users/${userId}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
+      if (response && response.club_id !== undefined) {
+        setUsersList((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, clubId: response.club_id || null } : u))
+        );
+      }
+      toast.success('Role Updated', `${user.name} is now ${role}.`);
+      return response;
+    } catch (err: any) {
+      // Roll the optimistic change back - it never actually persisted, so the
+      // UI must not keep claiming it did.
+      setUsersList((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: previousRole, clubId: previousClubId } : u))
+      );
+      toast.error('Not Saved to Server', err?.message || `Could not update role for ${user.name}. Reverted.`);
+      throw err;
+    }
   };
 
   const handleMembershipStatusChange = (userId: number, membershipStatus: UserRecord['membershipStatus']) => {
@@ -536,6 +582,94 @@ export function useAdminData(options?: UseAdminDataOptions) {
     });
     setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, rollNumber: displayValue } : u)));
     toast.success('Roll Number Updated', `${user.name}'s roll number is now ${displayValue}.`);
+  };
+
+  const handleClubIdChange = async (userId: number, clubId: string): Promise<void> => {
+    const user = usersList.find((u) => u.id === userId);
+    if (!user) return;
+    const cleanId = clubId ? clubId.trim().toUpperCase() : null;
+
+    await fetchApi(`/auth/users/${userId}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ club_id: cleanId }),
+    });
+    setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, clubId: cleanId } : u)));
+    toast.success('Club ID Updated', `${user.name}'s Club ID is now ${cleanId || 'cleared'}.`);
+  };
+
+  const handleUpdateUser = async (userId: number, fields: Record<string, any>): Promise<any> => {
+    const user = usersList.find((u) => u.id === userId);
+    if (!user) return;
+    const previous = { ...user };
+
+    // Optimistically update
+    setUsersList((prev) =>
+      prev.map((u) => {
+        if (u.id !== userId) return u;
+        const newFirstName = fields.first_name !== undefined ? (fields.first_name || null) : u.firstName;
+        const newLastName = fields.last_name !== undefined ? (fields.last_name || null) : u.lastName;
+        const newName = (newFirstName || newLastName)
+          ? `${newFirstName || ''} ${newLastName || ''}`.trim()
+          : u.name;
+        return {
+          ...u,
+          firstName: newFirstName,
+          lastName: newLastName,
+          name: newName,
+          ...(fields.roll_number !== undefined ? { rollNumber: fields.roll_number || 'Not set' } : {}),
+          ...(fields.branch !== undefined ? { branch: fields.branch } : {}),
+          ...(fields.year !== undefined ? { year: formatYearOrdinal(fields.year) } : {}),
+          ...(fields.phone_number !== undefined ? { phoneNumber: fields.phone_number } : {}),
+          ...(fields.role !== undefined ? { role: fields.role } : {}),
+          ...(fields.membership_status !== undefined ? { membershipStatus: fields.membership_status } : {}),
+          ...(fields.club_id !== undefined ? { clubId: fields.club_id || null } : {}),
+          ...(fields.github_profile !== undefined ? { githubProfile: fields.github_profile } : {}),
+          ...(fields.linkedin_profile !== undefined ? { linkedinProfile: fields.linkedin_profile } : {}),
+        };
+      })
+    );
+
+    try {
+      const response = await fetchApi<any>(`/auth/users/${userId}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+
+      if (response) {
+        setUsersList((prev) =>
+          prev.map((u) => {
+            if (u.id !== userId) return u;
+            const updatedFirstName = response.first_name !== undefined ? response.first_name : u.firstName;
+            const updatedLastName = response.last_name !== undefined ? response.last_name : u.lastName;
+            const updatedName = `${updatedFirstName || ''} ${updatedLastName || ''}`.trim() || u.name;
+            return {
+              ...u,
+              firstName: updatedFirstName,
+              lastName: updatedLastName,
+              name: updatedName,
+              rollNumber: response.roll_number || 'Not set',
+              branch: response.branch || u.branch,
+              year: response.year !== undefined ? formatYearOrdinal(response.year) : u.year,
+              role: response.role || u.role,
+              membershipStatus: response.membership_status || u.membershipStatus,
+              clubId: response.club_id !== undefined ? response.club_id : u.clubId,
+              phoneNumber: response.phone_number !== undefined ? response.phone_number : u.phoneNumber,
+              githubProfile: response.github_profile !== undefined ? response.github_profile : u.githubProfile,
+              linkedinProfile: response.linkedin_profile !== undefined ? response.linkedin_profile : u.linkedinProfile,
+            };
+          })
+        );
+      }
+
+      toast.success('User Details Updated', `Successfully updated profile for ${user.name}.`);
+      return response;
+    } catch (err: any) {
+      setUsersList((prev) => prev.map((u) => (u.id === userId ? previous : u)));
+      toast.error('Update Failed', err?.message || `Could not update user details for ${user.name}.`);
+      throw err;
+    }
   };
 
   const handleAddFieldFromPalette = (type: FormField['type'], label: string, profileField?: ProfileFieldKey) => {
@@ -667,6 +801,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
       club_id_verification_enabled: form.club_id_verification_enabled ?? false,
       confirmation_email_enabled: form.confirmation_email_enabled ?? false,
       confirmation_email_template: form.confirmation_email_template ?? null,
+      confirmation_notification_enabled: form.confirmation_notification_enabled ?? false,
+      notify_admin_on_submission: form.notify_admin_on_submission ?? false,
+      notify_members_on_publish: form.notify_members_on_publish ?? false,
+      notification_title: form.notification_title || '',
+      notification_message: form.notification_message || '',
       attendance_enabled: form.attendance_enabled ?? false,
       attendance_start_date: form.attendance_start_date ?? null,
       attendance_days: form.attendance_days ?? 1,
@@ -749,6 +888,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
       club_id_verification_enabled: formMeta.club_id_verification_enabled ?? false,
       confirmation_email_enabled: formMeta.confirmation_email_enabled ?? false,
       confirmation_email_template: formMeta.confirmation_email_template || null,
+      confirmation_notification_enabled: formMeta.confirmation_notification_enabled ?? false,
+      notify_admin_on_submission: formMeta.notify_admin_on_submission ?? false,
+      notify_members_on_publish: formMeta.notify_members_on_publish ?? false,
+      notification_title: formMeta.notification_title || '',
+      notification_message: formMeta.notification_message || '',
       attendance_enabled: formMeta.attendance_enabled ?? false,
       attendance_start_date: formMeta.attendance_start_date || null,
       attendance_days: formMeta.attendance_days ?? 1,
@@ -907,6 +1051,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
         club_id_verification_enabled: saved.club_id_verification_enabled ?? false,
         confirmation_email_enabled: saved.confirmation_email_enabled ?? false,
         confirmation_email_template: saved.confirmation_email_template ?? null,
+        confirmation_notification_enabled: saved.confirmation_notification_enabled ?? false,
+        notify_admin_on_submission: saved.notify_admin_on_submission ?? false,
+        notify_members_on_publish: saved.notify_members_on_publish ?? false,
+        notification_title: saved.notification_title || '',
+        notification_message: saved.notification_message || '',
         attendance_enabled: saved.attendance_enabled ?? false,
         attendance_start_date: saved.attendance_start_date ?? null,
         attendance_days: saved.attendance_days ?? 1,
@@ -1137,6 +1286,8 @@ export function useAdminData(options?: UseAdminDataOptions) {
     handleRoleChange,
     handleMembershipStatusChange,
     handleRollNumberChange,
+    handleClubIdChange,
+    handleUpdateUser,
 
     publishedForms,
     setPublishedForms,

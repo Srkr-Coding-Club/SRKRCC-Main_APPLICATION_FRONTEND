@@ -191,12 +191,14 @@ function ConfirmationEmailCell({
 }
 
 function ResponseDrawerContent({
-  response, form, onResend, resending,
+  response, form, onResend, resending, onResendNotification, resendingNotification,
 }: {
   response: ResponseDetail;
   form: Form;
   onResend: (id: number) => void;
   resending: boolean;
+  onResendNotification: (id: number) => void;
+  resendingNotification: boolean;
 }) {
   return (
     <div className="space-y-6">
@@ -246,6 +248,40 @@ function ResponseDrawerContent({
             )}
           </div>
         )}
+        {(form.confirmation_notification_enabled || response.confirmation_notification) && (
+          <div className="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">In-App Notification</div>
+              <div className="mt-1">
+                {response.confirmation_notification ? (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Delivered ({response.confirmation_notification.is_read ? 'Read' : 'Unread'})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30">
+                    Pending
+                  </span>
+                )}
+              </div>
+              {response.confirmation_notification?.title && (
+                <p className="text-[10px] text-slate-400 mt-1 max-w-[220px] truncate" title={response.confirmation_notification.title}>
+                  {response.confirmation_notification.title}
+                </p>
+              )}
+            </div>
+            {form.confirmation_notification_enabled && (
+              <button
+                onClick={() => onResendNotification(response.id)}
+                disabled={resendingNotification}
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-95 shrink-0"
+              >
+                <RotateCw className={`w-3 h-3 ${resendingNotification ? 'animate-spin' : ''}`} />
+                {response.confirmation_notification ? 'Resend' : 'Send Now'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {/* Answers */}
       <div className="space-y-3">
@@ -282,6 +318,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
   const [drawerResponse, setDrawerResponse] = useState<ResponseDetail | null>(null);
   const [showEmailEditor, setShowEmailEditor] = useState(false);
   const [resendingIds, setResendingIds] = useState<Set<number>>(new Set());
+  const [resendingNotifIds, setResendingNotifIds] = useState<Set<number>>(new Set());
 
   const formOptions = useMemo(
     () => forms.map((f) => ({ value: f.slug, label: f.title?.trim() || f.slug || 'Untitled form' })),
@@ -421,6 +458,40 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       toast.error('Send Failed', err?.message || 'Could not send the confirmation email.');
     } finally {
       setResendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(responseId);
+        return next;
+      });
+    }
+  };
+
+  const handleResendNotification = async (responseId: number) => {
+    setResendingNotifIds((prev) => new Set(prev).add(responseId));
+    try {
+      const result = await fetchApi<{ success: boolean; status: string; notification: { id: number; title: string; created_at: string } }>(
+        `/forms/submissions/${responseId}/resend-notification/`,
+        { method: 'POST' }
+      );
+      const updated = {
+        id: result.notification.id,
+        title: result.notification.title,
+        message: 'Notification sent',
+        type: 'SUCCESS',
+        category: 'FORM',
+        is_read: false,
+        created_at: result.notification.created_at || new Date().toISOString(),
+      };
+      setData((prev) =>
+        prev
+          ? { ...prev, results: prev.results.map((r) => (r.id === responseId ? { ...r, confirmation_notification: updated } : r)) }
+          : prev
+      );
+      setDrawerResponse((prev) => (prev && prev.id === responseId ? { ...prev, confirmation_notification: updated } : prev));
+      toast.success('In-App Notification Sent', 'In-app notification dispatched to the member.');
+    } catch (err: any) {
+      toast.error('Send Failed', err?.message || 'Could not send the in-app notification.');
+    } finally {
+      setResendingNotifIds((prev) => {
         const next = new Set(prev);
         next.delete(responseId);
         return next;
@@ -701,6 +772,8 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
               form={selectedForm}
               onResend={handleResend}
               resending={resendingIds.has(drawerResponse.id)}
+              onResendNotification={handleResendNotification}
+              resendingNotification={resendingNotifIds.has(drawerResponse.id)}
             />
           </DetailDrawer>
         )}
