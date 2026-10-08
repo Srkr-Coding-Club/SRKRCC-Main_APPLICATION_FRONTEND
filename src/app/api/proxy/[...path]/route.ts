@@ -95,7 +95,11 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     // nothing rotated to persist and nothing to clear (a genuinely dead
     // refresh token is discovered and cleared by /api/auth/refresh itself,
     // the only place that ever calls Django's token/refresh/ endpoint).
-    return new NextResponse(responseBody, {
+    // 204/205/304 are null-body statuses — passing even an empty ArrayBuffer
+    // makes the Response constructor throw ("Invalid response status code 204").
+    // Django's DELETE endpoints return 204 with no body.
+    const isNullBodyStatus = response.status === 204 || response.status === 205 || response.status === 304;
+    return new NextResponse(isNullBodyStatus ? null : responseBody, {
       status: response.status,
       statusText: response.statusText,
       headers: responseHeaders,
