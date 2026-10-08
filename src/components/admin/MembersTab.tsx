@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Sparkles,
   Calendar,
+  Pencil,
   Building2,
   Phone,
   UserCheck,
@@ -28,48 +29,71 @@ import { User, PaginatedResponse, Form } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { useToast } from '@/context/ToastContext';
 import { DetailDrawer } from './DetailDrawer';
+import { EditUserModal } from './EditUserModal';
 
 interface MembersTabProps {
   forms?: Form[];
 }
 
-function MemberDetailContent({ member, onCopyClubId, copiedId }: { member: User; onCopyClubId: (id: string) => void; copiedId: string | null }) {
+function MemberDetailContent({
+  member,
+  onCopyClubId,
+  copiedId,
+  onEdit,
+}: {
+  member: User;
+  onCopyClubId: (id: string) => void;
+  copiedId: string | null;
+  onEdit?: () => void;
+}) {
   const fullName = `${member.first_name || ''} ${member.last_name || ''}`.trim() || member.username || member.email.split('@')[0];
 
   return (
     <div className="space-y-6">
       {/* Profile Header */}
-      <div className="flex items-start gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] p-0.5 shadow-md flex-shrink-0">
-          <div className="w-full h-full rounded-2xl bg-slate-100 dark:bg-[#151722] flex items-center justify-center text-[#1A1A2E] dark:text-white font-black text-xl">
-            {fullName.charAt(0).toUpperCase()}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] p-0.5 shadow-md flex-shrink-0">
+            <div className="w-full h-full rounded-2xl bg-slate-100 dark:bg-[#151722] flex items-center justify-center text-[#1A1A2E] dark:text-white font-black text-xl">
+              {fullName.charAt(0).toUpperCase()}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white truncate">{fullName}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{member.email}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {member.club_id && (
+                <button
+                  onClick={() => onCopyClubId(member.club_id!)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-xs hover:bg-orange-500/20 transition active:scale-95"
+                >
+                  <span>{member.club_id}</span>
+                  {copiedId === member.club_id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                </button>
+              )}
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                member.membership_status === 'ACTIVE'
+                  ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400'
+              }`}>
+                {member.membership_status || 'ACTIVE'}
+              </span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                {member.role}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white truncate">{fullName}</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{member.email}</p>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            {member.club_id && (
-              <button
-                onClick={() => onCopyClubId(member.club_id!)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-xs hover:bg-orange-500/20 transition active:scale-95"
-              >
-                <span>{member.club_id}</span>
-                {copiedId === member.club_id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
-              </button>
-            )}
-            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-              member.membership_status === 'ACTIVE'
-                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                : 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400'
-            }`}>
-              {member.membership_status || 'ACTIVE'}
-            </span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              {member.role}
-            </span>
-          </div>
-        </div>
+
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition shadow-sm active:scale-95 flex-shrink-0"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            <span>Edit Details</span>
+          </button>
+        )}
       </div>
 
       {/* Primary Details Grid */}
@@ -79,8 +103,16 @@ function MemberDetailContent({ member, onCopyClubId, copiedId }: { member: User;
           <div className="text-sm font-bold text-[#1A1A2E] dark:text-white mt-0.5">{member.branch || 'Not Specified'}</div>
         </div>
         <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Roll Number</span>
+          <div className="text-sm font-bold text-[#1A1A2E] dark:text-white mt-0.5 font-mono">{member.roll_number || 'Not set'}</div>
+        </div>
+        <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phone Number</span>
           <div className="text-sm font-bold text-[#1A1A2E] dark:text-white mt-0.5">{member.phone_number || 'N/A'}</div>
+        </div>
+        <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Year of Study</span>
+          <div className="text-sm font-bold text-[#1A1A2E] dark:text-white mt-0.5">Year {member.year || '1'}</div>
         </div>
         <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Referred / Onboarded By</span>
@@ -98,6 +130,37 @@ function MemberDetailContent({ member, onCopyClubId, copiedId }: { member: User;
         </div>
       </div>
 
+      {/* Social / Portfolio Links */}
+      {(member.github_profile || member.linkedin_profile) && (
+        <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Profiles & Portfolio</span>
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            {member.github_profile && (
+              <a
+                href={member.github_profile.startsWith('http') ? member.github_profile : `https://${member.github_profile}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300 hover:text-orange-500 font-medium underline underline-offset-2"
+              >
+                <span>GitHub</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+            {member.linkedin_profile && (
+              <a
+                href={member.linkedin_profile.startsWith('http') ? member.linkedin_profile : `https://${member.linkedin_profile}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300 hover:text-orange-500 font-medium underline underline-offset-2"
+              >
+                <span>LinkedIn</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Account Provenance */}
       <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
         <span>Account Source: <strong className="text-slate-700 dark:text-slate-200">{member.created_from || 'SELF_REGISTRATION'}</strong></span>
@@ -112,9 +175,11 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
   const [members, setMembers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('AFFILIATE');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [branchFilter, setBranchFilter] = useState('ALL');
   const [selectedMember, setSelectedMember] = useState<User | null>(null);
+  const [editingMember, setEditingMember] = useState<User | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Email Campaign Modal State
@@ -123,12 +188,12 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
   const [emailMessage, setEmailMessage] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  const loadMembers = useCallback(async () => {
+  const loadMembers = useCallback(async (query: string = '') => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page_size: '500',
-        ...(search && { search }),
+        ...(query && { search: query }),
       });
       const res = await fetchApi<PaginatedResponse<User> | User[]>(`/auth/users/?${params}`);
       const userList = Array.isArray(res) ? res : res?.results || [];
@@ -138,11 +203,14 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
     } finally {
       setLoading(false);
     }
-  }, [search, toast]);
+  }, [toast]);
 
   useEffect(() => {
-    loadMembers();
-  }, [loadMembers]);
+    const handler = setTimeout(() => {
+      loadMembers(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search, loadMembers]);
 
   const handleCopyClubId = (clubId: string) => {
     navigator.clipboard.writeText(clubId);
@@ -151,8 +219,55 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleSaveMember = async (userId: number, updatedFields: Record<string, any>) => {
+    try {
+      const updatedUser = await fetchApi<User>(`/auth/users/${userId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(updatedFields),
+      });
+      setMembers((prev) =>
+        prev.map((m) => (m.id === userId ? { ...m, ...updatedUser } : m))
+      );
+      if (selectedMember && selectedMember.id === userId) {
+        setSelectedMember((prev) => (prev ? { ...prev, ...updatedUser } : null));
+      }
+      toast.success('Member Updated', 'Member details saved successfully.');
+    } catch (err: any) {
+      toast.error('Update Failed', err?.message || 'Failed to update member.');
+      throw err;
+    }
+  };
+
   // Filtered members
   const filteredMembers = members.filter((m) => {
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const fullName = `${m.first_name || ''} ${m.last_name || ''}`.trim().toLowerCase();
+      const email = (m.email || '').toLowerCase();
+      const phone = (m.phone_number || '').toLowerCase();
+      const clubId = (m.club_id || '').toLowerCase();
+      const roll = (m.roll_number || '').toLowerCase();
+      const branch = (m.branch || '').toLowerCase();
+      if (
+        !fullName.includes(q) &&
+        !email.includes(q) &&
+        !phone.includes(q) &&
+        !clubId.includes(q) &&
+        !roll.includes(q) &&
+        !branch.includes(q)
+      ) {
+        return false;
+      }
+    }
+    if (roleFilter !== 'ALL') {
+      if (roleFilter === 'AFFILIATE') {
+        if (m.role !== 'AFFILIATE' && !m.club_id) return false;
+      } else if (roleFilter === 'NON_AFFILIATE') {
+        if (m.role !== 'NON_AFFILIATE' || Boolean(m.club_id)) return false;
+      } else if (m.role !== roleFilter) {
+        return false;
+      }
+    }
     if (statusFilter !== 'ALL' && (m.membership_status || 'ACTIVE') !== statusFilter) return false;
     if (branchFilter !== 'ALL' && (m.branch || '').toUpperCase() !== branchFilter.toUpperCase()) return false;
     return true;
@@ -168,17 +283,24 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
       toast.error('No Data', 'No members to export.');
       return;
     }
-    const headers = ['S.No', 'Full Name', 'Email', 'Phone Number', 'Branch', 'Club ID', 'Member', 'Registration Date', 'Status'];
+    const headers = [
+      'S.No', 'Full Name', 'Email', 'Roll Number', 'Branch',
+      'Year', 'Phone Number', 'Club ID', 'Role', 'Status',
+      'Referred By', 'Joined Date'
+    ];
     const rows = filteredMembers.map((m, idx) => [
       idx + 1,
       `"${(`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.username).replace(/"/g, '""')}"`,
       `"${m.email}"`,
-      `"${m.phone_number || ''}"`,
+      `"${m.roll_number || ''}"`,
       `"${m.branch || ''}"`,
+      `"${m.year ? `${m.year}` : ''}"`,
+      `"${m.phone_number || ''}"`,
       `"${m.club_id || ''}"`,
-      `"${m.referred_by_display || m.referred_by_raw || ''}"`,
-      `"${m.registered_at ? new Date(m.registered_at).toLocaleDateString('en-US') : ''}"`,
+      `"${m.role || ''}"`,
       `"${m.membership_status || 'ACTIVE'}"`,
+      `"${m.referred_by_display || m.referred_by_raw || ''}"`,
+      `"${m.registered_at ? new Date(m.registered_at).toLocaleDateString('en-US') : (m.created_at ? new Date(m.created_at).toLocaleDateString('en-US') : '')}"`,
     ]);
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -235,7 +357,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
               SRKR Coding Club Member Directory
             </h2>
             <span className="px-2.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400 text-xs font-black">
-              {filteredMembers.length} Members
+              {filteredMembers.length} {roleFilter === 'AFFILIATE' ? 'Affiliates' : roleFilter === 'NON_AFFILIATE' ? 'Non-Affiliates' : 'Members'}
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -284,6 +406,20 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
         </div>
 
         <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="px-3.5 py-2.5 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
+        >
+          <option value="AFFILIATE">Affiliates Only (Club Members)</option>
+          <option value="ALL">All Roles (incl. Non-Affiliates)</option>
+          <option value="NON_AFFILIATE">Non-Affiliates (Pending)</option>
+          <option value="VOLUNTEER">Volunteers</option>
+          <option value="JUDGE">Judges</option>
+          <option value="CLUB_LEAD">Club Leads</option>
+          <option value="ADMIN">Admins</option>
+        </select>
+
+        <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="px-3.5 py-2.5 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
@@ -329,11 +465,12 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
           <Users className="w-10 h-10 text-slate-600 mx-auto opacity-50" />
           <p className="font-bold text-sm text-[#1A1A2E] dark:text-white">No members matched your search filters</p>
           <p className="text-slate-400 max-w-sm mx-auto">
-            Try adjusting your search query or import legacy spreadsheets via the Ingestion Wizard.
+            Try adjusting your search query or reset filters.
           </p>
           <button
             onClick={() => {
               setSearch('');
+              setRoleFilter('AFFILIATE');
               setStatusFilter('ALL');
               setBranchFilter('ALL');
             }}
@@ -355,6 +492,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                   <th className="px-5 py-3.5">Referred By</th>
                   <th className="px-5 py-3.5">Joined Date</th>
                   <th className="px-5 py-3.5">Status</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -430,6 +568,17 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                           {m.membership_status || 'ACTIVE'}
                         </span>
                       </td>
+
+                      {/* Actions */}
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setEditingMember(m)}
+                          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 transition active:scale-95"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          Edit
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -451,10 +600,40 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
               member={selectedMember}
               onCopyClubId={handleCopyClubId}
               copiedId={copiedId}
+              onEdit={() => {
+                const target = selectedMember;
+                setEditingMember(target);
+              }}
             />
           </DetailDrawer>
         )}
       </AnimatePresence>
+
+      {/* Edit Member Details Modal */}
+      {editingMember && (
+        <EditUserModal
+          isOpen={Boolean(editingMember)}
+          onClose={() => setEditingMember(null)}
+          user={{
+            id: editingMember.id,
+            firstName: editingMember.first_name || null,
+            lastName: editingMember.last_name || null,
+            name: `${editingMember.first_name || ''} ${editingMember.last_name || ''}`.trim() || editingMember.username || editingMember.email.split('@')[0],
+            email: editingMember.email,
+            rollNumber: editingMember.roll_number || '',
+            branch: editingMember.branch || 'CSE',
+            year: editingMember.year ? String(editingMember.year) : '1',
+            role: (editingMember.role as any) || 'NON_AFFILIATE',
+            membershipStatus: (editingMember.membership_status as any) || 'ACTIVE',
+            clubId: editingMember.club_id || null,
+            phoneNumber: editingMember.phone_number || null,
+            githubProfile: editingMember.github_profile || null,
+            linkedinProfile: editingMember.linkedin_profile || null,
+          }}
+          onSave={handleSaveMember}
+          canAssignElevatedRoles={true}
+        />
+      )}
 
       {/* Email Broadcast Modal */}
       <AnimatePresence>
