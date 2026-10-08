@@ -33,12 +33,14 @@ interface EventCardProps {
   event: Event;
   accent?: string;
   index?: number;
+  onDetailsClick?: () => void;
 }
 
 export default function EventCard({
   event,
   accent = "#FF7A00",
   index = 0,
+  onDetailsClick,
 }: EventCardProps) {
   const router = useRouter();
   const detailHref = `/events/${event.slug}`;
@@ -90,6 +92,7 @@ export default function EventCard({
       <PublicListingCard
         accent={accent}
         index={index}
+        entryAnimation="none"
         className="w-full"
         category={
           <>
@@ -107,7 +110,6 @@ export default function EventCard({
         schedule={
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Event Date:</span>
               {formattedDate ? (
                 <>
                   <span className="flex items-center gap-1.5">
@@ -162,14 +164,26 @@ export default function EventCard({
         }
         footer={
           <>
-            <Link
-              href={detailHref}
-              aria-label={`View details for ${event.title}`}
-              className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 active:scale-95 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
-            >
-              Details
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
+            {onDetailsClick ? (
+              <button
+                type="button"
+                aria-label={`View details for ${event.title}`}
+                onClick={onDetailsClick}
+                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 active:scale-95 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+              >
+                Details
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <Link
+                href={detailHref}
+                aria-label={`View details for ${event.title}`}
+                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 active:scale-95 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+              >
+                Details
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
             {event.status === "CLOSED" ? (
               <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-[13px] font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500">
                 Registration Closed
