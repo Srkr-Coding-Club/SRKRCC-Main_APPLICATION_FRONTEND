@@ -9,7 +9,7 @@ import ModuleUnavailable from '@/components/ModuleUnavailable';
 import PageHero from '@/components/PageHero';
 import ProblemCard from '@/components/ProblemCard';
 import SectionHeading from '@/components/SectionHeading';
-import EventsRow from '@/components/EventsRow';
+import CardShowcase from '@/components/ui/BounceCards';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +81,8 @@ export default async function CodeQuestPage() {
         <section className="space-y-6">
           <SectionHeading icon={Code2} title="Today's challenge and archive" />
           {problems.length > 0 ? (
-            <EventsRow
+            <CardShowcase
+              layout="bounce-stack"
               cards={problems.map((problem, index) => (
                 <ProblemCard key={problem.id} problem={problem} index={index} />
               ))}

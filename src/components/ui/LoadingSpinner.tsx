@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { CLUB_LOGO_INK_PATH, CLUB_LOGO_RAYS_PATH, CLUB_LOGO_VIEWBOX } from './logoPaths';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -7,27 +7,52 @@ interface LoadingSpinnerProps {
   className?: string;
 }
 
-const sizeClasses = {
-  sm: 'w-4 h-4',
-  md: 'w-6 h-6',
-  lg: 'w-8 h-8',
-  xl: 'w-12 h-12',
+const sizePx: Record<NonNullable<LoadingSpinnerProps['size']>, number> = {
+  sm: 32,
+  md: 48,
+  lg: 68,
+  xl: 100,
 };
 
+// The club mark, drawn: the bulb outline traces in and fills, then the rays trace
+// out around it, holds complete, fades, and repeats. See the .animate-logo-* rules
+// in globals.css - all three pieces share one cycle length so they stay in step.
 export function LoadingSpinner({
   size = 'md',
   label,
   className = '',
 }: LoadingSpinnerProps) {
+  const px = sizePx[size];
   return (
     <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
-      <div className="relative flex items-center justify-center">
-        {/* Pulsing ambient glow behind spinner */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#FF7A00] to-[#8B2E3B] opacity-20 blur-md animate-pulse" />
-        <Loader2 className={`${sizeClasses[size]} animate-spin text-[#FF7A00] relative z-10`} />
-      </div>
+      <svg
+        width={px}
+        height={px}
+        viewBox={CLUB_LOGO_VIEWBOX}
+        className="animate-logo-fade"
+        role="img"
+        aria-label="Loading"
+      >
+        {/* Light theme: dark ink on a light page. Dark theme: bright ink on a dark page. */}
+        <path
+          d={CLUB_LOGO_INK_PATH}
+          strokeWidth={0.036}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          pathLength={1}
+          className="animate-logo-ink fill-[#6B1220] stroke-[#6B1220] dark:fill-[#FF8A4C] dark:stroke-[#FF8A4C]"
+        />
+        <path
+          d={CLUB_LOGO_RAYS_PATH}
+          strokeWidth={0.028}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          pathLength={1}
+          className="animate-logo-rays fill-[#B2460C] stroke-[#B2460C] dark:fill-[#FFD56B] dark:stroke-[#FFD56B]"
+        />
+      </svg>
       {label && (
-        <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 animate-pulse">
+        <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
           {label}
         </p>
       )}
@@ -38,15 +63,7 @@ export function LoadingSpinner({
 export function PageLoader({ label = 'Loading SRKRCC Platform...' }: { label?: string }) {
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
-      <div className="p-8 rounded-3xl bg-white/60 dark:bg-[#151722]/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col items-center gap-4 max-w-sm w-full text-center">
-        <LoadingSpinner size="lg" />
-        <p className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 tracking-wide">
-          {label}
-        </p>
-        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#FF7A00] to-[#8B2E3B] w-1/2 rounded-full animate-indeterminate" />
-        </div>
-      </div>
+      <LoadingSpinner size="xl" label={label} />
     </div>
   );
 }

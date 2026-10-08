@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Search, UserPlus, Eye, Pencil, Check, X as XIcon } from 'lucide-react';
 import { getStoredUser } from '@/lib/auth';
-import { sanitizeRollNumberInput, validateRollNumber } from '@/lib/validation/auth';
+import { sanitizeRollNumberInput, validateRollNumber, sanitizeAffiliateIdInput, validateAffiliateId } from '@/lib/validation/auth';
 import { DetailDrawer } from './DetailDrawer';
+import { AssignAffiliateModal } from './AssignAffiliateModal';
+import { EditUserModal } from './EditUserModal';
 
 interface UserRecord {
   id: number;
@@ -165,19 +167,158 @@ function EditableRollNumberField({
   );
 }
 
+function EditableClubIdField({
+  userId,
+  initialValue,
+  userRole,
+  onSave,
+}: {
+  userId: number;
+  initialValue: string;
+  userRole?: string;
+  onSave?: (userId: number, value: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [savedValue, setSavedValue] = useState(initialValue);
+  const [draft, setDraft] = useState(initialValue);
+  const [error, setError] = useState<string | undefined>();
+  const [saving, setSaving] = useState(false);
+
+  const startEditing = () => {
+    setDraft(savedValue);
+    setError(undefined);
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    const sanitized = sanitizeAffiliateIdInput(draft);
+    if (!sanitized && userRole === 'AFFILIATE') {
+      setError('Affiliate members must have a Club ID. Demote role first to remove it.');
+      return;
+    }
+    if (sanitized) {
+      const err = validateAffiliateId(sanitized);
+      if (err) {
+        setError(err);
+        return;
+      }
+    }
+    if (!onSave) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(userId, sanitized);
+      setSavedValue(sanitized);
+      setEditing(false);
+    } catch (err: any) {
+      setError(err?.message || 'Could not save Club ID. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div>
+        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Club ID</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <p className="text-sm text-[#1A1A2E] dark:text-white break-words font-mono">
+            {savedValue || <span className="italic text-slate-400 font-sans">Not set</span>}
+          </p>
+          {onSave && (
+            <button
+              type="button"
+              onClick={startEditing}
+              aria-label="Edit Club ID"
+              className="text-slate-400 hover:text-[#FF7A00] transition"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Club ID</p>
+      <div className="mt-1 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <input
+            type="text"
+            autoCapitalize="characters"
+            spellCheck={false}
+            autoFocus
+            disabled={saving}
+            value={draft}
+            placeholder="e.g. 25SCC001"
+            onChange={(e) => {
+              setDraft(sanitizeAffiliateIdInput(e.target.value));
+              setError(undefined);
+            }}
+            className="w-full px-2 py-1 rounded border text-xs font-mono bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+          />
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            aria-label="Save Club ID"
+            className="p-1 rounded text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-50 transition"
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            disabled={saving}
+            aria-label="Cancel"
+            className="p-1 rounded text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition"
+          >
+            <XIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        {error && <p className="text-[10px] text-rose-500">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
 function UserDrawerContent({
   user,
   onRollNumberChange,
+  onClubIdChange,
+  onEdit,
 }: {
   user: UserRecord;
   onRollNumberChange: (userId: number, value: string) => Promise<void>;
+  onClubIdChange?: (userId: number, value: string) => Promise<void>;
+  onEdit?: (user: UserRecord) => void;
 }) {
   return (
     <div className="space-y-6">
+      <div className="flex justify-end pb-1">
+        <button
+          type="button"
+          onClick={() => onEdit?.(user)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition active:scale-95"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          <span>Edit Details</span>
+        </button>
+      </div>
+
       <DrawerSection title="Identity">
         <DrawerField label="Name" value={user.name} />
         <DrawerField label="Email" value={user.email} />
-        <DrawerField label="Club ID" value={user.clubId} />
+        <EditableClubIdField
+          userId={user.id}
+          initialValue={user.clubId || ''}
+          userRole={user.role}
+          onSave={onClubIdChange}
+        />
       </DrawerSection>
 
       <DrawerSection title="Academic">
@@ -233,9 +374,11 @@ interface UsersTabProps {
   setUserSearch: (val: string) => void;
   filteredUsers: UserRecord[];
   onOpenCreateModal: () => void;
-  onRoleChange: (userId: number, role: UserRecord['role']) => void;
+  onRoleChange: (userId: number, role: UserRecord['role'], clubId?: string) => Promise<any> | void;
   onMembershipStatusChange: (userId: number, status: UserRecord['membershipStatus']) => void;
   onRollNumberChange: (userId: number, value: string) => Promise<void>;
+  onClubIdChange?: (userId: number, value: string) => Promise<void>;
+  onUpdateUser?: (userId: number, fields: Record<string, any>) => Promise<any>;
   isLoading?: boolean;
 }
 
@@ -247,9 +390,13 @@ export function UsersTab({
   onRoleChange,
   onMembershipStatusChange,
   onRollNumberChange,
+  onClubIdChange,
+  onUpdateUser,
   isLoading = false,
 }: UsersTabProps) {
   const [viewedUser, setViewedUser] = useState<UserRecord | null>(null);
+  const [affiliateModalUser, setAffiliateModalUser] = useState<UserRecord | null>(null);
+  const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
   // Only a full ADMIN may grant ADMIN/CLUB_LEAD (the backend enforces this too -
   // see UserDetailView.perform_update - this just keeps the dropdown from
   // offering an option that would fail with a confusing 403 for a CLUB_LEAD viewer).
@@ -345,7 +492,15 @@ export function UsersTab({
                     <td className="px-6 py-4">
                       <select
                         value={user.role}
-                        onChange={(e) => onRoleChange(user.id, e.target.value as UserRecord['role'])}
+                        onChange={(e) => {
+                          const targetRole = e.target.value as UserRecord['role'];
+                          if (targetRole === user.role) return;
+                          if (targetRole === 'AFFILIATE') {
+                            setAffiliateModalUser(user);
+                          } else {
+                            onRoleChange(user.id, targetRole);
+                          }
+                        }}
                         className="px-2.5 py-1 rounded border text-xs font-bold bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
                       >
                         {ALL_ROLES
@@ -384,6 +539,13 @@ export function UsersTab({
 
                     <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                       <button
+                        onClick={() => setEditingUser(user)}
+                        className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 transition active:scale-95"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        Edit
+                      </button>
+                      <button
                         onClick={() => setViewedUser(user)}
                         className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95"
                       >
@@ -407,12 +569,61 @@ export function UsersTab({
             onClose={() => setViewedUser(null)}
             title={viewedUser.name}
           >
-            {/* key forces a remount (and fresh EditableRollNumberField local
+            {/* key forces a remount (and fresh EditableRollNumberField / EditableClubIdField local
                 state) when switching from one viewed user to another. */}
-            <UserDrawerContent key={viewedUser.id} user={viewedUser} onRollNumberChange={onRollNumberChange} />
+            <UserDrawerContent
+              key={viewedUser.id}
+              user={viewedUser}
+              onRollNumberChange={onRollNumberChange}
+              onClubIdChange={onClubIdChange}
+              onEdit={(u) => setEditingUser(u)}
+            />
           </DetailDrawer>
         )}
       </AnimatePresence>
+
+      {/* Assign Affiliate Role Modal */}
+      <AssignAffiliateModal
+        isOpen={!!affiliateModalUser}
+        onClose={() => setAffiliateModalUser(null)}
+        user={affiliateModalUser}
+        onConfirm={async (userId, clubId) => {
+          await onRoleChange(userId, 'AFFILIATE', clubId);
+        }}
+      />
+
+      {/* Edit User Modal */}
+      <EditUserModal
+        isOpen={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        user={editingUser}
+        onSave={async (userId, fields) => {
+          if (onUpdateUser) {
+            await onUpdateUser(userId, fields);
+            if (viewedUser?.id === userId) {
+              setViewedUser((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      ...fields,
+                      name: fields.first_name ? `${fields.first_name} ${fields.last_name || ''}`.trim() : prev.name,
+                      rollNumber: fields.roll_number !== undefined ? (fields.roll_number || 'Not set') : prev.rollNumber,
+                      branch: fields.branch || prev.branch,
+                      year: fields.year ? `${fields.year}th Year` : prev.year,
+                      phoneNumber: fields.phone_number !== undefined ? fields.phone_number : prev.phoneNumber,
+                      clubId: fields.club_id !== undefined ? fields.club_id : prev.clubId,
+                      role: fields.role || prev.role,
+                      membershipStatus: fields.membership_status || prev.membershipStatus,
+                      githubProfile: fields.github_profile !== undefined ? fields.github_profile : prev.githubProfile,
+                      linkedinProfile: fields.linkedin_profile !== undefined ? fields.linkedin_profile : prev.linkedinProfile,
+                    }
+                  : null
+              );
+            }
+          }
+        }}
+        canAssignElevatedRoles={canAssignElevatedRoles}
+      />
     </div>
   );
 }

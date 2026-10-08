@@ -20,6 +20,8 @@ export default function AdminUsersPage() {
     handleRoleChange,
     handleMembershipStatusChange,
     handleRollNumberChange,
+    handleClubIdChange,
+    handleUpdateUser,
   } = useAdminData({ include: ['users'] }); // this page only renders the user list/roles - skip fetching forms, flags, audit logs, and submissions
 
   return (
@@ -34,6 +36,8 @@ export default function AdminUsersPage() {
           onRoleChange={handleRoleChange}
           onMembershipStatusChange={handleMembershipStatusChange}
           onRollNumberChange={handleRollNumberChange}
+          onClubIdChange={handleClubIdChange}
+          onUpdateUser={handleUpdateUser}
         />
 
         <CreateUserModal

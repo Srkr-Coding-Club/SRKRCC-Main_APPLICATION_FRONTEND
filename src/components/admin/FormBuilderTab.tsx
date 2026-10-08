@@ -46,7 +46,7 @@ import { normalizeImageUrl } from '@/lib/utils';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import EmailTemplateEditor from '@/components/admin/EmailTemplateEditor';
-import { IdCard, Mail as MailIcon, QrCode, Sparkles } from 'lucide-react';
+import { IdCard, Mail as MailIcon, QrCode, Sparkles, Bell, Megaphone, UserCheck } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
 import { EmailTemplateSummary } from '@/lib/types';
 
@@ -146,6 +146,11 @@ interface FormBuilderTabProps {
     club_id_verification_enabled?: boolean;
     confirmation_email_enabled?: boolean;
     confirmation_email_template?: number | string | null;
+    confirmation_notification_enabled?: boolean;
+    notify_admin_on_submission?: boolean;
+    notify_members_on_publish?: boolean;
+    notification_title?: string;
+    notification_message?: string;
     attendance_enabled?: boolean;
     attendance_start_date?: string | null;
     attendance_days?: number;
@@ -800,6 +805,96 @@ export function FormBuilderTab({
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* In-app Notification Automations */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                    <Bell className="w-4 h-4 text-[#FF7A00]" />
+                    Send in-app notification on submission
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!formMeta.confirmation_notification_enabled}
+                    onChange={(e) => setFormMeta({ ...formMeta, confirmation_notification_enabled: e.target.checked })}
+                    className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
+                  />
+                </div>
+
+                {formMeta.confirmation_notification_enabled && (
+                  <div className="pl-6 space-y-3 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                        Notification Title (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={formMeta.notification_title || ''}
+                        onChange={(e) => setFormMeta({ ...formMeta, notification_title: e.target.value })}
+                        placeholder={`Response Recorded: ${formMeta.title || 'Form Title'}`}
+                        className="w-full px-3 py-2 rounded-lg border text-xs bg-white dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                        Notification Message (optional)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={formMeta.notification_message || ''}
+                        onChange={(e) => setFormMeta({ ...formMeta, notification_message: e.target.value })}
+                        placeholder={`Your response for '${formMeta.title || 'this form'}' has been successfully submitted.`}
+                        className="w-full px-3 py-2 rounded-lg border text-xs bg-white dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] outline-none resize-none"
+                      />
+                    </div>
+                    {/* Live Preview Pill */}
+                    <div className="pt-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                        In-App Preview
+                      </div>
+                      <div className="p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-950/20 flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-[#1A1A2E] dark:text-white truncate">
+                            {formMeta.notification_title || `Response Recorded: ${formMeta.title || 'Form Title'}`}
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">
+                            {formMeta.notification_message || `Your response for '${formMeta.title || 'this form'}' has been successfully submitted.`}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Form Creator / Admin Alert */}
+                <label className="flex items-center justify-between cursor-pointer pt-2">
+                  <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                    <UserCheck className="w-4 h-4 text-[#FF7A00]" />
+                    Notify form creator on new responses
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!formMeta.notify_admin_on_submission}
+                    onChange={(e) => setFormMeta({ ...formMeta, notify_admin_on_submission: e.target.checked })}
+                    className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
+                  />
+                </label>
+
+                {/* Member Broadcast on Publish */}
+                <label className="flex items-center justify-between cursor-pointer pt-2">
+                  <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                    <Megaphone className="w-4 h-4 text-[#FF7A00]" />
+                    Notify all members when published
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={!!formMeta.notify_members_on_publish}
+                    onChange={(e) => setFormMeta({ ...formMeta, notify_members_on_publish: e.target.checked })}
+                    className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
+                  />
+                </label>
               </div>
 
               <div className="space-y-3 pt-5 pb-5 border-t border-b border-slate-100 dark:border-slate-800">

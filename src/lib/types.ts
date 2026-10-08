@@ -66,6 +66,8 @@ export interface User {
   branch?: string;
   year?: number;
   phone_number?: string;
+  github_profile?: string;
+  linkedin_profile?: string;
   registered_at?: string;
   referred_by_display?: string;
   referred_by_raw?: string;
@@ -646,6 +648,11 @@ export interface Form {
   club_id_verification_enabled?: boolean;
   confirmation_email_enabled?: boolean;
   confirmation_email_template?: number | string | null;
+  confirmation_notification_enabled?: boolean;
+  notify_admin_on_submission?: boolean;
+  notify_members_on_publish?: boolean;
+  notification_title?: string;
+  notification_message?: string;
   /** QR-code attendance tracking - see apps/forms/models.py's attendance_* fields. */
   attendance_enabled?: boolean;
   attendance_start_date?: string | null;
@@ -854,6 +861,16 @@ export interface ResponseDetail {
   answers: AnswerDetail[];
   confirmation_email_enabled?: boolean;
   confirmation_email?: ConfirmationEmailStatus | null;
+  confirmation_notification_enabled?: boolean;
+  confirmation_notification?: {
+    id: number;
+    title: string;
+    message: string;
+    type: string;
+    category: string;
+    is_read: boolean;
+    created_at: string | null;
+  } | null;
 }
 
 /** Paginated response from DRF PageNumberPagination */

@@ -168,14 +168,14 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
         <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-[72px]'}`}>
           {/* Logo - sits directly on the bar, no card wrapper */}
           <Link href="/" className="group flex items-center gap-2.5" aria-label="SRKR Coding Club Home">
-            <motion.div whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
+            <motion.div className="translate-y-[6px]" whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
               <BrainLogo size={30} showRays={false} animated={false} />
             </motion.div>
-            <div className="flex flex-col leading-none">
-              <span className="font-poppins font-extrabold text-[15px] bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
+            <div className="flex flex-col leading-none gap-1">
+              <span className="font-poppins font-extrabold text-lg sm:text-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
                 SRKR
               </span>
-              <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-[#1A1A2E]/45 dark:text-white/40">
+              <span className="font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-[#1A1A2E] dark:text-white">
                 Coding Club
               </span>
             </div>
@@ -183,7 +183,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
 
           {/* Center - segmented sliding-pill nav, a different silhouette than an underline */}
           <nav
-            className="hidden md:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
+            className="hidden lg:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
             onMouseLeave={() => setHovered(null)}
           >
             {visibleNavItems.map((item) => {
@@ -272,7 +272,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
           </nav>
 
           {/* Right cluster */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             {isAuth ? (
               <>
                 <NotificationBell />
@@ -320,7 +320,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
           </div>
 
           {/* Mobile trigger */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-2">
             {isAuth && <NotificationBell />}
             <ThemeToggle />
             <button
@@ -351,7 +351,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="md:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col p-6 pt-24 overflow-y-auto"
+            className="lg:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col p-6 pt-24 overflow-y-auto"
           >
             <div className="flex flex-col gap-1">
               {visibleNavItems.map((item, i) => (
