@@ -4,8 +4,9 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Instagram, Linkedin, Github, Twitter, ArrowUp } from 'lucide-react';
+import { Mail, Phone, MapPin, Instagram, Linkedin, Github, Twitter, ArrowUp, RotateCcw } from 'lucide-react';
 import BrainLogo from './BrainLogo';
+import { resetIntroSeen } from './hero-intro/introEligibility';
 
 const SOCIALS = [
   { icon: Instagram, href: 'https://instagram.com/srkr_coding_club', label: 'Instagram' },
@@ -51,7 +52,7 @@ export default function Footer() {
           className="absolute inset-x-0 bottom-0 flex justify-center overflow-hidden pointer-events-none select-none"
         >
           <span
-            className="font-poppins font-extrabold leading-none whitespace-nowrap text-[16vw] sm:text-[11vw] translate-y-[28%] text-[#1A1A2E]/[0.04] dark:text-white/[0.045]"
+            className="font-poppins font-extrabold leading-none whitespace-nowrap text-[9vw] sm:text-[11vw] translate-y-[28%] text-[#1A1A2E]/[0.04] dark:text-white/[0.045]"
           >
             CODING CLUB
           </span>
@@ -179,6 +180,18 @@ export default function Footer() {
               <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500">
                 built by students, for students
               </span>
+              <button
+                type="button"
+                onClick={() => {
+                  // Clears the "seen it this week" flag so the home page plays the intro again.
+                  resetIntroSeen();
+                  window.location.href = '/';
+                }}
+                className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400 dark:text-slate-500 hover:text-[#FF7A00] transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Experience the intro again
+              </button>
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition active:scale-90"

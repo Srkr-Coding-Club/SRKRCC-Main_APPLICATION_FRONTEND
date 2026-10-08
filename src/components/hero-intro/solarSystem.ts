@@ -9,9 +9,10 @@
 export type PlanetChapter = 'technology' | 'club';
 
 /* Technology eras: the C hexagon, the HTML/CSS/JS shields, the Java cup, a binary tree.  */
-/* Club programs: a light bulb (awareness), a laptop with C code (workshops), a stopwatch */
-/* (crash course), a trophy (events), the </> mark (hackathon), a compass (CodeQuest),    */
-/* a group of figures (community) and a cube with glowing edges (EdgeCase).               */
+/* Club programs: a light bulb (awareness), a laptop with C code (workshops), a rocket    */
+/* (crash course), a trophy (events), the </> mark (hackathon), a daily flip-calendar     */
+/* (CodeQuest), a winner's podium (IconCoders, the flagship championship) and a           */
+/* checkered racing flag (EdgeCase, the biweekly DSA contest).                            */
 export type Emblem =
   | 'c'
   | 'web'
@@ -19,12 +20,12 @@ export type Emblem =
   | 'tree'
   | 'bulb'
   | 'laptop'
-  | 'stopwatch'
+  | 'rocket'
   | 'trophy'
   | 'brackets'
-  | 'compass'
-  | 'community'
-  | 'cube';
+  | 'calendar'
+  | 'podium'
+  | 'flag';
 
 export interface PlanetSpec {
   id: string;
@@ -73,7 +74,7 @@ export const PLANETS: PlanetSpec[] = [
   },
   {
     id: 'dsa-crash-course', chapter: 'club', eyebrow: 'DSA crash course', title: 'DSA Crash Course', statement: 'Think faster. Solve smarter.',
-    href: '/events', cta: 'Join the course', orbit: 57, angle: 1.77, lift: 0.9, radius: 2.0, emblem: 'stopwatch', side: 'left',
+    href: '/events', cta: 'Join the course', orbit: 57, angle: 1.77, lift: 0.9, radius: 2.0, emblem: 'rocket', side: 'left',
   },
   {
     id: 'coding-events', chapter: 'club', eyebrow: 'Coding events', title: 'Coding Events', statement: 'Where curiosity becomes competition.',
@@ -85,15 +86,15 @@ export const PLANETS: PlanetSpec[] = [
   },
   {
     id: 'codequest', chapter: 'club', eyebrow: 'Daily problems', title: 'CodeQuest', statement: 'A journey through problems, projects and possibilities.',
-    href: '/codequest', cta: 'Start CodeQuest', orbit: 80, angle: 5.34, lift: -1, radius: 2.0, emblem: 'compass', side: 'right',
+    href: '/codequest', cta: 'Start CodeQuest', orbit: 80, angle: 5.34, lift: -1, radius: 2.0, emblem: 'calendar', side: 'right',
   },
   {
     id: 'iconcoders', chapter: 'club', eyebrow: 'Community', title: 'IconCoders', statement: 'Learn from builders.',
-    href: '/iconcoders', cta: 'Explore IconCoders', orbit: 88, angle: 0.38, lift: 1.1, radius: 2.2, emblem: 'community', side: 'left',
+    href: '/iconcoders', cta: 'Explore IconCoders', orbit: 88, angle: 0.38, lift: 1.1, radius: 2.2, emblem: 'podium', side: 'left',
   },
   {
     id: 'edgecase', chapter: 'club', eyebrow: 'Bi-weekly contests', title: 'EdgeCase', statement: 'Bi-weekly. Competitive. Relentless.',
-    href: '/events', cta: 'Enter EdgeCase', orbit: 97, angle: 1.43, lift: -1.3, radius: 1.9, emblem: 'cube', side: 'right',
+    href: '/events', cta: 'Enter EdgeCase', orbit: 97, angle: 1.43, lift: -1.3, radius: 1.9, emblem: 'flag', side: 'right',
   },
 ];
 
@@ -110,6 +111,18 @@ export function planetPosition(planet: PlanetSpec, progress = 0) {
   return { x: Math.cos(angle) * planet.orbit, y: planet.lift, z: Math.sin(angle) * planet.orbit };
 }
 
+/* Where a planet starts before it arrives: pulled in along its own orbital ray,   */
+/* clustered close and pushed toward the camera's opening position, as though it  */
+/* has just overtaken the viewer from behind. It eases out to `planetPosition`    */
+/* over JOURNEY.arrival, so planets fly in and settle rather than popping in      */
+/* already parked on their orbit.                                                 */
+const ARRIVAL_SCALE = 0.1;
+const ARRIVAL_PUSH = 90;
+export function planetArrivalPosition(planet: PlanetSpec, progress: number) {
+  const { x, y, z } = planetPosition(planet, progress);
+  return { x: x * ARRIVAL_SCALE, y: y * ARRIVAL_SCALE, z: z * ARRIVAL_SCALE + ARRIVAL_PUSH };
+}
+
 /* ------------------------------------------------------------------ */
 /* The journey, in scroll progress (0-1):                             */
 /*   void and opening lines -> the Sun -> twelve planet encounters    */
@@ -122,6 +135,8 @@ export const JOURNEY = {
     { text: 'Every generation builds on what came before.', start: 0.045, end: 0.078 },
   ],
   sunReveal: { start: 0.085, end: 0.135 },
+  /* The window over which planets ease from their arrival position out to their orbit. */
+  arrival: { start: 0.02, end: 0.15 },
   firstEncounter: 0.17,
   encounterStep: 0.06,
   /* Half-width of a planet's story window around its encounter. */

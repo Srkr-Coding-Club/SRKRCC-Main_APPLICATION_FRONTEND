@@ -194,6 +194,47 @@ html {
   animation: pulseRay 3s ease-in-out infinite;
 }
 
+/* The club mark as a loading indicator: the bulb outline draws in and fills,     */
+/* then the rays draw out around it, holds, fades, and repeats - see              */
+/* LoadingSpinner.tsx. All three share one 4.2s cycle so they stay in step.       */
+@keyframes logoGroupFade {
+  0%, 3% { opacity: 0; }
+  6%, 92% { opacity: 1; }
+  98%, 100% { opacity: 0; }
+}
+
+.animate-logo-fade {
+  animation: logoGroupFade 4.2s ease-in-out infinite;
+}
+
+@keyframes logoInkDraw {
+  0%, 4% { stroke-dashoffset: 1; fill-opacity: 0; }
+  45% { stroke-dashoffset: 0; fill-opacity: 0; }
+  55%, 96% { stroke-dashoffset: 0; fill-opacity: 1; }
+  100% { stroke-dashoffset: 1; fill-opacity: 0; }
+}
+
+.animate-logo-ink {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  fill-opacity: 0;
+  animation: logoInkDraw 4.2s ease-in-out infinite;
+}
+
+@keyframes logoRaysDraw {
+  0%, 48% { stroke-dashoffset: 1; fill-opacity: 0; }
+  80% { stroke-dashoffset: 0; fill-opacity: 0; }
+  85%, 96% { stroke-dashoffset: 0; fill-opacity: 1; }
+  100% { stroke-dashoffset: 1; fill-opacity: 0; }
+}
+
+.animate-logo-rays {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  fill-opacity: 0;
+  animation: logoRaysDraw 4.2s ease-in-out infinite;
+}
+
 .animate-float-1 {
   animation: floatCard 4s ease-in-out infinite;
 }

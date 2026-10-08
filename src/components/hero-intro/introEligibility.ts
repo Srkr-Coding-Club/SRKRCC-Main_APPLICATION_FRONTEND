@@ -26,6 +26,15 @@ export function markIntroSeen() {
   }
 }
 
+/* Clears the "seen it this week" flag, so the next visit to / plays the intro again. */
+export function resetIntroSeen() {
+  try {
+    window.localStorage.removeItem(SEEN_KEY);
+  } catch {
+    // Storage blocked (private mode): there was nothing to clear anyway.
+  }
+}
+
 export function shouldPlayIntro() {
   if (seenRecently()) return false;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
