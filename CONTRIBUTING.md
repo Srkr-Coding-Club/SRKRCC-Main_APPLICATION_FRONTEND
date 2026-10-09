@@ -46,14 +46,17 @@ git checkout -b feature/your-feature-name
 * Explicitly export `export const dynamic = 'force-dynamic'` on pages fetching live backend data.
 
 ### 4. Run Local Verification
-Before opening a PR, verify local build & linting:
+Before opening a PR, verify local build & type checking:
 ```bash
-# Verify Next.js production build and type check
-make build
+# Fast TypeScript type check (tsc --noEmit)
+make type-check
+# or: pnpm run type-check
 
-# Run ESLint check
-make lint
+# Verify full Next.js production build
+make build
+# or: pnpm run build
 ```
+*(Note: A git pre-push hook in `.githooks/pre-push` is configured to automatically run type-checking and build verification before any `git push` command completes.)*
 
 ### 5. Commit with Conventional Commit Messages
 Write clear, descriptive commit messages using conventional prefixes:
