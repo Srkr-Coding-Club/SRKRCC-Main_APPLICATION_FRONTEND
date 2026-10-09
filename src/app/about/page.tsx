@@ -20,6 +20,7 @@ import Image from 'next/image';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import ScrollReveal from '@/components/ScrollReveal';
+import AlumniCarousel from '@/components/AlumniCarousel';
 
 export const metadata: Metadata = {
   title: 'About the SRKR Coding Club',
@@ -233,6 +234,9 @@ export default function AboutPage() {
               ))}
             </div>
           </section>
+
+          {/* Alumni Carousel */}
+          <AlumniCarousel />
 
           {/* CTA */}
           <section

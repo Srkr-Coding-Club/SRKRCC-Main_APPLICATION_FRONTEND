@@ -24,28 +24,106 @@ const blankProblem = (): BatchProblem => ({
 
 const fieldClass = 'w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#FF7A00] dark:border-slate-700';
 
+const toLocalIso = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const isValidHttpsUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+};
+
+// Subtle tint per difficulty; the option/label text itself stays black.
+const DIFFICULTY_STYLES: Record<Problem['difficulty'], { background: string; border: string }> = {
+  EASY: { background: '#fffbeb', border: '#a7f3d0',  },
+  MEDIUM: { background: '#fffbeb', border: '#fde68a' },
+  HARD: { background: '#fef2f2', border: '#fecaca' },
+};
+
+const difficultyOptionStyle = (value: Problem['difficulty']) => ({
+  backgroundColor: DIFFICULTY_STYLES[value].background,
+  color: '#030303',
+});
+
 export default function BatchScheduleClient() {
   const [entries, setEntries] = useState<BatchProblem[]>([blankProblem()]);
   const [scheduled, setScheduled] = useState<ScheduledProblem[]>([]);
+  const [takenDates, setTakenDates] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [showErrors, setShowErrors] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     fetchApi<{ role?: string }>('/api/auth/me/')
-      .then(({ role }) => setAuthorized(role === 'ADMIN' || role === 'CLUB_LEAD'))
+      .then(async ({ role }) => {
+        const isStaff = role === 'ADMIN' || role === 'CLUB_LEAD';
+        setAuthorized(isStaff);
+        if (isStaff) {
+          const problems = await fetchApi<Problem[]>('/codequest/').catch(() => [] as Problem[]);
+          if (Array.isArray(problems)) {
+            setTakenDates(problems.map((problem) => problem.scheduled_date));
+          }
+        }
+      })
       .catch(() => setAuthorized(false))
       .finally(() => setLoading(false));
   }, []);
 
+  const today = toLocalIso(new Date());
+
+  const urlError = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return 'External problem URL is required.';
+    return isValidHttpsUrl(trimmed) ? null : 'Enter a valid HTTPS URL starting with https://.';
+  };
+
+  const dateError = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    if (value < today) return 'Previous dates cannot be scheduled.';
+    if (takenDates.includes(value)) return 'A problem is already scheduled on this date.';
+    return null;
+  };
+
   const update = <K extends keyof BatchProblem>(index: number, key: K, value: BatchProblem[K]) => {
+    setError('');
     setEntries((current) => current.map((entry, i) => i === index ? { ...entry, [key]: value } : entry));
+  };
+
+  const updateDate = (index: number, value: string) => {
+    if (!value) {
+      update(index, 'scheduled_date', value);
+      return;
+    }
+    const message = dateError(value);
+    if (message) {
+      setError(`Problem ${index + 1}: ${message} The date was not changed.`);
+      return;
+    }
+    update(index, 'scheduled_date', value);
   };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
+
+    const validationErrors: string[] = [];
+    entries.forEach((entry, index) => {
+      const urlMessage = urlError(entry.external_url);
+      if (urlMessage) validationErrors.push(`Problem ${index + 1}: ${urlMessage}`);
+      const dateMessage = dateError(entry.scheduled_date);
+      if (dateMessage) validationErrors.push(`Problem ${index + 1}: ${dateMessage}`);
+    });
+    if (validationErrors.length > 0) {
+      setShowErrors(true);
+      setError(validationErrors.join(' '));
+      return;
+    }
+
     setSaving(true);
     try {
       const response = await fetchApi<{ problems: ScheduledProblem[] }>('/codequest/batch-schedule/', {
@@ -60,7 +138,9 @@ export default function BatchScheduleClient() {
         }),
       });
       setScheduled(response.problems);
+      setTakenDates((current) => [...new Set([...current, ...entries.map((entry) => entry.scheduled_date)])]);
       setEntries([blankProblem()]);
+      setShowErrors(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not schedule problems. Please try again.');
     } finally {
@@ -84,22 +164,50 @@ export default function BatchScheduleClient() {
         {error && <p role="alert" className="rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">{error}</p>}
 
         <form onSubmit={submit} className="space-y-6">
-          {entries.map((entry, index) => (
-            <section key={index} className="glass-panel space-y-4 rounded-2xl p-5">
-              <div className="flex items-center justify-between"><h2 className="font-bold">Problem {index + 1}</h2>{entries.length > 1 && <button type="button" onClick={() => setEntries((current) => current.filter((_, i) => i !== index))} aria-label={`Remove problem ${index + 1}`} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"><Trash2 className="h-4 w-4" /></button>}</div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <label className="sm:col-span-2"><span className="mb-1 block text-xs font-bold">Title *</span><input className={fieldClass} value={entry.title} onChange={(e) => update(index, 'title', e.target.value)} maxLength={200} required /></label>
-                <label><span className="mb-1 block text-xs font-bold">Scheduled date *</span><input type="date" className={fieldClass} value={entry.scheduled_date} onChange={(e) => update(index, 'scheduled_date', e.target.value)} required /></label>
-                <label><span className="mb-1 block text-xs font-bold">Difficulty</span><select className={fieldClass} value={entry.difficulty} onChange={(e) => update(index, 'difficulty', e.target.value as Problem['difficulty'])}><option value="EASY">Easy</option><option value="MEDIUM">Medium</option><option value="HARD">Hard</option></select></label>
-                <label className="sm:col-span-2"><span className="mb-1 block text-xs font-bold">Topics / tags</span><input className={fieldClass} value={entry.tags} onChange={(e) => update(index, 'tags', e.target.value)} placeholder="Arrays, Hashing, DP" /></label>
-                <label className="sm:col-span-3"><span className="mb-1 block text-xs font-bold">Problem statement *</span><textarea className={fieldClass} rows={5} value={entry.statement} onChange={(e) => update(index, 'statement', e.target.value)} required /></label>
-                <label className="sm:col-span-3"><span className="mb-1 block text-xs font-bold">Constraints</span><textarea className={fieldClass} rows={2} value={entry.constraints} onChange={(e) => update(index, 'constraints', e.target.value)} /></label>
-                <label><span className="mb-1 block text-xs font-bold">Sample input</span><textarea className={fieldClass} rows={3} value={entry.sample_input} onChange={(e) => update(index, 'sample_input', e.target.value)} /></label>
-                <label><span className="mb-1 block text-xs font-bold">Sample output</span><textarea className={fieldClass} rows={3} value={entry.sample_output} onChange={(e) => update(index, 'sample_output', e.target.value)} /></label>
-                <div className="space-y-4"><label className="block"><span className="mb-1 block text-xs font-bold">External platform</span><input className={fieldClass} value={entry.external_platform} onChange={(e) => update(index, 'external_platform', e.target.value)} placeholder="LeetCode" /></label><label className="block"><span className="mb-1 block text-xs font-bold">External problem URL</span><input type="url" className={fieldClass} value={entry.external_url} onChange={(e) => update(index, 'external_url', e.target.value)} placeholder="https://…" /></label></div>
-              </div>
-            </section>
-          ))}
+          {entries.map((entry, index) => {
+            const urlMessage = urlError(entry.external_url);
+            const dateMessage = dateError(entry.scheduled_date);
+            const difficultyStyle = DIFFICULTY_STYLES[entry.difficulty];
+            return (
+              <section key={index} className="glass-panel space-y-4 rounded-2xl p-5">
+                <div className="flex items-center justify-between"><h2 className="font-bold">Problem {index + 1}</h2>{entries.length > 1 && <button type="button" onClick={() => setEntries((current) => current.filter((_, i) => i !== index))} aria-label={`Remove problem ${index + 1}`} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"><Trash2 className="h-4 w-4" /></button>}</div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <label className="sm:col-span-2"><span className="mb-1 block text-xs font-bold">Title *</span><input className={fieldClass} value={entry.title} onChange={(e) => update(index, 'title', e.target.value)} maxLength={200} required /></label>
+                  <label>
+                    <span className="mb-1 block text-xs font-bold">Scheduled date *</span>
+                    <input type="date" className={`${fieldClass} [color-scheme:light] dark:[color-scheme:dark]`} value={entry.scheduled_date} min={today} onChange={(e) => updateDate(index, e.target.value)} required />
+                    {dateMessage && <span className="mt-1 block text-xs font-semibold text-rose-600">{dateMessage}</span>}
+                  </label>
+                  <label>
+                    <span className="mb-1 block text-xs font-bold">Difficulty</span>
+                    <select
+  className={fieldClass}
+                      style={{ backgroundColor: difficultyStyle.background, borderColor: difficultyStyle.border, color: '#000', }}
+                      value={entry.difficulty}
+                      onChange={(e) => update(index, 'difficulty', e.target.value as Problem['difficulty'])}
+                    >
+                      <option value="EASY" style={difficultyOptionStyle('EASY')}>Easy</option>
+                      <option value="MEDIUM" style={difficultyOptionStyle('MEDIUM')}>Medium</option>
+                      <option value="HARD" style={difficultyOptionStyle('HARD')}>Hard</option>
+                    </select>
+                  </label>
+                  <label className="sm:col-span-2"><span className="mb-1 block text-xs font-bold">Topics / tags</span><input className={fieldClass} value={entry.tags} onChange={(e) => update(index, 'tags', e.target.value)} placeholder="Arrays, Hashing, DP" /></label>
+                  <label className="sm:col-span-3"><span className="mb-1 block text-xs font-bold">Problem statement *</span><textarea className={fieldClass} rows={5} value={entry.statement} onChange={(e) => update(index, 'statement', e.target.value)} required /></label>
+                  <label className="sm:col-span-3"><span className="mb-1 block text-xs font-bold">Constraints</span><textarea className={fieldClass} rows={2} value={entry.constraints} onChange={(e) => update(index, 'constraints', e.target.value)} /></label>
+                  <label><span className="mb-1 block text-xs font-bold">Sample input</span><textarea className={fieldClass} rows={3} value={entry.sample_input} onChange={(e) => update(index, 'sample_input', e.target.value)} /></label>
+                  <label><span className="mb-1 block text-xs font-bold">Sample output</span><textarea className={fieldClass} rows={3} value={entry.sample_output} onChange={(e) => update(index, 'sample_output', e.target.value)} /></label>
+                  <div className="space-y-4">
+                    <label className="block"><span className="mb-1 block text-xs font-bold">External platform</span><input className={fieldClass} value={entry.external_platform} onChange={(e) => update(index, 'external_platform', e.target.value)} placeholder="LeetCode" /></label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold">External problem URL</span>
+                      <input type="url" className={fieldClass} value={entry.external_url} onChange={(e) => update(index, 'external_url', e.target.value)} placeholder="https://…" required />
+                      {showErrors && urlMessage && <span className="mt-1 block text-xs font-semibold text-rose-600">{urlMessage}</span>}
+                    </label>
+                  </div>
+                </div>
+              </section>
+            );
+          })}
           <div className="flex flex-wrap justify-between gap-3">
             <button type="button" disabled={entries.length >= 5} onClick={() => setEntries((current) => [...current, blankProblem()])} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold disabled:opacity-50 dark:border-slate-700"><Plus className="h-4 w-4" /> Add another ({entries.length}/5)</button>
             <button type="submit" disabled={saving} className="rounded-lg bg-[#FF7A00] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60">{saving ? 'Scheduling…' : 'Schedule problems'}</button>

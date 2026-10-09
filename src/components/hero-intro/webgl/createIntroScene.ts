@@ -76,7 +76,7 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
   const starfield = createStarfield(quality, glowTexture);
   const orbits = createOrbits();
   const dust = createDust(quality);
-  const sun = createSun({ glowTexture, quality });
+  const sun = createSun();
   scene.add(starfield.group, orbits.group, dust.points, sun.group);
   onLoadProgress(0.65);
 

@@ -69,6 +69,20 @@ const toForm = (p: Problem): ProblemForm => ({
 const message = (error: unknown) =>
   error instanceof Error ? error.message : "Please try again.";
 
+const toLocalIso = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+
+const isValidHttpsUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+};
+
 export function CodeQuestTab() {
   const { toast } = useToast();
   const [problems, setProblems] = useState<Problem[]>([]),
@@ -85,6 +99,9 @@ export function CodeQuestTab() {
   const [form, setForm] = useState<ProblemForm>(blank),
     [editing, setEditing] = useState<Problem | null>(null),
     [editorOpen, setEditorOpen] = useState(false),
+    [attemptedSubmit, setAttemptedSubmit] = useState(false),
+    [pendingDelete, setPendingDelete] = useState<Problem | null>(null),
+    [deletingNow, setDeletingNow] = useState(false),
     [detail, setDetail] = useState<CodeQuestSubmission | null>(null);
 
   const load = async () => {
@@ -127,22 +144,62 @@ export function CodeQuestTab() {
     fetchUserRole();
   }, []);
 
+  const today = toLocalIso(new Date());
+
+  // Only the living schedule is shown here: past challenges leave the problem
+  // list once their day is over (the public archive still serves them).
   const shown = useMemo(
     () =>
-      problems.filter(
-        (p) =>
-          (filter === "ALL" || p.difficulty === filter) &&
-          `${p.title} ${(p.tags ?? []).join(" ")}`
-            .toLowerCase()
-            .includes(query.toLowerCase()),
-      ),
-    [problems, filter, query],
+      problems
+        .filter((p) => p.scheduled_date >= today)
+        .filter(
+          (p) =>
+            (filter === "ALL" || p.difficulty === filter) &&
+            `${p.title} ${(p.tags ?? []).join(" ")}`
+              .toLowerCase()
+              .includes(query.toLowerCase()),
+        )
+        .sort((a, b) => {
+          if (a.scheduled_date === b.scheduled_date) return 0;
+          if (a.scheduled_date === today) return -1;
+          if (b.scheduled_date === today) return 1;
+          return a.scheduled_date.localeCompare(b.scheduled_date);
+        }),
+    [problems, filter, query, today],
   );
   const set = <K extends keyof ProblemForm>(key: K, value: ProblemForm[K]) =>
     setForm((old) => ({ ...old, [key]: value }));
+  const dateErrorFor = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    if (value < today) return "Previous dates cannot be scheduled.";
+    if (problems.some((p) => p.scheduled_date === value && p.id !== editing?.id))
+      return "A problem is already scheduled on this date.";
+    return null;
+  };
+  const urlErrorFor = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "External problem URL is required.";
+    return isValidHttpsUrl(trimmed)
+      ? null
+      : "Enter a valid HTTPS URL starting with https://.";
+  };
+  const setScheduledDate = (value: string) => {
+    if (!value) {
+      set("scheduled_date", "");
+      return;
+    }
+    const message = dateErrorFor(value);
+    if (message) {
+      setAttemptedSubmit(true);
+      toast.warning("Date unavailable", message);
+      return;
+    }
+    set("scheduled_date", value);
+  };
   const openNew = () => {
     setEditing(null);
     setForm(blank());
+    setAttemptedSubmit(false);
     setEditorOpen(true);
   };
   const save = async (event: FormEvent) => {
@@ -152,6 +209,16 @@ export function CodeQuestTab() {
       toast.warning(
         "Complete required fields",
         "Title, schedule date, and statement are required.",
+      );
+      return;
+    }
+    const dateMessage = dateErrorFor(form.scheduled_date);
+    const urlMessage = urlErrorFor(form.external_url);
+    if (dateMessage || urlMessage) {
+      setAttemptedSubmit(true);
+      toast.warning(
+        "Fix validation errors",
+        [dateMessage, urlMessage].filter(Boolean).join(" "),
       );
       return;
     }
@@ -203,18 +270,16 @@ export function CodeQuestTab() {
   };
 
   const remove = async (p: Problem) => {
-    if (
-      !window.confirm(
-        `Delete “${p.title}”? Its submissions will also be deleted.`,
-      )
-    )
-      return;
+    setDeletingNow(true);
     try {
       await fetchApi(`/codequest/${p.slug}/`, { method: "DELETE" });
       setProblems((old) => old.filter((x) => x.id !== p.id));
-      toast.success("Problem deleted");
+      setPendingDelete(null);
+      toast.success("Problem deleted", p.title);
     } catch (e) {
       toast.error("Could not delete problem", message(e));
+    } finally {
+      setDeletingNow(false);
     }
   };
   const review = async (s: CodeQuestSubmission, is_correct: boolean) => {
@@ -335,18 +400,30 @@ export function CodeQuestTab() {
             {loading ? (
               <Empty text="Loading scheduled problems…" />
             ) : shown.length === 0 ? (
-              <Empty text="No problems match this view." />
+              <Empty text="No upcoming problems to show." />
             ) : (
-              shown.map((p) => (
-                <article
-                  key={p.id}
-                  className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between"
-                >
-                  <div className="min-w-0">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded px-2 py-0.5 text-[10px] font-bold ${difficultyClass[p.difficulty]}`}
-                      >
+              shown.map((p) => {
+                const isToday = p.scheduled_date === today;
+                return (
+                  <article
+                    key={p.id}
+                    className={`flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between ${
+                      isToday
+                        ? "rounded-xl bg-[#FFF4EA] ring-2 ring-[#FF7A00]/60 dark:bg-[#FF7A00]/10 dark:ring-[#FF7A00]/40"
+                        : ""
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        {isToday && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FF7A00] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />{" "}
+                            Today
+                          </span>
+                        )}
+                        <span
+                          className={`rounded px-2 py-0.5 text-[10px] font-bold ${difficultyClass[p.difficulty]}`}
+                        >
                         {p.difficulty}
                       </span>
                       <span className="text-xs font-mono text-slate-500">
@@ -376,6 +453,7 @@ export function CodeQuestTab() {
                       onClick={() => {
                         setEditing(p);
                         setForm(toForm(p));
+                        setAttemptedSubmit(false);
                         setEditorOpen(true);
                       }}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold dark:border-slate-700"
@@ -383,15 +461,16 @@ export function CodeQuestTab() {
                       <Edit3 className="h-3.5 w-3.5" /> Edit
                     </button>
                     <button
-                      onClick={() => void remove(p)}
+                      onClick={() => setPendingDelete(p)}
                       className="rounded-lg border border-rose-200 p-2 text-rose-600 dark:border-rose-900"
                       aria-label={`Delete ${p.title}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
-                  </div>
-                </article>
-              ))
+</div>
+                  </article>
+                );
+              })
             )}
           </div>
         </section>
@@ -458,10 +537,17 @@ export function CodeQuestTab() {
         <Editor
           form={form}
           set={set}
-          editing={!!editing}
+          editing={editing}
           saving={saving}
-          close={() => setEditorOpen(false)}
+          close={() => {
+            setEditorOpen(false);
+            setAttemptedSubmit(false);
+          }}
           submit={save}
+          onDateChange={setScheduledDate}
+          dateErrorFor={dateErrorFor}
+          urlErrorFor={urlErrorFor}
+          attemptedSubmit={attemptedSubmit}
         />
       )}
       {detail && (
@@ -470,6 +556,41 @@ export function CodeQuestTab() {
           close={() => setDetail(null)}
           review={review}
         />
+      )}
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 z-[65] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-sm rounded-2xl glass-panel p-6 shadow-2xl">
+            <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
+              Delete problem?
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Delete “{pendingDelete.title}”? Its submissions will also be
+              deleted. This cannot be undone.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                disabled={deletingNow}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold disabled:opacity-50 dark:border-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void remove(pendingDelete)}
+                disabled={deletingNow}
+                className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+              >
+                {deletingNow ? "Deleting…" : "Delete problem"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
@@ -544,14 +665,26 @@ function Editor({
   saving,
   close,
   submit,
+  dateErrorFor,
+  urlErrorFor,
+  attemptedSubmit,
+  onDateChange,
 }: {
   form: ProblemForm;
   set: <K extends keyof ProblemForm>(key: K, value: ProblemForm[K]) => void;
-  editing: boolean;
+  editing: Problem | null;
   saving: boolean;
   close: () => void;
   submit: (e: FormEvent) => void;
+  onDateChange: (value: string) => void;
+  dateErrorFor: (value: string) => string | null;
+  urlErrorFor: (value: string) => string | null;
+  attemptedSubmit: boolean;
 }) {
+  const today = toLocalIso(new Date());
+  const dateMin = editing && editing.scheduled_date < today ? undefined : today;
+  const dateMessage = dateErrorFor(form.scheduled_date);
+  const urlMessage = urlErrorFor(form.external_url);
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
       <form
@@ -584,22 +717,29 @@ function Editor({
           </Field>
           <Field label="Schedule date *">
             <input
-              className={input}
+              className={`${input} [color-scheme:light] dark:[color-scheme:dark]`}
               type="date"
               value={form.scheduled_date}
-              onChange={(e) => set("scheduled_date", e.target.value)}
+              min={dateMin}
+              onChange={(e) => onDateChange(e.target.value)}
               required
             />
+            {dateMessage && (
+              <span className="mt-1 block text-xs font-semibold text-rose-600">
+                {dateMessage}
+              </span>
+            )}
           </Field>
           <Field label="Difficulty">
             <select
-              className={input}
+              className={`${input} text-slate-900 dark:text-white`}
+              style={{ colorScheme: "light" }}
               value={form.difficulty}
               onChange={(e) => set("difficulty", e.target.value as Difficulty)}
             >
-              <option value="EASY">Easy</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HARD">Hard</option>
+              <option value="EASY" style={{ color: "#000", backgroundColor: "#fff" }}>Easy</option>
+              <option value="MEDIUM" style={{ color: "#000", backgroundColor: "#fff" }}>Medium</option>
+              <option value="HARD" style={{ color: "#000", backgroundColor: "#fff" }}>Hard</option>
             </select>
           </Field>
           <Field label="Topics / tags">
@@ -625,7 +765,13 @@ function Editor({
               value={form.external_url}
               onChange={(e) => set("external_url", e.target.value)}
               placeholder="https://…"
+              required
             />
+            {attemptedSubmit && urlMessage && (
+              <span className="mt-1 block text-xs font-semibold text-rose-600">
+                {urlMessage}
+              </span>
+            )}
           </Field>
           <Field label="Problem statement *" wide>
             <textarea
