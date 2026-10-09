@@ -86,7 +86,10 @@ export async function fetchApi<T>(
       throw err;
     }
 
-    return await response.json();
+    // 204 No Content (e.g. DELETE) and other empty bodies have nothing to
+    // parse — response.json() would throw "Unexpected end of JSON input".
+    const raw = await response.text();
+    return raw ? (JSON.parse(raw) as T) : (null as T);
   } catch (error: any) {
     if (error?.name === 'AbortError') {
       console.warn(`[Backend Timeout] ${url} took too long to respond. Using fallback data.`);
