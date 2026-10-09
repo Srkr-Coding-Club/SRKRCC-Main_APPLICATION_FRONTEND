@@ -20,5 +20,8 @@ start:
 lint:
 	pnpm run lint
 
+type-check:
+	pnpm run type-check
+
 clean:
 	rm -rf .next node_modules out

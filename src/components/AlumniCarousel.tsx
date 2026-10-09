@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Quote, GraduationCap, Building2, Sparkles, Pause, Play } from 'lucide-react';
 import SectionHeading from './SectionHeading';
 
@@ -82,7 +82,7 @@ export default function AlumniCarousel({ alumniList = INITIAL_ALUMNI }: AlumniCa
 
   const activeAlumni = alumniList[currentIndex];
 
-  const slideVariants = {
+  const slideVariants: Variants = {
     enter: (dir: number) => ({
       x: dir > 0 ? 60 : -60,
       opacity: 0,
