@@ -689,7 +689,7 @@ function Editor({
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
       <form
         onSubmit={submit}
-        className="mx-auto my-8 max-w-3xl rounded-2xl glass-panel shadow-2xl"
+        className="mx-auto my-8 w-full rounded-2xl glass-panel shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
           <div>
