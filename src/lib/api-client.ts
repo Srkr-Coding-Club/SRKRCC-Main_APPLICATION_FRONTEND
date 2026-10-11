@@ -34,12 +34,15 @@ export async function fetchApi<T>(
   const timeoutMs = (options as any)?.timeout || 25000;
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
+  const method = (options.method || 'GET').toUpperCase();
+  const defaultCache: RequestCache = options.cache || (method === 'GET' ? 'default' : 'no-store');
+
   try {
     const response = await fetch(url, {
+      cache: defaultCache,
       ...options,
       headers,
       credentials: 'include', // Automatically includes HttpOnly cookies
-      cache: 'no-store',
       signal: controller.signal,
     });
 

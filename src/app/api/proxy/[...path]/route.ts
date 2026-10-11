@@ -63,10 +63,11 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
       headers['Idempotency-Key'] = idempotencyKey;
     }
 
+    const isUnauthenticatedGet = request.method === 'GET' && !accessToken;
     const init: RequestInit = {
       method: request.method,
       headers,
-      cache: 'no-store',
+      cache: isUnauthenticatedGet ? 'default' : 'no-store',
     };
 
     // Forward body for mutating methods
@@ -89,6 +90,18 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     const respContentDisposition = response.headers.get('content-disposition');
     if (respContentDisposition) {
       responseHeaders['content-disposition'] = respContentDisposition;
+    }
+    const respCacheControl = response.headers.get('cache-control');
+    if (respCacheControl) {
+      responseHeaders['cache-control'] = respCacheControl;
+    }
+    const respETag = response.headers.get('etag');
+    if (respETag) {
+      responseHeaders['etag'] = respETag;
+    }
+    const respLastModified = response.headers.get('last-modified');
+    if (respLastModified) {
+      responseHeaders['last-modified'] = respLastModified;
     }
 
     // No cookie writes here - this route never refreshes, so there is

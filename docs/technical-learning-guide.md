@@ -68,13 +68,17 @@ Runs at the network edge before requests reach the App Router:
 
 ---
 
-## 3. Dynamic Data Fetching & Revalidation Under the Hood
+## 3. Dynamic Data Fetching, Caching & Revalidation Under the Hood
 
 * **`export const dynamic = 'force-dynamic'`**:
   - Instructs Next.js that the route relies on live backend data (`http://localhost:8000/api`), preventing build-time static prerendering failures when the database updates dynamically.
 * **`fetchApi` Helper (`src/lib/api-client.ts`)**:
   - Sets `credentials: 'include'` so `HttpOnly` cookies are automatically sent with requests.
   - Implements connection timeouts with `AbortController` and graceful offline fallbacks.
+  - Supports Next.js ISR options (`next: { revalidate: 60 }`), allowing public read queries (like `/events/`, `/hackathons/`, `/feature-flags/`, and `/announcements/`) to be cached in Next.js's data cache for 60 seconds while defaulting mutating methods (`POST`, `PUT`, `DELETE`) to `no-store`.
+* **BFF Proxy Header Forwarding (`src/app/api/proxy/[...path]/route.ts`)**:
+  - Forwards upstream `Cache-Control`, `ETag`, and `Last-Modified` headers from Django to the client.
+  - Enables browser disk/memory caching and `stale-while-revalidate` for unauthenticated client reads.
 
 ---
 

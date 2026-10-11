@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 async function getHackathons(): Promise<Hackathon[]> {
   try {
-    const fetched = await fetchApi<Hackathon[]>('/hackathons/');
+    const fetched = await fetchApi<Hackathon[]>('/hackathons/', { next: { revalidate: 60 } } as RequestInit);
     return fetched || [];
   } catch (error) {
     return [];

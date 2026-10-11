@@ -14,7 +14,7 @@ import AnnouncementBannerClient from './AnnouncementBannerClient';
 export default async function AnnouncementBanner() {
   let announcements: Announcement[] = [];
   try {
-    announcements = (await fetchApi<Announcement[]>('/announcements/')) || [];
+    announcements = (await fetchApi<Announcement[]>('/announcements/', { next: { revalidate: 60 } } as RequestInit)) || [];
   } catch {
     announcements = [];
   }

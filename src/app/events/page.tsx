@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 async function getEvents(): Promise<Event[]> {
   try {
-    const fetched = await fetchApi<Event[]>('/events/');
+    const fetched = await fetchApi<Event[]>('/events/', { next: { revalidate: 60 } } as RequestInit);
     return fetched || [];
   } catch (error) {
     return [];
