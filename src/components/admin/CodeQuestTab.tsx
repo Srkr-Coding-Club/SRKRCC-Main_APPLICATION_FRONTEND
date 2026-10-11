@@ -83,10 +83,22 @@ const isValidHttpsUrl = (value: string) => {
   }
 };
 
+/** Matches the backend page size (apps/core/pagination.py). */
+const SUBMISSIONS_PAGE_SIZE = 50;
+
+interface PaginatedSubmissions {
+  count: number;
+  accepted_count: number;
+  results: CodeQuestSubmission[];
+}
+
 export function CodeQuestTab() {
   const { toast } = useToast();
   const [problems, setProblems] = useState<Problem[]>([]),
     [submissions, setSubmissions] = useState<CodeQuestSubmission[]>([]);
+  const [submissionPage, setSubmissionPage] = useState(1),
+    [submissionCount, setSubmissionCount] = useState(0),
+    [acceptedCount, setAcceptedCount] = useState(0);
   const [loading, setLoading] = useState(true),
     [saving, setSaving] = useState(false),
     [reviewing, setReviewing] = useState<number | null>(null);
@@ -104,16 +116,22 @@ export function CodeQuestTab() {
     [deletingNow, setDeletingNow] = useState(false),
     [detail, setDetail] = useState<CodeQuestSubmission | null>(null);
 
+  const loadSubmissions = async (page: number) => {
+    const result = await fetchApi<PaginatedSubmissions>(`/codequest/submissions/?page=${page}`);
+    setSubmissions(result.results);
+    setSubmissionCount(result.count);
+    setAcceptedCount(result.accepted_count);
+  };
+
   const load = async () => {
     setLoading(true);
 
     try {
-      const [p, s] = await Promise.all([
+      const [p] = await Promise.all([
         fetchApi<Problem[]>("/codequest/"),
-        fetchApi<CodeQuestSubmission[]>("/codequest/submissions/"),
+        loadSubmissions(submissionPage),
       ]);
       setProblems(p);
-      setSubmissions(s);
     } catch (e) {
       toast.error("Could not load CodeQuest", message(e));
     } finally {
@@ -122,7 +140,7 @@ export function CodeQuestTab() {
   };
   useEffect(() => {
     void load();
-  }, []);
+  }, [submissionPage]);
 
   useEffect(() => {
     async function fetchUserRole() {
@@ -293,6 +311,9 @@ export function CodeQuestTab() {
         old.map((x) => (x.id === updated.id ? updated : x)),
       );
       setDetail((old) => (old?.id === updated.id ? updated : old));
+      void loadSubmissions(submissionPage).catch((e) =>
+        toast.error("Could not refresh submissions", message(e)),
+      );
       toast.success(
         is_correct ? "Submission accepted" : "Submission marked incorrect",
         "The member streak was recalculated.",
@@ -303,7 +324,8 @@ export function CodeQuestTab() {
       setReviewing(null);
     }
   };
-  const accepted = submissions.filter((s) => s.is_correct).length,
+  const totalSubmissionPages = Math.max(1, Math.ceil(submissionCount / SUBMISSIONS_PAGE_SIZE));
+  const accepted = acceptedCount,
     upcoming = problems.filter(
       (p) => p.scheduled_date >= new Date().toISOString().slice(0, 10),
     ).length;
@@ -485,7 +507,7 @@ export function CodeQuestTab() {
               </p>
             </div>
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold dark:bg-slate-800">
-              {submissions.length}
+              {submissionCount}
             </span>
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -494,7 +516,7 @@ export function CodeQuestTab() {
             ) : submissions.length === 0 ? (
               <Empty text="No submissions have been received." />
             ) : (
-              submissions.slice(0, 20).map((s) => (
+              submissions.map((s) => (
                 <div
                   key={s.id}
                   className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"
@@ -530,6 +552,29 @@ export function CodeQuestTab() {
                 </div>
               ))
             )}
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-slate-200 p-4 text-xs text-slate-500 dark:border-slate-800">
+            <span>
+              {submissionCount} total · page {submissionPage} of {totalSubmissionPages}
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSubmissionPage((p) => Math.max(1, p - 1))}
+                disabled={submissionPage <= 1}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700"
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                onClick={() => setSubmissionPage((p) => Math.min(totalSubmissionPages, p + 1))}
+                disabled={submissionPage >= totalSubmissionPages}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </section>
       </div>
@@ -689,7 +734,7 @@ function Editor({
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
       <form
         onSubmit={submit}
-        className="mx-auto my-8 max-w-3xl rounded-2xl glass-panel shadow-2xl"
+        className="mx-auto my-8 w-full rounded-2xl glass-panel shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
           <div>
