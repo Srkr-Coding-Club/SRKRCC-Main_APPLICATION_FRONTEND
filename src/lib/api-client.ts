@@ -106,3 +106,32 @@ export async function fetchApi<T>(
     clearTimeout(timeout);
   }
 }
+
+/**
+ * Downloads a file (CSV/XLSX/JSON) through the BFF proxy. Mirrors fetchApi's
+ * one-shot token refresh on 401 - a plain fetch would otherwise fail as soon as
+ * the access token expires, even though the session is still valid.
+ */
+export async function fetchApiBlob(endpoint: string): Promise<{ blob: Blob; filename: string | null }> {
+  const url = `/api/proxy/${endpoint.replace(/^\/+/, '')}`;
+  const request = () => fetch(url, { credentials: 'include', cache: 'no-store' });
+
+  let response = await request();
+  if (response.status === 401) {
+    const refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      redirectToLogin();
+      throw new Error('Your session has expired. Please sign in again.');
+    }
+    response = await request();
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || body?.detail || `Download failed (${response.status})`);
+  }
+
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? null;
+  return { blob: await response.blob(), filename };
+}

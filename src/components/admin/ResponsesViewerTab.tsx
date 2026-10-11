@@ -23,14 +23,20 @@ import {
   RotateCw,
 } from 'lucide-react';
 import { Form, FormField, ResponseDetail, PaginatedResponse, ConfirmationEmailStatus } from '@/lib/types';
-import { starsDisplay, downloadCSV, groupByDay } from '@/lib/dataManagement';
+import { starsDisplay, saveBlob, groupByDay } from '@/lib/dataManagement';
 import { FormSelect } from '@/components/ui/FormSelect';
-import { fetchApi } from '@/lib/api-client';
+import { fetchApi, fetchApiBlob } from '@/lib/api-client';
 import { isSafeFileUrl } from '@/lib/urlSafety';
 import { useToast } from '@/context/ToastContext';
 import { DetailDrawer } from './DetailDrawer';
 import { ChartSkeleton } from '@/components/ui/LoadingSkeleton';
 import EmailTemplateEditor, { EmailRecipient } from './EmailTemplateEditor';
+import ResponsesExportModal, {
+  RESPONSE_DETAIL_COLUMNS,
+  ResponseExportColumn,
+  ResponseExportFormat,
+  ResponseExportScope,
+} from './ResponsesExportModal';
 
 const ResponseTimelineChart = dynamic(
   () => import('./ResponseTimelineChart'),
@@ -319,6 +325,9 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
   const [showEmailEditor, setShowEmailEditor] = useState(false);
   const [resendingIds, setResendingIds] = useState<Set<number>>(new Set());
   const [resendingNotifIds, setResendingNotifIds] = useState<Set<number>>(new Set());
+  const [exporting, setExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportScope, setExportScope] = useState<ResponseExportScope>('all');
 
   const formOptions = useMemo(
     () => forms.map((f) => ({ value: f.slug, label: f.title?.trim() || f.slug || 'Untitled form' })),
@@ -331,18 +340,32 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
     [selectedForm]
   );
 
+  // Column keys match the export endpoint: `q_<field id>` for each question.
+  const exportColumns: ResponseExportColumn[] = useMemo(
+    () => [
+      ...RESPONSE_DETAIL_COLUMNS,
+      ...fieldColumns.map((f) => ({ key: `q_${f.id}`, label: f.label, group: 'questions' as const })),
+    ],
+    [fieldColumns]
+  );
+
+  // Shared by the paginated viewer and the export, so both cover the same rows.
+  const filterQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    if (manualOnly) params.set('manual_only', 'true');
+    return params;
+  }, [debouncedSearch, dateFrom, dateTo, manualOnly]);
+
   const loadResponses = useCallback(async () => {
     if (!selectedSlug) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        page_size: '20',
-        ...(debouncedSearch && { search: debouncedSearch }),
-        ...(dateFrom && { date_from: dateFrom }),
-        ...(dateTo && { date_to: dateTo }),
-        ...(manualOnly && { manual_only: 'true' }),
-      });
+      const params = new URLSearchParams(filterQuery);
+      params.set('page', String(page));
+      params.set('page_size', '20');
       const result = await fetchApi<PaginatedResponse<ResponseDetail>>(
         `/forms/${selectedSlug}/responses/?${params}`
       );
@@ -352,7 +375,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       toast.error('Failed to Load Responses', err?.message || 'Is the backend running?');
     }
     setLoading(false);
-  }, [selectedSlug, page, debouncedSearch, dateFrom, dateTo, manualOnly, toast]);
+  }, [selectedSlug, page, filterQuery, toast]);
 
   // Debounce the raw search input so we don't fire a request per keystroke.
   useEffect(() => {
@@ -397,32 +420,39 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
     });
   };
 
-  const handleBulkExport = () => {
-    const rows = (data?.results ?? []).filter((r) => selectedIds.has(r.id));
-    const flat = rows.map((r) => {
-      const base: Record<string, unknown> = {
-        id: r.id,
-        submitted_at: r.submitted_at,
-        respondent: r.user?.email ?? 'Anonymous',
-        is_manual_entry: r.is_manual_entry,
-      };
-      r.answers.forEach((a) => {
-        // FILE answers hold {name,size,url} objects (url can be a huge data: URI)
-        // - export just the file name(s), never the blob.
-        if ((a.field_type === 'FILE' || a.field_type === 'MULTI_FILE') && a.value) {
-          const items = Array.isArray(a.value) ? a.value : [a.value];
-          base[a.field_label] = items
-            .map((f: any) => (typeof f === 'string' ? f : f?.name))
-            .filter(Boolean)
-            .join('; ');
-        } else {
-          base[a.field_label] = a.value;
-        }
-      });
-      return base;
-    });
-    downloadCSV(flat, `responses-${selectedSlug}-${Date.now()}.csv`);
+  // "all" exports every response matching the current filters, across all pages.
+  // "selected" exports exactly the ticked rows, even ones on other pages.
+  // Resolves true on success so the modal knows when to close.
+  const handleExport = async (
+    format: ResponseExportFormat,
+    scope: ResponseExportScope,
+    columnKeys: string[],
+  ): Promise<boolean> => {
+    if (!selectedSlug) return false;
+    const params = scope === 'selected'
+      ? new URLSearchParams({ ids: [...selectedIds].join(',') })
+      : new URLSearchParams(filterQuery);
+    params.set('export_format', format);
+    params.set('columns', columnKeys.join(','));
+    setExporting(true);
+    try {
+      const { blob, filename } = await fetchApiBlob(`/forms/${selectedSlug}/responses/export/?${params}`);
+      saveBlob(blob, filename ?? `${selectedSlug}-responses.${format}`);
+      return true;
+    } catch (err: any) {
+      toast.error('Export Failed', err?.message || 'Is the backend running?');
+      return false;
+    } finally {
+      setExporting(false);
+    }
   };
+
+  const openExport = (scope: ResponseExportScope) => {
+    setExportScope(scope);
+    setShowExportModal(true);
+  };
+
+  const activeFilterCount = [debouncedSearch, dateFrom, dateTo, manualOnly ? 'manual' : ''].filter(Boolean).length;
 
   const selectedRecipients: EmailRecipient[] = useMemo(() => {
     const rows = (data?.results ?? []).filter((r) => selectedIds.has(r.id));
@@ -528,7 +558,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
       <div className="py-24 flex flex-col items-center gap-4 text-center">
         <Inbox className="w-12 h-12 text-slate-700" />
         <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Select a form to view responses</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Choose a form from the dropdown above.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Choose a form from the dropdown above. Once a form is selected, the Export button appears in the toolbar.</p>
         <FormSelect
           value={selectedSlug}
           options={formOptions}
@@ -585,6 +615,14 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             <BarChart3 className="w-3.5 h-3.5" />
             Timeline
           </button>
+
+          <button
+            onClick={() => openExport('all')}
+            disabled={!data || data.count === 0}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download className="w-3.5 h-3.5" /> Export
+          </button>
         </div>
 
         {/* Stats bar */}
@@ -598,8 +636,11 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
             <span className="text-xs font-bold text-orange-400">{selectedIds.size} selected</span>
-            <button onClick={handleBulkExport} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-95">
-              <Download className="w-3 h-3" /> Export
+            <button
+              onClick={() => openExport('selected')}
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-95"
+            >
+              <Download className="w-3 h-3" /> Export selected
             </button>
             <button
               onClick={() => setShowEmailEditor(true)}
@@ -778,6 +819,18 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
           </DetailDrawer>
         )}
       </AnimatePresence>
+
+      <ResponsesExportModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        initialScope={exportScope}
+        columns={exportColumns}
+        matchingCount={data?.count ?? 0}
+        selectedCount={selectedIds.size}
+        activeFilterCount={activeFilterCount}
+        exporting={exporting}
+        onExport={handleExport}
+      />
 
       {/* Bulk Email Composer */}
       <EmailTemplateEditor
