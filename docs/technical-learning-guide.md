@@ -141,6 +141,48 @@ The public `/codequest` page owns the daily member experience and receives today
 previously published challenges, never future scheduled problems. The browser never calculates or
 writes a member streak.
 
+The single-problem schedule modal in `CodeQuestTab` (`Schedule a CodeQuest problem`) stretches to
+the full overlay width (`w-full`) so its wide fields and two-column grid use the whole form
+background. Both this form and the batch editor use the standard transparent field styling for the
+Difficulty `<select>` (no custom background tint in either).
+
+### CodeQuest public page: corner calendar + recent problems
+
+The public page stays a Server Component that fetches `/codequest/` once (`Problem[]`, ordered
+newest-first and filtered server-side to `scheduled_date <= today`) and passes the problems plus
+the server-computed `today` ("today" is formatted in `Asia/Kolkata` via `src/lib/codequest.ts`,
+matching the backend's `timezone.localdate()`) into a client component:
+
+- `src/components/CodeQuestDaily.tsx` — owns the only interactive state: it fetches the signed-in
+  member's submissions (`GET /codequest/submissions/`) on mount and again on tab refocus (via
+  `subscribeToAuthResync`), and reduces them to a `Set` of solved `scheduled_date`s where
+`Submission.is_correct === true`. It splits the content: today's challenge (if one exists) is
+  rendered as its own prominent "Problem of the Day" panel (date pill + title on aligned rows,
+   chips and tags stacked below, and a right-aligned action row whose button stays natural-width
+   and truncates long platform names) showing just the calendar date (month, day, year — no
+   weekday), and the day's previous problems are listed separately below it (defaulting to the
+   latest 5, with a "Show all" toggle to reveal the full archive — each row showing its scheduled
+   date without a weekday). The calendar is a smaller corner widget. The heavy `CardShowcase`/card
+   view is intentionally not used here.
+- `src/components/CodeQuestCalendar.tsx` — a presentational, compact month grid sized as a sidebar
+  widget (sticky right column on desktop, centered `max-w-sm` on mobile). Scheduled markers come
+  only from the API's `scheduled_date` values. Future dates are never published: the backend hides
+  problems after the server's current local date, and in the calendar any date after `today` is
+  rendered disabled (muted, struck through, non-interactive). Navigation is clamped so users can
+  neither go beyond the current month nor before October 2026 (both month buttons disable at those
+  bounds). Today's cell is ringed, the Problem-of-the-Day cell (today with a scheduled problem) is
+  filled and starred, and solved dates keep an emerald check — the orange dot under scheduled dates
+  remains the progress marker. Hovering or focusing a scheduled date shows a tooltip with the
+  problem title, its difficulty chip, and the full date (tooltips wrap and cap their width so they
+  never overflow a narrow viewport); clicking opens that problem's `external_url` in a new tab
+  (the existing solve flow), or scrolls to the problems list when no link is set. Dates without a
+  problem never navigate.
+
+Solved status is never fabricated: it is derived only from an accepted
+`Submission.is_correct` verdict (an admin/Club-Lead review, never the browser), it is only fetched
+for authenticated users, and anonymous visitors see the page without ticks. A problem can be both
+today's POTD and solved — the two indicators are independent.
+
 ---
 
 ## 8. Server Component (RSC) vs Client Component Rendering Rules
