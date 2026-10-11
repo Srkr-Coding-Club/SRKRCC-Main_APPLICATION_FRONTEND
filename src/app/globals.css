@@ -142,6 +142,25 @@ html {
   display: none;
 }
 
+/* Compact, theme-matched horizontal scrollbar for heatmap grids */
+.heatmap-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #FF7A00 transparent;
+}
+.heatmap-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.heatmap-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.heatmap-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #FFA500, #FF7A00 55%, #8B2E3B);
+  border-radius: 999px;
+}
+.heatmap-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #FF7A00, #8B2E3B);
+}
+
 /* Brain Rays Animations */
 @keyframes pulseRay {
   0%, 100% {

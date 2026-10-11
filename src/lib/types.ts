@@ -120,6 +120,8 @@ export interface Problem {
   scheduled_date: string;
   points?: number;
   solved_count?: number;
+  /** Server-annotated totals on the list/detail routes. */
+  submissions_count?: number;
   tags?: string[];
   constraints?: string;
   sample_input?: string;
@@ -140,7 +142,474 @@ export interface CodeQuestSubmission {
   code: string;
   language: string;
   is_correct: boolean;
+  /** Server-set once an admin/club lead records a verdict; null while pending. */
+  is_reviewed: boolean;
+  reviewed_by: number | null;
+  reviewed_by_name: string | null;
+  reviewed_at: string | null;
   created_at: string;
+}
+
+/** --- CodeQuest admin dashboard (club-wide; server-computed via stats/admin-overview) --- */
+
+export interface CodeQuestAdminTotals {
+  problems_total: number;
+  problems_published: number;
+  problems_upcoming: number;
+  participants_total: number;
+  submissions_total: number;
+  submissions_pending: number;
+  submissions_accepted: number;
+  acceptance_rate: number;
+  xp_awarded_total: number;
+  potd_completed_total: number;
+  active_streaks: number;
+}
+
+export interface CodeQuestAdminDailyPoint {
+  date: string;
+  submissions: number;
+  accepted: number;
+  active_users: number;
+  potd_completed: number;
+}
+
+export interface CodeQuestAdminRecentSubmission {
+  id: number;
+  problem_title: string;
+  scheduled_date: string;
+  user_name: string;
+  user_email: string;
+  language: string;
+  is_correct: boolean;
+  is_reviewed: boolean;
+  created_at: string;
+}
+
+export interface CodeQuestAdminRecentProblem {
+  id: number;
+  title: string;
+  slug: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  scheduled_date: string;
+}
+
+export interface CodeQuestAdminOverview {
+  generated_at: string;
+  range: { days: number; start: string; end: string };
+  totals: CodeQuestAdminTotals;
+  range_totals: {
+    submissions: number;
+    accepted: number;
+    active_users: number;
+    potd_completed: number;
+  };
+  daily: CodeQuestAdminDailyPoint[];
+  by_difficulty: Record<'EASY' | 'MEDIUM' | 'HARD', { problems: number; solved: number }>;
+  xp_distribution: { level: number; users: number }[];
+  recent_submissions: CodeQuestAdminRecentSubmission[];
+  recent_problems: CodeQuestAdminRecentProblem[];
+  pending_queue: CodeQuestAdminRecentSubmission[];
+}
+
+/** --- CodeQuest admin participant directory (stats/admin-members) --- */
+
+export type CodeQuestMemberSort = 'xp' | 'solved' | 'streak' | 'recent' | 'name';
+
+export interface CodeQuestMemberSummary {
+  id: number;
+  name: string;
+  email: string;
+  club_id: string;
+  role: string;
+  level: number;
+  lifetime_xp: number;
+  solved: number;
+  submissions: number;
+  current_streak: number;
+  longest_streak: number;
+  potd_completed: number;
+  badges_earned: number;
+  last_active: string | null;
+}
+
+export interface CodeQuestMemberDirectory {
+  members: CodeQuestMemberSummary[];
+  count: number;
+  sort: string;
+}
+
+export interface CodeQuestMemberDetail {
+  member: {
+    id: number;
+    name: string;
+    email: string;
+    club_id: string;
+    role: string;
+  };
+  overview: CodeQuestOverview;
+  analytics: CodeQuestAnalytics;
+}
+
+/** --- CodeQuest club-wide analytics (stats/admin-analytics) --- */
+
+export interface CodeQuestAdminAnalyticsSummary {
+  submissions: number;
+  accepted: number;
+  acceptance_rate: number;
+  unique_solved: number;
+  active_users: number;
+  previous_active_users: number;
+  potd_scheduled: number;
+  potd_completed: number;
+}
+
+export interface CodeQuestAdminAnalyticsPoint {
+  date: string;
+  submissions: number;
+  accepted: number;
+  active_users: number;
+  solved: number;
+}
+
+export interface CodeQuestAdminAnalyticsPeriod {
+  week_start?: string;
+  month?: string;
+  submissions: number;
+  accepted: number;
+}
+
+export interface CodeQuestAdminAnalytics {
+  range: { start: string; end: string; days: number };
+  summary: CodeQuestAdminAnalyticsSummary;
+  daily: CodeQuestAdminAnalyticsPoint[];
+  weekly: CodeQuestAdminAnalyticsPeriod[];
+  monthly: CodeQuestAdminAnalyticsPeriod[];
+  by_difficulty: Record<
+    'EASY' | 'MEDIUM' | 'HARD',
+    { attempted: number; accepted: number; solved: number }
+  >;
+  top_members: { id: number; name: string; solved: number }[];
+}
+
+/** --- CodeQuest streak & POTD monitoring (stats/admin-streaks) --- */
+
+export interface CodeQuestStreakBucket {
+  label: string;
+  count: number;
+}
+
+export interface CodeQuestStreakLeader {
+  id: number;
+  name: string;
+  current_streak: number;
+  longest_streak: number;
+}
+
+export interface CodeQuestStreakMonitoring {
+  coding: {
+    active: number;
+    distribution: CodeQuestStreakBucket[];
+    top: CodeQuestStreakLeader[];
+  };
+  potd: {
+    active: number;
+    distribution: CodeQuestStreakBucket[];
+    top: CodeQuestStreakLeader[];
+  };
+  at_risk: {
+    id: number;
+    name: string;
+    current_streak: number;
+    last_active_date: string | null;
+  }[];
+  potd_today: {
+    date: string;
+    problem_title: string | null;
+    problem_slug: string | null;
+    difficulty: 'EASY' | 'MEDIUM' | 'HARD' | null;
+    completions: number;
+    participants: number;
+  };
+  potd_history: { date: string; scheduled: boolean; completions: number }[];
+}
+
+/** --- CodeQuest gamification catalogue (stats/admin-gamification) --- */
+
+export interface CodeQuestAdminBadge {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: CodeQuestBadge['category'];
+  metric: string;
+  threshold: number;
+  earned_count: number;
+}
+
+export interface CodeQuestAdminGamification {
+  badges: CodeQuestAdminBadge[];
+  config: Record<string, number | number[]>;
+}
+
+export interface CodeQuestAuditEvent {
+  id: number;
+  actor: number | null;
+  actor_email: string | null;
+  actor_name: string;
+  action: string;
+  target_model: string;
+  target_id: string;
+  target: string;
+  details: Record<string, unknown>;
+  timestamp: string;
+  created_at: string;
+}
+
+export type CodeQuestReport = 'members' | 'submissions' | 'problems' | 'analytics';
+
+
+/** --- CodeQuest Daily Stats & Gamification (server-computed; see /codequest/stats) --- */
+
+export interface CodeQuestLevel {
+  level: number;
+  lifetime_xp: number;
+  current_level_xp: number;
+  next_level_xp: number;
+  xp_to_next_level: number;
+}
+
+export interface CodeQuestStreakSummary {
+  current_streak: number;
+  longest_streak: number;
+  total_active_days: number;
+  last_active_date: string | null;
+  next_milestone: number | null;
+  milestones: { target: number; achieved: boolean }[];
+  recent_activity: { date: string; active: boolean }[];
+}
+
+export interface CodeQuestPotdSummary {
+  current_streak: number;
+  longest_streak: number;
+  total_completed: number;
+  total_eligible: number;
+  completion_percentage: number;
+  last_completed_date: string | null;
+  next_milestone: number | null;
+  milestones: { target: number; achieved: boolean }[];
+  recent_history: { date: string; scheduled: boolean; completed: boolean; title: string | null }[];
+}
+
+export interface CodeQuestXpHistoryItem {
+  id: number;
+  reward_type: 'SOLVE' | 'POTD_BONUS';
+  amount: number;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | '';
+  scheduled_date: string | null;
+  problem_title: string | null;
+  created_at: string;
+}
+
+export interface CodeQuestXpSummary {
+  lifetime_xp: number;
+  xp_today: number;
+  xp_this_week: number;
+  xp_this_month: number;
+  breakdown: { solve: number; potd_bonus: number };
+  level: CodeQuestLevel;
+  history: CodeQuestXpHistoryItem[];
+}
+
+export interface CodeQuestBadge {
+  code: string;
+  name: string;
+  description: string;
+  category: 'SOLVING' | 'CONSISTENCY' | 'POTD' | 'DIFFICULTY' | 'XP_LEVEL';
+  metric: string;
+  threshold: number;
+  icon: string;
+  earned: boolean;
+  earned_at: string | null;
+  progress: number;
+  percentage: number;
+}
+
+export interface CodeQuestBadgeGroup {
+  key: CodeQuestBadge['category'];
+  label: string;
+  badges: CodeQuestBadge[];
+}
+
+export interface CodeQuestBadgesSummary {
+  categories: CodeQuestBadgeGroup[];
+  earned_count: number;
+  total_count: number;
+}
+
+export interface CodeQuestDailySubmission {
+  id: number;
+  problem_id: number;
+  problem_title: string;
+  problem_slug: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  external_url: string;
+  language: string;
+  is_correct: boolean;
+  verdict: 'ACCEPTED' | 'REJECTED';
+  created_at: string;
+}
+
+export interface CodeQuestDailyStats {
+  date: string;
+  is_today: boolean;
+  total_submissions: number;
+  accepted_submissions: number;
+  rejected_submissions: number;
+  verdict_breakdown: { verdict: 'ACCEPTED' | 'REJECTED'; count: number }[];
+  unique_attempted: number;
+  unique_solved: number;
+  solved_by_difficulty: { EASY: number; MEDIUM: number; HARD: number };
+  potd: {
+    scheduled: boolean;
+    problem_id: number;
+    title: string;
+    slug: string;
+    difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+    external_url: string;
+    completed: boolean;
+  } | null;
+  xp_earned: number;
+  is_active_day: boolean;
+  streak_maintained: boolean;
+  coding_streak: { current: number; longest: number };
+  submissions: CodeQuestDailySubmission[];
+}
+
+export interface CodeQuestHeatmapDay {
+  date: string;
+  submissions: number;
+  accepted: number;
+  solved: number;
+  xp: number;
+  active: boolean;
+  potd_scheduled: boolean;
+  potd_completed: boolean;
+  intensity: 0 | 1 | 2 | 3 | 4;
+}
+
+export interface CodeQuestHeatmap {
+  year: number;
+  days: CodeQuestHeatmapDay[];
+  totals: { active_days: number; submissions: number; accepted: number; solved: number; xp: number };
+  most_active_day: { date: string; accepted: number } | null;
+  intensity_rules: { level: number; label: string; min_accepted: number }[];
+  available_years: number[];
+}
+
+export interface CodeQuestOverview {
+  streak: { current: number; longest: number; total_active_days: number; next_milestone: number | null };
+  potd_streak: {
+    current: number;
+    longest: number;
+    total_completed: number;
+    total_eligible: number;
+    completion_percentage: number;
+  };
+  xp: { lifetime: number; today: number; level: CodeQuestLevel };
+  badges: { earned: number; total: number };
+  today: { submissions: number; accepted: number; solved: number; xp: number; potd_completed: boolean };
+  recent_unlocks: { code: string; name: string; description: string; icon: string; earned_at: string }[];
+}
+
+export interface CodeQuestAnalytics {
+  range: { start: string; end: string; days: number };
+  summary: {
+    total_submissions: number;
+    accepted_submissions: number;
+    unique_attempted: number;
+    unique_solved: number;
+    acceptance_rate: number;
+  };
+  solved_by_difficulty: { EASY: number; MEDIUM: number; HARD: number };
+  daily_series: { date: string; submissions: number; accepted: number; solved: number; active: boolean }[];
+  weekly_series: { week_start: string; submissions: number; accepted: number }[];
+  monthly_series: { month: string; submissions: number; accepted: number }[];
+  xp_growth: { date: string; lifetime_xp: number }[];
+  potd_series: { date: string; title: string; difficulty: string; completed: boolean }[];
+  topic_performance: { topic: string; solved: number }[];
+  records: {
+    longest_coding_streak: number;
+    longest_potd_streak: number;
+    best_day: { date: string; accepted: number } | null;
+    most_productive_weekday: { weekday: string; accepted: number } | null;
+  };
+}
+
+export interface CodeQuestGoalProgress {
+  target: number;
+  progress: number;
+  completed: boolean;
+  percentage: number;
+}
+
+export interface CodeQuestGoals {
+  date: string;
+  week_start: string;
+  daily: CodeQuestGoalProgress;
+  weekly: CodeQuestGoalProgress;
+}
+
+export interface CodeQuestLeaderboardEntry {
+  rank: number;
+  name: string;
+  club_id: string;
+  level: number;
+  lifetime_xp: number;
+  solved: number;
+  current_streak: number;
+  is_me: boolean;
+}
+
+export interface CodeQuestLeaderboard {
+  entries: CodeQuestLeaderboardEntry[];
+  size: number;
+  me: {
+    rank: number;
+    level: number;
+    lifetime_xp: number;
+    solved: number;
+    current_streak: number;
+    in_top: boolean;
+  };
+}
+
+export interface CodeQuestWeeklyWindow {
+  submissions: number;
+  accepted: number;
+  solved: number;
+  active_days: number;
+  potd_completed: number;
+  xp: number;
+}
+
+export interface CodeQuestWeeklyReport {
+  week_start: string;
+  week_end: string;
+  today: string;
+  current: CodeQuestWeeklyWindow;
+  previous: CodeQuestWeeklyWindow;
+  deltas: { submissions: number; solved: number; active_days: number; xp: number };
+  days: {
+    date: string;
+    weekday: string;
+    submissions: number;
+    accepted: number;
+    solved: number;
+    future: boolean;
+  }[];
+  missions: { code: string; label: string; target: number; progress: number; completed: boolean }[];
 }
 
 export interface JobListing {

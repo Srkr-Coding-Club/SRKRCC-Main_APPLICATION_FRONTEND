@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/context/ToastContext';
@@ -10,12 +10,10 @@ import {
   Hash,
   BookOpen,
   Award,
-  Calendar,
   Flame,
   CheckCircle2,
   Settings,
   LogOut,
-  Code2,
   ShieldCheck,
   FileText,
   ShieldAlert,
@@ -23,11 +21,14 @@ import {
   ArrowRight,
   Sparkles,
   LayoutGrid,
+  Activity,
   QrCode,
 } from 'lucide-react';
 import BrainLogo from '@/components/BrainLogo';
+import ActivityHeatmap from '@/components/codequest/ActivityHeatmap';
 import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated, AuthUser } from '@/lib/auth';
 import { fetchApi } from '@/lib/api-client';
+import type { CodeQuestHeatmap } from '@/lib/types';
 import { ordinalYear } from '@/lib/utils';
 import { EditProfileModal } from '@/components/EditProfileModal';
 import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
@@ -79,36 +80,6 @@ interface FullUserProfile {
   badges: BadgeItem[];
 }
 
-function StatCard({
-  label,
-  value,
-  valueClassName,
-  icon,
-  iconClassName,
-  glow,
-}: {
-  label: string;
-  value: string;
-  valueClassName: string;
-  icon: React.ReactNode;
-  iconClassName: string;
-  glow: string;
-}) {
-  return (
-    <div className="relative glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between overflow-hidden">
-      <div
-        className="pointer-events-none absolute -inset-4 -z-10 rounded-2xl opacity-70 blur-xl"
-        style={{ background: `radial-gradient(circle at 30% 20%, ${glow}, transparent 70%)` }}
-      />
-      <div>
-        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</p>
-        <p className={`text-2xl sm:text-3xl font-extrabold mt-1 ${valueClassName}`}>{value}</p>
-      </div>
-      <div className={`p-3 rounded-lg ${iconClassName}`}>{icon}</div>
-    </div>
-  );
-}
-
 function ProfileContent() {
   const { toast } = useToast();
   const router = useRouter();
@@ -122,6 +93,13 @@ function ProfileContent() {
   const [refreshAttempt, setRefreshAttempt] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [qrBadgeEvent, setQrBadgeEvent] = useState<RegisteredEventItem | null>(null);
+  const [heatmap, setHeatmap] = useState<CodeQuestHeatmap | null>(null);
+  const [heatmapYear, setHeatmapYear] = useState(new Date().getFullYear());
+  const [heatmapLoading, setHeatmapLoading] = useState(true);
+
+  // The submission heatmap is a member-facing view only; admins/club-leads use
+  // the dedicated CodeQuest analytics surfaces instead.
+  const isPrivileged = profile?.role === 'ADMIN' || profile?.role === 'CLUB_LEAD';
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -193,6 +171,30 @@ function ProfileContent() {
       });
   }, [router, refreshAttempt]);
 
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    if (isPrivileged) {
+      setHeatmap(null);
+      setHeatmapLoading(false);
+      return;
+    }
+    let active = true;
+    setHeatmapLoading(true);
+    fetchApi<CodeQuestHeatmap>(`/codequest/stats/heatmap/?year=${heatmapYear}`)
+      .then((data) => {
+        if (active) setHeatmap(data);
+      })
+      .catch(() => {
+        if (active) setHeatmap(null);
+      })
+      .finally(() => {
+        if (active) setHeatmapLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [heatmapYear, isPrivileged]);
+
   const handleLogout = () => {
     clearAuthSession();
     router.push('/login');
@@ -244,10 +246,6 @@ function ProfileContent() {
     role: profile?.role || 'NON_AFFILIATE',
     registeredAt: profile?.registered_at ? new Date(profile.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
     referredBy: profile?.referred_by_display || null,
-    streak: profile?.streak ?? 0,
-    points: profile?.points ?? 0,
-    eventsCount: profile?.events_count ?? profile?.registered_events?.length ?? 0,
-    projectsCount: profile?.projects_count ?? 0,
   };
 
   const registeredEvents = profile?.registered_events || [];
@@ -456,41 +454,36 @@ function ProfileContent() {
           </div>
         )}
 
-        {/* Dashboard Metrics Bar (Dynamic From DB) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <StatCard
-            label="Codequest Streak"
-            value={`${user.streak} Days`}
-            valueClassName="text-[#FF7A00]"
-            icon={<Flame className="w-6 h-6" />}
-            iconClassName="bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]"
-            glow="#FF7A0033"
-          />
-          <StatCard
-            label="Events Registered"
-            value={String(user.eventsCount)}
-            valueClassName="text-[#1A1A2E] dark:text-white"
-            icon={<Calendar className="w-6 h-6" />}
-            iconClassName="bg-rose-50 dark:bg-rose-950/40 text-[#8B2E3B] dark:text-rose-400"
-            glow="#8B2E3B33"
-          />
-          <StatCard
-            label="Projects Built"
-            value={String(user.projectsCount)}
-            valueClassName="text-emerald-600 dark:text-emerald-400"
-            icon={<Code2 className="w-6 h-6" />}
-            iconClassName="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
-            glow="#10b98133"
-          />
-          <StatCard
-            label="Member Points"
-            value={`${user.points} XP`}
-            valueClassName="text-purple-600 dark:text-purple-400"
-            icon={<Award className="w-6 h-6" />}
-            iconClassName="bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400"
-            glow="#a855f733"
-          />
-        </div>
+        {/* Submission Activity Heatmap (member-only; deep-links to full stats) */}
+        {!isPrivileged && (
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
+                <Activity className="w-5 h-5 text-[#FF7A00]" />
+                Submission Activity
+              </h2>
+              <Link href="/codequest/stats" className="text-xs font-bold text-[#FF7A00] hover:text-[#E06B00]">
+                View full stats →
+              </Link>
+            </div>
+            {heatmapLoading ? (
+              <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+                <div className="h-36 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/60" />
+              </div>
+            ) : heatmap ? (
+              <ActivityHeatmap
+                data={heatmap}
+                year={heatmapYear}
+                onYearChange={setHeatmapYear}
+                title="Submission Activity"
+              />
+            ) : (
+              <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-5 text-sm text-slate-500 dark:text-slate-400">
+                No submission activity to show yet.
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Registered Events & Activity Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -9,6 +9,8 @@ interface CardProps {
   children?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  bodyClassName?: string;
+  footerClassName?: string;
 }
 
 export default function Card({
@@ -20,6 +22,8 @@ export default function Card({
   children,
   footer,
   className = '',
+  bodyClassName = 'p-6 space-y-4',
+  footerClassName = 'px-6 pb-6 pt-2',
 }: CardProps) {
   return (
     <div
@@ -38,11 +42,11 @@ export default function Card({
           </div>
         )}
 
-        <div className="p-6 space-y-4">{children}</div>
+        <div className={bodyClassName}>{children}</div>
       </div>
 
       {footer && (
-        <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+        <div className={`${footerClassName} border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between`}>
           {footer}
         </div>
       )}

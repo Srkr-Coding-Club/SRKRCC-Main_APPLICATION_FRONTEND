@@ -24,6 +24,10 @@ const blankProblem = (): BatchProblem => ({
 
 const fieldClass = 'w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#FF7A00] dark:border-slate-700';
 
+// Difficulty colour is supplied by DIFFICULTY_SELECT_CLASSES, so this base omits
+// border/bg colours to avoid Tailwind utility-order clashes.
+const selectFieldClass = 'w-full rounded-lg border px-3 py-2.5 text-sm font-semibold outline-none focus:border-[#FF7A00]';
+
 const toLocalIso = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
@@ -36,17 +40,14 @@ const isValidHttpsUrl = (value: string) => {
   }
 };
 
-// Subtle tint per difficulty; the option/label text itself stays black.
-const DIFFICULTY_STYLES: Record<Problem['difficulty'], { background: string; border: string }> = {
-  EASY: { background: '#fffbeb', border: '#a7f3d0',  },
-  MEDIUM: { background: '#fffbeb', border: '#fde68a' },
-  HARD: { background: '#fef2f2', border: '#fecaca' },
+// Theme-aware tint per difficulty. Tailwind classes are used instead of inline
+// colours because native option popups frequently ignore inline backgrounds,
+// which left the text unreadable.
+const DIFFICULTY_SELECT_CLASSES: Record<Problem['difficulty'], string> = {
+  EASY: 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100',
+  MEDIUM: 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100',
+  HARD: 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-100',
 };
-
-const difficultyOptionStyle = (value: Problem['difficulty']) => ({
-  backgroundColor: DIFFICULTY_STYLES[value].background,
-  color: '#030303',
-});
 
 export default function BatchScheduleClient() {
   const [entries, setEntries] = useState<BatchProblem[]>([blankProblem()]);
@@ -167,7 +168,6 @@ export default function BatchScheduleClient() {
           {entries.map((entry, index) => {
             const urlMessage = urlError(entry.external_url);
             const dateMessage = dateError(entry.scheduled_date);
-            const difficultyStyle = DIFFICULTY_STYLES[entry.difficulty];
             return (
               <section key={index} className="glass-panel space-y-4 rounded-2xl p-5">
                 <div className="flex items-center justify-between"><h2 className="font-bold">Problem {index + 1}</h2>{entries.length > 1 && <button type="button" onClick={() => setEntries((current) => current.filter((_, i) => i !== index))} aria-label={`Remove problem ${index + 1}`} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"><Trash2 className="h-4 w-4" /></button>}</div>
@@ -181,14 +181,13 @@ export default function BatchScheduleClient() {
                   <label>
                     <span className="mb-1 block text-xs font-bold">Difficulty</span>
                     <select
-  className={fieldClass}
-                      style={{ backgroundColor: difficultyStyle.background, borderColor: difficultyStyle.border, color: '#000', }}
+                      className={`${selectFieldClass} ${DIFFICULTY_SELECT_CLASSES[entry.difficulty]} [color-scheme:light] dark:[color-scheme:dark]`}
                       value={entry.difficulty}
                       onChange={(e) => update(index, 'difficulty', e.target.value as Problem['difficulty'])}
                     >
-                      <option value="EASY" style={difficultyOptionStyle('EASY')}>Easy</option>
-                      <option value="MEDIUM" style={difficultyOptionStyle('MEDIUM')}>Medium</option>
-                      <option value="HARD" style={difficultyOptionStyle('HARD')}>Hard</option>
+                      <option value="EASY">Easy</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HARD">Hard</option>
                     </select>
                   </label>
                   <label className="sm:col-span-2"><span className="mb-1 block text-xs font-bold">Topics / tags</span><input className={fieldClass} value={entry.tags} onChange={(e) => update(index, 'tags', e.target.value)} placeholder="Arrays, Hashing, DP" /></label>
