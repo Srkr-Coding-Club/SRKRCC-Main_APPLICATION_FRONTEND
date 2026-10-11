@@ -1,7 +1,23 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { fetchApi } from '@/lib/api-client';
+
+interface AuditLogApi {
+  id: number;
+  timestamp: string;
+  actor_name: string | null;
+  actor_email: string | null;
+  action: string;
+  target: string;
+  details: unknown;
+}
+
+interface PaginatedAuditLogs {
+  count: number;
+  results: AuditLogApi[];
+}
 
 interface AuditLogRecord {
   id: number;
@@ -12,16 +28,74 @@ interface AuditLogRecord {
   details: string;
 }
 
-interface AuditLogsTabProps {
-  filteredAuditLogs: AuditLogRecord[];
-  isLoading?: boolean;
+const DETAILS_TRUNCATE_LENGTH = 150;
+/** Matches the backend page size (apps/core/pagination.py). */
+const PAGE_SIZE = 50;
+/** Live refresh cadence, matching the other admin data pages. */
+const REFRESH_MS = 8000;
+const SEARCH_DEBOUNCE_MS = 300;
+
+function toRecord(entry: AuditLogApi): AuditLogRecord {
+  return {
+    id: entry.id,
+    timestamp: entry.timestamp,
+    actor: entry.actor_name || entry.actor_email || 'System',
+    action: entry.action || 'System Mutation',
+    target: entry.target || 'System',
+    details: typeof entry.details === 'object' ? JSON.stringify(entry.details) : String(entry.details || ''),
+  };
 }
 
-const DETAILS_TRUNCATE_LENGTH = 150;
-
-export function AuditLogsTab({ filteredAuditLogs, isLoading = false }: AuditLogsTabProps) {
+export function AuditLogsTab() {
   const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [logs, setLogs] = useState<AuditLogRecord[]>([]);
+  const [count, setCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  // Search runs on the server across the whole log, so debounce typing and go back to page 1.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuery(search.trim());
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams({ page: String(page) });
+    if (query) params.set('search', query);
+
+    fetchApi<PaginatedAuditLogs>(`/audit/?${params}`)
+      .then((result) => {
+        if (cancelled) return;
+        setLogs(result.results.map(toRecord));
+        setCount(result.count);
+        setLoadError(null);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError('Could not load audit logs.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [page, query, refreshTick]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') setRefreshTick((tick) => tick + 1);
+    }, REFRESH_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleExpanded = (id: number) => {
     setExpandedIds((prev) => {
@@ -31,15 +105,7 @@ export function AuditLogsTab({ filteredAuditLogs, isLoading = false }: AuditLogs
     });
   };
 
-  const visibleLogs = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return filteredAuditLogs;
-    return filteredAuditLogs.filter((l) =>
-      l.actor.toLowerCase().includes(q) ||
-      l.action.toLowerCase().includes(q) ||
-      l.target.toLowerCase().includes(q)
-    );
-  }, [filteredAuditLogs, search]);
+  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
   return (
     <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-6 space-y-4">
@@ -56,6 +122,11 @@ export function AuditLogsTab({ filteredAuditLogs, isLoading = false }: AuditLogs
           />
         </div>
       </div>
+
+      {loadError && (
+        <p className="text-xs text-rose-500">{loadError}</p>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
           <thead className="bg-[#FAFAFC] dark:bg-[#0D0E15] text-xs uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -76,14 +147,14 @@ export function AuditLogsTab({ filteredAuditLogs, isLoading = false }: AuditLogs
                   <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-48" /></td>
                 </tr>
               ))
-            ) : visibleLogs.length === 0 ? (
+            ) : logs.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-sm">
-                  {filteredAuditLogs.length === 0 ? 'No audit logs recorded yet.' : 'No audit logs match your search.'}
+                  {query ? 'No audit logs match your search.' : 'No audit logs recorded yet.'}
                 </td>
               </tr>
             ) : (
-              visibleLogs.map((l) => {
+              logs.map((l) => {
                 const isLong = l.details.length > DETAILS_TRUNCATE_LENGTH;
                 const isExpanded = expandedIds.has(l.id);
                 return (
@@ -111,6 +182,30 @@ export function AuditLogsTab({ filteredAuditLogs, isLoading = false }: AuditLogs
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+        <span>
+          {count} {count === 1 ? 'entry' : 'entries'} · page {page} of {totalPages}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 font-semibold hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-transform duration-100 active:scale-95"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" /> Prev
+          </button>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 font-semibold hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-transform duration-100 active:scale-95"
+          >
+            Next <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );

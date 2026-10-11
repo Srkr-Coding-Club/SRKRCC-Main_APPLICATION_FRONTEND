@@ -68,15 +68,6 @@ interface FormSubmissionRecord {
   isManualAdminEntry?: boolean;
 }
 
-interface AuditLogRecord {
-  id: number;
-  timestamp: string;
-  actor: string;
-  action: string;
-  target: string;
-  details: string;
-}
-
 /**
  * Conditional rules and cross-field rules reference sibling fields by their id.
  * A brand-new field only has a client-side placeholder id (e.g. a Date.now()
@@ -142,16 +133,16 @@ function remapFieldRefs(field: FormField, idMap: Map<string, number>): { field: 
  * everything so existing callers that don't pass `options` keep their
  * current fetch-everything behavior unchanged.
  */
-export type AdminDataType = 'users' | 'flags' | 'forms' | 'audit' | 'submissions';
+export type AdminDataType = 'users' | 'flags' | 'forms' | 'submissions';
 
-const ALL_ADMIN_DATA_TYPES: AdminDataType[] = ['users', 'flags', 'forms', 'audit', 'submissions'];
+const ALL_ADMIN_DATA_TYPES: AdminDataType[] = ['users', 'flags', 'forms', 'submissions'];
 
 export interface UseAdminDataOptions {
   /**
    * Restrict `refetchAll` (the initial load + the 8s background poll) to
    * only these data types, sparing pages that render a narrow slice of the
    * admin data (e.g. the Flags page) from also fetching the full user list,
-   * all forms, all audit logs, and all submissions on every poll tick.
+   * all forms, and all submissions on every poll tick.
    * Omit to fetch everything, as before.
    */
   include?: AdminDataType[];
@@ -163,7 +154,6 @@ export function useAdminData(options?: UseAdminDataOptions) {
   const wantsUsers = include.includes('users');
   const wantsFlags = include.includes('flags');
   const wantsForms = include.includes('forms');
-  const wantsAudit = include.includes('audit');
   const wantsSubmissions = include.includes('submissions');
 
   // Dynamic Flags State - fetched live from backend
@@ -277,16 +267,14 @@ export function useAdminData(options?: UseAdminDataOptions) {
   const [selectedClosedForm, setSelectedClosedForm] = useState<Form | null>(null);
   const [manualEntryAnswers, setManualEntryAnswers] = useState<Record<string, any>>({});
 
-  // Submissions & Audit Logs State - fetched live from backend
+  // Submissions State - fetched live from backend
   const [formSubmissions, setFormSubmissions] = useState<FormSubmissionRecord[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
 
   // Loading States - a type this hook instance was never asked to `include`
   // starts (and stays) non-loading, since it will never be fetched.
   const [isLoadingForms, setIsLoadingForms] = useState(wantsForms);
   const [isLoadingUsers, setIsLoadingUsers] = useState(wantsUsers);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(wantsSubmissions);
-  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(wantsAudit);
   const [isLoadingFlags, setIsLoadingFlags] = useState(wantsFlags);
   const [isLoadingBuilder, setIsLoadingBuilder] = useState(false);
 
@@ -308,18 +296,16 @@ export function useAdminData(options?: UseAdminDataOptions) {
       if (wantsForms) setIsLoadingForms(true);
       if (wantsUsers) setIsLoadingUsers(true);
       if (wantsFlags) setIsLoadingFlags(true);
-      if (wantsAudit) setIsLoadingAuditLogs(true);
       if (wantsSubmissions) setIsLoadingSubmissions(true);
     }
 
     try {
-      const [fetchedUsers, fetchedFlags, fetchedForms, fetchedAudit, fetchedSubmissions] = await Promise.all([
+      const [fetchedUsers, fetchedFlags, fetchedForms, fetchedSubmissions] = await Promise.all([
         // page_size guards against a future paginated backend truncating this list
         // (mirrors the same defensive page_size used by MembersTab's /auth/users/ fetch).
         wantsUsers ? fetchApi<any>('/auth/users/?page_size=500').catch(() => []) : Promise.resolve([]),
         wantsFlags ? fetchApi<FeatureFlag[]>('/feature-flags/').catch(() => []) : Promise.resolve([]),
         wantsForms ? fetchApi<any>('/forms/').catch(() => []) : Promise.resolve([]),
-        wantsAudit ? fetchApi<any[]>('/audit/').catch(() => []) : Promise.resolve([]),
         wantsSubmissions ? fetchApi<any>('/forms/submissions/').catch(() => []) : Promise.resolve([]),
       ]);
 
@@ -370,24 +356,6 @@ export function useAdminData(options?: UseAdminDataOptions) {
         setPublishedForms(formsArray);
       }
 
-      if (wantsAudit) {
-        const auditArray = Array.isArray(fetchedAudit)
-          ? fetchedAudit
-          : (fetchedAudit as any)?.results || [];
-        if (auditArray.length > 0) {
-          setAuditLogs(
-            auditArray.map((a: any) => ({
-              id: a.id || Date.now(),
-              timestamp: a.timestamp || a.created_at?.replace('T', ' ').substring(0, 19) || new Date().toISOString().substring(0, 19),
-              actor: a.actor_name || a.actor_email || 'System',
-              action: a.action || 'System Mutation',
-              target: a.target || a.target_model || 'System',
-              details: typeof a.details === 'object' ? JSON.stringify(a.details) : String(a.details || ''),
-            }))
-          );
-        }
-      }
-
       if (wantsSubmissions) {
         const rawSubs = Array.isArray(fetchedSubmissions)
           ? fetchedSubmissions
@@ -422,7 +390,6 @@ export function useAdminData(options?: UseAdminDataOptions) {
       if (wantsForms) setIsLoadingForms(false);
       if (wantsUsers) setIsLoadingUsers(false);
       if (wantsFlags) setIsLoadingFlags(false);
-      if (wantsAudit) setIsLoadingAuditLogs(false);
       if (wantsSubmissions) setIsLoadingSubmissions(false);
     }
   };
@@ -1321,7 +1288,6 @@ export function useAdminData(options?: UseAdminDataOptions) {
     isLoadingForms,
     isLoadingUsers,
     isLoadingSubmissions,
-    isLoadingAuditLogs,
     isLoadingFlags,
     isLoadingBuilder,
     refetchForms,
@@ -1336,6 +1302,5 @@ export function useAdminData(options?: UseAdminDataOptions) {
     formSubmissions,
     handleAdminManualEntrySubmit,
 
-    auditLogs,
   };
 }

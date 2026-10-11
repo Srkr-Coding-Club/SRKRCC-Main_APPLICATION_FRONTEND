@@ -770,6 +770,15 @@ function ExportModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [asyncJob, setAsyncJob] = useState<{ jobId: number; status: string } | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
+  };
+
+  // A status poll must not outlive the modal, or it keeps hitting the API.
+  useEffect(() => () => stopPolling(), []);
 
   if (!open || !dataset) return null;
 
@@ -797,17 +806,23 @@ function ExportModal({
         onClose();
       } else {
         setAsyncJob({ jobId: result.jobId, status: 'QUEUED' });
-        const poll = setInterval(async () => {
-          const status = await dmcApi.getExportJobStatus(result.jobId);
-          setAsyncJob({ jobId: result.jobId, status: status.status });
-          if (status.downloadable) {
-            clearInterval(poll);
-            window.location.href = dmcApi.getExportDownloadUrl(result.jobId);
-            setTimeout(onClose, 1000);
-          }
-          if (status.status === 'FAILED') {
-            clearInterval(poll);
-            setError(status.error_message ?? 'Export failed.');
+        pollRef.current = setInterval(async () => {
+          try {
+            const status = await dmcApi.getExportJobStatus(result.jobId);
+            setAsyncJob({ jobId: result.jobId, status: status.status });
+            if (status.downloadable) {
+              stopPolling();
+              window.location.href = dmcApi.getExportDownloadUrl(result.jobId);
+              setTimeout(onClose, 1000);
+            }
+            if (status.status === 'FAILED') {
+              stopPolling();
+              setError(status.error_message ?? 'Export failed.');
+            }
+          } catch (err: unknown) {
+            // A failed status check previously left the interval running forever.
+            stopPolling();
+            setError(err instanceof Error ? err.message : 'Lost contact with the export job.');
           }
         }, 2000);
       }
@@ -832,7 +847,7 @@ function ExportModal({
         animate={{ opacity: 1, scale: 1 }}
         className="glass-panel-solid rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
           <div className="flex items-center gap-2">
             <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <span className="text-base font-bold text-slate-900 dark:text-white">Export Dataset</span>

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Calendar, Check, ChevronDown, ExternalLink, History, Star } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
 import { isAuthenticated, subscribeToAuthResync } from '@/lib/auth';
-import type { CodeQuestSubmission, Problem } from '@/lib/types';
+import type { Problem } from '@/lib/types';
 import Card from '@/components/Card';
 import CodeQuestCalendar from '@/components/CodeQuestCalendar';
 import SectionHeading from '@/components/SectionHeading';
@@ -44,14 +44,10 @@ export default function CodeQuestDaily({ problems, today }: CodeQuestDailyProps)
       return;
     }
     try {
-      const submissions = await fetchApi<CodeQuestSubmission[]>('/codequest/submissions/');
-      const solved = new Set<string>();
-      for (const submission of submissions) {
-        if (submission.is_correct && submission.scheduled_date) {
-          solved.add(submission.scheduled_date);
-        }
-      }
-      setSolvedDates(solved);
+      // Server-side set of solved dates: the submissions list is paginated, so
+      // building this from it would miss older solves.
+      const { dates } = await fetchApi<{ dates: string[] }>('/codequest/submissions/solved-dates/');
+      setSolvedDates(new Set(dates));
       setSolvedError(false);
     } catch {
       setSolvedError(true);

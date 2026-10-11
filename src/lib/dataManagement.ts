@@ -90,7 +90,11 @@ export function downloadCSV(data: object[], filename: string): void {
     )
   );
   const csv = Papa.unparse(normalized);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  saveBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), filename);
+}
+
+/** Triggers a browser download for an in-memory file. */
+export function saveBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
