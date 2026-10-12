@@ -10,6 +10,8 @@ import {
   Terminal,
   Trophy,
   Calendar,
+  Laptop,
+  Award,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
@@ -39,10 +41,10 @@ const navItems: NavItem[] = [
     href: '/events',
     hasDropdown: true,
     children: [
-      { label: 'Upcoming Workshops', href: '/events', desc: 'Interactive hands-on sessions & masterclasses', icon: Calendar },
-      { label: 'Hackathons Engine', href: '/hackathons', desc: '48hr build sprints & competitive arena', icon: Terminal },
-      { label: 'IconCoders Flagship', href: '/iconcoders', desc: 'Annual premier algorithmic championship', icon: Trophy },
-      { label: 'Codequest Daily', href: '/codequest', desc: 'Bite-sized challenges to keep sharp daily', icon: Sparkles },
+      { label: 'Workshops', href: '/events', desc: 'Interactive hands-on sessions & masterclasses', icon: Calendar },
+      { label: 'Hackathons', href: '/hackathons', desc: '24hr build sprints & competitive arena', icon: Trophy },
+      { label: 'IconCoders', href: '/iconcoders', desc: 'Annual premier algorithmic championship', icon: Award },
+      { label: 'Codequest', href: '/codequest', desc: 'Bite-sized challenges to keep sharp daily', icon: Laptop },
     ],
   },
   { label: 'Forms', href: '/forms' },

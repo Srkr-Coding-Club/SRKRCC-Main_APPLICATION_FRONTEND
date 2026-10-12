@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Code2, Flame, Terminal } from 'lucide-react';
+import { Flame, Laptop } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
 import { getCodeQuestToday } from '@/lib/codequest';
 import { isModuleEnabled } from '@/lib/moduleFlags';
@@ -35,7 +35,7 @@ export default async function CodeQuestPage() {
     return (
       <ModuleUnavailable
         moduleName="CodeQuest"
-        icon={Terminal}
+        icon={Laptop}
         description="Daily problems are paused right now. Check back once the next CodeQuest season opens."
       />
     );
@@ -48,7 +48,7 @@ export default async function CodeQuestPage() {
     <main className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="mx-auto max-w-7xl space-y-12 px-4 sm:px-6 lg:px-8">
         <PageHero
-          icon={<Terminal className="h-4 w-4 text-[#FF7A00]" />}
+          icon={<Laptop className="h-4 w-4 text-[#FF7A00]" />}
           eyebrow="SRKR CODING CLUB CODEQUEST DAILY"
           title="Today's Coding Challenge"
           description="A new challenge unlocks at midnight. Solve today's problem, keep your streak alive, and return tomorrow for the next quest."
@@ -83,7 +83,7 @@ export default async function CodeQuestPage() {
 
         {error ? (
           <section className="space-y-6">
-            <SectionHeading icon={Code2} title="Today's challenge and archive" />
+            <SectionHeading icon={Laptop} title="Today's challenge and archive" />
             <Card>
               <div className="py-8 text-center">
                 <h2 className="font-bold text-[#1A1A2E] dark:text-white">Couldn't load today's challenge</h2>

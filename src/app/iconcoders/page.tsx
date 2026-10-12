@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { fetchApi } from '@/lib/api-client';
 import { IconCodersChallenge, IconCodersHallOfFameEntry } from '@/lib/types';
-import { Sparkles } from 'lucide-react';
+import { Award } from 'lucide-react';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
@@ -49,7 +49,7 @@ export default async function IconCodersPage() {
     return (
       <ModuleUnavailable
         moduleName="IconCoders Flagship"
-        icon={Sparkles}
+        icon={Award}
         description="The IconCoders flagship challenge is paused between editions. Check back once the next edition opens for registration."
       />
     );
@@ -61,14 +61,14 @@ export default async function IconCodersPage() {
     <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <PageHero
-          icon={<Sparkles className="h-4 w-4 text-[#FF7A00]" />}
-          eyebrow="SRKR CODING CLUB ICONCODERS FLAGSHIP"
-          title="IconCoders Flagship"
-          description="SRKR Coding Club's annual flagship hackathon, where top individual problem-solvers compete for glory and recognition."
+          icon={<Award className="h-4 w-4 text-[#FF7A00]" />}
+          eyebrow="SRKR CODING CLUB ICONCODERS"
+          title="Code, Compete & Conquer Prizes"
+          description="SRKR Coding Club's annual coding competition, where top individual problem-solvers compete for glory and recognition."
         />
 
         <div className="space-y-6">
-          <SectionHeading icon={Sparkles} eyebrow="Current Edition" title="Current Challenge" />
+          <SectionHeading icon={Award} eyebrow="Current Edition" title="Current Challenge" />
           {challenge ? (
             <div className="max-w-sm">
               <BounceCards
@@ -89,7 +89,7 @@ export default async function IconCodersPage() {
         </div>
 
         <div className="space-y-6">
-          <SectionHeading icon={Sparkles} title="Hall of Fame" />
+          <SectionHeading icon={Award} title="Hall of Fame" />
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {hallOfFame.map((entry) => (
               <IconCodersHallOfFameCard key={entry.year} entry={entry} />
