@@ -86,7 +86,7 @@ function EventDetailCard({ event }: { event: Event }) {
     'flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all';
 
   return (
-    <article className="flex h-auto flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-900">
+    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-900">
       {/* Top row: poster (left) + vertical registration ticket (right) */}
       <div className="flex min-h-[14rem] shrink-0 sm:min-h-[15.5rem]">
         {/* Poster */}
@@ -235,7 +235,7 @@ function EventDetailCard({ event }: { event: Event }) {
               About this event
             </h3>
           </div>
-          <div className="mt-2.5 max-h-[120px] overflow-y-auto border-l-2 border-slate-200/80 pl-3.5 pr-1 text-[13px] leading-relaxed text-slate-600 dark:border-white/10 dark:text-slate-300">
+          <div className="mt-2.5 border-l-2 border-slate-200/80 pl-3.5 pr-1 text-[13px] leading-relaxed text-slate-600 dark:border-white/10 dark:text-slate-300">
             {event.description?.trim() ? (
               <MarkdownRenderer content={event.description} />
             ) : (
