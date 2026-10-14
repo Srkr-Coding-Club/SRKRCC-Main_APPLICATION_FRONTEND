@@ -379,7 +379,7 @@ export function MarkdownEditor({
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className={`w-full p-4 bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none resize-y leading-relaxed font-sans ${minHeight}`}
+            className={`w-full p-4 bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none resize-y leading-relaxed ${minHeight}`}
           />
         ) : (
           /* Live Markdown Preview Area */

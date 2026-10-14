@@ -143,7 +143,7 @@ export default function PageHero({
       <div className="relative z-10 max-w-2xl space-y-5">
         <div
           data-hero-reveal
-          className="inline-flex items-center gap-2 rounded-full border border-[#FF7A00]/30 bg-white/60 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#B24A0B] shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-[#FFC08A]"
+          className="inline-flex items-center gap-2 rounded-full border border-[#FF7A00]/30 bg-white/60 px-4 py-1.5 font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-[#B24A0B] shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10 dark:text-[#FFC08A]"
         >
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#FF7A00]/70" />
@@ -155,7 +155,11 @@ export default function PageHero({
 
         <h1
           data-hero-reveal
-          className="text-balance bg-gradient-to-br from-[#1A1A2E] via-[#8B2E3B] to-[#FF7A00] bg-clip-text text-4xl font-extrabold leading-[1.05] tracking-tight text-transparent sm:text-6xl dark:from-white dark:via-[#FFD8B5] dark:to-[#FF9A44] p-2"
+          // .ember-text is the landing page hero title's own shimmering
+          // gradient (see globals.css) - every other page's headline now
+          // carries the same signature animated treatment instead of a
+          // static look-alike gradient, so the site reads as one brand.
+          className="ember-text text-balance font-poppins text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl p-2"
         >
           {title}
         </h1>
