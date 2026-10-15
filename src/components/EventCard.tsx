@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Ticket,
   Calendar,
@@ -33,7 +32,7 @@ interface EventCardProps {
   event: Event;
   accent?: string;
   index?: number;
-  onDetailsClick?: () => void;
+  onDetailsClick: () => void;
 }
 
 export default function EventCard({
@@ -42,9 +41,6 @@ export default function EventCard({
   index = 0,
   onDetailsClick,
 }: EventCardProps) {
-  const router = useRouter();
-  const detailHref = `/events/${event.slug}`;
-
   const formattedDate = event.start_time
     ? new Date(event.start_time).toLocaleDateString("en-US", {
         weekday: "short",
@@ -145,9 +141,13 @@ export default function EventCard({
           </div>
         }
         title={
-          <Link href={detailHref} className="hover:underline focus:outline-none focus-visible:underline">
+          <button
+            type="button"
+            onClick={onDetailsClick}
+            className="text-left hover:underline focus:outline-none focus-visible:underline"
+          >
             {event.title}
-          </Link>
+          </button>
         }
         description={markdownToPreview(event.description)}
         details={
@@ -164,26 +164,15 @@ export default function EventCard({
         }
         footer={
           <>
-            {onDetailsClick ? (
-              <button
-                type="button"
-                aria-label={`View details for ${event.title}`}
-                onClick={onDetailsClick}
-                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 active:scale-95 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
-              >
-                Details
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <Link
-                href={detailHref}
-                aria-label={`View details for ${event.title}`}
-                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 active:scale-95 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
-              >
-                Details
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            )}
+            <button
+              type="button"
+              aria-label={`View details for ${event.title}`}
+              onClick={onDetailsClick}
+              className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 active:scale-95 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+            >
+              Details
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
             {event.status === "CLOSED" ? (
               <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-[13px] font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500">
                 Registration Closed
@@ -200,7 +189,7 @@ export default function EventCard({
             )}
           </>
         }
-        onCardClick={() => router.push(detailHref)}
+        onCardClick={onDetailsClick}
       />
     </>
   );

@@ -46,7 +46,7 @@ export default async function HackathonsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <PageHero
           icon={<Trophy className="h-4 w-4 text-[#FF7A00]" />}
-          eyebrow="SRKR CODING CLUB HACKATHONS ENGINE"
+          eyebrow="SRKR CODING CLUB HACKATHONS"
           title="Build, Hack & Win Cash Prizes"
           description="Form your hackathon squad, build real-world software prototypes, present to industry judges, and win prize pools!"
         />

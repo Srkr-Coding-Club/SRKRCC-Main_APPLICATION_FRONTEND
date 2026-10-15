@@ -63,7 +63,7 @@ export default function DetailsStack({
   return (
     <div
       data-details-stack
-      className="relative mx-auto grid w-full max-w-[480px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 lg:max-w-[720px] lg:gap-3"
+      className="relative mx-auto grid w-full max-w-[480px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 lg:max-w-[960px] lg:gap-3"
     >
       <button
         type="button"
@@ -89,7 +89,7 @@ export default function DetailsStack({
           return (
             <motion.div
               key={itemId}
-              className="col-start-1 row-start-1 min-w-0"
+              className="col-start-1 row-start-1 h-full min-w-0"
               aria-hidden={!isTop}
               inert={!isTop}
               initial={false}

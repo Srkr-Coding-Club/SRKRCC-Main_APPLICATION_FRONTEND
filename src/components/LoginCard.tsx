@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import {
   Mail,
   Lock,
+  ArrowLeft,
   Eye,
   EyeOff,
   ArrowRight,
@@ -21,6 +22,7 @@ import {
 import { loginUser, getStoredUser, isAuthenticated, clearAuthSession, fetchAndSyncCurrentUser, isSafeNextPath, AuthUser, LoginError } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
 import { normalizeEmail, validateEmail } from '@/lib/validation/auth';
+import { SpotlightInput } from '@/components/ui/InputField';
 
 export interface LoginCardProps {
   className?: string;
@@ -29,6 +31,7 @@ export interface LoginCardProps {
   onClose?: () => void;
   onSwitchToSignup?: () => void;
   embedded?: boolean;
+  pageLayout?: boolean;
 }
 
 export default function LoginCard({
@@ -37,6 +40,7 @@ export default function LoginCard({
   onClose,
   onSwitchToSignup,
   embedded = false,
+  pageLayout = false,
 }: LoginCardProps) {
   const searchParams = useSearchParams();
   const nextUrl = nextUrlProp ?? searchParams?.get('next') ?? null;
@@ -168,24 +172,36 @@ export default function LoginCard({
 
   return (
     <motion.main
-      initial={embedded ? false : { opacity: 0 }}
-      animate={embedded ? undefined : { opacity: 1 }}
+      initial={embedded || pageLayout ? false : { opacity: 0 }}
+      animate={embedded || pageLayout ? undefined : { opacity: 1 }}
       transition={{ duration: 0.05, ease: 'easeOut' }}
       onClick={(event) => {
-        if (!embedded && event.target === event.currentTarget) onClose?.();
+        if (!embedded && !pageLayout && event.target === event.currentTarget) onClose?.();
       }}
-      className={embedded ? 'contents' : 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 sm:p-6 backdrop-blur-[6px]'}
+      className={
+        embedded
+          ? 'contents'
+          : pageLayout
+            ? 'flex w-full'
+            : 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 sm:p-6 backdrop-blur-[6px]'
+      }
     >
       {/* Expanded Modal Card: generous width, natural height, soft pill corners */}
       <motion.section
-        initial={embedded ? false : { opacity: 0, scale: 0.86, y: 12 }}
-        animate={embedded ? undefined : { opacity: 1, scale: 1, y: 0 }}
+        initial={embedded || pageLayout ? false : { opacity: 0, scale: 0.86, y: 12 }}
+        animate={embedded || pageLayout ? undefined : { opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className={embedded ? 'contents' : 'relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-cols-1 grid-rows-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] lg:grid-cols-[1fr_1.1fr]'}
+        className={
+          embedded
+            ? 'contents'
+            : pageLayout
+              ? 'relative grid min-h-[calc(100dvh-4.625rem)] w-full grid-cols-1 grid-rows-1 overflow-hidden bg-white dark:bg-[#151722] lg:grid-cols-2'
+              : 'relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-cols-1 grid-rows-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] lg:grid-cols-[1fr_1.1fr]'
+        }
       >
 
-        {onClose && !embedded && (
+        {onClose && !embedded && !pageLayout && (
           <button
             type="button"
             onClick={onClose}
@@ -209,8 +225,17 @@ export default function LoginCard({
         </div>
 
         {/* Right Form Section: roomy padding, uncompressed */}
-        <div className={`min-h-0 overflow-y-auto px-8 py-6 sm:px-10 sm:py-8 ${embedded ? 'h-full' : ''}`}>
-          <div className="mx-auto flex min-h-full w-full max-w-[320px] flex-col justify-center sm:mx-0">
+        <div className={`min-h-0 overflow-y-auto px-6 py-5 sm:px-10 sm:pb-16 lg:px-16 ${embedded ? 'h-full' : ''} ${pageLayout ? 'flex items-center justify-center' : ''}`}>
+          <div className={`flex min-h-full w-full flex-col justify-center ${pageLayout ? 'mx-auto max-w-[440px]' : 'mx-auto max-w-[320px] sm:mx-0'}`}>
+            {pageLayout && (
+              <Link
+                href="/"
+                className="mb-8 inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Link>
+            )}
 
             {/* SECURE SIGN IN Badge 
             <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -309,7 +334,7 @@ export default function LoginCard({
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 stroke-[1.8]" />
-                  <input
+                  <SpotlightInput
                     id="login-email"
                     type="email"
                     autoComplete="email"
@@ -327,11 +352,8 @@ export default function LoginCard({
                       if (email) setFieldErrors((prev) => ({ ...prev, email: validateEmail(email) }));
                     }}
                     disabled={isLoading || success}
-                    className={`w-full h-10 pl-9 pr-3 rounded-lg border text-xs text-slate-800 placeholder:text-slate-400 bg-[#FCFCFD] dark:bg-[#1C1F2E] dark:text-slate-100 transition-colors focus:outline-none focus:ring-1 ${
-                      fieldErrors.email
-                        ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500'
-                        : 'border-slate-200/90 dark:border-slate-700 focus:border-slate-400 focus:ring-slate-300'
-                    }`}
+                    hasError={Boolean(fieldErrors.email)}
+                    className="auth-login-input pl-9 pr-3 text-xs"
                   />
                 </div>
                 {fieldErrors.email && (
@@ -360,7 +382,7 @@ export default function LoginCard({
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 stroke-[1.8]" />
-                  <input
+                  <SpotlightInput
                     id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
@@ -373,11 +395,8 @@ export default function LoginCard({
                       if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
                     }}
                     disabled={isLoading || success}
-                    className={`w-full h-10 pl-9 pr-9 rounded-lg border text-xs text-slate-800 placeholder:text-slate-400 bg-[#FCFCFD] dark:bg-[#1C1F2E] dark:text-slate-100 transition-colors focus:outline-none focus:ring-1 ${
-                      fieldErrors.password
-                        ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500'
-                        : 'border-slate-200/90 dark:border-slate-700 focus:border-slate-400 focus:ring-slate-300'
-                    }`}
+                    hasError={Boolean(fieldErrors.password)}
+                    className="auth-login-input pl-9 pr-9 text-xs"
                   />
                   <button
                     type="button"
@@ -423,7 +442,7 @@ export default function LoginCard({
             </form>
 
             {/* Footer */}
-            <p className="mt-3 text-center text-[10px] text-slate-500 dark:text-slate-400">
+            <p className="mt-3 text-center text-[12px] text-slate-500 dark:text-slate-400">
               Don&apos;t have an account?{' '}
               {onSwitchToSignup ? (
                 <button type="button" onClick={onSwitchToSignup} className="font-semibold text-slate-800 hover:underline dark:text-slate-200">
