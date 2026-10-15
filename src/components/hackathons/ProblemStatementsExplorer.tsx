@@ -70,6 +70,7 @@ export function ProblemStatementsExplorer({
   }, [problems, selectedDomain, onlyAvailable, searchQuery]);
 
   const registerUrl = `/hackathons/${hackathonSlug}/dashboard`;
+  const registerUrlFor = (problemId: number) => `${registerUrl}?ps=${problemId}`;
 
   return (
     <div className="space-y-6">
@@ -252,7 +253,7 @@ export function ProblemStatementsExplorer({
 
                   {isRegistrationOpen && !isFull && (
                     <Link
-                      href={registerUrl}
+                      href={registerUrlFor(ps.id)}
                       className="inline-flex items-center gap-1 rounded-lg bg-slate-900 dark:bg-white/10 hover:bg-[#FF7A00] dark:hover:bg-[#FF7A00] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                     >
                       Choose Problem <ArrowRight className="h-3 w-3" />
@@ -392,7 +393,7 @@ export function ProblemStatementsExplorer({
 
               {isRegistrationOpen && activeProblem.slots_left !== 0 && (
                 <Link
-                  href={registerUrl}
+                  href={registerUrlFor(activeProblem.id)}
                   className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#8B2E3B] to-[#FF7A00] px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:-translate-y-0.5 active:scale-95"
                 >
                   <CheckCircle2 className="h-4 w-4" />

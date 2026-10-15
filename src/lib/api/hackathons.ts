@@ -61,6 +61,10 @@ export const hackathonApi = {
     fetchApi<HackathonTeam>(`/hackathons/teams/${id}/`, patch(body)),
   invite: (id: number, email: string) =>
     fetchApi<{ invite: HackathonTeamInvite; team: HackathonTeam }>(`/hackathons/teams/${id}/invite/`, json({ email })),
+  inviteByEmail: (id: number, email: string) =>
+    fetchApi<{ invite: { id: number; email: string }; team: HackathonTeam }>(`/hackathons/teams/${id}/invite-by-email/`, json({ email })),
+  cancelEmailInvite: (id: number, inviteId: number) =>
+    fetchApi<HackathonTeam>(`/hackathons/teams/${id}/cancel-email-invite/`, json({ invite_id: inviteId })),
   cancelInvite: (id: number, inviteId: number) =>
     fetchApi<HackathonTeam>(`/hackathons/teams/${id}/cancel-invite/`, json({ invite_id: inviteId })),
   removeMember: (id: number, userId: number) =>
@@ -74,6 +78,8 @@ export const hackathonApi = {
     update: (slug: string, body: Partial<Hackathon>) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/`, patch(body)),
     setOpen: (slug: string, open: boolean) =>
       fetchApi<Hackathon>(`/hackathons/${enc(slug)}/${open ? 'reopen' : 'close'}/`, json({})),
+    remindForming: (slug: string) => fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/remind-forming/`, json({})),
+    publish: (slug: string) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/publish/`, json({})),
     stats: (slug: string) => fetchApi<HackathonStats>(`/hackathons/${enc(slug)}/stats/`),
 
     uploadProblemStatements: (slug: string, file: File) => {
@@ -88,6 +94,8 @@ export const hackathonApi = {
       fetchApi<ProblemStatement>(`/hackathons/${enc(slug)}/problem-statements/`, json(body)),
     updateProblemStatement: (slug: string, id: number, body: Partial<ProblemStatement>) =>
       fetchApi<ProblemStatement>(`/hackathons/${enc(slug)}/problem-statements/${id}/`, patch(body)),
+    reorderProblemStatements: (slug: string, ids: number[]) =>
+      fetchApi<ProblemStatement[]>(`/hackathons/${enc(slug)}/problem-statements/reorder/`, json({ ids })),
     deleteProblemStatement: (slug: string, id: number, force = false) =>
       fetchApi<{ deleted: true; teams_unassigned?: number }>(
         `/hackathons/${enc(slug)}/problem-statements/${id}/${force ? '?force=true' : ''}`,
@@ -119,9 +127,13 @@ export const hackathonApi = {
     decide: (
       slug: string,
       id: number,
-      body: { team_ids: number[]; status: RoundEntryStatus; feedback?: string; admin_notes?: string },
+      body: { team_ids: number[]; status: RoundEntryStatus; feedback?: string; admin_notes?: string; confirm_published?: boolean },
     ) => fetchApi<{ updated: number; round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/decide/`, json(body)),
-    publishRound: (slug: string, id: number, body: { announce?: boolean; message?: string; email?: boolean } = {}) =>
+    publishRound: (
+      slug: string,
+      id: number,
+      body: { announce?: boolean; message?: string; email?: boolean; announce_rejected?: boolean } = {},
+    ) =>
       fetchApi<{ round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/publish/`, json(body)),
     unpublishRound: (slug: string, id: number) =>
       fetchApi<{ round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/unpublish/`, json({})),

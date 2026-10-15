@@ -1,5 +1,6 @@
 'use client';
 
+import { LoadError } from './LoadError';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowDown, ArrowUp, Download, Eye, EyeOff, FileUp, Pencil, Plus, Target, Trash2, Users } from 'lucide-react';
 import type { HackathonTeam, ProblemStatement } from '@/lib/types';
@@ -53,9 +54,11 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
   const [uploadResult, setUploadResult] = useState<ProblemStatementUploadResult | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  const [loadError, setLoadError] = useState('');
   const load = useCallback(() => {
+    setLoadError('');
     Promise.all([
-      hackathonApi.problemStatements(slug).then(setItems).catch(() => setItems([])),
+      hackathonApi.problemStatements(slug).then(setItems).catch((err) => setLoadError(apiErrorMessage(err, 'Could not load problem statements.'))),
       hackathonApi.admin.teams(slug).then(setTeams).catch(() => setTeams([])),
     ]).finally(() => setLoading(false));
   }, [slug]);
@@ -144,15 +147,12 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
     if (direction === 'up' && idx <= 0) return;
     if (direction === 'down' && idx >= items.length - 1) return;
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    const other = items[targetIdx];
+    const ids = items.map((x) => x.id);
+    [ids[idx], ids[targetIdx]] = [ids[targetIdx], ids[idx]];
 
     setBusy(true);
     try {
-      const tempOrder = 999999;
-      await hackathonApi.admin.updateProblemStatement(slug, ps.id, { order: tempOrder });
-      await hackathonApi.admin.updateProblemStatement(slug, other.id, { order: ps.order });
-      await hackathonApi.admin.updateProblemStatement(slug, ps.id, { order: other.order });
-      load();
+      setItems(await hackathonApi.admin.reorderProblemStatements(slug, ids));
     } catch (err) {
       toast.error('Could not reorder', apiErrorMessage(err));
     } finally {
@@ -221,6 +221,7 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
         </div>
       </div>
 
+      {loadError && <LoadError message={loadError} onRetry={load} />}
       {loading ? (
         <div className="h-24 rounded-lg bg-slate-200 dark:bg-white/5 animate-pulse" />
       ) : items.length === 0 ? (

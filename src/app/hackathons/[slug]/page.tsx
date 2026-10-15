@@ -10,11 +10,14 @@ import { HackathonDetailClient } from '@/components/hackathons/HackathonDetailCl
 
 export const dynamic = 'force-dynamic';
 
-async function getHackathon(slug: string): Promise<Hackathon | null> {
+type HackathonLookup = { hackathon: Hackathon | null; unavailable: boolean };
+
+/** A missing hackathon is a 404; anything else (backend down, timeout) must not masquerade as one. */
+async function getHackathon(slug: string): Promise<HackathonLookup> {
   try {
-    return await fetchApi<Hackathon>(`/hackathons/${encodeURIComponent(slug)}/`);
-  } catch {
-    return null;
+    return { hackathon: await fetchApi<Hackathon>(`/hackathons/${encodeURIComponent(slug)}/`), unavailable: false };
+  } catch (error) {
+    return { hackathon: null, unavailable: (error as { status?: number })?.status !== 404 };
   }
 }
 
@@ -28,7 +31,8 @@ async function getPublicExtras(slug: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const hackathon = await getHackathon(slug);
+  const { hackathon, unavailable } = await getHackathon(slug);
+  if (unavailable) return { title: 'Hackathon temporarily unavailable | SRKR Coding Club' };
   if (!hackathon) notFound();
   return {
     title: `${hackathon.title} | SRKR Coding Club Hackathons`,
@@ -49,7 +53,16 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
   }
 
   const { slug } = await params;
-  const hackathon = await getHackathon(slug);
+  const { hackathon, unavailable } = await getHackathon(slug);
+  if (unavailable) {
+    return (
+      <ModuleUnavailable
+        moduleName="Hackathon"
+        icon={Trophy}
+        description="We could not load this hackathon right now. Please refresh in a minute."
+      />
+    );
+  }
   if (!hackathon) notFound();
 
   const { problems, announcements } = await getPublicExtras(slug);

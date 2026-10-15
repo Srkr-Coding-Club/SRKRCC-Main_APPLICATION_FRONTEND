@@ -10,8 +10,10 @@ import {
 import type { HackathonAnnouncement, HackathonTeamInvite, MyTeamPayload, ProblemStatement } from '@/lib/types';
 import { getStoredUser, isAuthenticated } from '@/lib/auth';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
+import { invalidateMyHackathonStatus } from '@/lib/hooks/useMyHackathonStatus';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { StatusPill, TEAM_STATUS_PILL } from '@/components/ui/StatusPill';
 import { TeamFormModal } from '@/components/hackathons/TeamFormModal';
 import { InviteMemberModal } from '@/components/hackathons/InviteMemberModal';
@@ -26,6 +28,7 @@ export default function HackathonDashboardPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm, dialog } = useConfirmDialog();
 
   const [data, setData] = useState<MyTeamPayload | null>(null);
   const [problems, setProblems] = useState<ProblemStatement[]>([]);
@@ -35,6 +38,7 @@ export default function HackathonDashboardPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [teamModal, setTeamModal] = useState<'create' | 'edit' | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [preselectedProblemId, setPreselectedProblemId] = useState('');
 
   const me = getStoredUser();
 
@@ -64,11 +68,20 @@ export default function HackathonDashboardPage() {
     load();
   }, [load, router, slug]);
 
+  useEffect(() => {
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'visible' && !busyKey) load();
+    };
+    document.addEventListener('visibilitychange', refreshOnFocus);
+    return () => document.removeEventListener('visibilitychange', refreshOnFocus);
+  }, [load, busyKey]);
+
   const run = async (key: string, fn: () => Promise<unknown>, success?: string) => {
     setBusyKey(key);
     try {
       await fn();
       if (success) toast.success(success);
+      invalidateMyHackathonStatus(slug);
       await load();
     } catch (err) {
       toast.error('Could not complete that', apiErrorMessage(err));
@@ -77,14 +90,37 @@ export default function HackathonDashboardPage() {
     }
   };
 
+  // Arriving from "Choose Problem" (?ps=ID): open team creation with that statement selected, once.
+  useEffect(() => {
+    if (!data || data.team || !data.hackathon.is_registration_open || data.hackathon.team_edits_locked) return;
+    const requested = new URLSearchParams(window.location.search).get('ps');
+    if (!requested || !problems.some((p) => String(p.id) === requested)) return;
+    setPreselectedProblemId(requested);
+    setTeamModal('create');
+    window.history.replaceState(null, '', window.location.pathname);
+  }, [data, problems]);
+
   const hackathon = data?.hackathon;
   const team = data?.team ?? null;
   const isLeader = !!data?.is_leader;
   const regOpen = !!hackathon?.is_registration_open;
+  const locked = !!hackathon?.team_edits_locked;
+  const canJoinOrCreate = regOpen && !locked;
   const editable = regOpen && !hackathon?.team_edits_locked && team && (team.status === 'FORMING' || team.status === 'REGISTERED');
   const minSize = hackathon?.min_team_size ?? 1;
+  const acceptBlockedReason = !data
+    ? ''
+    : data.profile_missing.length > 0
+      ? 'Complete your profile before accepting.'
+      : !regOpen
+        ? 'Registration is closed, so invites can no longer be accepted.'
+        : locked
+          ? 'Team changes are locked by the organizers.'
+          : '';
   const maxSize = hackathon?.max_team_size ?? 1;
-  const slotsLeft = team ? Math.max(maxSize - team.member_count - team.pending_invites.length, 0) : 0;
+  const slotsLeft = team ? Math.max(maxSize - team.member_count - team.pending_invites.length - (team.pending_email_invites?.length ?? 0), 0) : 0;
+  // Once a team is in a round its problem is fixed (organizers can still change it).
+  const problemLocked = !!data?.rounds.some((r) => r.entry);
   const myProblem = useMemo(
     () => problems.find((p) => p.id === team?.problem_statement?.id) ?? null,
     [problems, team?.problem_statement?.id],
@@ -124,6 +160,7 @@ export default function HackathonDashboardPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] py-10 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        {dialog}
         <Link href={`/hackathons/${slug}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#FF7A00] transition">
           <ArrowLeft className="h-4 w-4" /> {hackathon.title}
         </Link>
@@ -145,9 +182,10 @@ export default function HackathonDashboardPage() {
               <StatusPill tone={regOpen ? 'green' : 'slate'} icon={regOpen ? undefined : Lock}>
                 {regOpen ? 'Registration open' : 'Registration closed'}
               </StatusPill>
+              {regOpen && locked && <StatusPill tone="amber" icon={Lock}>Team changes locked</StatusPill>}
             </div>
           </div>
-          {hackathon.registration_closes_at && regOpen && (
+          {hackathon.registration_closes_at && regOpen && !locked && (
             <p className="mt-4 text-xs text-white/70">Team changes close {formatDateTime(hackathon.registration_closes_at)}.</p>
           )}
         </div>
@@ -183,7 +221,7 @@ export default function HackathonDashboardPage() {
                             </p>
                           </div>
                           <button
-                            disabled={!!busyKey || data.profile_missing.length > 0 || !regOpen}
+                            disabled={!!busyKey || data.profile_missing.length > 0 || !canJoinOrCreate}
                             onClick={() => run(`accept-${inv.id}`, () => hackathonApi.acceptInvite(inv.id), `You joined ${inv.team_name}!`)}
                             className={`${BTN} bg-emerald-600 text-white hover:bg-emerald-700`}
                           >
@@ -196,6 +234,7 @@ export default function HackathonDashboardPage() {
                           >
                             <X className="h-3.5 w-3.5" /> Decline
                           </button>
+                          {acceptBlockedReason && <p className="w-full text-xs text-amber-600 dark:text-amber-400">{acceptBlockedReason}</p>}
                         </li>
                       ))}
                     </ul>
@@ -205,7 +244,7 @@ export default function HackathonDashboardPage() {
                 <section className={`${PANEL} text-center space-y-4 py-10`}>
                   <UsersRound className="mx-auto h-12 w-12 text-[#FF7A00]" />
                   <h2 className="text-xl font-extrabold text-[#1A1A2E] dark:text-white">You&apos;re not on a team yet</h2>
-                  {regOpen ? (
+                  {canJoinOrCreate ? (
                     <>
                       <p className="mx-auto max-w-md text-sm text-slate-500">
                         Create a team and invite your teammates by email, or accept an invite from a team leader.
@@ -219,7 +258,11 @@ export default function HackathonDashboardPage() {
                       </button>
                     </>
                   ) : (
-                    <p className="mx-auto max-w-md text-sm text-slate-500">Team registration is closed for this hackathon.</p>
+                    <p className="mx-auto max-w-md text-sm text-slate-500">
+                      {regOpen
+                        ? 'Team changes are locked by the organizers, so new teams and invite acceptances are paused. Contact them if you need help.'
+                        : 'Team registration is closed for this hackathon.'}
+                    </p>
                   )}
                 </section>
               </>
@@ -278,10 +321,13 @@ export default function HackathonDashboardPage() {
                           <div className="flex gap-1.5">
                             <button
                               disabled={!!busyKey}
-                              onClick={() => {
-                                if (window.confirm(`Make ${m.name} the team leader? You will become a regular member.`)) {
-                                  run(`lead-${m.user_id}`, () => hackathonApi.transferLeadership(team.id, m.user_id), 'Leadership transferred');
-                                }
+                              onClick={async () => {
+                                const ok = await confirm({
+                                  title: 'Transfer leadership?',
+                                  message: `${m.name} becomes the team leader and you become a regular member. Only the leader can edit the team and invite people.`,
+                                  confirmLabel: 'Transfer leadership',
+                                });
+                                if (ok) run(`lead-${m.user_id}`, () => hackathonApi.transferLeadership(team.id, m.user_id), 'Leadership transferred');
                               }}
                               className={`${BTN} bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300`}
                               title="Make leader"
@@ -290,10 +336,14 @@ export default function HackathonDashboardPage() {
                             </button>
                             <button
                               disabled={!!busyKey}
-                              onClick={() => {
-                                if (window.confirm(`Remove ${m.name} from the team?`)) {
-                                  run(`remove-${m.user_id}`, () => hackathonApi.removeMember(team.id, m.user_id), 'Member removed');
-                                }
+                              onClick={async () => {
+                                const ok = await confirm({
+                                  title: `Remove ${m.name}?`,
+                                  message: 'They lose their place on this team and can join another one.',
+                                  confirmLabel: 'Remove member',
+                                  danger: true,
+                                });
+                                if (ok) run(`remove-${m.user_id}`, () => hackathonApi.removeMember(team.id, m.user_id), 'Member removed');
                               }}
                               className={`${BTN} bg-rose-500/10 text-rose-600 dark:text-rose-400`}
                               title="Remove"
@@ -307,7 +357,7 @@ export default function HackathonDashboardPage() {
                   })}
                 </ul>
 
-                {team.pending_invites.length > 0 && (
+                {(team.pending_invites.length > 0 || (team.pending_email_invites?.length ?? 0) > 0) && (
                   <div className="space-y-2">
                     <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Pending invites</p>
                     <ul className="space-y-2">
@@ -329,20 +379,45 @@ export default function HackathonDashboardPage() {
                           )}
                         </li>
                       ))}
+                      {(team.pending_email_invites ?? []).map((inv) => (
+                        <li key={`email-${inv.id}`} className="flex items-center gap-3 rounded-lg border border-dashed border-sky-400/50 px-3 py-2">
+                          <Mail className="h-4 w-4 text-sky-500" />
+                          <div className="min-w-0 flex-1 text-xs">
+                            <p className="truncate font-semibold text-[#1A1A2E] dark:text-white">{inv.email}</p>
+                            <p className="text-slate-500">Waiting for them to sign up</p>
+                          </div>
+                          {isLeader && editable && (
+                            <button
+                              disabled={!!busyKey}
+                              onClick={() => run(`cancel-email-${inv.id}`, () => hackathonApi.cancelEmailInvite(team.id, inv.id), 'Invite cancelled')}
+                              className={`${BTN} text-slate-500 hover:text-rose-500`}
+                            >
+                              <X className="h-3.5 w-3.5" /> Cancel
+                            </button>
+                          )}
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 )}
 
                 {editable && (
-                  <div className="flex justify-end border-t border-slate-200 dark:border-slate-800 pt-4">
+                  <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+                    {isLeader && team.member_count > 1 && (
+                      <p className="mr-auto text-xs text-slate-500">Transfer leadership to a teammate before you can leave.</p>
+                    )}
                     <button
                       disabled={!!busyKey || (isLeader && team.member_count > 1)}
-                      title={isLeader && team.member_count > 1 ? 'Transfer leadership before leaving' : undefined}
-                      onClick={() => {
-                        const msg = isLeader
-                          ? 'You are the only member. Leaving will withdraw this team. Continue?'
-                          : 'Leave this team?';
-                        if (window.confirm(msg)) run('leave', () => hackathonApi.leaveTeam(team.id), 'You left the team');
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: isLeader ? 'Withdraw this team?' : 'Leave this team?',
+                          message: isLeader
+                            ? 'You are the only member, so leaving withdraws the team and cancels its pending invites.'
+                            : 'You will leave the team. You can join another team or accept a new invite afterwards.',
+                          confirmLabel: isLeader ? 'Withdraw team' : 'Leave team',
+                          danger: true,
+                        });
+                        if (ok) run('leave', () => hackathonApi.leaveTeam(team.id), 'You left the team');
                       }}
                       className={`${BTN} text-rose-600 dark:text-rose-400 hover:bg-rose-500/10`}
                     >
@@ -415,6 +490,8 @@ export default function HackathonDashboardPage() {
         problemStatements={problems}
         allowOpenInnovation={!!hackathon.allow_open_innovation}
         team={teamModal === 'edit' ? team : null}
+        initialProblemId={preselectedProblemId}
+        problemLocked={problemLocked}
         onSaved={() => load()}
       />
       {team && (

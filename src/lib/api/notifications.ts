@@ -14,7 +14,7 @@ export const notificationsApi = {
   },
 
   unreadCount: () =>
-    fetchApi<{ unread_count: number }>('/notifications/unread-count/'),
+    fetchApi<{ unread_count: number }>('/notifications/unread-count/', { silentAuth: true } as RequestInit),
 
   markRead: (id: number) =>
     fetchApi<{ notification: UserNotification; unread_count: number }>(

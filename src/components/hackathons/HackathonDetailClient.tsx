@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -27,6 +27,7 @@ import { HackathonAnnouncementsFeed } from '@/components/hackathons/HackathonAnn
 import { ProblemStatementsExplorer } from '@/components/hackathons/ProblemStatementsExplorer';
 import { HackathonFAQSection } from '@/components/hackathons/HackathonFAQSection';
 import { HackathonStickyBar } from '@/components/hackathons/HackathonStickyBar';
+import { profileFieldLabel } from '@/lib/profileFields';
 
 interface HackathonDetailClientProps {
   hackathon: Hackathon;
@@ -34,18 +35,20 @@ interface HackathonDetailClientProps {
   announcements: HackathonAnnouncement[];
 }
 
-const FALLBACK_BANNER =
-  'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80';
-
 const HACKATHON_TIME_ZONE = 'Asia/Kolkata';
 
 export function HackathonDetailClient({ hackathon, problems, announcements }: HackathonDetailClientProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'problems' | 'announcements' | 'faq'>('overview');
-  const [copied, setCopied] = useState(false);
+  const [shareState, setShareState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  // Open straight on the tab named in the link (#problems, #faq, ...). Read after mount to match the server render.
+  useEffect(() => {
+    const fromHash = window.location.hash.replace('#', '');
+    if (fromHash === 'problems' || fromHash === 'announcements' || fromHash === 'faq') setActiveTab(fromHash);
+  }, []);
 
   const isClosed = !(hackathon.is_registration_open ?? hackathon.status !== 'CLOSED');
-  const teams = hackathon.team_count ?? 0;
-  const banner = hackathon.banner_image || FALLBACK_BANNER;
+  const teams = hackathon.registered_team_count ?? hackathon.team_count ?? 0;
 
   // Format dates
   const startDate = new Date(hackathon.start_date);
@@ -73,17 +76,32 @@ export function HackathonDetailClient({ hackathon, problems, announcements }: Ha
       dateRange: sDate === eDate ? sDate : `${sDate} – ${eDate}`,
       timeRange: `${sTime} – ${eTime} IST`,
     };
-  }, [startDate, endDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hackathon.start_date, hackathon.end_date]);
 
-  const copyShareLink = () => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+  const shareLink = async () => {
+    const url = window.location.href;
+    try {
+      // Phones get the native share sheet; desktops copy the link.
+      if (typeof navigator.share === 'function' && window.matchMedia('(pointer: coarse)').matches) {
+        await navigator.share({ title: hackathon.title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareState('copied');
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') return;
+      setShareState('failed');
     }
+    setTimeout(() => setShareState('idle'), 2500);
   };
 
   type TabKey = 'overview' | 'problems' | 'announcements' | 'faq';
+
+  const selectTab = (key: TabKey) => {
+    setActiveTab(key);
+    window.history.replaceState(null, '', key === 'overview' ? window.location.pathname : `#${key}`);
+  };
 
   interface TabItem {
     key: TabKey;
@@ -121,11 +139,11 @@ export function HackathonDetailClient({ hackathon, problems, announcements }: Ha
 
           <button
             type="button"
-            onClick={copyShareLink}
+            onClick={shareLink}
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] px-3.5 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-[#FF7A00]/50 hover:text-[#FF7A00] transition active:scale-95"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 className="h-3.5 w-3.5" />}
-            {copied ? 'Link Copied!' : 'Share Event'}
+            {shareState === 'copied' ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 className="h-3.5 w-3.5" />}
+            {shareState === 'copied' ? 'Link Copied!' : shareState === 'failed' ? 'Copy failed: copy the address bar' : 'Share Event'}
           </button>
         </div>
 
@@ -133,8 +151,14 @@ export function HackathonDetailClient({ hackathon, problems, announcements }: Ha
         <div className="relative overflow-hidden rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl bg-[#1A1A2E]">
           {/* Background image with gradient tint */}
           <div className="relative h-64 sm:h-96 w-full overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={banner} alt={hackathon.title} className="h-full w-full object-cover" />
+            {hackathon.banner_image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={hackathon.banner_image} alt={hackathon.title} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#2a1d2e] via-[#8B2E3B] to-[#FF7A00]">
+                <Trophy className="h-20 w-20 text-white/20" aria-hidden="true" />
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A2E] via-[#1A1A2E]/70 to-black/30" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#1A1A2E]/90 via-transparent to-transparent" />
           </div>
@@ -251,7 +275,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements }: Ha
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => selectTab(tab.key)}
                   className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition ${
                     active
                       ? 'bg-gradient-to-r from-[#8B2E3B] to-[#FF7A00] text-white shadow-md'
@@ -299,7 +323,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements }: Ha
                       </h4>
                       <p className="text-amber-800 dark:text-amber-300">
                         All participating team members must complete these fields on their club profile:{' '}
-                        <strong>{hackathon.required_profile_fields.join(', ')}</strong> before creating or accepting a team invite.
+                        <strong>{hackathon.required_profile_fields.map(profileFieldLabel).join(', ')}</strong> before creating or accepting a team invite.
                       </p>
                     </div>
                   </div>

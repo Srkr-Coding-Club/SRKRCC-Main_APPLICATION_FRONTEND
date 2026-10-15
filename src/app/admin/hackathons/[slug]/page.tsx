@@ -69,9 +69,13 @@ function ManageHackathon() {
                 <p className="text-sm text-slate-500">{hackathon.theme}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatusPill tone={hackathon.is_registration_open ? 'green' : 'slate'}>
-                  {hackathon.is_registration_open ? 'Registration open' : 'Registration closed'}
-                </StatusPill>
+                {hackathon.status === 'DRAFT' ? (
+                  <StatusPill tone="amber">Draft: not public yet</StatusPill>
+                ) : (
+                  <StatusPill tone={hackathon.is_registration_open ? 'green' : 'slate'}>
+                    {hackathon.is_registration_open ? 'Registration open' : 'Registration closed'}
+                  </StatusPill>
+                )}
                 {hackathon.team_edits_locked && <StatusPill tone="amber">Team edits locked</StatusPill>}
                 <a
                   href={`/hackathons/${hackathon.slug}`}

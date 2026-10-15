@@ -312,3 +312,29 @@ Backend contract and import steps: `SRKRCC-Main_APPLICATION_BACKEND/docs/modules
 **Not listed?** The dropdown's footer button switches `CollegeSelect` to a free-text input (`CollegeChoice.otherName`). The typed name is sent as `other_college_name` and stored on the user instead of a catalogue link; picking a catalogue college clears it. `displayCollegeName()` returns whichever one the member has.
 
 **Stale sessions:** `redirectToLogin()` no longer bounces a member off `/login` or `/signup` when background calls 401 with an expired session cookie.
+
+## 14. Hackathon Admin & Participant Conventions
+
+- **Load errors:** admin tabs show `components/admin/hackathon/LoadError.tsx` (message + Retry) when their primary request fails. Never `.catch(() => [])` a primary list: an outage would look like "nothing here yet".
+- **Profile fields:** `src/lib/profileFields.ts` is the single list of profile attributes a hackathon can require (and their labels). It mirrors `apps.forms.models.ProfileField`.
+- **Draft hackathons:** new hackathons are `DRAFT` (admin-only). The Settings tab's "Publish hackathon" runs the server-side checklist; a failure returns `{code: 'PUBLISH_CHECKLIST', items: [...]}`.
+- **Published results:** changing a published round decision needs `confirm_published: true`; the Rounds tab sends it automatically after showing a warning.
+- **Choose Problem:** the public "Choose Problem" buttons link to `/hackathons/{slug}/dashboard?ps=<id>`; the dashboard opens team creation with that statement preselected and then clears the parameter.
+- **Detail page errors:** a 404 from the API is a 404 page; any other failure renders an "unavailable" page instead of masquerading as one.
+- **CSV exports** go through `downloadCSV`, which escapes spreadsheet formulas.
+
+### Hackathon UX conventions (continued)
+
+- **Confirmations:** use `useConfirmDialog()` from `components/ui/ConfirmDialog.tsx` (`await confirm({title, message, danger})`, render the returned `dialog` once) instead of `window.confirm`.
+- **Dates:** hackathon dates are always shown in IST (`formatDateTime` appends "IST"), the same as the public detail page.
+- **Public CTA state:** `useMyHackathonStatus(slug)` shares one cached "my team / invites" lookup between every CTA on a page; call `invalidateMyHackathonStatus(slug)` after a change.
+- **Settings:** the hackathon Settings tab tracks unsaved edits (sticky save bar, `beforeunload` guard).
+- **Background polling** (notification bell) passes `silentAuth` to `fetchApi` so an expired session does not redirect the visitor away from a public page.
+- **Combobox pattern:** the invite search follows the same ARIA combobox/listbox pattern as `CollegeSelect` (arrow keys, Enter, Escape closes the list only).
+
+### Hackathon extras
+
+- **Email invites:** when a leader types an email with no account, `InviteMemberModal` offers "Email them an invite" (`hackathonApi.inviteByEmail`). Pending ones show on the dashboard (`pending_email_invites`) and count against the team's slots.
+- **Forming teams:** the admin Overview tab lists teams below the minimum size with a confirmed "Remind leaders" action.
+- **Locked problem:** the participant `TeamFormModal` hides the problem section when the team already has a round entry (`problemLocked`).
+- **FAQ:** edited in Settings (organizer FAQ); `HackathonFAQSection` shows it instead of the standard FAQ when present.

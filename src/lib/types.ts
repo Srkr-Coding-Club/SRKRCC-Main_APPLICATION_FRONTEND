@@ -108,7 +108,7 @@ export interface Hackathon {
   theme: string;
   description: string;
   prize_pool: string;
-  status?: 'LIVE' | 'CLOSED';
+  status?: 'DRAFT' | 'LIVE' | 'CLOSED';
   start_date: string;
   end_date: string;
   visible_from?: string | null;
@@ -120,12 +120,16 @@ export interface Hackathon {
   form_title?: string;
   registration_count?: number;
   team_count?: number;
+  /** Teams that meet the minimum size (team_count also includes ones still forming). */
+  registered_team_count?: number;
   registration_opens_at?: string | null;
   registration_closes_at?: string | null;
   min_team_size?: number;
   max_team_size?: number;
   team_edits_locked?: boolean;
   required_profile_fields?: ProfileFieldKey[];
+  /** Organizer-written FAQ; empty/absent = the standard FAQ is shown. */
+  faq?: { question: string; answer: string }[];
   is_registration_open?: boolean;
   allow_open_innovation?: boolean;
 }
@@ -139,7 +143,7 @@ export type HackathonTeamStatus = 'FORMING' | 'REGISTERED' | 'DISQUALIFIED' | 'W
 export type TeamInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
 export type RoundStatus = 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
 export type RoundEntryStatus = 'PENDING' | 'SHORTLISTED' | 'REJECTED';
-export type HackathonAnnouncementAudience = 'PUBLIC' | 'PARTICIPANTS' | 'ROUND_ALL' | 'ROUND_SHORTLISTED' | 'TEAMS';
+export type HackathonAnnouncementAudience = 'PUBLIC' | 'PARTICIPANTS' | 'ROUND_ALL' | 'ROUND_SHORTLISTED' | 'ROUND_REJECTED' | 'TEAMS';
 
 export interface ProblemStatement {
   id: number;
@@ -186,6 +190,7 @@ export interface HackathonTeamMember {
   branch?: string | null;
   year?: number | null;
   roll_number?: string | null;
+  college?: string;
 }
 
 export interface HackathonTeamInvite {
@@ -228,6 +233,8 @@ export interface HackathonTeam {
   members: HackathonTeamMember[];
   member_count: number;
   pending_invites: HackathonTeamInvite[];
+  /** Invites to addresses that have no account yet. */
+  pending_email_invites?: { id: number; email: string; created_at: string }[];
   created_at: string;
   updated_at: string;
   /** Admin view only */
@@ -337,6 +344,8 @@ export interface HackathonAnnouncement {
   is_active?: boolean;
   expires_at?: string | null;
   send_email?: boolean;
+  /** When the audience email was dispatched; null = not sent yet. */
+  emailed_at?: string | null;
   created_by_name?: string | null;
 }
 
@@ -348,6 +357,9 @@ export interface HackathonStats {
   open_innovation_teams: number;
   problem_statements: { id: number; code: string; title: string; teams: number; max_teams: number | null }[];
   rounds: ({ id: number; order: number; name: string; results_published: boolean; total: number; details_submitted: number } & Record<RoundEntryStatus, number>)[];
+  forming_teams: { id: number; name: string; leader_email: string | null; members: number; needed: number }[];
+  min_team_size: number;
+  registration_closes_at: string | null;
   is_registration_open: boolean;
 }
 

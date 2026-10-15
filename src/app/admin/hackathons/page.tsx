@@ -89,8 +89,8 @@ export default function AdminHackathonsPage() {
                   <h2 className="font-bold text-[#1A1A2E] dark:text-white">{h.title}</h2>
                   <div className="flex gap-1.5">
                     {h.is_hidden && <StatusPill tone="slate">Hidden</StatusPill>}
-                    <StatusPill tone={h.is_registration_open ? 'green' : 'slate'}>
-                      {h.is_registration_open ? 'Registration open' : h.status === 'CLOSED' ? 'Closed' : 'Registration not open'}
+                    <StatusPill tone={h.status === 'DRAFT' ? 'amber' : h.is_registration_open ? 'green' : 'slate'}>
+                      {h.status === 'DRAFT' ? 'Draft' : h.is_registration_open ? 'Registration open' : h.status === 'CLOSED' ? 'Closed' : 'Registration not open'}
                     </StatusPill>
                   </div>
                 </div>

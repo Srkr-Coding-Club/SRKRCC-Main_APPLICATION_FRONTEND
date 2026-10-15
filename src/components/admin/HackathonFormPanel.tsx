@@ -7,6 +7,8 @@ import { Hackathon, Form } from '@/lib/types';
 import { slugify } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { apiErrorMessage } from '@/lib/api/hackathons';
+import { firstFieldErrors } from '@/components/admin/hackathon/shared';
 
 interface HackathonFormPanelProps {
   isOpen: boolean;
@@ -130,12 +132,21 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
         ? await fetchApi<Hackathon>(`/hackathons/${hackathon!.slug}/`, { method: 'PATCH', body: JSON.stringify(body) })
         : await fetchApi<Hackathon>('/hackathons/', { method: 'POST', body: JSON.stringify(body) });
 
-      toast.success(isEditMode ? 'Hackathon Updated' : 'Hackathon Created', `"${saved.title}" is saved.`);
+      toast.success(
+        isEditMode ? 'Hackathon Updated' : 'Hackathon Created as a draft',
+        isEditMode ? `"${saved.title}" is saved.` : `"${saved.title}" is private until you publish it from Settings.`,
+      );
       onSaved(saved);
       if (!isEditMode) resetForm();
       onClose();
     } catch (err: any) {
-      toast.error(isEditMode ? 'Could Not Update Hackathon' : 'Could Not Create Hackathon', err?.message || 'Please check the form and try again.');
+      const serverErrors = firstFieldErrors(err?.body);
+      const anchored: Record<string, string> = {};
+      for (const [field, message] of Object.entries(serverErrors)) {
+        anchored[{ start_date: 'startDate', end_date: 'endDate' }[field] ?? field] = message;
+      }
+      setErrors(anchored);
+      toast.error(isEditMode ? 'Could Not Update Hackathon' : 'Could Not Create Hackathon', apiErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -193,8 +204,10 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
                 setSlug(slugify(e.target.value));
               }}
               placeholder="iconcoders-2026-flagship"
-              className={inputClasses}
+              disabled={isEditMode}
+              className={`${inputClasses} disabled:opacity-60`}
             />
+            {isEditMode && <p className="mt-1 text-[11px] text-slate-400">The slug is part of every shared link, so it cannot change.</p>}
             {errors.slug && <p className="mt-1 text-[11px] text-rose-500">{errors.slug}</p>}
           </div>
 

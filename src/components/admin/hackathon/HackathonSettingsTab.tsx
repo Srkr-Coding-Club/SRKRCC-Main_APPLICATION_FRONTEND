@@ -1,20 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Lock, Save, Unlock, Sparkles, Calendar, Trophy, Users, Shield, FileText, Image as ImageIcon } from 'lucide-react';
+import { HelpCircle, Lock, Save, Unlock, Sparkles, Calendar, Trophy, Users, Shield, FileText, Image as ImageIcon } from 'lucide-react';
 import type { Hackathon, ProfileFieldKey } from '@/lib/types';
+import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
+import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
 
-const PROFILE_FIELDS: { key: ProfileFieldKey; label: string }[] = [
-  { key: 'full_name', label: 'Full name' },
-  { key: 'phone_number', label: 'Phone number' },
-  { key: 'branch', label: 'Branch' },
-  { key: 'year', label: 'Year' },
-  { key: 'roll_number', label: 'Roll number' },
-  { key: 'club_id', label: 'Club ID' },
-];
 
 export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackathon; onSaved: (h: Hackathon) => void }) {
   const { toast } = useToast();
@@ -41,9 +36,18 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const [locked, setLocked] = useState(false);
   const [openInnovation, setOpenInnovation] = useState(true);
   const [required, setRequired] = useState<ProfileFieldKey[]>([]);
+  const [faq, setFaq] = useState<{ question: string; answer: string }[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState('');
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
+
+  const currentSnapshot = JSON.stringify([
+    title, theme, prizePool, bannerImage, isFlagship, description, startDate, endDate, visibleFrom, visibleUntil,
+    opensAt, closesAt, minSize, maxSize, locked, openInnovation, required, faq,
+  ]);
+  const dirty = savedSnapshot !== '' && currentSnapshot !== savedSnapshot;
 
   useEffect(() => {
     setTitle(hackathon.title || '');
@@ -65,7 +69,29 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setLocked(!!hackathon.team_edits_locked);
     setOpenInnovation(hackathon.allow_open_innovation ?? true);
     setRequired(hackathon.required_profile_fields ?? []);
+    setFaq(hackathon.faq ?? []);
+    setSavedSnapshot(JSON.stringify([
+      hackathon.title || '', hackathon.theme || '', hackathon.prize_pool || '₹50,000', hackathon.banner_image || '',
+      !!hackathon.is_flagship, hackathon.description || '',
+      toLocalInput(hackathon.start_date), toLocalInput(hackathon.end_date),
+      toLocalInput(hackathon.visible_from), toLocalInput(hackathon.visible_until),
+      toLocalInput(hackathon.registration_opens_at), toLocalInput(hackathon.registration_closes_at),
+      String(hackathon.min_team_size ?? 1), String(hackathon.max_team_size ?? 4),
+      !!hackathon.team_edits_locked, hackathon.allow_open_innovation ?? true, hackathon.required_profile_fields ?? [],
+      hackathon.faq ?? [],
+    ]));
   }, [hackathon]);
+
+  // Leaving the page with edits that were never saved is almost always a mistake.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +102,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         title: title.trim(),
         theme: theme.trim(),
         prize_pool: prizePool.trim(),
-        banner_image: bannerImage.trim() || undefined,
+        banner_image: bannerImage.trim() || null,
         is_flagship: isFlagship,
         description: description,
 
@@ -92,6 +118,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         team_edits_locked: locked,
         allow_open_innovation: openInnovation,
         required_profile_fields: required,
+        faq: faq.map((item) => ({ question: item.question.trim(), answer: item.answer.trim() })),
       };
 
       const saved = await hackathonApi.admin.update(hackathon.slug, payload);
@@ -105,7 +132,29 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     }
   };
 
+  const publish = async () => {
+    setBusy(true);
+    try {
+      onSaved(await hackathonApi.admin.publish(hackathon.slug));
+      toast.success('Hackathon published', 'It is now public and teams can register.');
+    } catch (err: any) {
+      const items: string[] = err?.body?.items ?? [];
+      toast.error('Not ready to publish', items.length ? items.join(' ') : apiErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const toggleOpen = async () => {
+    if (hackathon.status !== 'CLOSED') {
+      const ok = await confirm({
+        title: 'Close this hackathon?',
+        message: 'Teams can no longer be created, joined or changed by participants until you reopen it. Existing teams and rounds are untouched.',
+        confirmLabel: 'Close hackathon',
+        danger: true,
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     try {
       const saved = await hackathonApi.admin.setOpen(hackathon.slug, hackathon.status === 'CLOSED');
@@ -119,9 +168,11 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   };
 
   const closed = hackathon.status === 'CLOSED';
+  const draft = hackathon.status === 'DRAFT';
 
   return (
     <form onSubmit={save} className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      {confirmDialog}
       <div className="space-y-6">
         {/* Section 1: General Event Info */}
         <section className={`${PANEL} space-y-4`}>
@@ -249,6 +300,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
                 onChange={(e) => setVisibleUntil(e.target.value)}
                 className={INPUT}
               />
+              {errors.visible_until && <p className="mt-1 text-[11px] text-rose-500">{errors.visible_until}</p>}
               <p className="mt-1 text-[11px] text-slate-400">After this date, the hackathon is hidden from the public.</p>
             </div>
           </div>
@@ -265,15 +317,57 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             rules, tracks, schedule details, accommodation guidelines, and judging rubrics.
           </p>
           <div>
-            <textarea
-              rows={12}
+            <MarkdownEditor
+              label="Description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
               placeholder="Write event overview, guidelines, perks, and rules in Markdown..."
-              className={`${INPUT} font-mono text-xs`}
             />
             {errors.description && <p className="mt-1 text-[11px] text-rose-500">{errors.description}</p>}
           </div>
+        </section>
+
+        {/* FAQ shown on the public page */}
+        <section className={`${PANEL} space-y-4`}>
+          <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+            <HelpCircle className="h-4 w-4 text-[#FF7A00]" />
+            FAQ
+          </h3>
+          <p className="text-xs text-slate-500">
+            Questions shown on the public FAQ tab. Leave this empty to show the standard FAQ (eligibility, team size, problem statements).
+          </p>
+          <ul className="space-y-3">
+            {faq.map((item, index) => (
+              <li key={index} className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                <input
+                  value={item.question}
+                  maxLength={200}
+                  onChange={(e) => setFaq((prev) => prev.map((x, i) => (i === index ? { ...x, question: e.target.value } : x)))}
+                  placeholder="Question"
+                  aria-label={`FAQ question ${index + 1}`}
+                  className={INPUT}
+                />
+                <textarea
+                  value={item.answer}
+                  maxLength={2000}
+                  rows={3}
+                  onChange={(e) => setFaq((prev) => prev.map((x, i) => (i === index ? { ...x, answer: e.target.value } : x)))}
+                  placeholder="Answer"
+                  aria-label={`FAQ answer ${index + 1}`}
+                  className={INPUT}
+                />
+                <div className="flex justify-end gap-1.5">
+                  <button type="button" disabled={index === 0} onClick={() => setFaq((prev) => { const next = [...prev]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; })} className={BTN_GHOST}>Up</button>
+                  <button type="button" disabled={index === faq.length - 1} onClick={() => setFaq((prev) => { const next = [...prev]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; return next; })} className={BTN_GHOST}>Down</button>
+                  <button type="button" onClick={() => setFaq((prev) => prev.filter((_, i) => i !== index))} className="rounded-lg px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-500/10 dark:text-rose-400">Remove</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {errors.faq && <p className="text-[11px] text-rose-500">{errors.faq}</p>}
+          <button type="button" disabled={faq.length >= 20} onClick={() => setFaq((prev) => [...prev, { question: '', answer: '' }])} className={BTN_GHOST}>
+            Add a question
+          </button>
         </section>
 
         {/* Section 4: Team Registration Rules */}
@@ -313,7 +407,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
               Every member must have these on their SRKRCC profile to create or join a team. No re-typing during registration.
             </p>
             <div className="flex flex-wrap gap-2">
-              {PROFILE_FIELDS.map((f) => {
+              {PROFILE_FIELD_OPTIONS.map((f) => {
                 const on = required.includes(f.key);
                 return (
                   <button
@@ -364,26 +458,43 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             </span>
           </label>
 
-          <div className="flex justify-end pt-2">
+          
+        </section>
+      </div>
+
+      {dirty && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-[#0D0E15]/95"
+          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">You have unsaved changes.</p>
             <button type="submit" disabled={busy} className={BTN_PRIMARY}>
               <Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save all settings'}
             </button>
           </div>
-        </section>
-      </div>
+        </div>
+      )}
 
       {/* Right Sidebar: Status & Actions */}
       <aside className="space-y-4 lg:sticky lg:top-24 self-start">
         <div className={`${PANEL} space-y-3`}>
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Registration Status</h3>
           <p className="text-xs text-slate-500 leading-relaxed">
-            {closed
-              ? 'Closed: registration is shut regardless of the window dates.'
-              : hackathon.is_registration_open
-                ? 'Live and accepting team registrations.'
-                : 'Live, but currently outside the registration window.'}
+            {draft
+              ? 'Draft: only admins can see this hackathon. Finish the settings, add problem statements, then publish.'
+              : closed
+                ? 'Closed: registration is shut regardless of the window dates.'
+                : hackathon.is_registration_open
+                  ? 'Live and accepting team registrations.'
+                  : 'Live, but currently outside the registration window.'}
           </p>
-          <button type="button" onClick={toggleOpen} disabled={busy} className={BTN_GHOST}>
+          {draft && (
+            <button type="button" onClick={publish} disabled={busy} className={BTN_PRIMARY}>
+              <Unlock className="h-3.5 w-3.5" /> Publish hackathon
+            </button>
+          )}
+          <button type="button" onClick={toggleOpen} disabled={busy || draft} className={`${BTN_GHOST} ${draft ? 'hidden' : ''}`}>
             {closed ? (
               <>
                 <Unlock className="h-3.5 w-3.5" /> Reopen hackathon
