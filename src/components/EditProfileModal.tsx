@@ -10,9 +10,13 @@ import {
   sanitizePhoneNumberInput,
   sanitizeRollNumberInput,
   validateFullName,
+  validateOtherCollegeName,
   validatePhoneNumber,
   validateRollNumber,
 } from '@/lib/validation/auth';
+
+import { CollegeSelect } from '@/components/CollegeSelect';
+import { College, CollegeChoice, collegeChoiceFromProfile } from '@/lib/colleges';
 
 // Kept in sync with the Branch options offered on the signup form.
 const BRANCH_OPTIONS = ['CSE', 'IT', 'AIML', 'AIDS', 'CIC', 'CSBS', 'CSIT', 'CSD', 'ECE', 'EEE', 'MECH', 'CIVIL'];
@@ -27,6 +31,8 @@ interface EditableProfile {
   github_profile?: string;
   linkedin_profile?: string;
   roll_number?: string;
+  college?: College | null;
+  other_college_name?: string;
 }
 
 interface EditProfileModalProps {
@@ -132,6 +138,8 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
   const { toast } = useToast();
   const [form, setForm] = useState<FormState>(() => toFormState(profile));
   const [initialForm, setInitialForm] = useState<FormState>(() => toFormState(profile));
+  const [college, setCollege] = useState<CollegeChoice>(() => collegeChoiceFromProfile(profile));
+  const [collegeError, setCollegeError] = useState<string | undefined>();
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -144,6 +152,8 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
       const seeded = toFormState(profile);
       setForm(seeded);
       setInitialForm(seeded);
+      setCollege(collegeChoiceFromProfile(profile));
+      setCollegeError(undefined);
       setErrors({});
     }
   }, [isOpen, profile]);
@@ -188,6 +198,9 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
     e.preventDefault();
 
     const validationErrors = validateForm(form, rollNumberLocked);
+    const otherCollegeError = college.otherName !== null ? validateOtherCollegeName(college.otherName) : undefined;
+    setCollegeError(otherCollegeError);
+    if (otherCollegeError) return;
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -202,6 +215,16 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
         if (form[key] === initialForm[key]) return;
         payload[key] = key === 'year' ? (form.year ? Number(form.year) : null) : form[key];
       });
+
+      if (college.otherName !== null) {
+        const typedName = college.otherName.trim();
+        if (profile?.college || typedName !== (profile?.other_college_name || '')) {
+          payload.college_id = null;
+          payload.other_college_name = typedName;
+        }
+      } else if (college.college && college.college.id !== profile?.college?.id) {
+        payload.college_id = college.college.id;
+      }
 
       if (Object.keys(payload).length === 0) {
         onClose();
@@ -227,6 +250,8 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
           if (value) fieldErrors[key] = Array.isArray(value) ? String(value[0]) : String(value);
         });
         if (Object.keys(fieldErrors).length > 0) setErrors(fieldErrors);
+        const collegeServerError = body.college_id || body.other_college_name;
+        if (collegeServerError) setCollegeError(Array.isArray(collegeServerError) ? String(collegeServerError[0]) : String(collegeServerError));
       }
       toast.error('Update Failed', err?.message || 'Could not save your profile changes. Please try again.');
     } finally {
@@ -352,6 +377,24 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
               )}
               <FieldError id="edit-profile-roll-number-error" message={errors.roll_number} />
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="edit-profile-college" className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
+              College
+            </label>
+            <CollegeSelect
+              id="edit-profile-college"
+              value={college}
+              onChange={(selected) => {
+                setCollege(selected);
+                setCollegeError(undefined);
+              }}
+              disabled={isSubmitting}
+              aria-invalid={Boolean(collegeError)}
+              aria-describedby={collegeError ? 'edit-profile-college-error' : undefined}
+            />
+            <FieldError id="edit-profile-college-error" message={collegeError} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

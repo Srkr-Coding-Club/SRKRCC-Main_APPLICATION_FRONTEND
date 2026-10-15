@@ -14,6 +14,7 @@ interface UserRecord {
   name: string;
   email: string;
   rollNumber: string;
+  collegeName?: string | null;
   branch: string;
   year: string;
   role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
@@ -327,6 +328,7 @@ function UserDrawerContent({
           initialValue={user.rollNumber !== 'Not set' ? user.rollNumber : ''}
           onSave={onRollNumberChange}
         />
+        <DrawerField label="College" value={user.collegeName} />
         <DrawerField label="Branch" value={user.branch} />
         <DrawerField label="Year" value={user.year} />
       </DrawerSection>

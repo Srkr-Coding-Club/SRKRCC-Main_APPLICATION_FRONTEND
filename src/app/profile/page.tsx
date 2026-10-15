@@ -30,6 +30,7 @@ import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated, AuthUs
 import { fetchApi } from '@/lib/api-client';
 import { ordinalYear } from '@/lib/utils';
 import { EditProfileModal } from '@/components/EditProfileModal';
+import { College, displayCollegeName } from '@/lib/colleges';
 import { MyHackathonsPanel } from '@/components/hackathons/MyHackathonsPanel';
 import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
 
@@ -65,6 +66,8 @@ interface FullUserProfile {
   club_id?: string;
   membership_status?: string;
   roll_number?: string;
+  college?: College | null;
+  other_college_name?: string;
   branch?: string;
   year?: number | string;
   phone_number?: string;
@@ -143,6 +146,8 @@ function ProfileContent() {
         club_id: localUser.club_id,
         membership_status: localUser.membership_status || 'ACTIVE',
         roll_number: localUser.roll_number,
+        college: localUser.college,
+        other_college_name: localUser.other_college_name,
         branch: localUser.branch,
         year: localUser.year,
         phone_number: localUser.phone_number,
@@ -175,6 +180,8 @@ function ProfileContent() {
             club_id: data.club_id,
             membership_status: data.membership_status,
             roll_number: data.roll_number,
+            college: data.college,
+            other_college_name: data.other_college_name,
             branch: data.branch,
             year: data.year,
             phone_number: data.phone_number,
@@ -211,6 +218,8 @@ function ProfileContent() {
       club_id: data.club_id,
       membership_status: data.membership_status,
       roll_number: data.roll_number,
+      college: data.college,
+      other_college_name: data.other_college_name,
       branch: data.branch,
       year: data.year,
       phone_number: data.phone_number,
@@ -240,6 +249,7 @@ function ProfileContent() {
     clubId: profile?.club_id || null,
     membershipStatus: profile?.membership_status || 'ACTIVE',
     rollNumber: profile?.roll_number || 'Not set',
+    collegeName: displayCollegeName(profile),
     branch: profile?.branch || 'Not set',
     year: profile?.year ? ordinalYear(Number(profile.year)) : 'Not set',
     role: profile?.role || 'NON_AFFILIATE',
@@ -342,6 +352,9 @@ function ProfileContent() {
               <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
                 {user.rollNumber} • {user.branch} ({user.year})
               </p>
+              {user.collegeName && (
+                <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">{user.collegeName}</p>
+              )}
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400 dark:text-slate-500">
                 <span className="font-mono">{user.email}</span>

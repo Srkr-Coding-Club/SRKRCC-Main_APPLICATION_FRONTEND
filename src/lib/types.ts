@@ -596,6 +596,7 @@ export type ProfileFieldKey =
   | 'phone_number'
   | 'branch'
   | 'roll_number'
+  | 'college'
   | 'year'
   | 'club_id';
 

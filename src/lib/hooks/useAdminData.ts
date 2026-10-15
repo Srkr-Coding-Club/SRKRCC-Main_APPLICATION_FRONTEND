@@ -42,6 +42,7 @@ export interface UserRecord {
   name: string;
   email: string;
   rollNumber: string;
+  collegeName?: string | null;
   branch: string;
   year: string;
   role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
@@ -322,6 +323,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
               name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email,
               email: u.email,
               rollNumber: u.roll_number || 'Not set',
+              collegeName: u.college?.name || u.other_college_name || null,
               branch: u.branch || 'CSE',
               year: formatYearOrdinal(u.year),
               role: u.role || 'NON_AFFILIATE',

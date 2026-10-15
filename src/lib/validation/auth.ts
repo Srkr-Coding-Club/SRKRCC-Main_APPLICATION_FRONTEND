@@ -36,6 +36,22 @@ export function validateFullName(value: string): string | undefined {
   return undefined;
 }
 
+const OTHER_COLLEGE_NAME_REGEX = /^[A-Za-z0-9À-ÖØ-öø-ÿ][A-Za-z0-9À-ÖØ-öø-ÿ &.,'()/-]*$/;
+const OTHER_COLLEGE_NAME_MIN_LENGTH = 3;
+const OTHER_COLLEGE_NAME_MAX_LENGTH = 150;
+
+/** For the "my college isn't listed" free-text field. Mirrors apps/accounts/validators.py. */
+export function validateOtherCollegeName(value: string): string | undefined {
+  const name = normalizeName(value);
+  if (!name) return 'Enter your college name.';
+  if (name.length < OTHER_COLLEGE_NAME_MIN_LENGTH) return `College name must be at least ${OTHER_COLLEGE_NAME_MIN_LENGTH} characters long.`;
+  if (name.length > OTHER_COLLEGE_NAME_MAX_LENGTH) return `College name must be at most ${OTHER_COLLEGE_NAME_MAX_LENGTH} characters long.`;
+  if (!OTHER_COLLEGE_NAME_REGEX.test(name)) return "College name may only contain letters, numbers, spaces and . , & ' ( ) / -";
+  return undefined;
+}
+
+export { OTHER_COLLEGE_NAME_MAX_LENGTH };
+
 /** Splits a validated full name into the first/last pair the API expects. */
 export function splitFullName(value: string): { firstName: string; lastName: string } {
   const parts = normalizeName(value).split(' ');
@@ -247,7 +263,7 @@ export function getPasswordStrength(
 
 /** Field errors keyed by the signup form's own field names. */
 export type SignupFieldErrors = Partial<
-  Record<'fullName' | 'email' | 'rollNumber' | 'branch' | 'year' | 'phoneNumber' | 'affiliateId' | 'password' | 'confirmPassword', string>
+  Record<'fullName' | 'email' | 'rollNumber' | 'college' | 'branch' | 'year' | 'phoneNumber' | 'affiliateId' | 'password' | 'confirmPassword', string>
 >;
 
 const API_FIELD_TO_FORM_FIELD: Record<string, keyof SignupFieldErrors> = {
@@ -256,6 +272,8 @@ const API_FIELD_TO_FORM_FIELD: Record<string, keyof SignupFieldErrors> = {
   username: 'email', // username is derived from email; never shown as its own field
   email: 'email',
   roll_number: 'rollNumber',
+  college_id: 'college',
+  other_college_name: 'college',
   branch: 'branch',
   year: 'year',
   phone_number: 'phoneNumber',

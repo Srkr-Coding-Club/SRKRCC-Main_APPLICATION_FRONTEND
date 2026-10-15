@@ -296,3 +296,19 @@ The home page (`src/app/page.tsx`) tells one story: **from your first `printf` t
 **Design tokens.** The journey uses the club's brand palette, the same one as the rest of the site. `journey-*` colors in `tailwind.config.ts` read RGB variables from `globals.css` and flip with the theme. Dark: background `#0D0E15`, surface `#151722`, text `#F5F5F5`, muted slate, accent brand orange `#FF7A00`, live states brand gold `#FFA500`. Light: the site's `#FAFAFC` and navy `#1A1A2E`, accent `#C2410C` (orange that keeps 4.5:1 contrast), live states burgundy `#8B2E3B`. The primary action uses the brand gradient (`#8B2E3B` to `#FF7A00` to `#FFA500`), matching `PillButton`. Type: Archivo (`font-display`, semi-expanded via `font-stretch: 112%`) for headings, Inter for body, JetBrains Mono only inside demonstrations.
 
 **Fonts.** All four families load through `next/font/google` in `src/app/layout.tsx` (self-hosted, applied as CSS variables on `<body>`). The previous `@import` of Google Fonts in `globals.css` was being dropped by the bundler, so those fonts never loaded.
+
+## 13. College Selection (Signup & Profile)
+
+`src/components/CollegeSelect.tsx` is a searchable combobox used on the signup card and in the Edit Profile modal.
+
+- **Data**: `GET /api/colleges/` through the BFF proxy (`fetchColleges` in `src/lib/colleges.ts`). It is a plain `fetch`, not `fetchApi`: the endpoint is public, so a 401 must never redirect to login, and the caller's `AbortSignal` must be honoured.
+- **Debounce**: the search box is debounced 300 ms (`useDebouncedValue`).
+- **Lazy loading**: `useCollegeSearch` loads 30 rows per page; an `IntersectionObserver` sentinel at the bottom of the list requests the next page. A new query aborts the in-flight request and restarts at page 1, so stale responses can never overwrite fresh results.
+- **Default**: `value === null` means "not chosen": the UI shows SRKR Engineering College and signup sends no `college_id`, so the backend applies the default.
+- **Other places**: shown on the profile page and the admin user drawer; selectable as a profile-bound question in the form builder, and matched by label ("College", "University") in form prefill.
+
+Backend contract and import steps: `SRKRCC-Main_APPLICATION_BACKEND/docs/modules/colleges.md`.
+
+**Not listed?** The dropdown's footer button switches `CollegeSelect` to a free-text input (`CollegeChoice.otherName`). The typed name is sent as `other_college_name` and stored on the user instead of a catalogue link; picking a catalogue college clears it. `displayCollegeName()` returns whichever one the member has.
+
+**Stale sessions:** `redirectToLogin()` no longer bounces a member off `/login` or `/signup` when background calls 401 with an expired session cookie.
