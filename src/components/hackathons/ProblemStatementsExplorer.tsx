@@ -23,6 +23,8 @@ interface ProblemStatementsExplorerProps {
   allowOpenInnovation: boolean;
   hackathonSlug: string;
   isRegistrationOpen: boolean;
+  /** The admin's domain order; domains not in it follow alphabetically. */
+  domainOrder?: string[];
 }
 
 export function ProblemStatementsExplorer({
@@ -30,6 +32,7 @@ export function ProblemStatementsExplorer({
   allowOpenInnovation,
   hackathonSlug,
   isRegistrationOpen,
+  domainOrder = [],
 }: ProblemStatementsExplorerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomain, setSelectedDomain] = useState<string>('ALL');
@@ -38,9 +41,13 @@ export function ProblemStatementsExplorer({
 
   // Compute unique domains
   const domains = useMemo(() => {
-    const list = Array.from(new Set(problems.map((p) => p.domain).filter(Boolean)));
-    return ['ALL', ...list.sort()];
-  }, [problems]);
+    const used = Array.from(new Set(problems.map((p) => p.domain).filter(Boolean)));
+    const rank = (domain: string) => {
+      const index = domainOrder.findIndex((name) => name.toLowerCase() === domain.toLowerCase());
+      return index === -1 ? domainOrder.length : index;
+    };
+    return ['ALL', ...used.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))];
+  }, [problems, domainOrder]);
 
   // Filter problems
   const filteredProblems = useMemo(() => {

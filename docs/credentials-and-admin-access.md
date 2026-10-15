@@ -19,9 +19,11 @@ The SRKRCC frontend implements a **Backend-For-Frontend (BFF) HttpOnly Cookie Ar
 
 ---
 
-## 2. Pre-Configured Credentials
+## 2. Pre-Configured Credentials (development only)
 
-The database comes provisioned with the following credentials:
+> These accounts exist only after the backend demo seeders run, which refuse to run unless `DEBUG=True`. In production the admin comes from `DJANGO_SUPERUSER_PASSWORD` (no default, weak passwords rejected). Users created from the admin panel without a password get a random one and must use the password-reset flow.
+
+A local `DEBUG=True` database seeded with demo data has these credentials:
 
 | Portal | Email | Password | Role | Permissions & Clearances |
 | :--- | :--- | :--- | :--- | :--- |

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { HelpCircle, Lock, Save, Unlock, Sparkles, Calendar, Trophy, Users, Shield, FileText, Image as ImageIcon } from 'lucide-react';
+import { HelpCircle, LayoutTemplate, Lock, Save, Unlock, Sparkles, Calendar, Trophy, Users, Shield, FileText, Image as ImageIcon } from 'lucide-react';
 import type { Hackathon, ProfileFieldKey } from '@/lib/types';
 import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
@@ -37,6 +37,12 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const [openInnovation, setOpenInnovation] = useState(true);
   const [required, setRequired] = useState<ProfileFieldKey[]>([]);
   const [faq, setFaq] = useState<{ question: string; answer: string }[]>([]);
+  const [mode, setMode] = useState<NonNullable<Hackathon['mode']>>('ONLINE');
+  const [venue, setVenue] = useState('');
+  const [organizer, setOrganizer] = useState('');
+  const [logoImage, setLogoImage] = useState('');
+  const [tagsText, setTagsText] = useState('');
+  const [prizes, setPrizes] = useState<{ title: string; amount: string; description: string }[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -46,6 +52,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const currentSnapshot = JSON.stringify([
     title, theme, prizePool, bannerImage, isFlagship, description, startDate, endDate, visibleFrom, visibleUntil,
     opensAt, closesAt, minSize, maxSize, locked, openInnovation, required, faq,
+    mode, venue, organizer, logoImage, tagsText, prizes,
   ]);
   const dirty = savedSnapshot !== '' && currentSnapshot !== savedSnapshot;
 
@@ -70,6 +77,12 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setOpenInnovation(hackathon.allow_open_innovation ?? true);
     setRequired(hackathon.required_profile_fields ?? []);
     setFaq(hackathon.faq ?? []);
+    setMode(hackathon.mode ?? 'ONLINE');
+    setVenue(hackathon.venue ?? '');
+    setOrganizer(hackathon.organizer_name ?? '');
+    setLogoImage(hackathon.logo_image ?? '');
+    setTagsText((hackathon.tags ?? []).join(', '));
+    setPrizes(hackathon.prizes ?? []);
     setSavedSnapshot(JSON.stringify([
       hackathon.title || '', hackathon.theme || '', hackathon.prize_pool || '₹50,000', hackathon.banner_image || '',
       !!hackathon.is_flagship, hackathon.description || '',
@@ -79,6 +92,8 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
       String(hackathon.min_team_size ?? 1), String(hackathon.max_team_size ?? 4),
       !!hackathon.team_edits_locked, hackathon.allow_open_innovation ?? true, hackathon.required_profile_fields ?? [],
       hackathon.faq ?? [],
+      hackathon.mode ?? 'ONLINE', hackathon.venue ?? '', hackathon.organizer_name ?? '', hackathon.logo_image ?? '',
+      (hackathon.tags ?? []).join(', '), hackathon.prizes ?? [],
     ]));
   }, [hackathon]);
 
@@ -119,6 +134,12 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         allow_open_innovation: openInnovation,
         required_profile_fields: required,
         faq: faq.map((item) => ({ question: item.question.trim(), answer: item.answer.trim() })),
+        mode,
+        venue: venue.trim(),
+        organizer_name: organizer.trim(),
+        logo_image: logoImage.trim() || null,
+        tags: tagsText.split(',').map((tag) => tag.trim()).filter(Boolean),
+        prizes: prizes.map((prize) => ({ title: prize.title.trim(), amount: prize.amount.trim(), description: prize.description.trim() })),
       };
 
       const saved = await hackathonApi.admin.update(hackathon.slug, payload);
@@ -324,6 +345,98 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
               placeholder="Write event overview, guidelines, perks, and rules in Markdown..."
             />
             {errors.description && <p className="mt-1 text-[11px] text-rose-500">{errors.description}</p>}
+          </div>
+        </section>
+
+        {/* How the public hackathon page looks */}
+        <section className={`${PANEL} space-y-4`}>
+          <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+            <LayoutTemplate className="h-4 w-4 text-[#FF7A00]" />
+            Public Page Presentation
+          </h3>
+          <p className="text-xs text-slate-500">
+            What visitors see on the hackathon page. The stages timeline has its own tab (Public Timeline).
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={LABEL}>Event format</label>
+              <select value={mode} onChange={(e) => setMode(e.target.value as NonNullable<Hackathon['mode']>)} className={INPUT}>
+                <option value="ONLINE">Online</option>
+                <option value="OFFLINE">Offline</option>
+                <option value="HYBRID">Hybrid</option>
+              </select>
+              {errors.mode && <p className="mt-1 text-[11px] text-rose-500">{errors.mode}</p>}
+            </div>
+            <div>
+              <label className={LABEL}>Venue {mode === 'ONLINE' && <span className="font-medium normal-case text-slate-400">(shown for offline / hybrid)</span>}</label>
+              <input value={venue} onChange={(e) => setVenue(e.target.value)} maxLength={200} placeholder="e.g. SRKR Engineering College, Bhimavaram" className={INPUT} />
+              {errors.venue && <p className="mt-1 text-[11px] text-rose-500">{errors.venue}</p>}
+            </div>
+            <div>
+              <label className={LABEL}>Organizer</label>
+              <input value={organizer} onChange={(e) => setOrganizer(e.target.value)} maxLength={150} placeholder="Blank = SRKR Coding Club, SRKR Engineering College" className={INPUT} />
+            </div>
+            <div>
+              <label className={LABEL}>Logo image URL</label>
+              <input type="url" value={logoImage} onChange={(e) => setLogoImage(e.target.value)} placeholder="https://..." className={INPUT} />
+              {errors.logo_image && <p className="mt-1 text-[11px] text-rose-500">{errors.logo_image}</p>}
+            </div>
+          </div>
+          <div>
+            <label className={LABEL}>Tags</label>
+            <input value={tagsText} onChange={(e) => setTagsText(e.target.value)} placeholder="Technology & Coding, Data Science, Management" className={INPUT} />
+            <p className="mt-1 text-[11px] text-slate-400">Comma separated, up to 10. Shown as the category line under the title.</p>
+            {errors.tags && <p className="mt-1 text-[11px] text-rose-500">{errors.tags}</p>}
+          </div>
+
+          <div className="space-y-3">
+            <label className={LABEL}>Prizes</label>
+            <p className="text-[11px] text-slate-400">Leave empty to show just the prize pool above as one card.</p>
+            <ul className="space-y-3">
+              {prizes.map((prize, index) => (
+                <li key={index} className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input
+                      value={prize.title}
+                      maxLength={100}
+                      onChange={(e) => setPrizes((prev) => prev.map((x, i) => (i === index ? { ...x, title: e.target.value } : x)))}
+                      placeholder="Title, e.g. Winner"
+                      aria-label={`Prize ${index + 1} title`}
+                      className={INPUT}
+                    />
+                    <input
+                      value={prize.amount}
+                      maxLength={60}
+                      onChange={(e) => setPrizes((prev) => prev.map((x, i) => (i === index ? { ...x, amount: e.target.value } : x)))}
+                      placeholder="Amount, e.g. ₹25,000"
+                      aria-label={`Prize ${index + 1} amount`}
+                      className={INPUT}
+                    />
+                  </div>
+                  <input
+                    value={prize.description}
+                    maxLength={500}
+                    onChange={(e) => setPrizes((prev) => prev.map((x, i) => (i === index ? { ...x, description: e.target.value } : x)))}
+                    placeholder="Extra details (optional), e.g. Cash prize, trophy and certificates"
+                    aria-label={`Prize ${index + 1} description`}
+                    className={INPUT}
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setPrizes((prev) => prev.filter((_, i) => i !== index))}
+                      className="rounded-lg px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-500/10 dark:text-rose-400"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {errors.prizes && <p className="text-[11px] text-rose-500">{errors.prizes}</p>}
+            <button type="button" disabled={prizes.length >= 12} onClick={() => setPrizes((prev) => [...prev, { title: '', amount: '', description: '' }])} className={BTN_GHOST}>
+              Add a prize
+            </button>
           </div>
         </section>
 

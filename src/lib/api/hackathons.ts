@@ -4,6 +4,7 @@ import type {
   Hackathon,
   HackathonAnnouncement,
   HackathonRound,
+  HackathonStage,
   HackathonStats,
   HackathonTeam,
   HackathonTeamInvite,
@@ -79,6 +80,19 @@ export const hackathonApi = {
     setOpen: (slug: string, open: boolean) =>
       fetchApi<Hackathon>(`/hackathons/${enc(slug)}/${open ? 'reopen' : 'close'}/`, json({})),
     remindForming: (slug: string) => fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/remind-forming/`, json({})),
+    timeline: {
+      list: (slug: string) => fetchApi<HackathonStage[]>(`/hackathons/${enc(slug)}/timeline/`),
+      create: (slug: string, body: Partial<HackathonStage>) =>
+        fetchApi<HackathonStage>(`/hackathons/${enc(slug)}/timeline/`, json(body)),
+      update: (slug: string, id: number, body: Partial<HackathonStage>) =>
+        fetchApi<HackathonStage>(`/hackathons/${enc(slug)}/timeline/${id}/`, patch(body)),
+      remove: (slug: string, id: number) =>
+        fetchApi<{ deleted: true }>(`/hackathons/${enc(slug)}/timeline/${id}/`, { method: 'DELETE' }),
+      reorder: (slug: string, ids: number[]) =>
+        fetchApi<HackathonStage[]>(`/hackathons/${enc(slug)}/timeline/reorder/`, json({ ids })),
+      importRounds: (slug: string) =>
+        fetchApi<{ created: number; stages: HackathonStage[] }>(`/hackathons/${enc(slug)}/timeline/import-rounds/`, json({})),
+    },
     publish: (slug: string) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/publish/`, json({})),
     stats: (slug: string) => fetchApi<HackathonStats>(`/hackathons/${enc(slug)}/stats/`),
 

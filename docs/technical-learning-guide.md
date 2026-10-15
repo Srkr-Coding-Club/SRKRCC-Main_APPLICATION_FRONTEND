@@ -338,3 +338,15 @@ Backend contract and import steps: `SRKRCC-Main_APPLICATION_BACKEND/docs/modules
 - **Forming teams:** the admin Overview tab lists teams below the minimum size with a confirmed "Remind leaders" action.
 - **Locked problem:** the participant `TeamFormModal` hides the problem section when the team already has a round entry (`problemLocked`).
 - **FAQ:** edited in Settings (organizer FAQ); `HackathonFAQSection` shows it instead of the standard FAQ when present.
+
+### Public hackathon page layout
+
+`/hackathons/[slug]` is one scrolling page (not tabs): banner, header card (format, title, organizer, logo, team size, deadline, venue, tag line), a sticky `SectionNav` and the sections **Stages & Timeline**, **Details**, **Dates & Deadlines**, **Prizes**, **Problem Statements**, **Announcements** and **FAQs**. Sections with no content are hidden and drop out of the nav. Section ids double as URL hashes (`#problems`, `#faq`, ...). On large screens a sticky registration card sits beside the content; on phones the CTA is inline in the header card. Components live in `src/components/hackathons/page/`; date rows come from `buildDateRows` in `src/lib/hackathonPage.ts`. Every field it shows is editable in Admin > Hackathon > Settings, and the timeline is curated in the admin **Public Timeline** tab.
+
+### Public timeline
+
+`StagesTimeline` (public) and `TimelineAdminTab` (admin) share `StageEntry`/`StageMarker` and the visuals in `components/hackathons/page/stageVisuals.ts` (tones, icons, `stageStatus`, `relativeTo`). Each entry shows a date badge or icon in the stage colour, an IST schedule line with a live hint ("Starts in 2 days", "Ends in 6 hours"), a **Live now / Up next / Completed** pill, an optional label chip, location, a clamped Markdown description with Read more, and an optional button. Status is computed after mount (`now` starts as `null`) so server and client markup agree. The admin tab has a live preview, reordering, per-stage visibility, and **Import from rounds**.
+
+### Problem statement admin
+
+The Problem Statements tab has a **Domains** panel (`ProblemDomainsPanel`: chips with usage counts, remove disabled while a statement uses the domain) above the list. The add/edit form picks the domain from that list (with "+ New domain" inline), edits tags with `components/ui/TagInput.tsx` (chips, Enter/comma to add, suggestions from tags used elsewhere), and has an "Open for teams to pick" switch. No ID or display-order field: IDs are generated and order is changed with the arrows. The public explorer's domain pills follow the configured domain order.

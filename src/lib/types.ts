@@ -128,6 +128,15 @@ export interface Hackathon {
   max_team_size?: number;
   team_edits_locked?: boolean;
   required_profile_fields?: ProfileFieldKey[];
+  /** Admin-configured domains problem statements are filed under (also the public filter order). */
+  problem_domains?: string[];
+  /** Public page presentation (all editable in the admin Settings tab). */
+  mode?: 'ONLINE' | 'OFFLINE' | 'HYBRID';
+  venue?: string;
+  organizer_name?: string;
+  logo_image?: string | null;
+  tags?: string[];
+  prizes?: { title: string; amount: string; description: string }[];
   /** Organizer-written FAQ; empty/absent = the standard FAQ is shown. */
   faq?: { question: string; answer: string }[];
   is_registration_open?: boolean;
@@ -283,6 +292,32 @@ export interface UserLookupResult {
   can_invite: boolean;
   reason: string;
   results?: UserLookupResult[];
+}
+
+/** A timeline stage as the public hackathon page sees it: no teams, results or forms. */
+export interface PublicStage {
+  id: number;
+  order: number;
+  title: string;
+  description: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  badge: string;
+  location: string;
+  tone: string;
+  marker: 'DATE' | 'ICON';
+  icon: string;
+  link_label: string;
+  link_url: string;
+}
+
+/** The admin view of a timeline stage. */
+export interface HackathonStage extends PublicStage {
+  is_visible: boolean;
+  source_round: number | null;
+  source_round_name?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface HackathonRound {

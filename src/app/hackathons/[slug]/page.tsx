@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Trophy } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
-import { Hackathon, HackathonAnnouncement, ProblemStatement } from '@/lib/types';
+import { Hackathon, HackathonAnnouncement, ProblemStatement, PublicStage } from '@/lib/types';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 import { HackathonDetailClient } from '@/components/hackathons/HackathonDetailClient';
@@ -22,11 +22,12 @@ async function getHackathon(slug: string): Promise<HackathonLookup> {
 }
 
 async function getPublicExtras(slug: string) {
-  const [problems, announcements] = await Promise.all([
+  const [problems, announcements, stages] = await Promise.all([
     fetchApi<ProblemStatement[]>(`/hackathons/${encodeURIComponent(slug)}/problem-statements/`).catch(() => []),
     fetchApi<HackathonAnnouncement[]>(`/hackathons/${encodeURIComponent(slug)}/announcements/`).catch(() => []),
+    fetchApi<PublicStage[]>(`/hackathons/${encodeURIComponent(slug)}/stages/`).catch(() => []),
   ]);
-  return { problems: problems || [], announcements: announcements || [] };
+  return { problems: problems || [], announcements: announcements || [], stages: stages || [] };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -65,13 +66,14 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
   }
   if (!hackathon) notFound();
 
-  const { problems, announcements } = await getPublicExtras(slug);
+  const { problems, announcements, stages } = await getPublicExtras(slug);
 
   return (
     <HackathonDetailClient
       hackathon={hackathon}
       problems={problems}
       announcements={announcements}
+      stages={stages}
     />
   );
 }

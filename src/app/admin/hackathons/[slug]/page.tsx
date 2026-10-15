@@ -3,7 +3,7 @@
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, BarChart3, ExternalLink, Flag, Megaphone, Settings, Target, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, ExternalLink, Flag, GitBranch, Megaphone, Settings, Target, Users } from 'lucide-react';
 import type { Hackathon } from '@/lib/types';
 import { hackathonApi } from '@/lib/api/hackathons';
 import { StatusPill } from '@/components/ui/StatusPill';
@@ -11,6 +11,7 @@ import { HackathonOverviewTab } from '@/components/admin/hackathon/HackathonOver
 import { HackathonSettingsTab } from '@/components/admin/hackathon/HackathonSettingsTab';
 import { ProblemStatementsAdminTab } from '@/components/admin/hackathon/ProblemStatementsAdminTab';
 import { TeamsAdminTab } from '@/components/admin/hackathon/TeamsAdminTab';
+import { TimelineAdminTab } from '@/components/admin/hackathon/TimelineAdminTab';
 import { RoundsAdminTab } from '@/components/admin/hackathon/RoundsAdminTab';
 import { HackathonAnnouncementsAdminTab } from '@/components/admin/hackathon/HackathonAnnouncementsAdminTab';
 
@@ -21,6 +22,7 @@ const TABS = [
   { key: 'settings', label: 'Settings & Details', icon: Settings },
   { key: 'problems', label: 'Problem Statements', icon: Target },
   { key: 'teams', label: 'Teams', icon: Users },
+  { key: 'timeline', label: 'Public Timeline', icon: GitBranch },
   { key: 'rounds', label: 'Rounds & Shortlisting', icon: Flag },
   { key: 'announcements', label: 'Announcements', icon: Megaphone },
 ] as const;
@@ -106,6 +108,7 @@ function ManageHackathon() {
             {tab === 'settings' && <HackathonSettingsTab hackathon={hackathon} onSaved={setHackathon} />}
             {tab === 'problems' && <ProblemStatementsAdminTab slug={slug} />}
             {tab === 'teams' && <TeamsAdminTab hackathon={hackathon} />}
+            {tab === 'timeline' && <TimelineAdminTab slug={slug} />}
             {tab === 'rounds' && <RoundsAdminTab slug={slug} />}
             {tab === 'announcements' && <HackathonAnnouncementsAdminTab slug={slug} />}
           </>

@@ -149,6 +149,15 @@ export interface UseAdminDataOptions {
   include?: AdminDataType[];
 }
 
+/** 24 random characters with every class the backend's password validators ask for. */
+function randomPassword(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  const alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const body = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+  return `${body}Aa1!`;
+}
+
 export function useAdminData(options?: UseAdminDataOptions) {
   const { toast } = useToast();
   const include = options?.include ?? ALL_ADMIN_DATA_TYPES;
@@ -428,7 +437,9 @@ export function useAdminData(options?: UseAdminDataOptions) {
       const payload = {
         username: newUser.email.split('@')[0],
         email: newUser.email,
-        password: newUser.password || 'password123',
+        // No shared default: a blank password becomes a random one nobody knows, so the
+        // new user must set their own through the password-reset flow.
+        password: newUser.password || randomPassword(),
         first_name: newUser.name.split(' ')[0] || newUser.name,
         last_name: newUser.name.split(' ').slice(1).join(' ') || '',
         role: newUser.role,

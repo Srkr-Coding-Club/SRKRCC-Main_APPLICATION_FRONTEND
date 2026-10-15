@@ -1,83 +1,90 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
+  AlertCircle,
   ArrowLeft,
   Calendar,
-  Clock,
-  Trophy,
-  Users,
-  Flame,
-  Target,
-  Megaphone,
-  UsersRound,
-  Lightbulb,
-  Share2,
   Check,
-  BookOpen,
-  HelpCircle,
-  AlertCircle,
-  Info,
+  Flame,
+  Globe,
+  Lightbulb,
+  MapPin,
+  Share2,
+  Trophy,
+  UsersRound,
+  Wifi,
 } from 'lucide-react';
-import type { Hackathon, HackathonAnnouncement, ProblemStatement } from '@/lib/types';
+import type { Hackathon, HackathonAnnouncement, ProblemStatement, PublicStage } from '@/lib/types';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { HackathonCTA } from '@/components/hackathons/HackathonCTA';
-import { HackathonAnnouncementsFeed } from '@/components/hackathons/HackathonAnnouncementsFeed';
+import { HackathonAnnouncementsFeed, formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
 import { ProblemStatementsExplorer } from '@/components/hackathons/ProblemStatementsExplorer';
 import { HackathonFAQSection } from '@/components/hackathons/HackathonFAQSection';
-import { HackathonStickyBar } from '@/components/hackathons/HackathonStickyBar';
+import { PageSectionCard, SectionNav, type PageSection } from '@/components/hackathons/page/SectionNav';
+import { StagesTimeline } from '@/components/hackathons/page/StagesTimeline';
+import { DatesList, PrizeCards } from '@/components/hackathons/page/DatesAndPrizes';
+import { HACKATHON_MODE_LABEL, buildDateRows } from '@/lib/hackathonPage';
 import { profileFieldLabel } from '@/lib/profileFields';
 
 interface HackathonDetailClientProps {
   hackathon: Hackathon;
   problems: ProblemStatement[];
   announcements: HackathonAnnouncement[];
+  stages: PublicStage[];
 }
 
-const HACKATHON_TIME_ZONE = 'Asia/Kolkata';
+const DEFAULT_ORGANIZER = 'SRKR Coding Club, SRKR Engineering College';
 
-export function HackathonDetailClient({ hackathon, problems, announcements }: HackathonDetailClientProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'problems' | 'announcements' | 'faq'>('overview');
+function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#FF7A00] shadow-sm dark:border-white/10 dark:bg-white/5">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{label}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+export function HackathonDetailClient({ hackathon, problems, announcements, stages }: HackathonDetailClientProps) {
   const [shareState, setShareState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
-  // Open straight on the tab named in the link (#problems, #faq, ...). Read after mount to match the server render.
-  useEffect(() => {
-    const fromHash = window.location.hash.replace('#', '');
-    if (fromHash === 'problems' || fromHash === 'announcements' || fromHash === 'faq') setActiveTab(fromHash);
-  }, []);
-
-  const isClosed = !(hackathon.is_registration_open ?? hackathon.status !== 'CLOSED');
+  const registrationOpen = hackathon.is_registration_open ?? hackathon.status !== 'CLOSED';
+  const mode = hackathon.mode ?? 'ONLINE';
+  const ModeIcon = mode === 'OFFLINE' ? MapPin : mode === 'HYBRID' ? Globe : Wifi;
+  const showVenue = mode !== 'ONLINE' && !!hackathon.venue;
+  const minSize = hackathon.min_team_size ?? 1;
+  const maxSize = hackathon.max_team_size ?? minSize;
   const teams = hackathon.registered_team_count ?? hackathon.team_count ?? 0;
+  const tags = hackathon.tags ?? [];
+  const hasPrizes = (hackathon.prizes?.length ?? 0) > 0 || !!hackathon.prize_pool?.trim();
+  const dateRows = useMemo(() => buildDateRows(hackathon, stages), [hackathon, stages]);
 
-  // Format dates
-  const startDate = new Date(hackathon.start_date);
-  const endDate = new Date(hackathon.end_date);
-  const formattedDates = useMemo(() => {
-    const dOpt: Intl.DateTimeFormatOptions = {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: HACKATHON_TIME_ZONE,
-    };
-    const tOpt: Intl.DateTimeFormatOptions = {
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZone: HACKATHON_TIME_ZONE,
-    };
+  const deadline = hackathon.registration_closes_at
+    ? formatDateTime(hackathon.registration_closes_at)
+    : registrationOpen
+      ? 'Open until the event starts'
+      : 'Closed';
 
-    const sDate = startDate.toLocaleDateString('en-US', dOpt);
-    const eDate = endDate.toLocaleDateString('en-US', dOpt);
-    const sTime = startDate.toLocaleTimeString('en-US', tOpt);
-    const eTime = endDate.toLocaleTimeString('en-US', tOpt);
-
-    return {
-      dateRange: sDate === eDate ? sDate : `${sDate} – ${eDate}`,
-      timeRange: `${sTime} – ${eTime} IST`,
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hackathon.start_date, hackathon.end_date]);
+  const sections = useMemo<PageSection[]>(
+    () => [
+      ...(stages.length > 0 ? [{ id: 'stages', label: 'Stages & Timeline' }] : []),
+      { id: 'details', label: 'Details' },
+      { id: 'dates', label: 'Dates & Deadlines' },
+      ...(hasPrizes ? [{ id: 'prizes', label: 'Prizes' }] : []),
+      ...(problems.length > 0 || hackathon.allow_open_innovation
+        ? [{ id: 'problems', label: problems.length > 0 ? `Problem Statements (${problems.length})` : 'Problem Statements' }]
+        : []),
+      ...(announcements.length > 0 ? [{ id: 'announcements', label: `Announcements (${announcements.length})` }] : []),
+      { id: 'faq', label: 'FAQs' },
+    ],
+    [stages.length, hasPrizes, problems.length, hackathon.allow_open_innovation, announcements.length],
+  );
 
   const shareLink = async () => {
     const url = window.location.href;
@@ -96,338 +103,203 @@ export function HackathonDetailClient({ hackathon, problems, announcements }: Ha
     setTimeout(() => setShareState('idle'), 2500);
   };
 
-  type TabKey = 'overview' | 'problems' | 'announcements' | 'faq';
-
-  const selectTab = (key: TabKey) => {
-    setActiveTab(key);
-    window.history.replaceState(null, '', key === 'overview' ? window.location.pathname : `#${key}`);
-  };
-
-  interface TabItem {
-    key: TabKey;
-    label: string;
-    icon: React.ElementType;
-    highlight?: boolean;
-  }
-
-  const tabs: TabItem[] = [
-    { key: 'overview', label: 'Overview & Guidelines', icon: BookOpen },
-    {
-      key: 'problems',
-      label: `Problem Statements (${problems.length})`,
-      icon: Target,
-      highlight: problems.length > 0,
-    },
-    ...(announcements.length > 0
-      ? [{ key: 'announcements' as TabKey, label: `Announcements (${announcements.length})`, icon: Megaphone }]
-      : []),
-    { key: 'faq', label: 'FAQs & Support', icon: HelpCircle },
-  ];
-
   return (
-    <div className="min-h-screen bg-[var(--background)] py-10 transition-colors duration-300">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 pb-20">
-        {/* Breadcrumb + Share Header */}
-        <div className="flex items-center justify-between gap-4">
-          <Link
-            href="/hackathons"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#FF7A00] transition"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            All Hackathons
-          </Link>
+    <div className="min-h-screen bg-[var(--background)] py-8 transition-colors duration-300">
+      <div className="mx-auto max-w-6xl space-y-5 px-4 pb-24 sm:px-6 lg:px-8">
+        <Link
+          href="/hackathons"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-[#FF7A00]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          All Hackathons
+        </Link>
 
-          <button
-            type="button"
-            onClick={shareLink}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] px-3.5 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-[#FF7A00]/50 hover:text-[#FF7A00] transition active:scale-95"
-          >
-            {shareState === 'copied' ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 className="h-3.5 w-3.5" />}
-            {shareState === 'copied' ? 'Link Copied!' : shareState === 'failed' ? 'Copy failed: copy the address bar' : 'Share Event'}
-          </button>
-        </div>
-
-        {/* Hero Banner Showcase */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl bg-[#1A1A2E]">
-          {/* Background image with gradient tint */}
-          <div className="relative h-64 sm:h-96 w-full overflow-hidden">
-            {hackathon.banner_image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={hackathon.banner_image} alt={hackathon.title} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#2a1d2e] via-[#8B2E3B] to-[#FF7A00]">
-                <Trophy className="h-20 w-20 text-white/20" aria-hidden="true" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A2E] via-[#1A1A2E]/70 to-black/30" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#1A1A2E]/90 via-transparent to-transparent" />
-          </div>
-
-          {/* Overlay Content */}
-          <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10 space-y-4">
-            {/* Badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#8B2E3B] to-[#FF7A00] px-3.5 py-1 text-xs font-extrabold uppercase tracking-wide text-white shadow-md">
-                <Trophy className="h-3.5 w-3.5" />
-                Prize Pool: {hackathon.prize_pool}
-              </span>
-
-              {hackathon.is_flagship && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#8B2E3B] px-3 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-sm border border-rose-400/30">
-                  <Flame className="h-3.5 w-3.5 text-amber-300" />
-                  IconCoders Flagship
-                </span>
-              )}
-
-              <span
-                className={`inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide border ${
-                  isClosed
-                    ? 'bg-slate-800/90 text-slate-300 border-slate-700'
-                    : 'bg-emerald-500/90 text-white border-emerald-400/40 shadow-sm'
-                }`}
-              >
-                {isClosed ? 'Registrations Closed' : 'Registrations Live'}
-              </span>
-
-              {hackathon.allow_open_innovation && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-white">
-                  <Lightbulb className="h-3 w-3 text-amber-400" />
-                  Open Innovation
-                </span>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0 space-y-5">
+            {/* Banner */}
+            <div className="relative aspect-[16/6] w-full overflow-hidden rounded-3xl border border-slate-200 bg-[#1A1A2E] dark:border-white/10">
+              {hackathon.banner_image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={hackathon.banner_image} alt={hackathon.title} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#2a1d2e] via-[#8B2E3B] to-[#FF7A00]">
+                  <Trophy className="h-20 w-20 text-white/20" aria-hidden="true" />
+                </div>
               )}
             </div>
 
-            {/* Title & Theme */}
-            <div className="space-y-1">
-              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
-                {hackathon.title}
-              </h1>
-              <p className="text-base sm:text-lg text-slate-200/90 font-medium">{hackathon.theme}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Unified Metrics Row (Single source of truth for Schedule, Team Size, Participation, Deadline) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass-panel rounded-2xl border border-slate-200 dark:border-white/10 p-5 space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-              <Calendar className="h-4 w-4 text-[#FF7A00]" />
-              Schedule
-            </div>
-            <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{formattedDates.dateRange}</p>
-            <p className="text-xs text-slate-500">{formattedDates.timeRange}</p>
-          </div>
-
-          <div className="glass-panel rounded-2xl border border-slate-200 dark:border-white/10 p-5 space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-              <UsersRound className="h-4 w-4 text-[#FF7A00]" />
-              Team Size
-            </div>
-            <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">
-              {hackathon.min_team_size === hackathon.max_team_size
-                ? `${hackathon.max_team_size} Members`
-                : `${hackathon.min_team_size} – ${hackathon.max_team_size} Members`}
-            </p>
-            <p className="text-xs text-slate-500">Per Squad</p>
-          </div>
-
-          <div className="glass-panel rounded-2xl border border-slate-200 dark:border-white/10 p-5 space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-              <Users className="h-4 w-4 text-[#FF7A00]" />
-              Participation
-            </div>
-            <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">
-              {teams} {teams === 1 ? 'Team' : 'Teams'}
-            </p>
-            <p className="text-xs text-slate-500">Registered</p>
-          </div>
-
-          <div className="glass-panel rounded-2xl border border-slate-200 dark:border-white/10 p-5 space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-              <Clock className="h-4 w-4 text-[#FF7A00]" />
-              Registration Window
-            </div>
-            <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">
-              {hackathon.registration_closes_at
-                ? new Date(hackathon.registration_closes_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    timeZone: HACKATHON_TIME_ZONE,
-                  })
-                : 'Until Live'}
-            </p>
-            <p className="text-xs text-slate-500">
-              {hackathon.registration_closes_at
-                ? `Closes ${new Date(hackathon.registration_closes_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: HACKATHON_TIME_ZONE })}`
-                : 'Open'}
-            </p>
-          </div>
-        </div>
-
-        {/* Main Content Layout with Navigation Tabs */}
-        <div className="space-y-6">
-          {/* Navigation Tabs Bar */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200 dark:border-white/10">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => selectTab(tab.key)}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition ${
-                    active
-                      ? 'bg-gradient-to-r from-[#8B2E3B] to-[#FF7A00] text-white shadow-md'
-                      : 'bg-white/60 dark:bg-white/[0.02] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200 dark:border-white/10'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* TAB 1: OVERVIEW & GUIDELINES (Admin's Markdown is the single authoritative source) */}
-          {activeTab === 'overview' && (
-            <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-              {/* Left Column: Markdown & Prerequisites */}
-              <div className="space-y-6">
-                <section className="glass-panel rounded-2xl border border-slate-200 dark:border-white/10 p-6 sm:p-8 space-y-4">
-                  <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-[#FF7A00] flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Event Guidelines & Overview
-                  </h2>
-
-                  {hackathon.description?.trim() ? (
-                    <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 text-sm sm:text-base leading-relaxed">
-                      <MarkdownRenderer content={hackathon.description} />
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-slate-200 dark:border-white/10 p-6 text-center text-sm text-slate-500 space-y-1">
-                      <Info className="h-5 w-5 text-slate-400 mx-auto" />
-                      <p className="font-semibold text-slate-600 dark:text-slate-300">Detailed guidelines coming soon.</p>
-                      <p className="text-xs">The organizing committee will publish the official event overview shortly.</p>
-                    </div>
+            {/* Header card */}
+            <header className="space-y-5 rounded-3xl border border-slate-200 border-t-4 border-t-[#FF7A00] bg-white/70 p-5 dark:border-white/10 dark:border-t-[#FF7A00] dark:bg-white/[0.03] sm:p-7">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                  <ModeIcon className="h-4 w-4 text-[#FF7A00]" aria-hidden="true" />
+                  {HACKATHON_MODE_LABEL[mode]}
+                  {hackathon.is_flagship && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#8B2E3B] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+                      <Flame className="h-3 w-3 text-amber-300" /> IconCoders Flagship
+                    </span>
                   )}
-                </section>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
+                      registrationOpen
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                    }`}
+                  >
+                    {registrationOpen ? 'Registrations live' : 'Registrations closed'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={shareLink}
+                  aria-label="Share this hackathon"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:border-[#FF7A00]/50 hover:text-[#FF7A00] active:scale-95 dark:border-white/10 dark:text-slate-300"
+                >
+                  {shareState === 'copied' ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 className="h-3.5 w-3.5" />}
+                  {shareState === 'copied' ? 'Link copied' : shareState === 'failed' ? 'Copy failed' : 'Share'}
+                </button>
+              </div>
 
-                {/* Profile Prerequisites Alert (if configured by admin) */}
-                {hackathon.required_profile_fields && hackathon.required_profile_fields.length > 0 && (
-                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                    <div className="space-y-1 text-xs sm:text-sm">
-                      <h4 className="font-bold text-amber-900 dark:text-amber-200">
-                        Profile Completion Prerequisite
-                      </h4>
-                      <p className="text-amber-800 dark:text-amber-300">
-                        All participating team members must complete these fields on their club profile:{' '}
-                        <strong>{hackathon.required_profile_fields.map(profileFieldLabel).join(', ')}</strong> before creating or accepting a team invite.
-                      </p>
-                    </div>
-                  </div>
+              <div className="flex items-start justify-between gap-5">
+                <div className="min-w-0 space-y-2">
+                  <h1 className="text-3xl font-extrabold tracking-tight text-[#1A1A2E] dark:text-white sm:text-4xl">{hackathon.title}</h1>
+                  <p className="text-base font-medium text-slate-600 dark:text-slate-300">{hackathon.organizer_name || DEFAULT_ORGANIZER}</p>
+                  {hackathon.theme && <p className="text-sm text-slate-500 dark:text-slate-400">{hackathon.theme}</p>}
+                </div>
+                {hackathon.logo_image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={hackathon.logo_image}
+                    alt={`${hackathon.title} logo`}
+                    className="hidden h-24 w-24 shrink-0 rounded-2xl border border-slate-200 bg-white object-cover shadow-sm dark:border-white/10 sm:block"
+                  />
                 )}
               </div>
 
-              {/* Right Sidebar: Clean Registration CTA without duplicate metric facts */}
-              <aside className="space-y-4 lg:sticky lg:top-24 self-start">
-                <div className="glass-panel rounded-2xl border border-slate-200 dark:border-white/10 p-6 space-y-4 shadow-lg">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[#FF7A00]">Team Registration</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Fact icon={UsersRound} label="Team size" value={minSize === maxSize ? `${maxSize} ${maxSize === 1 ? 'Member' : 'Members'}` : `${minSize} - ${maxSize} Members`} />
+                <Fact icon={Calendar} label="Registration deadline" value={deadline} />
+                {showVenue && <Fact icon={MapPin} label="Venue" value={hackathon.venue} />}
+                {teams > 0 && <Fact icon={UsersRound} label="Teams registered" value={`${teams} ${teams === 1 ? 'team' : 'teams'}`} />}
+              </div>
 
-                  <div className="space-y-3 pt-1">
-                    <HackathonCTA hackathon={hackathon} />
-                    <p className="text-[11px] text-center text-slate-400">
-                      {isClosed
-                        ? 'Registrations are currently closed.'
-                        : 'Team leader registers squad, then invites teammates.'}
+              {(tags.length > 0 || hackathon.allow_open_innovation) && (
+                <ul className="flex flex-wrap gap-x-2 gap-y-1 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                  {tags.map((tag, index) => (
+                    <li key={tag} className="flex items-center gap-2">
+                      {index > 0 && <span className="text-slate-400" aria-hidden="true">&bull;</span>}
+                      {tag}
+                    </li>
+                  ))}
+                  {hackathon.allow_open_innovation && (
+                    <li className="flex items-center gap-2">
+                      {tags.length > 0 && <span className="text-slate-400" aria-hidden="true">&bull;</span>}
+                      <Lightbulb className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" /> Open innovation welcome
+                    </li>
+                  )}
+                </ul>
+              )}
+
+              <div className="lg:hidden">
+                <HackathonCTA hackathon={hackathon} />
+              </div>
+            </header>
+
+            <SectionNav sections={sections} />
+
+            {stages.length > 0 && (
+              <PageSectionCard id="stages" title="Stages and Timelines">
+                <StagesTimeline stages={stages} />
+              </PageSectionCard>
+            )}
+
+            <PageSectionCard id="details" title={`All that you need to know about ${hackathon.title}`}>
+              {hackathon.description?.trim() ? (
+                <div className="prose max-w-none text-sm leading-relaxed text-slate-700 dark:prose-invert dark:text-slate-200 sm:text-base">
+                  <MarkdownRenderer content={hackathon.description} />
+                </div>
+              ) : (
+                <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-white/10">
+                  The organizing committee will publish the official overview shortly.
+                </p>
+              )}
+              {hackathon.required_profile_fields && hackathon.required_profile_fields.length > 0 && (
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                  <div className="space-y-1 text-sm">
+                    <h3 className="font-bold text-amber-900 dark:text-amber-200">Complete your profile first</h3>
+                    <p className="text-amber-800 dark:text-amber-300">
+                      Every team member needs these on their club profile before creating or joining a team:{' '}
+                      <strong>{hackathon.required_profile_fields.map(profileFieldLabel).join(', ')}</strong>.
                     </p>
                   </div>
-
-                  {hackathon.registration_closes_at && !isClosed && (
-                    <div className="border-t border-slate-100 dark:border-white/5 pt-4 text-xs text-slate-500 flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-[#FF7A00] shrink-0" />
-                      <span>
-                        Deadline:{' '}
-                        {new Date(hackathon.registration_closes_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          timeZone: HACKATHON_TIME_ZONE,
-                        })}{' '}
-                        IST
-                      </span>
-                    </div>
-                  )}
                 </div>
-              </aside>
-            </div>
-          )}
+              )}
+            </PageSectionCard>
 
-          {/* TAB 2: PROBLEM STATEMENTS */}
-          {activeTab === 'problems' && (
-            <div className="space-y-6">
-              <div className="space-y-1">
-                <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
-                  <Target className="h-5 w-5 text-[#FF7A00]" />
-                  Problem Statements & Challenges
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500">
-                  Explore challenge statements across domains. Teams can either pick an official problem statement or
-                  bring their own solution via Open Innovation.
+            <PageSectionCard id="dates" title="Dates and Deadlines">
+              <DatesList rows={dateRows} />
+              <p className="text-xs text-slate-500">All times are in IST (Indian Standard Time).</p>
+            </PageSectionCard>
+
+            {hasPrizes && (
+              <PageSectionCard id="prizes" title="Prizes">
+                <PrizeCards hackathon={hackathon} />
+              </PageSectionCard>
+            )}
+
+            {(problems.length > 0 || hackathon.allow_open_innovation) && (
+              <PageSectionCard id="problems" title="Problem Statements">
+                <p className="text-sm text-slate-500">
+                  Pick an official problem statement{hackathon.allow_open_innovation ? ' or bring your own idea through Open Innovation' : ''}.
                 </p>
-              </div>
+                <ProblemStatementsExplorer
+                  problems={problems}
+                  allowOpenInnovation={!!hackathon.allow_open_innovation}
+                  hackathonSlug={hackathon.slug}
+                  isRegistrationOpen={registrationOpen}
+                  domainOrder={hackathon.problem_domains}
+                />
+              </PageSectionCard>
+            )}
 
-              <ProblemStatementsExplorer
-                problems={problems}
-                allowOpenInnovation={!!hackathon.allow_open_innovation}
-                hackathonSlug={hackathon.slug}
-                isRegistrationOpen={!isClosed}
-              />
-            </div>
-          )}
-
-          {/* TAB 3: ANNOUNCEMENTS */}
-          {activeTab === 'announcements' && announcements.length > 0 && (
-            <div className="space-y-6">
-              <div className="space-y-1">
-                <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
-                  <Megaphone className="h-5 w-5 text-[#FF7A00]" />
-                  Live Announcements & Broadcasts
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500">
-                  Stay updated with official broadcasts from the hackathon organizing committee.
-                </p>
-              </div>
-
-              <div className="glass-panel rounded-2xl border border-slate-200 dark:border-white/10 p-6 sm:p-8">
+            {announcements.length > 0 && (
+              <PageSectionCard id="announcements" title="Announcements">
                 <HackathonAnnouncementsFeed announcements={announcements} />
-              </div>
-            </div>
-          )}
+              </PageSectionCard>
+            )}
 
-          {/* TAB 4: FAQS & SUPPORT */}
-          {activeTab === 'faq' && (
-            <div className="space-y-6">
-              <div className="space-y-1">
-                <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
-                  <HelpCircle className="h-5 w-5 text-[#FF7A00]" />
-                  Frequently Asked Questions
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500">
-                  Find answers to common questions regarding registration, problem statements, and the competition.
-                </p>
-              </div>
-
+            <PageSectionCard id="faq" title="FAQs">
               <HackathonFAQSection hackathon={hackathon} />
+            </PageSectionCard>
+          </div>
+
+          {/* Registration card: stays in view while reading on large screens */}
+          <aside className="hidden space-y-4 lg:sticky lg:top-[140px] lg:block">
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-lg dark:border-white/10 dark:bg-white/[0.03]">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[#FF7A00]">Team registration</h2>
+              <HackathonCTA hackathon={hackathon} />
+              <dl className="space-y-2 border-t border-slate-100 pt-4 text-sm dark:border-white/5">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-slate-500">Deadline</dt>
+                  <dd className="text-right font-semibold text-[#1A1A2E] dark:text-white">{deadline}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-slate-500">Team size</dt>
+                  <dd className="font-semibold text-[#1A1A2E] dark:text-white">{minSize === maxSize ? maxSize : `${minSize} - ${maxSize}`}</dd>
+                </div>
+                {hackathon.prize_pool && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Prize pool</dt>
+                    <dd className="font-semibold text-[#1A1A2E] dark:text-white">{hackathon.prize_pool}</dd>
+                  </div>
+                )}
+              </dl>
             </div>
-          )}
+          </aside>
         </div>
       </div>
 
-      {/* Sticky Bottom Action Bar */}
-      <HackathonStickyBar hackathon={hackathon} />
     </div>
   );
 }

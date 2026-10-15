@@ -23,15 +23,44 @@ const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PU
 // - there is no equivalent multi-worker ambiguity. This proxy just forwards
 // whatever token exists (or none) and returns Django's response verbatim,
 // including a 401; the client is responsible for refreshing and retrying.
+//
+// Path safety: Next decodes each segment before it reaches us, so a request for
+// `/api/proxy/..%2fadmin%2flogin%2f` arrives as the single segment `../admin/login/`
+// and would be resolved by fetch() to a URL OUTSIDE the `/api` prefix (Django admin,
+// static files, ...). Every segment is therefore validated, and the final URL is
+// checked to still sit under the API base.
+const UNSAFE_SEGMENT = /[\\/%\x00-\x1f\x7f]/;
+
+function isSafeSegments(segments: string[]): boolean {
+  return segments.length > 0 && segments.every(
+    (segment) => segment !== '' && segment !== '.' && segment !== '..' && !UNSAFE_SEGMENT.test(segment),
+  );
+}
+
+function badPath() {
+  return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
+}
+
 async function handleProxy(request: NextRequest, params: { path: string[] }) {
   try {
-    let subPath = (params.path || []).join('/');
+    const segments = params.path || [];
+    if (!isSafeSegments(segments)) {
+      return badPath();
+    }
+    let subPath = segments.join('/');
     if (subPath.startsWith('api/')) {
       subPath = subPath.slice(4);
     }
     const normalizedPath = subPath.endsWith('/') ? subPath : `${subPath}/`;
     const search = request.nextUrl.search || '';
     const targetUrl = `${DJANGO_API_URL}/${normalizedPath}${search}`;
+
+    // Belt and braces: after URL normalisation the request must still be under the API base.
+    const base = new URL(`${DJANGO_API_URL}/`);
+    const resolved = new URL(targetUrl);
+    if (resolved.origin !== base.origin || !resolved.pathname.startsWith(base.pathname)) {
+      return badPath();
+    }
 
     // Read HttpOnly access token from request cookies - forwarded as-is, no
     // refresh attempted here (see module comment above).
@@ -55,6 +84,16 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     // Attach Authorization header if access token exists
     if (accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    // Tell Django who the visitor really is. Without this every visitor shares this server's IP and the
+    // backend's per-IP rate limits would lock everyone out together. The secret proves the header came
+    // from us; without it Django ignores X-Client-IP (see apps/core/client_ip.py).
+    const sharedSecret = process.env.CLIENT_IP_SHARED_SECRET;
+    const visitorIp = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || request.headers.get('x-real-ip') || '';
+    if (sharedSecret && visitorIp) {
+      headers['X-BFF-Secret'] = sharedSecret;
+      headers['X-Client-IP'] = visitorIp;
     }
 
     // Forward custom headers like Idempotency-Key if present
@@ -119,10 +158,8 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     });
   } catch (error: any) {
     console.error('[BFF Proxy Error]:', error);
-    return NextResponse.json(
-      { error: error?.message || 'BFF Proxy Request Failed' },
-      { status: 502 }
-    );
+    // Details stay in the server log; the browser only learns that the upstream failed.
+    return NextResponse.json({ error: 'The server could not be reached. Please try again.' }, { status: 502 });
   }
 }
 
