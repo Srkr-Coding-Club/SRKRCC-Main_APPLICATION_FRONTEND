@@ -152,27 +152,35 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
     <>
     <header
       data-site-chrome
-      className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
+      // True glass: blur is always-on (never transitioned - animating
+      // backdrop-filter itself is what causes the janky/flickering repaints
+      // glass navbars are notorious for), only the tint and shadow ease in
+      // as the page scrolls under it.
+      className={`sticky top-0 z-50 w-full border-b backdrop-blur-2xl transition-[background-color,box-shadow,border-color] duration-300 ${
         scrolled
-          ? 'bg-[var(--background)]/90 backdrop-blur-xl border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_0_rgba(0,0,0,0.02)]'
-          : 'bg-[var(--background)]/40 backdrop-blur-md border-transparent'
+          ? 'bg-white/55 dark:bg-[#0D0E15]/55 border-white/40 dark:border-white/10 shadow-[0_8px_32px_-12px_rgba(139,46,59,0.28)]'
+          : 'bg-white/20 dark:bg-white/[0.04] border-white/15 dark:border-white/[0.06] shadow-none'
       }`}
     >
       {/* persistent signature gradient hairline */}
       <div className="h-[2px] w-full bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500]" />
+      {/* glass sheen: a soft light-catch along the top edge of the panel */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent dark:via-white/20" />
 
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-[72px]'}`}>
-          {/* Logo - sits directly on the bar, no card wrapper */}
-          <Link href="/" className="group flex items-center gap-2.5" aria-label="SRKR Coding Club Home">
-            <motion.div className="translate-y-[6px]" whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
-              <BrainLogo size={30} showRays={false} animated={false} />
+        <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-[76px]'}`}>
+          {/* Logo - CODING CLUB leads, in the landing page's own shimmering title
+              treatment (.ember-text); SRKR rides above it as a small label, not
+              the other way round. */}
+          <Link href="/" className="group flex items-center gap-3" aria-label="SRKR Coding Club Home">
+            <motion.div whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
+              <BrainLogo size={36} showRays animated />
             </motion.div>
-            <div className="flex flex-col leading-none gap-1">
-              <span className="font-poppins font-extrabold text-lg sm:text-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
+            <div className="flex flex-col leading-none">
+              <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.32em] text-[#1A1A2E]/45 dark:text-white/40">
                 SRKR
               </span>
-              <span className="font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-[#1A1A2E] dark:text-white">
+              <span className="ember-text font-poppins text-xl sm:text-2xl font-extrabold leading-[1.1] tracking-tight">
                 Coding Club
               </span>
             </div>
@@ -217,7 +225,13 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                       className="absolute inset-0 rounded-full -z-0"
                       // See AdminNavbar.tsx - #FF7A00 fails WCAG AA contrast against
                       // white pill text (~2.6:1); #C2410C keeps it readable (~5:1).
-                      style={{ background: 'linear-gradient(120deg, #8B2E3B, #C2410C)' }}
+                      // The glow mirrors ActionLink's primary-CTA hover shadow, so
+                      // the live tab reads with the same brand "lit" energy as the
+                      // rest of the site rather than sitting flat against the bar.
+                      style={{
+                        background: 'linear-gradient(120deg, #8B2E3B, #C2410C)',
+                        boxShadow: '0 0 20px rgba(255,122,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)',
+                      }}
                     />
                   )}
 
