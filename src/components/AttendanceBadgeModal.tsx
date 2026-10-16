@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, QrCode } from 'lucide-react';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { useSiteNavbarOffset } from '@/lib/hooks/useSiteNavbarOffset';
 import { AttendanceBadgeCard } from '@/components/AttendanceBadgeCard';
 
 interface AttendanceBadgeModalProps {
@@ -19,6 +21,7 @@ interface AttendanceBadgeModalProps {
  */
 export function AttendanceBadgeModal({ isOpen, onClose, formId, eventTitle, registrantName }: AttendanceBadgeModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const navbarOffset = useSiteNavbarOffset(isOpen);
   useFocusTrap(modalRef, isOpen);
 
   useEffect(() => {
@@ -41,17 +44,21 @@ export function AttendanceBadgeModal({ isOpen, onClose, formId, eventTitle, regi
     };
   }, [isOpen]);
 
-  if (!isOpen || !formId) return null;
+  if (!isOpen || !formId || typeof document === 'undefined') return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+  return createPortal(
+    <div
+      className="fixed inset-x-0 bottom-0 z-[60] flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm sm:p-6"
+      style={{ top: navbarOffset }}
+    >
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-label="Attendance QR badge"
         tabIndex={-1}
-        className="glass-panel rounded-xl max-w-sm w-full max-h-[90vh] overflow-y-auto p-6 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4"
+        className="glass-panel w-full max-w-sm space-y-4 overflow-y-auto rounded-xl border border-slate-200 p-6 shadow-xl dark:border-slate-800"
+        style={{ maxHeight: `calc(100dvh - ${navbarOffset}px - 3rem)` }}
       >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center space-x-2 min-w-0">
@@ -69,6 +76,7 @@ export function AttendanceBadgeModal({ isOpen, onClose, formId, eventTitle, regi
 
         <AttendanceBadgeCard formId={formId} registrantName={registrantName} />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
