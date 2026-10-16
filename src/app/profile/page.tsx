@@ -34,6 +34,7 @@ import {
 import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated } from '@/lib/auth';
 import { fetchApi } from '@/lib/api-client';
 import { EditProfileModal } from '@/components/EditProfileModal';
+import { College, displayCollegeName } from '@/lib/colleges';
 import { MyHackathonsPanel } from '@/components/hackathons/MyHackathonsPanel';
 import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
 
@@ -69,6 +70,8 @@ interface FullUserProfile {
   club_id?: string;
   membership_status?: string;
   roll_number?: string;
+  college?: College | null;
+  other_college_name?: string;
   branch?: string;
   year?: number | string;
   phone_number?: string;
@@ -97,6 +100,8 @@ const toStoredUser = (data: FullUserProfile) => ({
   club_id: data.club_id,
   membership_status: data.membership_status,
   roll_number: data.roll_number,
+  college: data.college,
+  other_college_name: data.other_college_name,
   branch: data.branch,
   year: data.year,
   phone_number: data.phone_number,
@@ -248,6 +253,7 @@ function ProfileCard({
   email,
   phone,
   rollNumber,
+  collegeName,
   yearBranch,
   github,
   linkedin,
@@ -263,6 +269,7 @@ function ProfileCard({
   email: string;
   phone: string | null;
   rollNumber: string | null;
+  collegeName: string | null;
   yearBranch: string | null;
   github: string | null;
   linkedin: string | null;
@@ -274,7 +281,7 @@ function ProfileCard({
   onLogout: () => void;
 }) {
   const hasContact = Boolean(email || phone);
-  const hasAcademic = Boolean(rollNumber || yearBranch);
+  const hasAcademic = Boolean(rollNumber || yearBranch || collegeName);
   const hasProfiles = Boolean(github || linkedin);
   const hasMeta = Boolean(since || referredBy);
 
@@ -324,6 +331,7 @@ function ProfileCard({
         <Section title="Academic">
           {rollNumber && <InfoItem icon={<Hash className="h-3.5 w-3.5" />} text={rollNumber} />}
           {yearBranch && <InfoItem icon={<BookOpen className="h-3.5 w-3.5" />} text={yearBranch} />}
+          {collegeName && <InfoItem icon={<BookOpen className="h-3.5 w-3.5" />} text={collegeName} />}
         </Section>
       )}
 
@@ -706,6 +714,8 @@ function ProfileContent() {
             club_id: localUser.club_id,
             membership_status: localUser.membership_status || 'ACTIVE',
             roll_number: localUser.roll_number,
+            college: localUser.college,
+            other_college_name: localUser.other_college_name,
             branch: localUser.branch,
             year: extractYear(localUser),
             phone_number: localUser.phone_number,
@@ -782,6 +792,7 @@ function ProfileContent() {
     membershipStatus: profile?.membership_status || 'ACTIVE',
     rollNumber: profile?.roll_number?.trim() || null,
     yearBranch,
+    collegeName: displayCollegeName(profile),
     role: profile?.role || 'NON_AFFILIATE',
     registeredAt: profile?.registered_at
       ? new Date(profile.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -875,6 +886,7 @@ function ProfileContent() {
               email={user.email}
               phone={user.phone}
               rollNumber={user.rollNumber}
+              collegeName={user.collegeName}
               yearBranch={user.yearBranch}
               github={user.github}
               linkedin={user.linkedin}

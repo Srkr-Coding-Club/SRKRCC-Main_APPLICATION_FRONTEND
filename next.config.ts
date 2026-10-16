@@ -14,6 +14,23 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    // Report-only for now: violations show in the browser console without breaking anything. Tighten
+    // (drop 'unsafe-inline'/'unsafe-eval' via nonces) and switch to Content-Security-Policy once the
+    // console is quiet in production.
+    const cspReportOnly = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https:",
+      "connect-src 'self'",
+      "media-src 'self' blob:",
+      "frame-ancestors 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+    ].join('; ');
+
     return [
       {
         source: '/(.*)',
@@ -29,6 +46,14 @@ const nextConfig: NextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
+          },
+          {
+            key: 'Content-Security-Policy-Report-Only',
+            value: cspReportOnly,
           },
           {
             key: 'Permissions-Policy',

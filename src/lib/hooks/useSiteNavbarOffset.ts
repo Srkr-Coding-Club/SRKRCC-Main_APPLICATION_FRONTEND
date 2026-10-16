@@ -1,20 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 
 export function useSiteNavbarOffset(enabled: boolean) {
-  const [offset, setOffset] = useState(78);
+  const [offset, setOffset] = useState(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!enabled) return;
 
-    const navbar = document.querySelector<HTMLElement>('[data-site-chrome]');
+    const navbar = document.querySelector<HTMLElement>('header[data-site-chrome]');
     if (!navbar) {
       setOffset(0);
       return;
     }
 
-    const updateOffset = () => setOffset(navbar.getBoundingClientRect().bottom);
+    const updateOffset = () => {
+      setOffset(Math.ceil(Math.max(0, navbar.getBoundingClientRect().bottom)));
+    };
     updateOffset();
 
     const observer = new ResizeObserver(updateOffset);

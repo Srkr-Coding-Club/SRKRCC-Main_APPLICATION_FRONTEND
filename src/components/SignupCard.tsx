@@ -23,6 +23,8 @@ import {
   X,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { CollegeSelect } from '@/components/CollegeSelect';
+import { CollegeChoice, UNTOUCHED_COLLEGE_CHOICE } from '@/lib/colleges';
 import { registerUser, loginUser, RegistrationError } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
 import {
@@ -39,6 +41,7 @@ import {
   validateAffiliateId,
   validateEmail,
   validateFullName,
+  validateOtherCollegeName,
   validatePassword,
   validatePasswordConfirmation,
   validatePasswordNotSimilarToIdentity,
@@ -79,6 +82,7 @@ const FIELD_INPUT_ID: Record<FieldName, string> = {
   fullName: 'signup-full-name',
   email: 'signup-email',
   rollNumber: 'signup-roll-number',
+  college: 'signup-college',
   branch: 'signup-branch',
   year: 'signup-year',
   phoneNumber: 'signup-phone-number',
@@ -92,6 +96,7 @@ const FIELD_ORDER: FieldName[] = [
   'fullName',
   'email',
   'rollNumber',
+  'college',
   'branch',
   'year',
   'phoneNumber',
@@ -233,6 +238,8 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
     confirmPassword: '',
   });
 
+  /** Null until the member picks one - the server then applies the club's home college. */
+  const [collegeChoice, setCollegeChoice] = useState<CollegeChoice>(UNTOUCHED_COLLEGE_CHOICE);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -247,6 +254,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
     errors.fullName = validateFullName(formData.fullName);
     errors.email = validateEmail(formData.email);
     errors.rollNumber = validateRollNumber(formData.rollNumber);
+    if (collegeChoice.otherName !== null) errors.college = validateOtherCollegeName(collegeChoice.otherName);
     errors.phoneNumber = validatePhoneNumber(formData.phoneNumber);
     if (formData.isAffiliate) {
       errors.affiliateId = validateAffiliateId(formData.affiliateId);
@@ -256,7 +264,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
       validatePasswordNotSimilarToIdentity(formData.password, [formData.email, formData.fullName]);
     errors.confirmPassword = validatePasswordConfirmation(formData.password, formData.confirmPassword);
     return errors;
-  }, [formData]);
+  }, [formData, collegeChoice]);
 
   const visibleError = (field: FieldName): string | undefined =>
     serverErrors[field] || (touched[field] ? clientErrors[field] : undefined);
@@ -307,6 +315,9 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
         first_name: firstName,
         last_name: lastName,
         roll_number: sanitizeRollNumberInput(formData.rollNumber),
+        ...(collegeChoice.otherName !== null
+          ? { other_college_name: collegeChoice.otherName.trim() }
+          : { college_id: collegeChoice.college?.id }),
         branch: formData.branch,
         year: Number(formData.year),
         phone_number: sanitizePhoneNumberInput(formData.phoneNumber) || undefined,
@@ -515,6 +526,24 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
             <section className="space-y-3">
 
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div className="space-y-1.5 lg:col-span-2">
+                  <label htmlFor={FIELD_INPUT_ID.college} className={labelClasses}>
+                    College <span className="text-[#FF7A00]">*</span>
+                  </label>
+                  <CollegeSelect
+                    id={FIELD_INPUT_ID.college}
+                    value={collegeChoice}
+                    onChange={(choice) => {
+                      setCollegeChoice(choice);
+                      setServerErrors((prev) => ({ ...prev, college: undefined }));
+                    }}
+                    disabled={isLoading || success}
+                    aria-invalid={Boolean(visibleError('college'))}
+                    aria-describedby={visibleError('college') ? 'signup-college-error' : undefined}
+                  />
+                  <FieldError id="signup-college-error" message={visibleError('college')} />
+                </div>
+
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.rollNumber} className={labelClasses}>
                     Roll Number <span className="text-slate-400 font-medium normal-case">(optional)</span>

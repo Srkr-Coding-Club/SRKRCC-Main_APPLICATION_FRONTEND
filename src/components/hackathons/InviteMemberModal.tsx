@@ -9,6 +9,7 @@ import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
 
 const DEBOUNCE_DELAY_MS = 300;
+const MIN_SEARCH_LENGTH = 3;
 
 interface InviteMemberModalProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
   const [showDropdown, setShowDropdown] = useState(false);
   const [searching, setSearching] = useState(false);
   const [noResults, setNoResults] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -42,6 +45,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
       setError('');
       setSearching(false);
       setNoResults(false);
+      setRateLimited(false);
     }
   }, [isOpen]);
 
@@ -62,7 +66,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
     setError('');
 
     // If query is short, clear suggestions
-    if (!trimmed || trimmed.length < 2) {
+    if (!trimmed || trimmed.length < MIN_SEARCH_LENGTH) {
       setSuggestions([]);
       setShowDropdown(false);
       setSearching(false);
@@ -85,8 +89,10 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
         .lookupUser(slug, trimmed, team.id)
         .then((res) => {
           if (!isSubscribed) return;
+          setRateLimited(false);
           const list = res.results && res.results.length > 0 ? res.results : res.found ? [res] : [];
           setSuggestions(list);
+          setActiveIndex(0);
           setShowDropdown(true);
           setNoResults(list.length === 0);
 
@@ -99,10 +105,13 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
             }
           }
         })
-        .catch(() => {
+        .catch((err: { status?: number }) => {
           if (!isSubscribed) return;
           setSuggestions([]);
-          setNoResults(true);
+          // A throttled or failed search is not the same thing as "no such member".
+          setRateLimited(err?.status === 429);
+          setNoResults(err?.status !== 429);
+          if (err?.status !== 429) setError('Could not search members right now. Try again.');
         })
         .finally(() => {
           if (isSubscribed) {
@@ -124,6 +133,23 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
     setError('');
   };
 
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    const listOpen = showDropdown && suggestions.length > 0;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (!suggestions.length) return;
+      event.preventDefault();
+      setShowDropdown(true);
+      setActiveIndex((index) => (event.key === 'ArrowDown' ? Math.min(index + 1, suggestions.length - 1) : Math.max(index - 1, 0)));
+    } else if (event.key === 'Enter' && listOpen) {
+      event.preventDefault();
+      handleSelectUser(suggestions[activeIndex]);
+    } else if (event.key === 'Escape' && listOpen) {
+      // Close the list only; the modal's own Escape handler must not also fire.
+      event.nativeEvent.stopImmediatePropagation();
+      setShowDropdown(false);
+    }
+  };
+
   const handleClearSelection = () => {
     setSelectedUser(null);
     setQuery('');
@@ -131,6 +157,24 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
     setShowDropdown(false);
     setNoResults(false);
     setError('');
+  };
+
+  const trimmedQuery = query.trim();
+  const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedQuery);
+
+  const sendEmailInvite = async () => {
+    if (busy || !looksLikeEmail) return;
+    setBusy(true);
+    try {
+      const res = await hackathonApi.inviteByEmail(team.id, trimmedQuery);
+      toast.success('Invite emailed', `${trimmedQuery} will find the invite on their dashboard once they sign up with this address.`);
+      onInvited(res.team);
+      onClose();
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const send = async (e: React.FormEvent) => {
@@ -198,6 +242,12 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
               onFocus={() => {
                 if (suggestions.length > 0) setShowDropdown(true);
               }}
+              role="combobox"
+              aria-expanded={showDropdown && suggestions.length > 0}
+              aria-controls="invite-suggestions"
+              aria-autocomplete="list"
+              aria-activedescendant={showDropdown && suggestions[activeIndex] ? `invite-option-${suggestions[activeIndex].id}` : undefined}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Start typing name, email, or club ID (e.g. Rahul, 25SCC...)"
               className="pl-9 pr-9"
               autoFocus
@@ -217,20 +267,25 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
 
           {/* Autocomplete Suggestions Dropdown */}
           {showDropdown && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl divide-y divide-slate-100 dark:divide-slate-800/60 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/50 dark:bg-white/[0.02]">
-                Matching Members ({suggestions.length})
-              </div>
-              {suggestions.map((user) => (
-                <button
+            <ul
+              id="invite-suggestions"
+              role="listbox"
+              aria-label="Matching members"
+              className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl divide-y divide-slate-100 dark:divide-slate-800/60"
+            >
+              {suggestions.map((user, index) => (
+                <li
                   key={user.id || user.email}
-                  type="button"
+                  id={`invite-option-${user.id}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => handleSelectUser(user)}
-                  className="w-full text-left px-3 py-2.5 flex items-center justify-between gap-3 hover:bg-[#FF7A00]/5 transition cursor-pointer group"
+                  className={`flex cursor-pointer items-start justify-between gap-3 px-3 py-2.5 transition ${index === activeIndex ? 'bg-[#FF7A00]/10' : ''}`}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-xs text-white shadow-sm ring-2 ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ring-2 ${
                         user.can_invite
                           ? 'bg-gradient-to-br from-emerald-500 to-teal-600 ring-emerald-500/20'
                           : 'bg-gradient-to-br from-amber-500 to-orange-600 ring-amber-500/20'
@@ -240,45 +295,64 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-[#1A1A2E] dark:text-white group-hover:text-[#FF7A00] transition truncate">
-                          {user.name}
-                        </span>
+                        <span className="truncate text-xs font-bold text-[#1A1A2E] dark:text-white">{user.name}</span>
                         {user.club_id && (
-                          <span className="font-mono text-[9px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-200/60 dark:border-slate-700">
+                          <span className="rounded border border-slate-200/60 bg-slate-100 px-1 font-mono text-[9px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800">
                             {user.club_id}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                      <p className="truncate text-[11px] text-slate-400">{user.email}</p>
+                      {!user.can_invite && user.reason && (
+                        <p className="mt-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">{user.reason}</p>
+                      )}
                     </div>
                   </div>
-
-                  <div className="shrink-0">
-                    {user.can_invite ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                        <CheckCircle2 className="h-3 w-3" /> Eligible
-                      </span>
-                    ) : (
-                      <span
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 max-w-[130px] truncate"
-                        title={user.reason}
-                      >
-                        <AlertCircle className="h-3 w-3 shrink-0" /> {user.reason}
-                      </span>
-                    )}
-                  </div>
-                </button>
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                      user.can_invite
+                        ? 'border-emerald-500/20 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
+                        : 'border-amber-500/20 bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400'
+                    }`}
+                  >
+                    {user.can_invite ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                    {user.can_invite ? 'Eligible' : 'Unavailable'}
+                  </span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
 
           {/* No results message */}
-          {noResults && !searching && query.trim().length >= 2 && (
+          {rateLimited && !searching && (
+            <p role="alert" className="pt-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+              You are searching too fast. Wait a few seconds and keep typing.
+            </p>
+          )}
+          {noResults && !searching && !rateLimited && !looksLikeEmail && query.trim().length >= MIN_SEARCH_LENGTH && (
             <p className="text-xs text-slate-400 dark:text-slate-500 italic pt-1">
               No members found matching &quot;{query.trim()}&quot;. Check spelling or ask them to register.
             </p>
           )}
         </div>
+
+        {noResults && !searching && !rateLimited && looksLikeEmail && !selectedUser && (
+          <div className="space-y-2 rounded-xl border border-sky-500/30 bg-sky-500/[0.05] p-4">
+            <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">No account uses {trimmedQuery} yet</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              We can email them a link to sign up. The invite waits on their dashboard once they create an account with this exact address.
+              It uses one of your team&apos;s open slots until they respond.
+            </p>
+            <button
+              type="button"
+              onClick={sendEmailInvite}
+              disabled={busy || slotsLeft === 0}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-sky-700 active:scale-95 disabled:opacity-40"
+            >
+              <Mail className="h-3.5 w-3.5" /> {busy ? 'Sending…' : 'Email them an invite'}
+            </button>
+          </div>
+        )}
 
         {/* Selected Member Preview Card */}
         <div className="min-h-[96px] transition-all">

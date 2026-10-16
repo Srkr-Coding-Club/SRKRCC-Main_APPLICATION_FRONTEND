@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { Form, FormField, CrossFieldRule, ProfileFieldKey } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
+import { displayCollegeName } from '@/lib/colleges';
 import { getConstraintHint, validateSubmission, validateFieldValue, getCrossFieldError } from '@/lib/formValidation';
 import { computeLayout, isFieldRequired } from '@/lib/formConditional';
 import { useToast } from '@/context/ToastContext';
@@ -240,6 +241,17 @@ function matchUserDetailToField(field: FormField, user: AuthUser | null): any {
     return user.roll_number;
   }
 
+  // 4b. College / University / Institution (a "college email" label was already claimed above)
+  const isCollege = (
+    label.includes('college') ||
+    label.includes('university') ||
+    label.includes('institution')
+  );
+  const collegeName = displayCollegeName(user);
+  if (isCollege && collegeName && (type === 'TEXT' || type === 'PARAGRAPH')) {
+    return collegeName;
+  }
+
   // 5. Branch / Department
   const isBranch = (
     label === 'branch' ||
@@ -322,6 +334,8 @@ function resolveProfileFieldValue(profileField: ProfileFieldKey, user: AuthUser 
       return user.branch || undefined;
     case 'roll_number':
       return user.roll_number || undefined;
+    case 'college':
+      return displayCollegeName(user) || undefined;
     case 'year':
       return user.year !== undefined && user.year !== null ? String(user.year) : undefined;
     case 'club_id':

@@ -10,6 +10,8 @@ import { FormSelect } from '@/components/ui/FormSelect';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
+import { LoadError } from './LoadError';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
 
 const AUDIENCES: { value: HackathonAnnouncementAudience; label: string; hint: string }[] = [
@@ -17,8 +19,10 @@ const AUDIENCES: { value: HackathonAnnouncementAudience; label: string; hint: st
   { value: 'PARTICIPANTS', label: 'All registered participants', hint: 'Every member of an active team.' },
   { value: 'ROUND_ALL', label: 'All teams in a round', hint: 'Every team that took part in the chosen round.' },
   { value: 'ROUND_SHORTLISTED', label: 'Shortlisted teams in a round', hint: 'Only visible once that round’s results are published.' },
+  { value: 'ROUND_REJECTED', label: 'Teams not shortlisted in a round', hint: 'Only visible once that round’s results are published.' },
   { value: 'TEAMS', label: 'Specific teams', hint: 'Pick teams below.' },
 ];
+const ROUND_AUDIENCES: HackathonAnnouncementAudience[] = ['ROUND_ALL', 'ROUND_SHORTLISTED', 'ROUND_REJECTED'];
 const TYPES: { value: AnnouncementType; label: string }[] = [
   { value: 'INFO', label: 'Info' }, { value: 'SUCCESS', label: 'Success' }, { value: 'WARNING', label: 'Warning' }, { value: 'URGENT', label: 'Urgent' },
 ];
@@ -51,9 +55,12 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [teamSearch, setTeamSearch] = useState('');
   const [busy, setBusy] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
+  const [loadError, setLoadError] = useState('');
   const load = useCallback(() => {
-    hackathonApi.admin.announcements(slug).then(setItems).catch(() => setItems([]));
+    setLoadError('');
+    hackathonApi.admin.announcements(slug).then(setItems).catch((err) => setLoadError(apiErrorMessage(err, 'Could not load announcements.')));
   }, [slug]);
 
   useEffect(() => {
@@ -76,7 +83,7 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const needsRound = draft.audience === 'ROUND_ALL' || draft.audience === 'ROUND_SHORTLISTED';
+    const needsRound = ROUND_AUDIENCES.includes(draft.audience);
     const body: Record<string, unknown> = {
       title: draft.title, message: draft.message, type: draft.type, audience: draft.audience,
       round: needsRound && draft.round ? Number(draft.round) : null,
@@ -126,7 +133,9 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
         <button onClick={() => open('new')} className={BTN_PRIMARY}><Plus className="h-3.5 w-3.5" /> New announcement</button>
       </div>
 
-      {items.length === 0 ? (
+      {confirmDialog}
+      {loadError && <LoadError message={loadError} onRetry={load} />}
+      {items.length === 0 && !loadError ? (
         <p className="py-8 text-center text-sm text-slate-500">Nothing announced yet.</p>
       ) : (
         <ul className="space-y-2">
@@ -144,6 +153,8 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
                     {!a.is_active && <StatusPill tone="slate">Inactive</StatusPill>}
                     {future && <StatusPill tone="amber">Scheduled</StatusPill>}
                     {expired && <StatusPill tone="slate">Expired</StatusPill>}
+                    {a.emailed_at && <StatusPill tone="green">Emailed {formatDateTime(a.emailed_at)}</StatusPill>}
+                    {a.send_email && !a.emailed_at && a.is_active && <StatusPill tone="amber">Email goes out when published</StatusPill>}
                   </div>
                   <p className="text-[11px] text-slate-500">
                     {formatDateTime(a.publish_at)}{a.expires_at ? ` → ${formatDateTime(a.expires_at)}` : ''}{a.created_by_name ? ` · by ${a.created_by_name}` : ''}
@@ -158,16 +169,32 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
                     <Power className="h-3.5 w-3.5" />
                   </button>
                   <button
-                    onClick={() => window.confirm('Email this announcement to its audience now?') && action(async () => {
-                      const r = await hackathonApi.admin.notifyAnnouncement(slug, a.id);
-                      toast.info(`Emailing ${r.recipients} recipient(s)`);
-                    }, 'Email queued')}
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: 'Email this announcement?',
+                        message: `Everyone in its audience (${a.audience_label}${a.round_name ? `: ${a.round_name}` : ''}) will get an email now.${a.emailed_at ? ' It was already emailed once, so they will receive it again.' : ''}`,
+                        confirmLabel: 'Send emails',
+                      });
+                      if (!ok) return;
+                      action(async () => {
+                        const r = await hackathonApi.admin.notifyAnnouncement(slug, a.id);
+                        toast.info(`Emailing ${r.recipients} recipient(s)`);
+                      }, 'Email queued');
+                    }}
                     className={BTN_GHOST}
                     title="Email audience"
                   >
                     <Mail className="h-3.5 w-3.5" />
                   </button>
-                  <button onClick={() => window.confirm('Delete this announcement?') && action(() => hackathonApi.admin.deleteAnnouncement(slug, a.id), 'Deleted')} className={BTN_DANGER} title="Delete">
+                  <button onClick={async () => {
+                    const ok = await confirm({
+                      title: 'Delete this announcement?',
+                      message: `"${a.title}" disappears for everyone. Emails already sent cannot be recalled.`,
+                      confirmLabel: 'Delete',
+                      danger: true,
+                    });
+                    if (ok) action(() => hackathonApi.admin.deleteAnnouncement(slug, a.id), 'Deleted');
+                  }} className={BTN_DANGER} title="Delete">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -199,7 +226,7 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
             </div>
           </div>
 
-          {(draft.audience === 'ROUND_ALL' || draft.audience === 'ROUND_SHORTLISTED') && (
+          {ROUND_AUDIENCES.includes(draft.audience) && (
             <div>
               <label className={LABEL}>Round *</label>
               <FormSelect value={draft.round} onChange={(v) => setDraft((d) => ({ ...d, round: v }))} options={rounds.map((r) => ({ value: String(r.id), label: `R${r.order} · ${r.name}` }))} placeholder="Select round" allowClear={false} />

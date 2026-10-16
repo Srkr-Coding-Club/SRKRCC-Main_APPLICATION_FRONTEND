@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, HelpCircle, Mail, Phone, ExternalLink } from 'lucide-react';
+import { ChevronDown, HelpCircle, Mail } from 'lucide-react';
 import type { Hackathon } from '@/lib/types';
 
 interface FAQItem {
@@ -20,11 +20,11 @@ export function HackathonFAQSection({ hackathon }: { hackathon: Hackathon }) {
   const max = hackathon.max_team_size || 4;
   const teamSizeText = min === max ? `${max} members` : `${min} to ${max} members`;
 
-  const faqs: FAQItem[] = [
+  const defaultFaqs: FAQItem[] = [
     {
       question: 'Who is eligible to participate in this hackathon?',
       answer:
-        'All registered college students with an active SRKR Coding Club account are eligible to register. Both beginners and experienced developers are welcome! If you do not have an account yet, sign up to get started.',
+        'Anyone with an SRKR Coding Club account who meets the profile requirements listed on this page can register a team. Beginners and experienced developers are both welcome. If you do not have an account yet, sign up first.',
     },
     {
       question: 'What are the team size constraints?',
@@ -59,9 +59,12 @@ export function HackathonFAQSection({ hackathon }: { hackathon: Hackathon }) {
     {
       question: 'Will participants receive certificates?',
       answer:
-        'Yes! All verified participants with valid team submissions will receive official digital certificates of participation, and winning teams will receive cash prize payouts, trophies, and merit certificates.',
+        'Certificates and prizes are decided by the organizers for each hackathon. Watch the announcements tab and your team dashboard for what applies to this edition.',
     },
   ];
+
+  // An organizer-written FAQ replaces the standard one entirely.
+  const faqs: FAQItem[] = hackathon.faq?.length ? hackathon.faq : defaultFaqs;
 
   return (
     <div className="space-y-6">

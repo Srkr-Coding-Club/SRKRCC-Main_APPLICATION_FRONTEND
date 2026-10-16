@@ -89,7 +89,8 @@ export function downloadCSV(data: object[], filename: string): void {
       ])
     )
   );
-  const csv = Papa.unparse(normalized);
+  // escapeFormulae stops a value like =HYPERLINK(...) typed into a team name from running in Excel.
+  const csv = Papa.unparse(normalized, { escapeFormulae: true });
   saveBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), filename);
 }
 

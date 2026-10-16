@@ -3,32 +3,37 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Trophy } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
-import { Hackathon, HackathonAnnouncement, ProblemStatement } from '@/lib/types';
+import { Hackathon, HackathonAnnouncement, ProblemStatement, PublicStage } from '@/lib/types';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 import { HackathonDetailClient } from '@/components/hackathons/HackathonDetailClient';
 
 export const dynamic = 'force-dynamic';
 
-async function getHackathon(slug: string): Promise<Hackathon | null> {
+type HackathonLookup = { hackathon: Hackathon | null; unavailable: boolean };
+
+/** A missing hackathon is a 404; anything else (backend down, timeout) must not masquerade as one. */
+async function getHackathon(slug: string): Promise<HackathonLookup> {
   try {
-    return await fetchApi<Hackathon>(`/hackathons/${encodeURIComponent(slug)}/`);
-  } catch {
-    return null;
+    return { hackathon: await fetchApi<Hackathon>(`/hackathons/${encodeURIComponent(slug)}/`), unavailable: false };
+  } catch (error) {
+    return { hackathon: null, unavailable: (error as { status?: number })?.status !== 404 };
   }
 }
 
 async function getPublicExtras(slug: string) {
-  const [problems, announcements] = await Promise.all([
+  const [problems, announcements, stages] = await Promise.all([
     fetchApi<ProblemStatement[]>(`/hackathons/${encodeURIComponent(slug)}/problem-statements/`).catch(() => []),
     fetchApi<HackathonAnnouncement[]>(`/hackathons/${encodeURIComponent(slug)}/announcements/`).catch(() => []),
+    fetchApi<PublicStage[]>(`/hackathons/${encodeURIComponent(slug)}/stages/`).catch(() => []),
   ]);
-  return { problems: problems || [], announcements: announcements || [] };
+  return { problems: problems || [], announcements: announcements || [], stages: stages || [] };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const hackathon = await getHackathon(slug);
+  const { hackathon, unavailable } = await getHackathon(slug);
+  if (unavailable) return { title: 'Hackathon temporarily unavailable | SRKR Coding Club' };
   if (!hackathon) notFound();
   return {
     title: `${hackathon.title} | SRKR Coding Club Hackathons`,
@@ -49,16 +54,26 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
   }
 
   const { slug } = await params;
-  const hackathon = await getHackathon(slug);
+  const { hackathon, unavailable } = await getHackathon(slug);
+  if (unavailable) {
+    return (
+      <ModuleUnavailable
+        moduleName="Hackathon"
+        icon={Trophy}
+        description="We could not load this hackathon right now. Please refresh in a minute."
+      />
+    );
+  }
   if (!hackathon) notFound();
 
-  const { problems, announcements } = await getPublicExtras(slug);
+  const { problems, announcements, stages } = await getPublicExtras(slug);
 
   return (
     <HackathonDetailClient
       hackathon={hackathon}
       problems={problems}
       announcements={announcements}
+      stages={stages}
     />
   );
 }
