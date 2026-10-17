@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Mail, X, Sparkles, Loader2, Send, PlusCircle, ListChecks, Eye, Pencil } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
 import { EmailTemplateSummary } from '@/lib/types';
+import { SITE_URL } from '@/lib/site';
 import { useToast } from '@/context/ToastContext';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
@@ -21,8 +22,8 @@ const SAMPLE_PLACEHOLDER_VALUES: Record<(typeof PLACEHOLDER_CHIPS)[number], stri
   email: 'aditi.sharma@srkr.ac.in',
   club_id: '25SCC142',
   branch: 'CSE',
-  portal_url: 'https://srkrcc.com/profile',
-  login_url: 'https://srkrcc.com/login',
+  portal_url: `${SITE_URL}/profile`,
+  login_url: `${SITE_URL}/login`,
 };
 
 export interface EmailRecipient {

@@ -4,6 +4,7 @@ import './globals.css';
 import NavbarSwitcher from '@/components/NavbarSwitcher';
 import Footer from '@/components/Footer';
 import { getModuleFlags } from '@/lib/moduleFlags';
+import { SITE_URL } from '@/lib/site';
 import { INTRO_CINEMA_SCRIPT } from '@/components/hero-intro/introEligibility';
 
 import type { Metadata } from 'next';
@@ -18,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '500'
 const poppins = Poppins({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-poppins', display: 'swap' });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://srkrcc.com'),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'SRKR Coding Club | Innovate, Code, Excel',
     template: '%s | SRKR Coding Club',
@@ -39,13 +40,13 @@ export const metadata: Metadata = {
     'Competitive Programming',
     'Student Developer Community',
   ],
-  authors: [{ name: 'SRKR Coding Club Tech Wing', url: 'https://srkrcc.com' }],
+  authors: [{ name: 'SRKR Coding Club Tech Wing', url: SITE_URL }],
   creator: 'SRKR Coding Club',
   publisher: 'SRKR Engineering College',
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: 'https://srkrcc.com',
+    url: SITE_URL,
     siteName: 'SRKR Coding Club',
     title: 'SRKR Coding Club | Official Platform',
     description:

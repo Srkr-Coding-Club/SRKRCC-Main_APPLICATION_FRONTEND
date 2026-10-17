@@ -1,17 +1,18 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+// Hosts next/image may load remote pictures from, comma separated (no scheme).
+const imageHosts = (process.env.NEXT_IMAGE_REMOTE_HOSTS || 'images.unsplash.com')
+  .split(',')
+  .map((host) => host.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: process.env.DOCKER_BUILD === '1' || process.env.OUTPUT_STANDALONE === 'true' ? 'standalone' : undefined,
   outputFileTracingRoot: path.join(__dirname),
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-    ],
+    remotePatterns: imageHosts.map((hostname) => ({ protocol: 'https' as const, hostname })),
   },
   async headers() {
     // Report-only for now: violations show in the browser console without breaking anything. Tighten
