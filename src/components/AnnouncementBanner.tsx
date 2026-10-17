@@ -1,4 +1,5 @@
 import { fetchApi } from '@/lib/api-client';
+import { skipBuildTimeApiRead } from '@/lib/constants';
 import { Announcement } from '@/lib/types';
 import AnnouncementBannerClient from './AnnouncementBannerClient';
 
@@ -12,6 +13,8 @@ import AnnouncementBannerClient from './AnnouncementBannerClient';
  * - an announcement banner is the last thing that should block the homepage.
  */
 export default async function AnnouncementBanner() {
+  if (skipBuildTimeApiRead()) return null;
+
   let announcements: Announcement[] = [];
   try {
     announcements = (await fetchApi<Announcement[]>('/announcements/', { next: { revalidate: 60 } } as RequestInit)) || [];
