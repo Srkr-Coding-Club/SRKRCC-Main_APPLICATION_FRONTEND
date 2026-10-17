@@ -1,0 +1,30 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Amplify's default image does not include pnpm. Node 20 may already
+        # be present; nvm install is a no-op then, and nvm use alone fails if it
+        # is not. Do not set DOCKER_BUILD or OUTPUT_STANDALONE.
+        - nvm install 20
+        - nvm use 20
+        - corepack enable
+        - corepack prepare pnpm@9 --activate
+        - pnpm install --frozen-lockfile
+    build:
+      commands:
+        # Amplify console env vars are available at build time, but Next.js
+        # server runtimes only receive values written to .env.production.
+        # Write only the two API URL variables. Do not dump env or echo values.
+        - if [ -z "${NEXT_PUBLIC_API_BASE_URL:-}" ]; then echo "NEXT_PUBLIC_API_BASE_URL is required for the Amplify production build." >&2; exit 1; fi
+        - printf 'NEXT_PUBLIC_API_BASE_URL=%s\n' "$NEXT_PUBLIC_API_BASE_URL" >> .env.production
+        - if [ -n "${INTERNAL_API_BASE_URL:-}" ]; then printf 'INTERNAL_API_BASE_URL=%s\n' "$INTERNAL_API_BASE_URL" >> .env.production; fi
+        - pnpm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*

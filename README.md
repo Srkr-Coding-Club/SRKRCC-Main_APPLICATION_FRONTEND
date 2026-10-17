@@ -55,6 +55,8 @@ Create a `.env.local` file in the root of `SRKRCC-Main_APPLICATION_FRONTEND` (or
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
 ```
 
+Every variable the frontend reads (`INTERNAL_API_BASE_URL`, `NEXT_PUBLIC_SITE_URL`, `CLIENT_IP_SHARED_SECRET`, `NEXT_IMAGE_REMOTE_HOSTS`, `OUTPUT_STANDALONE`, `DOCKER_BUILD`) is listed and explained in [`.env.local.example`](.env.local.example). Hosting-specific values live only in environment variables, so changing platform needs no code change.
+
 ---
 
 ### 2. Install Dependencies
