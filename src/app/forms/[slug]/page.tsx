@@ -870,7 +870,7 @@ export default function FormDetailSubmissionPage() {
           setIsEditMode(!res.allow_multiple_responses);
 
           if (!res.allow_multiple_responses) {
-            // Pre-populate formData with previously submitted answers
+            // Only prefill the existing answers when editing a single response.
             const prefill: Record<string, any> = {};
             if (res.response.answers && Array.isArray(res.response.answers)) {
               res.response.answers.forEach((ans: any) => {
@@ -878,7 +878,7 @@ export default function FormDetailSubmissionPage() {
                 prefill[fieldKey] = ans.value;
               });
             }
-            setFormData((prev) => ({ ...prefill, ...prev }));
+            setFormData((prev) => ({ ...prev, ...prefill }));
           }
         }
       } catch (err) {
@@ -944,27 +944,12 @@ export default function FormDetailSubmissionPage() {
     });
   }, [form, currentUser, hasSubmitted]);
 
-  // Load draft from localStorage on mount (only if no existing submitted response)
-  useEffect(() => {
-    if (slug && !hasSubmitted) {
-      try {
-        const savedDraft = localStorage.getItem(`srkrcc_form_draft_${slug}`);
-        if (savedDraft) {
-          setFormData((prev) => ({ ...JSON.parse(savedDraft), ...prev }));
-        }
-      } catch {}
-    }
-  }, [slug, hasSubmitted]);
-
   const handleInputChange = (field: FormField, value: any) => {
     const fieldId = field.id;
     if (isLockedToSingleExistingResponse) return; // Prevent edits when locked
 
     const nextFormData = { ...formData, [String(fieldId)]: value };
     setFormData(nextFormData);
-    try {
-      if (slug && !hasSubmitted) localStorage.setItem(`srkrcc_form_draft_${slug}`, JSON.stringify(nextFormData));
-    } catch {}
 
     const allFields = (form?.fields as FormField[]) || [];
 
@@ -1132,10 +1117,6 @@ export default function FormDetailSubmissionPage() {
           }),
         });
       }
-
-      try {
-        if (slug) localStorage.removeItem(`srkrcc_form_draft_${slug}`);
-      } catch {}
 
       if (Array.isArray(result?.warnings) && result.warnings.length > 0) {
         toast.info('Submitted with notes', result.warnings[0].message);

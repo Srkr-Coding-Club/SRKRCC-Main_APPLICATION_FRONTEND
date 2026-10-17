@@ -226,7 +226,7 @@ function EditableClubIdField({
         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Club ID</p>
         <div className="flex items-center gap-2 mt-0.5">
           <p className="text-sm text-[#1A1A2E] dark:text-white break-words font-mono">
-            {savedValue || <span className="italic text-slate-400 font-sans">Not set</span>}
+            {savedValue || <span className="italic text-slate-400">Not set</span>}
           </p>
           {onSave && (
             <button
