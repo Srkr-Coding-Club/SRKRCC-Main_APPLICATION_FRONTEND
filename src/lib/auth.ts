@@ -1,5 +1,7 @@
 'use client';
 
+import type { College } from './colleges';
+
 export interface AuthUser {
   id: number;
   email: string;
@@ -10,6 +12,8 @@ export interface AuthUser {
   club_id?: string;
   membership_status?: string;
   roll_number?: string;
+  college?: College | null;
+  other_college_name?: string;
   branch?: string;
   year?: number | string;
   phone_number?: string;
@@ -28,12 +32,16 @@ export interface AuthTokens {
 const USER_KEY = 'srkrcc_user';
 const ROLE_COOKIE = 'srkrcc_user_role';
 
+const SIGNED_OUT_PATHS = ['/login', '/signup'];
+
 export function redirectToLogin() {
   if (typeof window === 'undefined') return;
   const next = `${window.location.pathname}${window.location.search}`;
   const loginUrl = `/login?next=${encodeURIComponent(isSafeNextPath(next) ? next : '/')}`;
   clearAuthSession();
-  if (window.location.pathname !== '/login') {
+  // /login and /signup are where a signed-out member is meant to be: a stale
+  // session's failed background calls (notifications, /me) must not bounce them away.
+  if (!SIGNED_OUT_PATHS.includes(window.location.pathname)) {
     window.location.replace(loginUrl);
   }
 }
@@ -201,6 +209,8 @@ export async function fetchAndSyncCurrentUser(): Promise<AuthUser | null> {
         last_name: data.last_name,
         role: data.role,
         roll_number: data.roll_number,
+        college: data.college,
+        other_college_name: data.other_college_name,
         branch: data.branch,
         year: data.year,
         phone_number: data.phone_number,
@@ -284,6 +294,8 @@ export async function registerUser(payload: Record<string, any>): Promise<any> {
       body.first_name?.[0] ||
       body.last_name?.[0] ||
       body.roll_number?.[0] ||
+      body.college_id?.[0] ||
+      body.other_college_name?.[0] ||
       body.branch?.[0] ||
       body.year?.[0] ||
       body.club_id?.[0] ||

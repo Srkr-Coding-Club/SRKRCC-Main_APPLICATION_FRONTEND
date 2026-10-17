@@ -60,7 +60,7 @@ export default function StackDetailsDialog({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-center overflow-hidden bg-slate-950/45 px-2 py-3 pt-[var(--navbar-bottom)] backdrop-blur-md sm:px-4 sm:py-4"
+      className="fixed inset-x-0 bottom-0 z-40 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-slate-950/45 pl-4 pr-8 py-6 pt-[var(--navbar-bottom)] backdrop-blur-md sm:px-4 sm:py-6"
       style={
         {
           top: 0,
@@ -83,7 +83,7 @@ export default function StackDetailsDialog({
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className="relative flex max-h-full w-full flex-col pt-4 sm:pt-16"
+        className="relative my-auto flex w-full shrink-0 flex-col pt-4 sm:pt-16"
         initial={{ opacity: 0, scale: 0.86, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}

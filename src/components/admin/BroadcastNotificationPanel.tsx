@@ -475,7 +475,7 @@ export function BroadcastNotificationPanel() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white p-4 shadow-sm text-slate-800 max-w-lg space-y-3 font-sans">
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white p-4 shadow-sm text-slate-800 max-w-lg space-y-3">
                   <div className="border-b border-slate-100 pb-2">
                     <span className="text-[11px] font-bold text-slate-400 uppercase">Subject: </span>
                     <span className="text-xs font-bold text-slate-900">

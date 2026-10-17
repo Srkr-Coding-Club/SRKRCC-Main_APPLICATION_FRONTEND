@@ -46,7 +46,7 @@ import { normalizeImageUrl } from '@/lib/utils';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import EmailTemplateEditor from '@/components/admin/EmailTemplateEditor';
-import { IdCard, Mail as MailIcon, QrCode, Sparkles, Bell, Megaphone, UserCheck } from 'lucide-react';
+import { GraduationCap, IdCard, Mail as MailIcon, QrCode, Sparkles, Bell, Megaphone, UserCheck } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
 import { EmailTemplateSummary } from '@/lib/types';
 
@@ -116,6 +116,7 @@ const PROFILE_FIELD_PALETTE: { profileField: ProfileFieldKey; type: FormField['t
   { profileField: 'phone_number', type: 'PHONE', label: 'Phone Number', icon: Phone },
   { profileField: 'branch', type: 'TEXT', label: 'Branch', icon: List },
   { profileField: 'roll_number', type: 'TEXT', label: 'Roll Number', icon: IdCard },
+  { profileField: 'college', type: 'TEXT', label: 'College', icon: GraduationCap },
   { profileField: 'year', type: 'NUMBER', label: 'Year', icon: Hash },
   { profileField: 'club_id', type: 'TEXT', label: 'Club ID', icon: IdCard },
 ];

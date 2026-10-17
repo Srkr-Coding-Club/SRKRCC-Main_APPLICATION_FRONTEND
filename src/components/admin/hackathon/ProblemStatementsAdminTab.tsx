@@ -1,5 +1,6 @@
 'use client';
 
+import { LoadError } from './LoadError';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowDown, ArrowUp, Download, Eye, EyeOff, FileUp, Pencil, Plus, Target, Trash2, Users } from 'lucide-react';
 import type { HackathonTeam, ProblemStatement } from '@/lib/types';
@@ -7,19 +8,22 @@ import { apiErrorMessage, hackathonApi, type ProblemStatementUploadResult } from
 import { useToast } from '@/context/ToastContext';
 import { Modal } from '@/components/ui/Modal';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { FormSelect } from '@/components/ui/FormSelect';
+import { TagInput } from '@/components/ui/TagInput';
+import { ProblemDomainsPanel } from './ProblemDomainsPanel';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors } from './shared';
 
 interface Draft {
   title: string;
   domain: string;
-  tags: string;
+  tags: string[];
   max_teams: string;
   description: string;
-  order: string;
+  is_active: boolean;
 }
 
-const EMPTY: Draft = { title: '', domain: '', tags: '', max_teams: '', description: '', order: '0' };
+const EMPTY: Draft = { title: '', domain: '', tags: [], max_teams: '', description: '', is_active: true };
 const MAX_UPLOAD_BYTES = 1024 * 1024;
 const CSV_TEMPLATE = 'title,description,domain\nSmart waste bins,IoT bins that report their fill level to the cleaning crew,IoT\n';
 
@@ -41,6 +45,8 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [domainList, setDomainList] = useState<string[]>([]);
+  const [quickDomain, setQuickDomain] = useState<string | null>(null);
 
   // Deletion modal state
   const [deleteTarget, setDeleteTarget] = useState<ProblemStatement | null>(null);
@@ -53,24 +59,59 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
   const [uploadResult, setUploadResult] = useState<ProblemStatementUploadResult | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  const [loadError, setLoadError] = useState('');
   const load = useCallback(() => {
+    setLoadError('');
     Promise.all([
-      hackathonApi.problemStatements(slug).then(setItems).catch(() => setItems([])),
+      hackathonApi.problemStatements(slug).then(setItems).catch((err) => setLoadError(apiErrorMessage(err, 'Could not load problem statements.'))),
       hackathonApi.admin.teams(slug).then(setTeams).catch(() => setTeams([])),
+      hackathonApi.get(slug).then((hackathon) => setDomainList(hackathon.problem_domains ?? [])).catch(() => setDomainList([])),
     ]).finally(() => setLoading(false));
   }, [slug]);
 
   useEffect(load, [load]);
 
-  const domains = useMemo(() => [...new Set(items.map((p) => p.domain).filter(Boolean))], [items]);
+  const domainUsage = useMemo(() => {
+    const counts: Record<string, number> = {};
+    items.forEach((statement) => {
+      const key = (statement.domain || '').toLowerCase();
+      if (key) counts[key] = (counts[key] ?? 0) + 1;
+    });
+    return counts;
+  }, [items]);
+  const allTags = useMemo(() => [...new Set(items.flatMap((statement) => statement.tags))].sort(), [items]);
+
+  const addQuickDomain = async () => {
+    const name = (quickDomain ?? '').replace(/\s+/g, ' ').trim();
+    if (!name) return;
+    const existing = domainList.find((domain) => domain.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      setDraft((d) => ({ ...d, domain: existing }));
+      setQuickDomain(null);
+      return;
+    }
+    try {
+      const saved = await hackathonApi.admin.update(slug, { problem_domains: [...domainList, name] });
+      setDomainList(saved.problem_domains ?? [...domainList, name]);
+      setDraft((d) => ({ ...d, domain: name }));
+      setQuickDomain(null);
+    } catch (err) {
+      toast.error('Could not add the domain', apiErrorMessage(err));
+    }
+  };
+
+  const domainOptions = useMemo(() => {
+    const names = draft.domain && !domainList.some((d) => d.toLowerCase() === draft.domain.toLowerCase()) ? [draft.domain, ...domainList] : domainList;
+    return names.map((name) => ({ value: name, label: name }));
+  }, [domainList, draft.domain]);
 
   const open = (ps: ProblemStatement | 'new') => {
     setEditing(ps);
     setErrors({});
-    setDraft(ps === 'new' ? { ...EMPTY, order: String(items.length + 1) } : {
-      title: ps.title, domain: ps.domain, tags: ps.tags.join(', '),
-      max_teams: ps.max_teams ? String(ps.max_teams) : '', description: ps.description,
-      order: String(ps.order ?? 0),
+    setQuickDomain(null);
+    setDraft(ps === 'new' ? EMPTY : {
+      title: ps.title, domain: ps.domain, tags: ps.tags,
+      max_teams: ps.max_teams ? String(ps.max_teams) : '', description: ps.description, is_active: ps.is_active,
     });
   };
 
@@ -78,7 +119,7 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
     e.preventDefault();
     const next: Record<string, string> = {};
     if (!draft.title.trim()) next.title = 'Title is required.';
-    if (!draft.domain.trim()) next.domain = 'Domain is required.';
+    if (!draft.domain.trim()) next.domain = 'Select a domain (add one first if the list is empty).';
     if (!draft.description.trim()) next.description = 'Description is required.';
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -88,9 +129,9 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
       title: draft.title.trim(),
       domain: draft.domain.trim(),
       description: draft.description.trim(),
-      tags: draft.tags.split(',').map((t) => t.trim()).filter(Boolean),
+      tags: draft.tags,
       max_teams: draft.max_teams ? Number(draft.max_teams) : null,
-      order: Number(draft.order || 0),
+      is_active: draft.is_active,
     };
     try {
       if (editing === 'new') {
@@ -144,15 +185,12 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
     if (direction === 'up' && idx <= 0) return;
     if (direction === 'down' && idx >= items.length - 1) return;
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    const other = items[targetIdx];
+    const ids = items.map((x) => x.id);
+    [ids[idx], ids[targetIdx]] = [ids[targetIdx], ids[idx]];
 
     setBusy(true);
     try {
-      const tempOrder = 999999;
-      await hackathonApi.admin.updateProblemStatement(slug, ps.id, { order: tempOrder });
-      await hackathonApi.admin.updateProblemStatement(slug, other.id, { order: ps.order });
-      await hackathonApi.admin.updateProblemStatement(slug, ps.id, { order: other.order });
-      load();
+      setItems(await hackathonApi.admin.reorderProblemStatements(slug, ids));
     } catch (err) {
       toast.error('Could not reorder', apiErrorMessage(err));
     } finally {
@@ -212,7 +250,7 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
         <div>
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Problem Statements</h3>
           <p className="text-xs text-slate-500">
-            Define problem statements for participants or import via CSV. Team assignments and slot capacity update automatically.
+            Add problem statements one by one or import a CSV (new domains in the file are added to your list). IDs and order are assigned automatically; use the arrows to reorder.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -221,6 +259,8 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
         </div>
       </div>
 
+      {loadError && <LoadError message={loadError} onRetry={load} />}
+      {!loading && <ProblemDomainsPanel slug={slug} domains={domainList} usage={domainUsage} onChange={setDomainList} />}
       {loading ? (
         <div className="h-24 rounded-lg bg-slate-200 dark:bg-white/5 animate-pulse" />
       ) : items.length === 0 ? (
@@ -319,26 +359,55 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
             <input value={draft.title} onChange={set('title')} placeholder="Smart campus attendance" className={INPUT} />
             {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Domain *</label>
-              <input value={draft.domain} onChange={set('domain')} list="problem-domains" placeholder="EdTech" className={INPUT} />
-              <datalist id="problem-domains">{domains.map((d) => <option key={d} value={d} />)}</datalist>
+              {domainOptions.length > 0 && (
+                <FormSelect
+                  value={draft.domain}
+                  onChange={(value) => setDraft((d) => ({ ...d, domain: value }))}
+                  options={domainOptions}
+                  placeholder="Select a domain"
+                  allowClear={false}
+                />
+              )}
+              {quickDomain === null ? (
+                <button type="button" onClick={() => setQuickDomain('')} className="mt-1.5 text-[11px] font-bold text-[#FF7A00] hover:underline">
+                  {domainOptions.length === 0 ? '+ Add the first domain' : '+ New domain'}
+                </button>
+              ) : (
+                <div className="mt-2 flex gap-2">
+                  <input
+                    autoFocus
+                    value={quickDomain}
+                    maxLength={100}
+                    onChange={(e) => setQuickDomain(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addQuickDomain();
+                      }
+                    }}
+                    placeholder="e.g. HealthTech"
+                    aria-label="New domain name"
+                    className={INPUT}
+                  />
+                  <button type="button" onClick={addQuickDomain} className={BTN_PRIMARY}>Add</button>
+                </div>
+              )}
               {errors.domain && <p className="mt-1 text-[11px] text-rose-500">{errors.domain}</p>}
             </div>
             <div>
               <label className={LABEL}>Max teams</label>
               <input type="number" min={1} value={draft.max_teams} onChange={set('max_teams')} placeholder="Unlimited" className={INPUT} />
+              <p className="mt-1 text-[11px] text-slate-400">Leave blank for unlimited. Counts only active teams.</p>
               {errors.max_teams && <p className="mt-1 text-[11px] text-rose-500">{errors.max_teams}</p>}
-            </div>
-            <div>
-              <label className={LABEL}>Display order</label>
-              <input type="number" value={draft.order} onChange={set('order')} placeholder="1" className={INPUT} />
             </div>
           </div>
           <div>
-            <label className={LABEL}>Tags (comma separated)</label>
-            <input value={draft.tags} onChange={set('tags')} placeholder="iot, ml" className={INPUT} />
+            <label className={LABEL} htmlFor="ps-tags">Tags</label>
+            <TagInput id="ps-tags" value={draft.tags} onChange={(tags) => setDraft((d) => ({ ...d, tags }))} suggestions={allTags} />
+            {errors.tags && <p className="mt-1 text-[11px] text-rose-500">{errors.tags}</p>}
           </div>
           <MarkdownEditor
             label="Description *"
@@ -347,6 +416,13 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
             placeholder="Problem background, expected outcome, constraints…"
           />
           {errors.description && <p className="-mt-2 text-[11px] text-rose-500">{errors.description}</p>}
+          <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
+            <input type="checkbox" checked={draft.is_active} onChange={(e) => setDraft((d) => ({ ...d, is_active: e.target.checked }))} className="mt-0.5 h-4 w-4 accent-[#FF7A00]" />
+            <span>
+              <span className="font-bold text-[#1A1A2E] dark:text-white">Open for teams to pick</span>
+              <span className="block text-xs text-slate-500">Untick to hide it from participants. Teams already on it keep it.</span>
+            </span>
+          </label>
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setEditing(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
             <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : 'Save'}</button>

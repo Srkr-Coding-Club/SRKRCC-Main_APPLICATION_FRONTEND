@@ -14,9 +14,10 @@ const TYPE_STYLE: Record<string, { icon: React.ElementType; bar: string; text: s
 
 export function formatDateTime(iso?: string | null) {
   if (!iso) return '';
-  return new Date(iso).toLocaleString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
-  });
+  // One timezone for every hackathon date, like the public detail page, instead of each viewer's own.
+  return `${new Date(iso).toLocaleString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata',
+  })} IST`;
 }
 
 export function HackathonAnnouncementsFeed({

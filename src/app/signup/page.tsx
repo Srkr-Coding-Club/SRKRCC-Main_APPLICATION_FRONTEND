@@ -1,15 +1,14 @@
 'use client';
 
 import React, { Suspense } from 'react';
-import { useRouter } from 'next/navigation';
 import SignupCard from '@/components/SignupCard';
 
 export default function SignupPage() {
-  const router = useRouter();
-
   return (
-    <Suspense fallback={null}>
-      <SignupCard onClose={() => router.back()} />
-    </Suspense>
+    <main className="flex w-full flex-1 bg-[#FAFAFC] dark:bg-[#0D0E15]">
+      <Suspense fallback={null}>
+        <SignupCard pageLayout />
+      </Suspense>
+    </main>
   );
 }

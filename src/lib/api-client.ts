@@ -55,7 +55,9 @@ export async function fetchApi<T>(
           return fetchApi<T>(endpoint, options, true);
         }
       }
-      redirectToLogin();
+      // Background polling (e.g. the notification bell) passes silentAuth: an expired
+      // session there must not bounce someone off a public page.
+      if (!(options as { silentAuth?: boolean }).silentAuth) redirectToLogin();
     }
 
     if (!response.ok) {

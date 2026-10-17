@@ -7,6 +7,8 @@ import type { Hackathon, HackathonTeam, ProblemStatement, UserLookupResult } fro
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
 import { downloadCSV } from '@/lib/dataManagement';
+import { LoadError } from './LoadError';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DetailDrawer } from '@/components/admin/DetailDrawer';
 import { Modal } from '@/components/ui/Modal';
 import { FormSelect } from '@/components/ui/FormSelect';
@@ -41,6 +43,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
   const [addShowDropdown, setAddShowDropdown] = useState(false);
   const [addSearching, setAddSearching] = useState(false);
   const [busy, setBusy] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const addDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on click outside
@@ -57,7 +60,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
   // Debounced user lookup for admin adding member
   useEffect(() => {
     const clean = addQuery.trim();
-    if (!clean || clean.length < 2) {
+    if (!clean || clean.length < 3) {
       setAddSuggestions([]);
       setAddShowDropdown(false);
       setAddSearching(false);
@@ -121,8 +124,13 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
   // Deletion Modal
   const [deleteConfirmTeam, setDeleteConfirmTeam] = useState<HackathonTeam | null>(null);
 
+  const [loadError, setLoadError] = useState('');
   const load = useCallback(() => {
-    hackathonApi.admin.teams(slug).then(setTeams).catch(() => setTeams([])).finally(() => setLoading(false));
+    setLoadError('');
+    hackathonApi.admin.teams(slug)
+      .then(setTeams)
+      .catch((err) => setLoadError(apiErrorMessage(err, 'Could not load teams.')))
+      .finally(() => setLoading(false));
   }, [slug]);
 
   useEffect(() => {
@@ -269,6 +277,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
       name: m.name,
       email: m.email,
       phone: m.phone_number ?? '',
+      college: m.college ?? '',
       branch: m.branch ?? '',
       year: m.year ?? '',
       roll_number: m.roll_number ?? '',
@@ -321,6 +330,8 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
         />
       </div>
 
+      {confirmDialog}
+      {loadError && <LoadError message={loadError} onRetry={load} />}
       <p className="text-xs text-slate-500">{filtered.length} of {teams.length} teams</p>
 
       {loading ? (
@@ -352,7 +363,17 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                       setEditingName(false);
                       setEditingProblem(false);
                     }}
-                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03]"
+                    tabIndex={0}
+                    aria-label={`Open team ${t.name}`}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedId(t.id);
+                        setEditingName(false);
+                        setEditingProblem(false);
+                      }
+                    }}
+                    className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00]/50 dark:hover:bg-white/[0.03] dark:focus:bg-white/[0.03]"
                   >
                     <td className="py-2.5 pr-3 font-semibold text-[#1A1A2E] dark:text-white">{t.name}</td>
                     <td className="py-2.5 pr-3 text-xs text-slate-500">{t.leader_email ?? '-'}</td>
@@ -519,7 +540,15 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                             ><Crown className="h-3 w-3" /></button>
                             <button
                               disabled={busy}
-                              onClick={() => window.confirm(`Remove ${m.name}?`) && act(() => hackathonApi.removeMember(selected.id, m.user_id), 'Member removed')}
+                              onClick={async () => {
+                                const ok = await confirm({
+                                  title: `Remove ${m.name}?`,
+                                  message: `${m.name} leaves ${selected.name}. The team's status is re-checked against the minimum size.`,
+                                  confirmLabel: 'Remove member',
+                                  danger: true,
+                                });
+                                if (ok) act(() => hackathonApi.removeMember(selected.id, m.user_id), 'Member removed');
+                              }}
                               className={BTN_DANGER}
                               title="Remove"
                             ><UserMinus className="h-3 w-3" /></button>
@@ -528,7 +557,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                       </div>
                       <p className="text-slate-500">{m.email}</p>
                       <p className="text-slate-500">
-                        {[m.phone_number, m.branch, m.year ? `Year ${m.year}` : null, m.roll_number, m.club_id].filter(Boolean).join(' · ') || 'No profile details'}
+                        {[m.phone_number, m.college, m.branch, m.year ? `Year ${m.year}` : null, m.roll_number, m.club_id].filter(Boolean).join(' · ') || 'No profile details'}
                       </p>
                     </li>
                   ))}

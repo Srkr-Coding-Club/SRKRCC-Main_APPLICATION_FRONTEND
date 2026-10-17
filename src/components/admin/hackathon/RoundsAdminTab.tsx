@@ -6,6 +6,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
+  Download,
   Eye,
   EyeOff,
   FileText,
@@ -26,6 +27,9 @@ import { fetchApi } from '@/lib/api-client';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
 import { Modal } from '@/components/ui/Modal';
+import { LoadError } from './LoadError';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { downloadCSV } from '@/lib/dataManagement';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { ENTRY_STATUS_PILL, ROUND_STATUS_PILL, StatusPill } from '@/components/ui/StatusPill';
@@ -58,6 +62,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const [roundModal, setRoundModal] = useState<HackathonRound | 'new' | null>(null);
   const [draft, setDraft] = useState<RoundDraft>({ name: '', description: '', starts_at: '', ends_at: '', status: 'UPCOMING', details_form: '' });
@@ -66,27 +71,36 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
   const [decision, setDecision] = useState<RoundEntryStatus | null>(null);
   const [feedback, setFeedback] = useState('');
   const [notes, setNotes] = useState('');
+  const [clearFeedback, setClearFeedback] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [publishOpen, setPublishOpen] = useState(false);
   const [announce, setAnnounce] = useState(true);
   const [announceMsg, setAnnounceMsg] = useState('');
   const [emailShortlisted, setEmailShortlisted] = useState(false);
+  const [announceRejected, setAnnounceRejected] = useState(true);
 
   // Wildcard / manual team addition modal
   const [wildcardOpen, setWildcardOpen] = useState(false);
   const [wildcardSearch, setWildcardSearch] = useState('');
 
   const loadRounds = useCallback(async () => {
-    const r = await hackathonApi.admin.rounds(slug).catch(() => [] as HackathonRound[]);
-    setRounds(r);
-    setSelectedId((cur) => (cur && r.some((x) => x.id === cur) ? cur : r[r.length - 1]?.id ?? null));
+    try {
+      const r = await hackathonApi.admin.rounds(slug);
+      setLoadError('');
+      setRounds(r);
+      setSelectedId((cur) => (cur && r.some((x) => x.id === cur) ? cur : r[r.length - 1]?.id ?? null));
+    } catch (err) {
+      setLoadError(apiErrorMessage(err, 'Could not load rounds.'));
+    }
   }, [slug]);
 
   const loadEntries = useCallback(async (id: number) => {
     setEntriesLoading(true);
     try {
       setEntries(await hackathonApi.admin.roundEntries(slug, id));
-    } catch {
+    } catch (err) {
       setEntries([]);
+      setLoadError(apiErrorMessage(err, 'Could not load this round\'s teams.'));
     } finally {
       setEntriesLoading(false);
     }
@@ -115,6 +129,12 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
       && (!q || e.team_name.toLowerCase().includes(q) || (e.leader_email ?? '').toLowerCase().includes(q))
     );
   }, [entries, filter, search]);
+
+  // Rows hidden by a new filter must not stay selected: a bulk action would still hit them.
+  useEffect(() => {
+    const visibleIds = new Set(visible.map((e) => e.id));
+    setChecked((prev) => (prev.size && [...prev].some((id) => !visibleIds.has(id)) ? new Set([...prev].filter((id) => visibleIds.has(id))) : prev));
+  }, [visible]);
 
   const eligibleForWildcard = useMemo(() => {
     const existingTeamIds = new Set(entries.map((e) => e.team_id));
@@ -188,8 +208,15 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
     }
   };
 
-  const deleteRound = () => {
-    if (!round || !window.confirm(`Delete ${round.name}? All shortlisting decisions in it are lost.`)) return;
+  const deleteRound = async () => {
+    if (!round) return;
+    const ok = await confirm({
+      title: `Delete ${round.name}?`,
+      message: 'Its shortlisting decisions are lost. Its announcements are kept, re-aimed at the same teams.',
+      confirmLabel: 'Delete round',
+      danger: true,
+    });
+    if (!ok) return;
     run(async () => {
       await hackathonApi.admin.deleteRound(slug, round.id);
       setSelectedId(null);
@@ -204,8 +231,9 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
       () => hackathonApi.admin.decide(slug, round.id, {
         team_ids: [...checked].map((id) => entries.find((x) => x.id === id)!.team_id),
         status: decision,
-        ...(feedback.trim() ? { feedback: feedback.trim() } : {}),
+        ...(clearFeedback ? { feedback: '' } : feedback.trim() ? { feedback: feedback.trim() } : {}),
         ...(notes.trim() ? { admin_notes: notes.trim() } : {}),
+        ...(round.results_published ? { confirm_published: true } : {}),
       }),
       `${checked.size} team(s) marked ${ENTRY_STATUS_PILL[decision].label.toLowerCase()}`,
     );
@@ -213,6 +241,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
       setDecision(null);
       setFeedback('');
       setNotes('');
+      setClearFeedback(false);
       setChecked(new Set());
     }
   };
@@ -224,7 +253,8 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
       () => hackathonApi.admin.publishRound(slug, round.id, {
         announce,
         message: announceMsg.trim(),
-        email: announce && emailShortlisted,
+        announce_rejected: announceRejected,
+        email: (announce || announceRejected) && emailShortlisted,
       }),
       'Results published'
     );
@@ -265,7 +295,14 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
   };
 
   const handleRemoveEntry = async (teamId: number, teamName: string) => {
-    if (!round || !window.confirm(`Remove ${teamName} from ${round.name}?`)) return;
+    if (!round) return;
+    const ok = await confirm({
+      title: `Remove ${teamName}?`,
+      message: `${teamName} is taken out of ${round.name} along with any decision made for it.`,
+      confirmLabel: 'Remove team',
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await hackathonApi.admin.removeTeamFromRound(slug, round.id, teamId);
@@ -278,12 +315,53 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
     }
   };
 
+  const quickDecide = async (teamId: number, teamName: string, status: RoundEntryStatus) => {
+    if (!round) return;
+    if (round.results_published) {
+      const ok = await confirm({
+        title: 'Change a published result?',
+        message: `${teamName} will see the new result immediately and is notified.`,
+        confirmLabel: 'Change result',
+      });
+      if (!ok) return;
+    }
+    run(
+      () => hackathonApi.admin.decide(slug, round.id, {
+        team_ids: [teamId], status, ...(round.results_published ? { confirm_published: true } : {}),
+      }),
+      `${teamName} marked ${ENTRY_STATUS_PILL[status].label.toLowerCase()}`,
+    );
+  };
+
+  const exportEntries = () => {
+    if (!round) return;
+    downloadCSV(
+      entries.map((e) => ({
+        team: e.team_name,
+        leader_email: e.leader_email ?? '',
+        members: e.member_count,
+        problem: e.problem_code ?? '',
+        status: e.status,
+        feedback: e.feedback,
+        admin_notes: e.admin_notes,
+        details_submitted: e.details_response_id ? 'yes' : 'no',
+      })),
+      `${slug}-round-${round.order}-${Date.now()}.csv`,
+    );
+  };
+
   const allChecked = visible.length > 0 && visible.every((e) => checked.has(e.id));
   const toggleAll = () => setChecked(allChecked ? new Set() : new Set(visible.map((e) => e.id)));
   const formOptions = forms.map((f) => ({ value: String(f.id), label: `${f.title || f.slug} (${f.status})` }));
 
   return (
     <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+      {confirmDialog}
+      {loadError && (
+        <div className="lg:col-span-2">
+          <LoadError message={loadError} onRetry={refresh} />
+        </div>
+      )}
       {/* Round list sidebar */}
       <aside className={`${PANEL} space-y-3 self-start`}>
         <div className="flex items-center justify-between">
@@ -346,6 +424,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
               )}
             </div>
             <div className="flex flex-wrap gap-1.5">
+              <button onClick={exportEntries} disabled={entries.length === 0} className={BTN_GHOST}><Download className="h-3.5 w-3.5" /> Export</button>
               <button onClick={() => openRound(round)} className={BTN_GHOST}><Pencil className="h-3.5 w-3.5" /> Edit</button>
               <button
                 onClick={() => setWildcardOpen(true)}
@@ -369,7 +448,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
                 </button>
               ) : (
                 <button
-                  onClick={() => { setAnnounce(true); setAnnounceMsg(''); setEmailShortlisted(false); setPublishOpen(true); }}
+                  onClick={() => { setAnnounce(true); setAnnounceRejected(true); setAnnounceMsg(''); setEmailShortlisted(false); setPublishOpen(true); }}
                   disabled={busy}
                   className={BTN_PRIMARY}
                 >
@@ -549,7 +628,25 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
                         {e.feedback && <p className="truncate" title={e.feedback}><span className="font-semibold">Feedback:</span> {e.feedback}</p>}
                         {e.admin_notes && <p className="truncate text-slate-400" title={e.admin_notes}><span className="font-semibold">Note:</span> {e.admin_notes}</p>}
                       </td>
-                      <td className="py-2.5 text-right">
+                      <td className="py-2.5 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => quickDecide(e.team_id, e.team_name, 'SHORTLISTED')}
+                          disabled={busy || e.status === 'SHORTLISTED'}
+                          className="rounded p-1 text-slate-400 transition hover:text-emerald-600 disabled:opacity-30"
+                          title="Shortlist this team"
+                          aria-label={`Shortlist ${e.team_name}`}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => quickDecide(e.team_id, e.team_name, 'REJECTED')}
+                          disabled={busy || e.status === 'REJECTED'}
+                          className="rounded p-1 text-slate-400 transition hover:text-rose-600 disabled:opacity-30"
+                          title="Mark as not shortlisted"
+                          aria-label={`Mark ${e.team_name} as not shortlisted`}
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={() => handleRemoveEntry(e.team_id, e.team_name)}
                           disabled={busy}
@@ -671,13 +768,22 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
         <form onSubmit={applyDecision} className="space-y-4">
           <div>
             <label className={LABEL}>Feedback to teams (optional)</label>
-            <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={3} className={INPUT} placeholder="Shown on their dashboard once results are published." />
+            <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={3} disabled={clearFeedback} className={`${INPUT} disabled:opacity-50`} placeholder="Shown on their dashboard once results are published." />
+            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+              <input type="checkbox" checked={clearFeedback} onChange={(e) => setClearFeedback(e.target.checked)} className="accent-[#FF7A00]" />
+              Remove any feedback these teams already have
+            </label>
           </div>
           <div>
             <label className={LABEL}>Internal note (optional)</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={INPUT} placeholder="Admins only." />
           </div>
           <p className="text-[11px] text-slate-400">Leaving a box empty keeps each team&apos;s existing text.</p>
+          {round?.results_published && (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+              Results are already published. This change is visible to these teams immediately, and any team whose result changes is notified.
+            </p>
+          )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setDecision(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
             <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : 'Apply'}</button>
@@ -694,18 +800,27 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
               <span className="mt-2 block font-semibold text-amber-600">{round.entry_counts.PENDING} team(s) are still pending, so they&apos;ll see &quot;Under review&quot;.</span>
             )}
           </p>
+          {round && (
+            <p className="text-xs text-slate-500">
+              {round.entry_counts.SHORTLISTED} shortlisted · {round.entry_counts.REJECTED} not shortlisted · {round.entry_counts.PENDING} pending
+            </p>
+          )}
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={announce} onChange={(e) => setAnnounce(e.target.checked)} className="accent-[#FF7A00]" />
             Post an announcement to the shortlisted teams
           </label>
           {announce && (
-            <>
-              <textarea value={announceMsg} onChange={(e) => setAnnounceMsg(e.target.value)} rows={3} className={INPUT} placeholder="Optional custom message (Markdown). Leave blank for a default congratulations note." />
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={emailShortlisted} onChange={(e) => setEmailShortlisted(e.target.checked)} className="accent-[#FF7A00]" />
-                Also email it to every member of the shortlisted teams
-              </label>
-            </>
+            <textarea value={announceMsg} onChange={(e) => setAnnounceMsg(e.target.value)} rows={3} className={INPUT} placeholder="Optional custom message for shortlisted teams (Markdown). Leave blank for a default congratulations note." />
+          )}
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={announceRejected} onChange={(e) => setAnnounceRejected(e.target.checked)} className="accent-[#FF7A00]" />
+            Post a thank-you note to the teams that were not shortlisted
+          </label>
+          {(announce || announceRejected) && (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={emailShortlisted} onChange={(e) => setEmailShortlisted(e.target.checked)} className="accent-[#FF7A00]" />
+              Also email these announcements to every member of the teams they are for
+            </label>
           )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setPublishOpen(false)} disabled={busy} className={BTN_GHOST}>Cancel</button>

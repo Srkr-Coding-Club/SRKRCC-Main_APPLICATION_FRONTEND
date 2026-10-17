@@ -22,6 +22,10 @@ function formatShortDate(iso: string): string {
 export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0 }: HackathonCardProps) {
   const router = useRouter();
   const detailHref = `/hackathons/${hackathon.slug}`;
+  const registrationOpen = hackathon.is_registration_open ?? hackathon.status !== 'CLOSED';
+  const opensAt = hackathon.registration_opens_at ? new Date(hackathon.registration_opens_at) : null;
+  const notYetOpen = !registrationOpen && hackathon.status !== 'CLOSED' && !!opensAt && opensAt > new Date();
+  const registeredTeams = hackathon.registered_team_count ?? hackathon.team_count;
 
   return (
     <PublicListingCard
@@ -58,10 +62,10 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
             <Trophy className="h-4 w-4 shrink-0" style={{ color: accent }} />
             <span className="font-medium">Prize pool: {hackathon.prize_pool}</span>
           </div>
-          {typeof hackathon.team_count === 'number' && (
+          {typeof registeredTeams === 'number' && (
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 shrink-0" style={{ color: accent }} />
-              <span className="font-medium">{hackathon.team_count} team{hackathon.team_count === 1 ? '' : 's'} registered</span>
+              <span className="font-medium">{registeredTeams} team{registeredTeams === 1 ? '' : 's'} registered</span>
             </div>
           )}
         </div>
@@ -76,9 +80,9 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
             Details
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
-          {hackathon.status === 'CLOSED' ? (
+          {!registrationOpen ? (
             <span className="inline-flex flex-1 items-center justify-center rounded-lg bg-slate-100 px-3 py-2.5 text-[12px] font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500">
-              Registration Closed
+              {notYetOpen ? 'Registration opens soon' : 'Registration Closed'}
             </span>
           ) : (
             <Link
