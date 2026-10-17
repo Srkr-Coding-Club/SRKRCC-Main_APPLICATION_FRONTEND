@@ -24,6 +24,10 @@ interface TeamFormModalProps {
   allowOpenInnovation: boolean;
   /** Present = edit mode (leader renaming / changing the problem). */
   team?: HackathonTeam | null;
+  /** Create mode: statement to preselect (from the public "Choose Problem" button). */
+  initialProblemId?: string;
+  /** The team is already in a round: its problem can no longer be changed by the leader. */
+  problemLocked?: boolean;
   onSaved: (team: HackathonTeam) => void;
 }
 
@@ -54,9 +58,10 @@ function ModeButton({ active, icon: Icon, children, onClick }: { active: boolean
   );
 }
 
-export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowOpenInnovation, team, onSaved }: TeamFormModalProps) {
+export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowOpenInnovation, team, initialProblemId, problemLocked = false, onSaved }: TeamFormModalProps) {
   const { toast } = useToast();
   const editing = Boolean(team);
+  const lockedProblem = editing && problemLocked;
   const [name, setName] = useState('');
   const [mode, setMode] = useState<ProblemMode>('statement');
   const [psId, setPsId] = useState('');
@@ -73,13 +78,15 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
   useEffect(() => {
     if (!isOpen) return;
     setName(team?.name ?? '');
-    setPsId(team?.problem_statement ? String(team.problem_statement.id) : '');
+    const preselected = !team && initialProblemId && active.some((p) => String(p.id) === initialProblemId) ? initialProblemId : '';
+    setPsId(team?.problem_statement ? String(team.problem_statement.id) : preselected);
     setTitle(team?.open_innovation?.title ?? '');
     setDescription(team?.open_innovation?.description ?? '');
     setDomain(team?.open_innovation?.domain ?? '');
     setMode(team?.open_innovation ? 'open' : hasStatements ? 'statement' : 'none');
     setErrors({});
-  }, [isOpen, team, hasStatements]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, team, hasStatements, initialProblemId]);
 
   const options = active.map((p) => {
     const mine = team?.problem_statement?.id === p.id;
@@ -91,13 +98,19 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
       disabled: full,
     };
   });
+  // An admin may have deactivated the statement the team already holds; it must stay
+  // visible (and keepable) or the leader could not even rename the team.
+  const current = team?.problem_statement;
+  if (current && !options.some((option) => option.value === String(current.id))) {
+    options.unshift({ value: String(current.id), label: `${current.code}: ${current.title}`, hint: 'Current', disabled: false });
+  }
   const selected = active.find((p) => String(p.id) === psId);
 
   const validate = (): FieldErrors => {
     const next: FieldErrors = {};
     if (!name.trim()) next.name = 'Team name is required.';
-    if (mode === 'statement' && !psId) next.problem_statement = 'Pick a problem statement.';
-    if (mode === 'open') {
+    if (mode === 'statement' && !psId && !lockedProblem) next.problem_statement = 'Pick a problem statement.';
+    if (mode === 'open' && !lockedProblem) {
       if (!title.trim()) next.custom_problem_title = 'Problem title is required.';
       if (!domain.trim()) next.custom_problem_domain = 'Problem domain is required.';
       if (!description.trim()) next.custom_problem_description = 'Problem description is required.';
@@ -105,7 +118,19 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
     return next;
   };
 
+  const problemUnchanged = (): boolean => {
+    if (!team) return false;
+    if (mode === 'statement') return psId === String(team.problem_statement?.id ?? '');
+    if (mode === 'open' && team.open_innovation) {
+      return title.trim() === team.open_innovation.title
+        && domain.trim() === team.open_innovation.domain
+        && description.trim() === team.open_innovation.description;
+    }
+    return false;
+  };
+
   const problemBody = (): TeamProblemBody => {
+    if (lockedProblem || (editing && problemUnchanged())) return {};
     if (mode === 'open') return { open_innovation: { title: title.trim(), description: description.trim(), domain: domain.trim() } };
     if (mode === 'statement') return { problem_statement: Number(psId) };
     return editing ? { problem_statement: null } : {};
@@ -152,7 +177,13 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
           {errors.name && <p className="text-xs text-rose-500">{errors.name}</p>}
         </div>
 
-        {(hasStatements || allowOpenInnovation) && (
+        {lockedProblem && (
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-800 dark:bg-white/[0.03] dark:text-slate-300">
+            Your team is already part of a round, so its problem can no longer be changed. Contact the organizers if something is wrong.
+          </p>
+        )}
+
+        {(hasStatements || allowOpenInnovation) && !lockedProblem && (
           <div className="space-y-2">
             <FieldLabel required={hasStatements}>Your problem</FieldLabel>
             {showModeSwitch && (

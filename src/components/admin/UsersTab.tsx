@@ -14,6 +14,7 @@ interface UserRecord {
   name: string;
   email: string;
   rollNumber: string;
+  collegeName?: string | null;
   branch: string;
   year: string;
   role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
@@ -225,7 +226,7 @@ function EditableClubIdField({
         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Club ID</p>
         <div className="flex items-center gap-2 mt-0.5">
           <p className="text-sm text-[#1A1A2E] dark:text-white break-words font-mono">
-            {savedValue || <span className="italic text-slate-400 font-sans">Not set</span>}
+            {savedValue || <span className="italic text-slate-400">Not set</span>}
           </p>
           {onSave && (
             <button
@@ -327,6 +328,7 @@ function UserDrawerContent({
           initialValue={user.rollNumber !== 'Not set' ? user.rollNumber : ''}
           onSave={onRollNumberChange}
         />
+        <DrawerField label="College" value={user.collegeName} />
         <DrawerField label="Branch" value={user.branch} />
         <DrawerField label="Year" value={user.year} />
       </DrawerSection>

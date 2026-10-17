@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -10,6 +10,7 @@ import {
   Hash,
   Phone,
   Lock,
+  ArrowLeft,
   ArrowRight,
   AlertCircle,
   Users,
@@ -18,9 +19,12 @@ import {
   Eye,
   EyeOff,
   Check,
+  ChevronDown,
   X,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { CollegeSelect } from '@/components/CollegeSelect';
+import { CollegeChoice, UNTOUCHED_COLLEGE_CHOICE } from '@/lib/colleges';
 import { registerUser, loginUser, RegistrationError } from '@/lib/auth';
 import { useToast } from '@/context/ToastContext';
 import {
@@ -37,6 +41,7 @@ import {
   validateAffiliateId,
   validateEmail,
   validateFullName,
+  validateOtherCollegeName,
   validatePassword,
   validatePasswordConfirmation,
   validatePasswordNotSimilarToIdentity,
@@ -77,6 +82,7 @@ const FIELD_INPUT_ID: Record<FieldName, string> = {
   fullName: 'signup-full-name',
   email: 'signup-email',
   rollNumber: 'signup-roll-number',
+  college: 'signup-college',
   branch: 'signup-branch',
   year: 'signup-year',
   phoneNumber: 'signup-phone-number',
@@ -90,6 +96,7 @@ const FIELD_ORDER: FieldName[] = [
   'fullName',
   'email',
   'rollNumber',
+  'college',
   'branch',
   'year',
   'phoneNumber',
@@ -111,13 +118,108 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
+function SignupSelect({
+  id,
+  value,
+  options,
+  onChange,
+  disabled,
+  'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
+}: {
+  id: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  disabled: boolean;
+  'aria-invalid'?: boolean;
+  'aria-describedby'?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
+  const selectedOption = options.find((option) => option.value === value);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (option: string) => {
+    onChange(option);
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={selectRef} className="relative w-full">
+      <button
+        id={id}
+        type="button"
+        onClick={() => !disabled && setIsOpen((previous) => !previous)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setIsOpen(false);
+        }}
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
+        className={`flex h-10 w-full items-center justify-between rounded-xl border bg-white px-3 text-left text-xs shadow-[0_1px_2px_rgba(0,0,0,0.03)] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#101117] ${
+          isOpen
+            ? 'border-[#FF7A00] ring-2 ring-[#FF7A00]/10'
+            : 'border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50'
+        }`}
+      >
+        <span className="truncate font-medium text-slate-800 dark:text-slate-100">
+          {selectedOption?.label}
+        </span>
+        <ChevronDown className={`ml-3 h-4 w-4 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-[#FF7A00]' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-72 overflow-y-auto rounded-xl glass-panel-solid bg-white p-1.5 shadow-[0_12px_35px_rgba(0,0,0,0.12)] dark:bg-[#151622] dark:shadow-[0_15px_40px_rgba(0,0,0,0.4)]"
+        >
+          {options.map((option) => {
+            const selected = value === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => handleSelect(option.value)}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                  selected
+                    ? 'bg-[#FF7A00]/10 font-semibold text-[#D85F00] dark:text-[#FF9A4A]'
+                    : 'font-medium text-slate-700 hover:bg-[#FF7A00]/[0.06] hover:text-[#D85F00] dark:text-slate-300 dark:hover:text-[#FF9A4A]'
+                }`}
+              >
+                <span className="truncate">{option.label}</span>
+                {selected && <Check className="ml-3 h-4 w-4 shrink-0 text-[#FF7A00]" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export interface SignupCardProps {
   onClose?: () => void;
   onSwitchToLogin?: () => void;
   embedded?: boolean;
+  pageLayout?: boolean;
 }
 
-export default function SignupCard({ onClose, onSwitchToLogin, embedded = false }: SignupCardProps) {
+export default function SignupCard({ onClose, onSwitchToLogin, embedded = false, pageLayout = false }: SignupCardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get('next');
@@ -136,6 +238,8 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
     confirmPassword: '',
   });
 
+  /** Null until the member picks one - the server then applies the club's home college. */
+  const [collegeChoice, setCollegeChoice] = useState<CollegeChoice>(UNTOUCHED_COLLEGE_CHOICE);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -150,6 +254,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
     errors.fullName = validateFullName(formData.fullName);
     errors.email = validateEmail(formData.email);
     errors.rollNumber = validateRollNumber(formData.rollNumber);
+    if (collegeChoice.otherName !== null) errors.college = validateOtherCollegeName(collegeChoice.otherName);
     errors.phoneNumber = validatePhoneNumber(formData.phoneNumber);
     if (formData.isAffiliate) {
       errors.affiliateId = validateAffiliateId(formData.affiliateId);
@@ -159,7 +264,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
       validatePasswordNotSimilarToIdentity(formData.password, [formData.email, formData.fullName]);
     errors.confirmPassword = validatePasswordConfirmation(formData.password, formData.confirmPassword);
     return errors;
-  }, [formData]);
+  }, [formData, collegeChoice]);
 
   const visibleError = (field: FieldName): string | undefined =>
     serverErrors[field] || (touched[field] ? clientErrors[field] : undefined);
@@ -210,6 +315,9 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
         first_name: firstName,
         last_name: lastName,
         roll_number: sanitizeRollNumberInput(formData.rollNumber),
+        ...(collegeChoice.otherName !== null
+          ? { other_college_name: collegeChoice.otherName.trim() }
+          : { college_id: collegeChoice.college?.id }),
         branch: formData.branch,
         year: Number(formData.year),
         phone_number: sanitizePhoneNumberInput(formData.phoneNumber) || undefined,
@@ -243,32 +351,44 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
   };
 
   const inputClasses = (field: FieldName, extra = 'pl-10 pr-4') =>
-    `w-full ${extra} h-10 rounded-lg border text-xs bg-[#FCFCFD] dark:bg-[#1C1F2E] text-slate-800 dark:text-slate-100 transition-colors focus:outline-none focus:ring-1 ${
+    `glass-panel w-full ${extra} h-10 rounded-xl border text-xs text-[#1A1A2E] dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border-slate-300 dark:border-slate-700 transition-colors focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00] disabled:cursor-not-allowed disabled:opacity-60 ${
       visibleError(field)
-        ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500'
-        : 'border-slate-200/90 dark:border-slate-700 focus:border-slate-400 focus:ring-slate-300'
+        ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
+        : ''
     }`;
 
   const labelClasses = 'block text-[10px] font-bold tracking-wider text-slate-600 dark:text-slate-300 uppercase';
 
   return (
     <motion.main
-      initial={embedded ? false : { opacity: 0 }}
-      animate={embedded ? undefined : { opacity: 1 }}
+      initial={embedded || pageLayout ? false : { opacity: 0 }}
+      animate={embedded || pageLayout ? undefined : { opacity: 1 }}
       transition={{ duration: 0.05, ease: 'easeOut' }}
       onClick={(event) => {
-        if (!embedded && event.target === event.currentTarget) onClose?.();
+        if (!embedded && !pageLayout && event.target === event.currentTarget) onClose?.();
       }}
-      className={embedded ? 'contents' : 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 sm:p-6 backdrop-blur-[6px]'}
+      className={
+        embedded
+          ? 'contents'
+          : pageLayout
+            ? 'flex w-full'
+            : 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 sm:p-6 backdrop-blur-[6px]'
+      }
     >
       <motion.section
-        initial={embedded ? false : { opacity: 0, scale: 0.86, y: 12 }}
-        animate={embedded ? undefined : { opacity: 1, scale: 1, y: 0 }}
+        initial={embedded || pageLayout ? false : { opacity: 0, scale: 0.86, y: 12 }}
+        animate={embedded || pageLayout ? undefined : { opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className={embedded ? 'contents' : 'relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-cols-1 grid-rows-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] lg:grid-cols-[0.85fr_1.15fr]'}
+        className={
+          embedded
+            ? 'contents'
+            : pageLayout
+              ? 'relative grid min-h-[calc(100dvh-4.625rem)] w-full grid-cols-1 grid-rows-1 overflow-hidden bg-white dark:bg-[#151722] lg:grid-cols-2'
+              : 'relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-cols-1 grid-rows-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] lg:grid-cols-[0.85fr_1.15fr]'
+        }
       >
-        {onClose && !embedded && (
+        {onClose && !embedded && !pageLayout && (
           <button
             type="button"
             onClick={onClose}
@@ -280,18 +400,30 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
         )}
 
         <div className={embedded ? 'hidden' : 'relative hidden min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)] lg:block'}>
-          <Image
-            src="/Loginn.svg"
-            alt="Secure sign up illustration"
-            fill
-            priority
-            sizes="(min-width: 640px) 370px, 100vw"
-            className="object-contain p-3 sm:p-8"
-          />
+          <div className={pageLayout ? 'absolute inset-x-0 top-0 h-[calc(100dvh-4.625rem)]' : 'absolute inset-0'}>
+            <Image
+              src="/Loginn.svg"
+              alt="Secure sign up illustration"
+              fill
+              priority
+              sizes="(min-width: 640px) 380px, 100vw"
+              className="object-contain p-6 sm:p-8"
+            />
+          </div>
         </div>
 
-        <div className={`min-h-0 overflow-y-auto px-6 py-5 sm:px-10 sm:py-7 ${embedded ? 'h-full' : ''}`}>
-          <div className="mx-auto w-full max-w-[420px]">
+        <div className={`min-h-0 ${pageLayout ? '' : 'overflow-y-auto'} px-6 py-5 sm:px-10 sm:pb-16 lg:px-16 ${embedded ? 'h-full' : ''}`}>
+          <div className="mx-auto w-full max-w-[560px]">
+
+          {pageLayout && (
+            <Link
+              href="/"
+              className="mb-6 inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Link>
+          )}
 
           {/* Header */}
           <div className="mb-5 space-y-1 text-left">
@@ -394,6 +526,24 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
             <section className="space-y-3">
 
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div className="space-y-1.5 lg:col-span-2">
+                  <label htmlFor={FIELD_INPUT_ID.college} className={labelClasses}>
+                    College <span className="text-[#FF7A00]">*</span>
+                  </label>
+                  <CollegeSelect
+                    id={FIELD_INPUT_ID.college}
+                    value={collegeChoice}
+                    onChange={(choice) => {
+                      setCollegeChoice(choice);
+                      setServerErrors((prev) => ({ ...prev, college: undefined }));
+                    }}
+                    disabled={isLoading || success}
+                    aria-invalid={Boolean(visibleError('college'))}
+                    aria-describedby={visibleError('college') ? 'signup-college-error' : undefined}
+                  />
+                  <FieldError id="signup-college-error" message={visibleError('college')} />
+                </div>
+
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.rollNumber} className={labelClasses}>
                     Roll Number <span className="text-slate-400 font-medium normal-case">(optional)</span>
@@ -457,19 +607,15 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
                   <label htmlFor={FIELD_INPUT_ID.branch} className={labelClasses}>
                     Branch <span className="text-[#FF7A00]">*</span>
                   </label>
-                  <select
+                  <SignupSelect
                     id={FIELD_INPUT_ID.branch}
                     value={formData.branch}
-                    onChange={(e) => handleChange('branch', e.target.value)}
+                    options={BRANCHES}
+                    onChange={(value) => handleChange('branch', value)}
                     disabled={isLoading || success}
-                    className={inputClasses('branch', 'px-3')}
-                  >
-                    {BRANCHES.map((branch) => (
-                      <option key={branch.value} value={branch.value}>
-                        {branch.label}
-                      </option>
-                    ))}
-                  </select>
+                    aria-invalid={Boolean(visibleError('branch'))}
+                    aria-describedby={visibleError('branch') ? 'signup-branch-error' : undefined}
+                  />
                   <FieldError id="signup-branch-error" message={visibleError('branch')} />
                 </div>
 
@@ -477,19 +623,15 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
                   <label htmlFor={FIELD_INPUT_ID.year} className={labelClasses}>
                     Year of Study <span className="text-[#FF7A00]">*</span>
                   </label>
-                  <select
+                  <SignupSelect
                     id={FIELD_INPUT_ID.year}
                     value={formData.year}
-                    onChange={(e) => handleChange('year', e.target.value)}
+                    options={YEARS}
+                    onChange={(value) => handleChange('year', value)}
                     disabled={isLoading || success}
-                    className={inputClasses('year', 'px-3')}
-                  >
-                    {YEARS.map((year) => (
-                      <option key={year.value} value={year.value}>
-                        {year.label}
-                      </option>
-                    ))}
-                  </select>
+                    aria-invalid={Boolean(visibleError('year'))}
+                    aria-describedby={visibleError('year') ? 'signup-year-error' : undefined}
+                  />
                   <FieldError id="signup-year-error" message={visibleError('year')} />
                 </div>
               </div>
@@ -707,7 +849,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false 
             </button>
           </form>
 
-          <div className="mt-4 border-t border-slate-100 pt-3 text-center text-[10px] text-slate-500 dark:border-slate-800/80 dark:text-slate-400">
+          <div className="mt-4 border-t border-slate-100 pt-3 text-center text-[12px] text-slate-500 dark:border-slate-800/80 dark:text-slate-400">
             Already have an account?{' '}
             {onSwitchToLogin ? (
               <button type="button" onClick={onSwitchToLogin} className="font-semibold text-slate-800 hover:underline dark:text-slate-200">

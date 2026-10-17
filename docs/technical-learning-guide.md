@@ -206,6 +206,8 @@ Backend contract: `apps/hackathons` — see the backend repo's `docs/modules/hac
 
 | Route | Rendering | Notes |
 |---|---|---|
+| `/login` | Client page | The navbar navigates here instead of opening an overlay. `LoginCard` fills the page below the navbar with its split illustration/form design, without a floating card frame or modal backdrop; its signup link navigates to `/signup`. |
+| `/signup` | Client page | The navbar's **Join the Club** action navigates here. `SignupCard` fills the page below the navbar with its split illustration/form design, without a floating card frame or modal backdrop; its sign-in link returns to `/login`, and a validated `next` path is preserved when switching between these routes. |
 | `/hackathons` | Server component | `HackathonCard`'s **Register Team** button links to `/hackathons/[slug]/dashboard` (middleware sends logged-out visitors to login first) and shows *Registration Opens Soon* / *Closed* from `is_registration_open`. The legacy `registration_form` link is no longer used for registration. |
 | `/hackathons/[slug]` | Server component | Fetches the hackathon, active problem statements and public announcements anonymously. The CTA (`components/hackathons/HackathonCTA.tsx`) is a client island: it verifies the session with `fetchAndSyncCurrentUser()` **before** calling `my-team`, because a stale stored login would otherwise 401 and `fetchApi` would redirect a public visitor to `/login`. |
 | `/hackathons/[slug]/dashboard` | Client page (needs the user's token) | One `GET /my-team/` payload drives the page: no team → invite cards + "Create a team" (`TeamFormModal`); team → members, leader-only controls (edit, `InviteMemberModal`, remove, make leader, cancel invite), leave, `RoundsTimeline`, `HackathonAnnouncementsFeed`, problem statement. Leader-only controls are hidden for members, but the backend is what enforces them. |
@@ -294,3 +296,57 @@ The home page (`src/app/page.tsx`) tells one story: **from your first `printf` t
 **Design tokens.** The journey uses the club's brand palette, the same one as the rest of the site. `journey-*` colors in `tailwind.config.ts` read RGB variables from `globals.css` and flip with the theme. Dark: background `#0D0E15`, surface `#151722`, text `#F5F5F5`, muted slate, accent brand orange `#FF7A00`, live states brand gold `#FFA500`. Light: the site's `#FAFAFC` and navy `#1A1A2E`, accent `#C2410C` (orange that keeps 4.5:1 contrast), live states burgundy `#8B2E3B`. The primary action uses the brand gradient (`#8B2E3B` to `#FF7A00` to `#FFA500`), matching `PillButton`. Type: Archivo (`font-display`, semi-expanded via `font-stretch: 112%`) for headings, Inter for body, JetBrains Mono only inside demonstrations.
 
 **Fonts.** All four families load through `next/font/google` in `src/app/layout.tsx` (self-hosted, applied as CSS variables on `<body>`). The previous `@import` of Google Fonts in `globals.css` was being dropped by the bundler, so those fonts never loaded.
+
+## 13. College Selection (Signup & Profile)
+
+`src/components/CollegeSelect.tsx` is a searchable combobox used on the signup card and in the Edit Profile modal.
+
+- **Data**: `GET /api/colleges/` through the BFF proxy (`fetchColleges` in `src/lib/colleges.ts`). It is a plain `fetch`, not `fetchApi`: the endpoint is public, so a 401 must never redirect to login, and the caller's `AbortSignal` must be honoured.
+- **Debounce**: the search box is debounced 300 ms (`useDebouncedValue`).
+- **Lazy loading**: `useCollegeSearch` loads 30 rows per page; an `IntersectionObserver` sentinel at the bottom of the list requests the next page. A new query aborts the in-flight request and restarts at page 1, so stale responses can never overwrite fresh results.
+- **Default**: `value === null` means "not chosen": the UI shows SRKR Engineering College and signup sends no `college_id`, so the backend applies the default.
+- **Other places**: shown on the profile page and the admin user drawer; selectable as a profile-bound question in the form builder, and matched by label ("College", "University") in form prefill.
+
+Backend contract and import steps: `SRKRCC-Main_APPLICATION_BACKEND/docs/modules/colleges.md`.
+
+**Not listed?** The dropdown's footer button switches `CollegeSelect` to a free-text input (`CollegeChoice.otherName`). The typed name is sent as `other_college_name` and stored on the user instead of a catalogue link; picking a catalogue college clears it. `displayCollegeName()` returns whichever one the member has.
+
+**Stale sessions:** `redirectToLogin()` no longer bounces a member off `/login` or `/signup` when background calls 401 with an expired session cookie.
+
+## 14. Hackathon Admin & Participant Conventions
+
+- **Load errors:** admin tabs show `components/admin/hackathon/LoadError.tsx` (message + Retry) when their primary request fails. Never `.catch(() => [])` a primary list: an outage would look like "nothing here yet".
+- **Profile fields:** `src/lib/profileFields.ts` is the single list of profile attributes a hackathon can require (and their labels). It mirrors `apps.forms.models.ProfileField`.
+- **Draft hackathons:** new hackathons are `DRAFT` (admin-only). The Settings tab's "Publish hackathon" runs the server-side checklist; a failure returns `{code: 'PUBLISH_CHECKLIST', items: [...]}`.
+- **Published results:** changing a published round decision needs `confirm_published: true`; the Rounds tab sends it automatically after showing a warning.
+- **Choose Problem:** the public "Choose Problem" buttons link to `/hackathons/{slug}/dashboard?ps=<id>`; the dashboard opens team creation with that statement preselected and then clears the parameter.
+- **Detail page errors:** a 404 from the API is a 404 page; any other failure renders an "unavailable" page instead of masquerading as one.
+- **CSV exports** go through `downloadCSV`, which escapes spreadsheet formulas.
+
+### Hackathon UX conventions (continued)
+
+- **Confirmations:** use `useConfirmDialog()` from `components/ui/ConfirmDialog.tsx` (`await confirm({title, message, danger})`, render the returned `dialog` once) instead of `window.confirm`.
+- **Dates:** hackathon dates are always shown in IST (`formatDateTime` appends "IST"), the same as the public detail page.
+- **Public CTA state:** `useMyHackathonStatus(slug)` shares one cached "my team / invites" lookup between every CTA on a page; call `invalidateMyHackathonStatus(slug)` after a change.
+- **Settings:** the hackathon Settings tab tracks unsaved edits (sticky save bar, `beforeunload` guard).
+- **Background polling** (notification bell) passes `silentAuth` to `fetchApi` so an expired session does not redirect the visitor away from a public page.
+- **Combobox pattern:** the invite search follows the same ARIA combobox/listbox pattern as `CollegeSelect` (arrow keys, Enter, Escape closes the list only).
+
+### Hackathon extras
+
+- **Email invites:** when a leader types an email with no account, `InviteMemberModal` offers "Email them an invite" (`hackathonApi.inviteByEmail`). Pending ones show on the dashboard (`pending_email_invites`) and count against the team's slots.
+- **Forming teams:** the admin Overview tab lists teams below the minimum size with a confirmed "Remind leaders" action.
+- **Locked problem:** the participant `TeamFormModal` hides the problem section when the team already has a round entry (`problemLocked`).
+- **FAQ:** edited in Settings (organizer FAQ); `HackathonFAQSection` shows it instead of the standard FAQ when present.
+
+### Public hackathon page layout
+
+`/hackathons/[slug]` is one scrolling page (not tabs): banner, header card (format, title, organizer, logo, team size, deadline, venue, tag line), a sticky `SectionNav` and the sections **Stages & Timeline**, **Details**, **Dates & Deadlines**, **Prizes**, **Problem Statements**, **Announcements** and **FAQs**. Sections with no content are hidden and drop out of the nav. Section ids double as URL hashes (`#problems`, `#faq`, ...). On large screens a sticky registration card sits beside the content; on phones the CTA is inline in the header card. Components live in `src/components/hackathons/page/`; date rows come from `buildDateRows` in `src/lib/hackathonPage.ts`. Every field it shows is editable in Admin > Hackathon > Settings, and the timeline is curated in the admin **Public Timeline** tab.
+
+### Public timeline
+
+`StagesTimeline` (public) and `TimelineAdminTab` (admin) share `StageEntry`/`StageMarker` and the visuals in `components/hackathons/page/stageVisuals.ts` (tones, icons, `stageStatus`, `relativeTo`). Each entry shows a date badge or icon in the stage colour, an IST schedule line with a live hint ("Starts in 2 days", "Ends in 6 hours"), a **Live now / Up next / Completed** pill, an optional label chip, location, a clamped Markdown description with Read more, and an optional button. Status is computed after mount (`now` starts as `null`) so server and client markup agree. The admin tab has a live preview, reordering, per-stage visibility, and **Import from rounds**.
+
+### Problem statement admin
+
+The Problem Statements tab has a **Domains** panel (`ProblemDomainsPanel`: chips with usage counts, remove disabled while a statement uses the domain) above the list. The add/edit form picks the domain from that list (with "+ New domain" inline), edits tags with `components/ui/TagInput.tsx` (chips, Enter/comma to add, suggestions from tags used elsewhere), and has an "Open for teams to pick" switch. No ID or display-order field: IDs are generated and order is changed with the arrows. The public explorer's domain pills follow the configured domain order.

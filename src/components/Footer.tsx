@@ -52,7 +52,7 @@ export default function Footer() {
           className="absolute inset-x-0 bottom-0 flex justify-center overflow-hidden pointer-events-none select-none"
         >
           <span
-            className="font-poppins font-extrabold leading-none whitespace-nowrap text-[9vw] sm:text-[11vw] translate-y-[28%] text-[#1A1A2E]/[0.04] dark:text-white/[0.045]"
+            className="font-poppins font-extrabold leading-none whitespace-nowrap text-[11vw] sm:text-[11vw] translate-y-[28%] text-[#1A1A2E]/[0.04] dark:text-white/[0.045]"
           >
             CODING CLUB
           </span>
@@ -171,7 +171,7 @@ export default function Footer() {
             </div>
           </motion.div>
 
-          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
               &copy; {currentYear} SRKR Coding Club. All rights reserved.
             </span>
@@ -194,7 +194,7 @@ export default function Footer() {
               </button>
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition active:scale-90"
+                className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition active:scale-90 fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50"
                 aria-label="Back to top"
               >
                 <ArrowUp className="w-3.5 h-3.5" />

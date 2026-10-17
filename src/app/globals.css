@@ -77,6 +77,22 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+input.auth-login-input:-webkit-autofill,
+input.auth-login-input:-webkit-autofill:hover,
+input.auth-login-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1e293b;
+  -webkit-box-shadow: 0 0 0 1000px #fcfcfd inset;
+  caret-color: #1e293b;
+}
+
+.dark input.auth-login-input:-webkit-autofill,
+.dark input.auth-login-input:-webkit-autofill:hover,
+.dark input.auth-login-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f1f5f9;
+  -webkit-box-shadow: 0 0 0 1000px #1c1f2e inset;
+  caret-color: #f1f5f9;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-poppins);
 }
@@ -487,4 +503,3 @@ input[type="reset"] {
     scroll-behavior: auto !important;
   }
 }
-

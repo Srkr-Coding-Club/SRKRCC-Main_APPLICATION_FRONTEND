@@ -36,6 +36,22 @@ export function validateFullName(value: string): string | undefined {
   return undefined;
 }
 
+const OTHER_COLLEGE_NAME_REGEX = /^[A-Za-z0-9À-ÖØ-öø-ÿ][A-Za-z0-9À-ÖØ-öø-ÿ &.,'()/-]*$/;
+const OTHER_COLLEGE_NAME_MIN_LENGTH = 3;
+const OTHER_COLLEGE_NAME_MAX_LENGTH = 150;
+
+/** For the "my college isn't listed" free-text field. Mirrors apps/accounts/validators.py. */
+export function validateOtherCollegeName(value: string): string | undefined {
+  const name = normalizeName(value);
+  if (!name) return 'Enter your college name.';
+  if (name.length < OTHER_COLLEGE_NAME_MIN_LENGTH) return `College name must be at least ${OTHER_COLLEGE_NAME_MIN_LENGTH} characters long.`;
+  if (name.length > OTHER_COLLEGE_NAME_MAX_LENGTH) return `College name must be at most ${OTHER_COLLEGE_NAME_MAX_LENGTH} characters long.`;
+  if (!OTHER_COLLEGE_NAME_REGEX.test(name)) return "College name may only contain letters, numbers, spaces and . , & ' ( ) / -";
+  return undefined;
+}
+
+export { OTHER_COLLEGE_NAME_MAX_LENGTH };
+
 /** Splits a validated full name into the first/last pair the API expects. */
 export function splitFullName(value: string): { firstName: string; lastName: string } {
   const parts = normalizeName(value).split(' ');
@@ -48,6 +64,11 @@ const EMAIL_REGEX =
   /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/;
 export const EMAIL_MAX_LENGTH = 254;
 
+// Self-registration is restricted to the college's own domains - mirrors
+// ALLOWED_EMAIL_DOMAINS in apps/accounts/validators.py. The admin's "Create
+// New User" modal does not call validateEmail, so it is unaffected.
+const ALLOWED_EMAIL_DOMAINS = ['gmail.com', 'srkrec.ac.in'];
+
 export function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -59,6 +80,10 @@ export function validateEmail(value: string): string | undefined {
   if (!email.includes('@')) return 'Email must contain an @ sign.';
   if (!EMAIL_REGEX.test(email)) {
     return 'Enter a valid email address, for example you@example.com.';
+  }
+  const domain = email.split('@').pop() ?? '';
+  if (!ALLOWED_EMAIL_DOMAINS.includes(domain)) {
+    return 'Registration is open to @gmail.com or @srkrec.ac.in email addresses only.';
   }
   return undefined;
 }
@@ -247,7 +272,7 @@ export function getPasswordStrength(
 
 /** Field errors keyed by the signup form's own field names. */
 export type SignupFieldErrors = Partial<
-  Record<'fullName' | 'email' | 'rollNumber' | 'branch' | 'year' | 'phoneNumber' | 'affiliateId' | 'password' | 'confirmPassword', string>
+  Record<'fullName' | 'email' | 'rollNumber' | 'college' | 'branch' | 'year' | 'phoneNumber' | 'affiliateId' | 'password' | 'confirmPassword', string>
 >;
 
 const API_FIELD_TO_FORM_FIELD: Record<string, keyof SignupFieldErrors> = {
@@ -256,6 +281,8 @@ const API_FIELD_TO_FORM_FIELD: Record<string, keyof SignupFieldErrors> = {
   username: 'email', // username is derived from email; never shown as its own field
   email: 'email',
   roll_number: 'rollNumber',
+  college_id: 'college',
+  other_college_name: 'college',
   branch: 'branch',
   year: 'year',
   phone_number: 'phoneNumber',

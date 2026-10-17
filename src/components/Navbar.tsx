@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   User,
@@ -11,15 +10,14 @@ import {
   Terminal,
   Trophy,
   Calendar,
-  X,
+  Laptop,
+  Award,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
 import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
-import LoginCard from './LoginCard';
-import SignupCard from './SignupCard';
 import { NotificationBell } from './notifications/NotificationBell';
 
 interface NavChild {
@@ -43,10 +41,10 @@ const navItems: NavItem[] = [
     href: '/events',
     hasDropdown: true,
     children: [
-      { label: 'Upcoming Workshops', href: '/events', desc: 'Interactive hands-on sessions & masterclasses', icon: Calendar },
-      { label: 'Hackathons Engine', href: '/hackathons', desc: '48hr build sprints & competitive arena', icon: Terminal },
-      { label: 'IconCoders Flagship', href: '/iconcoders', desc: 'Annual premier algorithmic championship', icon: Trophy },
-      { label: 'Codequest Daily', href: '/codequest', desc: 'Bite-sized challenges to keep sharp daily', icon: Sparkles },
+      { label: 'Workshops', href: '/events', desc: 'Interactive hands-on sessions & masterclasses', icon: Calendar },
+      { label: 'Hackathons', href: '/hackathons', desc: '24hr build sprints & competitive arena', icon: Trophy },
+      { label: 'IconCoders', href: '/iconcoders', desc: 'Annual premier algorithmic championship', icon: Award },
+      { label: 'Codequest', href: '/codequest', desc: 'Bite-sized challenges to keep sharp daily', icon: Laptop },
     ],
   },
   { label: 'Forms', href: '/forms' },
@@ -126,7 +124,6 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [authCard, setAuthCard] = useState<'login' | 'signup' | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -155,27 +152,35 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
     <>
     <header
       data-site-chrome
-      className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
+      // True glass: blur is always-on (never transitioned - animating
+      // backdrop-filter itself is what causes the janky/flickering repaints
+      // glass navbars are notorious for), only the tint and shadow ease in
+      // as the page scrolls under it.
+      className={`sticky top-0 z-50 w-full border-b backdrop-blur-2xl transition-[background-color,box-shadow,border-color] duration-300 ${
         scrolled
-          ? 'bg-[var(--background)]/90 backdrop-blur-xl border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_0_rgba(0,0,0,0.02)]'
-          : 'bg-[var(--background)]/40 backdrop-blur-md border-transparent'
+          ? 'bg-white/55 dark:bg-[#0D0E15]/55 border-white/40 dark:border-white/10 shadow-[0_8px_32px_-12px_rgba(139,46,59,0.28)]'
+          : 'bg-white/20 dark:bg-white/[0.04] border-white/15 dark:border-white/[0.06] shadow-none'
       }`}
     >
       {/* persistent signature gradient hairline */}
       <div className="h-[2px] w-full bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500]" />
+      {/* glass sheen: a soft light-catch along the top edge of the panel */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent dark:via-white/20" />
 
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-[72px]'}`}>
-          {/* Logo - sits directly on the bar, no card wrapper */}
-          <Link href="/" className="group flex items-center gap-2.5" aria-label="SRKR Coding Club Home">
-            <motion.div className="translate-y-[6px]" whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
-              <BrainLogo size={30} showRays={false} animated={false} />
+        <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-[76px]'}`}>
+          {/* Logo - CODING CLUB leads, in the landing page's own shimmering title
+              treatment (.ember-text); SRKR rides above it as a small label, not
+              the other way round. */}
+          <Link href="/" className="group flex items-center gap-3" aria-label="SRKR Coding Club Home">
+            <motion.div whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
+              <BrainLogo size={36} showRays animated />
             </motion.div>
-            <div className="flex flex-col leading-none gap-1">
-              <span className="font-poppins font-extrabold text-lg sm:text-xl bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
+            <div className="flex flex-col leading-none">
+              <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.32em] text-[#1A1A2E]/45 dark:text-white/40">
                 SRKR
               </span>
-              <span className="font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-[#1A1A2E] dark:text-white">
+              <span className="ember-text font-poppins text-xl sm:text-2xl font-extrabold leading-[1.1] tracking-tight">
                 Coding Club
               </span>
             </div>
@@ -220,7 +225,13 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                       className="absolute inset-0 rounded-full -z-0"
                       // See AdminNavbar.tsx - #FF7A00 fails WCAG AA contrast against
                       // white pill text (~2.6:1); #C2410C keeps it readable (~5:1).
-                      style={{ background: 'linear-gradient(120deg, #8B2E3B, #C2410C)' }}
+                      // The glow mirrors ActionLink's primary-CTA hover shadow, so
+                      // the live tab reads with the same brand "lit" energy as the
+                      // rest of the site rather than sitting flat against the bar.
+                      style={{
+                        background: 'linear-gradient(120deg, #8B2E3B, #C2410C)',
+                        boxShadow: '0 0 20px rgba(255,122,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)',
+                      }}
                     />
                   )}
 
@@ -302,13 +313,12 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  onClick={() => setAuthCard('login')}
+                <Link
+                  href="/login"
                   className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-block"
                 >
                   Login
-                </button>
+                </Link>
 
                 <PillButton href="/signup" variant="solid" size="sm">
                   Join the Club
@@ -413,16 +423,15 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 </>
               ) : (
                 <div className="flex items-center gap-4">
-                  <button
-                    type="button"
+                  <Link
+                    href="/login"
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      setAuthCard('login');
                     }}
                     className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white transition-transform duration-100 active:scale-95"
                   >
                     Login
-                  </button>
+                  </Link>
                   <div className="flex-1">
                     <PillButton href="/signup" variant="solid" onClick={() => setMobileMenuOpen(false)} className="w-full justify-center">
                       Join the Club
@@ -434,71 +443,6 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <Suspense fallback={null}>
-        <AnimatePresence>
-          {authCard && (
-            <motion.main
-              key="auth-card-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              onClick={(event) => {
-                if (event.target === event.currentTarget) setAuthCard(null);
-              }}
-              className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-[6px] sm:p-6"
-            >
-              <motion.section
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.98, y: 6 }}
-                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                className="relative grid h-[min(460px,calc(100dvh-2rem))] w-full max-w-[780px] grid-cols-1 grid-rows-1 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_60px_-10px_rgba(0,0,0,0.25)] dark:bg-[#151722] lg:grid-cols-[1fr_1.1fr]"
-              >
-                <button
-                  type="button"
-                  onClick={() => setAuthCard(null)}
-                  aria-label="Close sign in"
-                  className="absolute right-3 top-3 z-20 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-
-                <div className="relative hidden min-h-0 bg-[radial-gradient(circle_at_20%_20%,_#FFE8D6_0%,_#FFF7F1_55%,_#FFFFFF_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,_rgba(255,122,0,0.18)_0%,_#1B1E2C_50%,_#151722_100%)] lg:block">
-                  <Image
-                    src="/Loginn.svg"
-                    alt="Secure account illustration"
-                    fill
-                    priority
-                    sizes="(min-width: 640px) 380px, 100vw"
-                    className="object-contain p-6 sm:p-8"
-                  />
-                </div>
-
-                <div className="min-h-0 overflow-hidden">
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={authCard}
-                      initial={{ opacity: 0, y: 28 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-                      className="h-full"
-                    >
-                      {authCard === 'login' ? (
-                        <LoginCard embedded onSwitchToSignup={() => setAuthCard('signup')} />
-                      ) : (
-                        <SignupCard embedded onSwitchToLogin={() => setAuthCard('login')} />
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </motion.section>
-            </motion.main>
-          )}
-        </AnimatePresence>
-      </Suspense>
 
     </>
   );

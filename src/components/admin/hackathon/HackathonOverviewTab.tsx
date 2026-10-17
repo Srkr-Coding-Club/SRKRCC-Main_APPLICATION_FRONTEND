@@ -1,9 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Flag, Mail, Target, Users, UsersRound } from 'lucide-react';
 import type { HackathonStats } from '@/lib/types';
-import { hackathonApi } from '@/lib/api/hackathons';
+import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
+import { LoadError } from './LoadError';
+import { useToast } from '@/context/ToastContext';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { BTN_PRIMARY } from './shared';
+import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { PANEL } from './shared';
 
@@ -23,11 +28,38 @@ function Tile({ icon: Icon, label, value, sub, onClick }: { icon: React.ElementT
 
 export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNavigate: (tab: Tab) => void }) {
   const [stats, setStats] = useState<HackathonStats | null>(null);
+  const [error, setError] = useState('');
+  const [reminding, setReminding] = useState(false);
+  const { toast } = useToast();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
-  useEffect(() => {
-    hackathonApi.admin.stats(slug).then(setStats).catch(() => setStats(null));
+  const load = useCallback(() => {
+    setError('');
+    hackathonApi.admin.stats(slug).then(setStats).catch((err) => setError(apiErrorMessage(err, 'Could not load the overview.')));
   }, [slug]);
 
+  useEffect(load, [load]);
+
+  const remindLeaders = async () => {
+    if (!stats) return;
+    const ok = await confirm({
+      title: 'Remind team leaders?',
+      message: `The leaders of ${stats.forming_teams.length} team${stats.forming_teams.length === 1 ? '' : 's'} below the minimum size get an in-app notification and an email saying how many members they still need.`,
+      confirmLabel: 'Send reminders',
+    });
+    if (!ok) return;
+    setReminding(true);
+    try {
+      const { reminded } = await hackathonApi.admin.remindForming(slug);
+      toast.success('Reminders sent', `${reminded} team leader${reminded === 1 ? '' : 's'} notified.`);
+    } catch (err) {
+      toast.error('Could not send reminders', apiErrorMessage(err));
+    } finally {
+      setReminding(false);
+    }
+  };
+
+  if (error) return <LoadError message={error} onRetry={load} />;
   if (!stats) return <div className="h-48 rounded-xl bg-slate-200 dark:bg-white/5 animate-pulse" />;
 
   const s = stats.teams_by_status;
@@ -39,6 +71,39 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
         <Tile icon={Mail} label="Pending invites" value={stats.pending_invites} />
         <Tile icon={Flag} label="Rounds" value={stats.rounds.length} onClick={() => onNavigate('rounds')} />
       </div>
+
+      {confirmDialog}
+      {stats.forming_teams.length > 0 && (
+        <section className={`${PANEL} space-y-3 border-amber-500/30`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                <Users className="h-4 w-4 text-amber-500" /> Teams below the minimum size ({stats.forming_teams.length})
+              </h3>
+              <p className="text-xs text-slate-500">
+                These teams are not registered, so they are left out of Round 1.
+                {stats.registration_closes_at && stats.is_registration_open ? ` Registration closes ${formatDateTime(stats.registration_closes_at)}.` : ''}
+              </p>
+            </div>
+            <button onClick={remindLeaders} disabled={reminding} className={BTN_PRIMARY}>
+              <Mail className="h-3.5 w-3.5" /> {reminding ? 'Sending…' : 'Remind leaders'}
+            </button>
+          </div>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {stats.forming_teams.map((team) => (
+              <li key={team.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-xs dark:border-slate-800">
+                <span className="min-w-0">
+                  <span className="block truncate font-bold text-[#1A1A2E] dark:text-white">{team.name}</span>
+                  <span className="block truncate text-slate-500">{team.leader_email ?? 'No leader'}</span>
+                </span>
+                <span className="shrink-0 font-semibold text-amber-600 dark:text-amber-400">
+                  {team.members}/{stats.min_team_size} · needs {team.needed}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className={`${PANEL} space-y-3`}>
