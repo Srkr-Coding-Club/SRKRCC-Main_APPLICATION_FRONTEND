@@ -13,6 +13,7 @@ import {
 
 import { Event } from "@/lib/types";
 import PublicListingCard from "@/components/PublicListingCard";
+import QuickRegisterButton from "@/components/events/QuickRegisterButton";
 
 /** Flattens the Markdown "about" text into a one-paragraph snippet for the card preview. */
 function markdownToPreview(md: string): string {
@@ -177,6 +178,14 @@ export default function EventCard({
               <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-[13px] font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500">
                 Registration Closed
               </span>
+            ) : event.is_quick_registration && event.form_slug ? (
+              <QuickRegisterButton
+                event={event}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95"
+                style={{ backgroundColor: accent }}
+                registeredClassName="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-[13px] font-semibold text-emerald-600 dark:text-emerald-400"
+                label="Register Now"
+              />
             ) : (
               <Link
                 href={event.form_slug ? `/forms/${event.form_slug}` : "/forms"}

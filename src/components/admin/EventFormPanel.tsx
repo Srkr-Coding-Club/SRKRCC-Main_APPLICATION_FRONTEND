@@ -3,10 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import { X, CalendarPlus, CalendarClock } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
-import { Event, Form } from '@/lib/types';
+import { Event, Form, ProfileFieldKey } from '@/lib/types';
+import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
 import { slugify } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+
+type RegistrationMode = 'quick' | 'form';
+
+// A registration is meaningless without knowing who registered, so these are always collected.
+const ALWAYS_COLLECTED: ProfileFieldKey[] = ['full_name', 'email'];
 
 interface EventFormPanelProps {
   isOpen: boolean;
@@ -53,6 +59,8 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
   const [endTime, setEndTime] = useState('');
   const [posterImage, setPosterImage] = useState('');
   const [registrationForm, setRegistrationForm] = useState('');
+  const [registrationMode, setRegistrationMode] = useState<RegistrationMode>('form');
+  const [quickFields, setQuickFields] = useState<ProfileFieldKey[]>(ALWAYS_COLLECTED);
   const [description, setDescription] = useState('');
 
   useEffect(() => {
@@ -73,6 +81,8 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
     setEndTime('');
     setPosterImage('');
     setRegistrationForm('');
+    setRegistrationMode('form');
+    setQuickFields(ALWAYS_COLLECTED);
     setDescription('');
     setErrors({});
   };
@@ -91,7 +101,10 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
       setStartTime(toDatetimeLocal(event.start_time));
       setEndTime(toDatetimeLocal(event.end_time));
       setPosterImage(event.poster_image || '');
-      setRegistrationForm(event.registration_form ? String(event.registration_form) : '');
+      const isQuick = Boolean(event.is_quick_registration);
+      setRegistrationMode(isQuick ? 'quick' : 'form');
+      setQuickFields(isQuick && event.registration_profile_fields?.length ? event.registration_profile_fields : ALWAYS_COLLECTED);
+      setRegistrationForm(!isQuick && event.registration_form ? String(event.registration_form) : '');
       setDescription(event.description || '');
       setErrors({});
     } else {
@@ -108,6 +121,10 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
   const selectedForm = forms.find((f) => String(f.id) === registrationForm);
   const regOpensLabel = formatDisplay(selectedForm?.open_at);
   const regClosesLabel = formatDisplay(selectedForm?.close_at);
+
+  const toggleQuickField = (key: ProfileFieldKey, checked: boolean) => {
+    setQuickFields((current) => (checked ? [...current, key] : current.filter((item) => item !== key)));
+  };
 
   const validate = (): Record<string, string> => {
     const next: Record<string, string> = {};
@@ -143,7 +160,10 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
         start_time: startTime ? new Date(startTime).toISOString() : null,
         end_time: endTime ? new Date(endTime).toISOString() : null,
         poster_image: posterImage.trim() || null,
-        registration_form: registrationForm ? Number(registrationForm) : null,
+        // One-click: the server builds the registration form from the ticked details.
+        ...(registrationMode === 'quick'
+          ? { quick_registration_fields: quickFields }
+          : { registration_form: registrationForm ? Number(registrationForm) : null }),
       };
       const saved = isEditMode
         ? await fetchApi<Event>(`/events/${event!.slug}/`, { method: 'PATCH', body: JSON.stringify(body) })
@@ -291,39 +311,102 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
           </div>
 
           <div>
-            <label className={labelClasses}>Registration Form</label>
-            <select
-              value={registrationForm}
-              onChange={(e) => setRegistrationForm(e.target.value)}
-              className={inputClasses}
-            >
-              <option value="">No form linked</option>
-              {forms.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.title?.trim() || f.slug || 'Untitled form'} ({f.status})
-                </option>
+            <label className={labelClasses}>Registration</label>
+            <div role="radiogroup" aria-label="How members register" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {([
+                { mode: 'quick', title: 'One-click', hint: 'Members register with their profile details. No form to build.' },
+                { mode: 'form', title: 'Custom form', hint: 'Link a form you built to ask your own questions.' },
+              ] as const).map((option) => (
+                <label
+                  key={option.mode}
+                  className={`flex cursor-pointer items-start gap-2.5 rounded-lg border p-3 text-left transition ${
+                    registrationMode === option.mode
+                      ? 'border-[#FF7A00] bg-[#FF7A00]/5'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="registration-mode"
+                    checked={registrationMode === option.mode}
+                    onChange={() => setRegistrationMode(option.mode)}
+                    className="mt-0.5 h-4 w-4 accent-[#FF7A00]"
+                  />
+                  <span className="text-sm">
+                    <span className="font-bold text-[#1A1A2E] dark:text-white">{option.title}</span>
+                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">{option.hint}</span>
+                  </span>
+                </label>
               ))}
-            </select>
-            <p className="mt-1 text-[11px] text-slate-400">
-              "Register Now" on the public event card will link to this form.
-            </p>
+            </div>
 
-            {registrationForm && (
-              <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 px-3.5 py-2.5">
-                <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[#8B2E3B]" />
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                  <p className="font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Registration Window (from this form)</p>
-                  <p className="mt-0.5">
-                    <span className="font-semibold text-slate-600 dark:text-slate-300">Opens:</span>{' '}
-                    {regOpensLabel || <span className="italic">Not set</span>}
-                    {' · '}
-                    <span className="font-semibold text-slate-600 dark:text-slate-300">Closes:</span>{' '}
-                    {regClosesLabel || <span className="italic">Not set</span>}
-                  </p>
-                  <p className="mt-1">
-                    Distinct from the event's own date above. To change it, edit this form's open/close time in Forms Registry.
-                  </p>
+            {registrationMode === 'quick' ? (
+              <fieldset className="mt-3 rounded-lg border border-slate-200 dark:border-slate-800 p-3.5">
+                <legend className="px-1 text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Details to collect from each member
+                </legend>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+                  {PROFILE_FIELD_OPTIONS.map((option) => {
+                    const always = ALWAYS_COLLECTED.includes(option.key);
+                    return (
+                      <label
+                        key={option.key}
+                        className={`flex items-center gap-2 text-sm text-[#1A1A2E] dark:text-white ${always ? 'opacity-80' : 'cursor-pointer'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={always || quickFields.includes(option.key)}
+                          disabled={always}
+                          onChange={(e) => toggleQuickField(option.key, e.target.checked)}
+                          className="h-4 w-4 accent-[#FF7A00]"
+                        />
+                        {option.label}
+                        {always && <span className="text-[10px] uppercase text-slate-400">always</span>}
+                      </label>
+                    );
+                  })}
                 </div>
+                <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+                  Members must have these filled in on their profile; anyone missing one is asked to add it first.
+                  Registration closes automatically when all {capacity || '0'} seats are taken.
+                </p>
+              </fieldset>
+            ) : (
+              <div className="mt-3">
+                  <select
+                    value={registrationForm}
+                    onChange={(e) => setRegistrationForm(e.target.value)}
+                    className={inputClasses}
+                  >
+                    <option value="">No form linked</option>
+                    {forms.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.title?.trim() || f.slug || 'Untitled form'} ({f.status})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    "Register Now" on the public event card will link to this form.
+                  </p>
+
+                  {registrationForm && (
+                    <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 px-3.5 py-2.5">
+                      <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[#8B2E3B]" />
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <p className="font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Registration Window (from this form)</p>
+                        <p className="mt-0.5">
+                          <span className="font-semibold text-slate-600 dark:text-slate-300">Opens:</span>{' '}
+                          {regOpensLabel || <span className="italic">Not set</span>}
+                          {' · '}
+                          <span className="font-semibold text-slate-600 dark:text-slate-300">Closes:</span>{' '}
+                          {regClosesLabel || <span className="italic">Not set</span>}
+                        </p>
+                        <p className="mt-1">
+                          Distinct from the event's own date above. To change it, edit this form's open/close time in Forms Registry.
+                        </p>
+                      </div>
+                    </div>
+                  )}
               </div>
             )}
           </div>

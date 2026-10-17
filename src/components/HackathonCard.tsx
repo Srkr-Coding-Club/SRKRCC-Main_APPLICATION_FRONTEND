@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Calendar, Flame, ArrowRight, ArrowUpRight, Trophy, Users } from 'lucide-react';
+import { Calendar, ArrowRight, ArrowUpRight, Trophy, Users } from 'lucide-react';
 import { Hackathon } from '@/lib/types';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import PublicListingCard from '@/components/PublicListingCard';
@@ -34,13 +34,12 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
       category={
         <>
           <Trophy className="h-3 w-3" />
-          {hackathon.is_flagship && <Flame className="h-3 w-3" />}
-          {hackathon.is_flagship ? 'Flagship Hackathon' : 'Hackathon'}
+          Hackathon
         </>
       }
       status={
         hackathon.status === 'CLOSED' ? (
-          <span className="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <span className="inline-flex items-center rounded-full bg-journey-text/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-journey-text/80">
             Closed
           </span>
         ) : null
@@ -49,7 +48,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
         <>
           <Calendar className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
           {formatShortDate(hackathon.start_date)}
-          <span className="text-slate-300 dark:text-slate-600">→</span>
+          <span className="text-journey-muted">→</span>
           {formatShortDate(hackathon.end_date)}
         </>
       }
@@ -57,7 +56,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
       description={<MarkdownRenderer content={hackathon.description} />}
       details={
         <div className="grid gap-2.5">
-          <p className="line-clamp-1 font-medium"><span className="font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Theme:</span> {hackathon.theme}</p>
+          <p className="line-clamp-1 font-medium"><span className="font-bold uppercase tracking-wide text-journey-muted">Theme:</span> {hackathon.theme}</p>
           <div className="flex items-center gap-2">
             <Trophy className="h-4 w-4 shrink-0" style={{ color: accent }} />
             <span className="font-medium">Prize pool: {hackathon.prize_pool}</span>
@@ -75,13 +74,13 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
           <Link
             href={detailHref}
             aria-label={`View details for ${hackathon.title}`}
-            className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2.5 text-[12px] font-semibold text-slate-600 transition hover:text-slate-900 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+            className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-journey-text/10 px-3 py-2.5 text-[12px] font-semibold text-journey-text/80 transition hover:text-journey-text"
           >
             Details
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
           {!registrationOpen ? (
-            <span className="inline-flex flex-1 items-center justify-center rounded-lg bg-slate-100 px-3 py-2.5 text-[12px] font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500">
+            <span className="inline-flex flex-1 items-center justify-center rounded-lg bg-journey-text/10 px-3 py-2.5 text-[12px] font-semibold text-journey-muted">
               {notYetOpen ? 'Registration opens soon' : 'Registration Closed'}
             </span>
           ) : (

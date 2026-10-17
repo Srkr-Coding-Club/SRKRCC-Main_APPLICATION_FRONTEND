@@ -509,7 +509,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                     {
                       key: 'HACKATHONS' as BackupDomainKey,
                       title: 'Hackathons & Sprints',
-                      desc: '48hr build sprints, flagship hackathons, prize pools, and tracks.',
+                      desc: '48hr build sprints, hackathons, prize pools, and tracks.',
                       req: 'Title required (Deduplicates by Title + Start Date)',
                     },
                     {

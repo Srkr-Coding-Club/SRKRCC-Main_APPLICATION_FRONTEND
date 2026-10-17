@@ -45,7 +45,7 @@ export default async function HackathonsPage() {
     <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <PageHero
-          icon={<Trophy className="h-4 w-4 text-[#FF7A00]" />}
+          icon={<Trophy className="h-4 w-4 text-journey-accent" />}
           eyebrow="SRKR CODING CLUB HACKATHONS"
           title="Build, Hack & Win Cash Prizes"
           description="Form your hackathon squad, build real-world software prototypes, present to industry judges, and win prize pools!"
@@ -66,10 +66,10 @@ export default async function HackathonsPage() {
               ))}
             />
           ) : (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
-              <Trophy className="h-8 w-8 text-slate-300 dark:text-slate-700" />
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No hackathons scheduled right now.</p>
-              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon. The next season will be announced here.</p>
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-journey-text/10 py-16 text-center">
+              <Trophy className="h-8 w-8 text-journey-muted" />
+              <p className="text-sm font-semibold text-journey-muted">No hackathons scheduled right now.</p>
+              <p className="text-xs text-journey-muted">Check back soon. The next season will be announced here.</p>
             </div>
           )}
         </div>

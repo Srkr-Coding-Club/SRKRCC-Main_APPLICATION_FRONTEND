@@ -98,13 +98,18 @@ export interface Event {
   registration_opens_at?: string | null;
   registration_closes_at?: string | null;
   registration_count?: number;
+  /** One-click registration: the form is made only of profile details, so a member registers with one click. */
+  is_quick_registration?: boolean;
+  /** The member details a one-click event collects (profile keys such as 'full_name', 'phone_number'). */
+  registration_profile_fields?: ProfileFieldKey[];
+  /** Write-only: the details to collect; the server builds the registration form from them. */
+  quick_registration_fields?: ProfileFieldKey[];
 }
 
 export interface Hackathon {
   id: number;
   title: string;
   slug: string;
-  is_flagship: boolean;
   theme: string;
   description: string;
   prize_pool: string;
