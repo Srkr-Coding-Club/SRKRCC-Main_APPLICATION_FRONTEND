@@ -1,4 +1,5 @@
 import { fetchApi } from './api-client';
+import { skipBuildTimeApiRead } from './constants';
 import { FeatureFlag } from './types';
 
 /**
@@ -9,6 +10,7 @@ import { FeatureFlag } from './types';
  * than hiding site sections whenever the backend is unreachable.
  */
 export async function getModuleFlags(): Promise<Record<string, boolean>> {
+  if (skipBuildTimeApiRead()) return {};
   try {
     const flags = await fetchApi<FeatureFlag[]>('/feature-flags/', { next: { revalidate: 60 } } as RequestInit);
     return Object.fromEntries(flags.map((f) => [f.key, f.is_enabled]));

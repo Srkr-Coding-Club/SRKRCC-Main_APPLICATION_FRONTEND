@@ -128,7 +128,8 @@ Whenever handling authentication errors or member onboarding:
 3. **Token-Only Clean URLs**:
    - The password setup route (`/account/setup-password?token=...`) must rely strictly on the `token` parameter. Never expose user email in URLs.
 4. **Interactive Strength Validation**:
-   - The password confirmation interface must enforce and visually guide the user through length ($\ge 8$), mixed case, and number/symbol requirements before permitting form submission.
+   - The password confirmation interface must enforce and visually guide the user through the rules in `getPasswordRules` / `validatePassword` (`src/lib/validation/auth.ts`): length ($\ge 8$), upper and lower case, a number, a special character, and no spaces, before permitting form submission. These mirror the server's `ComplexPasswordValidator`. The server also rejects common and all-numeric passwords; those can only be reported after submitting.
+   - Do not add checks that depend on the member's name or email. That rule was removed.
 
 ### 12. Architecture Preservation & Automated Documentation Lifecycle
 
