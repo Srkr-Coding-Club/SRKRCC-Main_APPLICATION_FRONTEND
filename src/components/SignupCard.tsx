@@ -44,7 +44,6 @@ import {
   validateOtherCollegeName,
   validatePassword,
   validatePasswordConfirmation,
-  validatePasswordNotSimilarToIdentity,
   validatePhoneNumber,
   validateRollNumber,
 } from '@/lib/validation/auth';
@@ -259,9 +258,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
     if (formData.isAffiliate) {
       errors.affiliateId = validateAffiliateId(formData.affiliateId);
     }
-    errors.password =
-      validatePassword(formData.password) ||
-      validatePasswordNotSimilarToIdentity(formData.password, [formData.email, formData.fullName]);
+    errors.password = validatePassword(formData.password);
     errors.confirmPassword = validatePasswordConfirmation(formData.password, formData.confirmPassword);
     return errors;
   }, [formData, collegeChoice]);
@@ -269,9 +266,8 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
   const visibleError = (field: FieldName): string | undefined =>
     serverErrors[field] || (touched[field] ? clientErrors[field] : undefined);
 
-  const identityIdentifiers = [formData.email, formData.fullName];
-  const passwordRules = getPasswordRules(formData.password, identityIdentifiers);
-  const strength = getPasswordStrength(formData.password, identityIdentifiers);
+  const passwordRules = getPasswordRules(formData.password);
+  const strength = getPasswordStrength(formData.password);
   const emailAlreadyRegistered = Boolean(serverErrors.email?.toLowerCase().includes('already exists'));
 
   const handleChange = (field: keyof typeof formData, value: string | boolean) => {

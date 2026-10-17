@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import AuthLayout from '@/components/AuthLayout';
 import { useToast } from '@/context/ToastContext';
+import { getPasswordRules, validatePassword } from '@/lib/validation/auth';
 
 function SetupPasswordContent() {
   const router = useRouter();
@@ -27,7 +28,7 @@ function SetupPasswordContent() {
   // Verification State (Mode 1: token in URL)
   const [isValidatingToken, setIsValidatingToken] = useState(Boolean(tokenParam));
   const [tokenValid, setTokenValid] = useState(false);
-  const [memberInfo, setMemberInfo] = useState<{ first_name?: string; club_id?: string } | null>(null);
+  const [memberInfo, setMemberInfo] = useState<{ first_name?: string; club_id?: string; is_reset?: boolean } | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
 
   // Form inputs for Mode 1 (Confirming Password)
@@ -42,6 +43,16 @@ function SetupPasswordContent() {
   const [requestEmail, setRequestEmail] = useState('');
   const [isRequesting, setIsRequesting] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+
+  // Entering the emailed code by hand instead of opening the link
+  const [codeInput, setCodeInput] = useState('');
+
+  const handleSubmitCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = codeInput.trim();
+    if (!code) return;
+    router.push(`/account/setup-password?token=${encodeURIComponent(code)}`);
+  };
 
   // Validate token on mount if provided
   useEffect(() => {
@@ -75,10 +86,9 @@ function SetupPasswordContent() {
   }, [tokenParam]);
 
   // Password strength calculation
-  const hasMinLength = password.length >= 8;
-  const hasMixedCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
-  const hasNumberOrSpecial = /[0-9!@#$%^&*(),.?":{}|<>]/.test(password);
-  const isPasswordStrong = hasMinLength && hasMixedCase && hasNumberOrSpecial;
+  // Same rules as the server's ComplexPasswordValidator (see src/lib/validation/auth.ts).
+  const passwordRules = getPasswordRules(password);
+  const isPasswordStrong = Boolean(password) && !validatePassword(password);
   const passwordsMatch = password && confirmPassword && password === confirmPassword;
 
   // Handle setting new password
@@ -86,16 +96,9 @@ function SetupPasswordContent() {
     e.preventDefault();
     if (!tokenParam) return;
 
-    if (!hasMinLength) {
-      toast.warning('Password Too Short', 'Password must be at least 8 characters long.');
-      return;
-    }
-    if (!hasMixedCase) {
-      toast.warning('Password Too Weak', 'Password must contain both upper and lower case letters.');
-      return;
-    }
-    if (!hasNumberOrSpecial) {
-      toast.warning('Password Too Weak', 'Password must contain at least one number or symbol.');
+    const passwordProblem = validatePassword(password);
+    if (passwordProblem) {
+      toast.warning('Password Needs Changes', passwordProblem);
       return;
     }
     if (!passwordsMatch) {
@@ -113,7 +116,9 @@ function SetupPasswordContent() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to establish password.');
+        // The API returns a list of messages when the password breaks several rules.
+        const messages = Array.isArray(data.error) ? data.error : [data.error];
+        throw new Error(messages.filter(Boolean).join(' ') || 'Failed to establish password.');
       }
 
       setSetupComplete(true);
@@ -148,6 +153,36 @@ function SetupPasswordContent() {
       setIsRequesting(false);
     }
   };
+
+  const codeEntryForm = (
+    <form onSubmit={handleSubmitCode} className="space-y-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+      <label htmlFor="reset-code" className="block text-xs font-semibold text-[#1A1A2E] dark:text-white">
+        Already have a code?
+      </label>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            id="reset-code"
+            type="text"
+            autoComplete="off"
+            spellCheck={false}
+            value={codeInput}
+            onChange={(e) => setCodeInput(e.target.value)}
+            placeholder="Paste the code from your email"
+            className="w-full pl-10 pr-3 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={!codeInput.trim()}
+          className="px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm transition active:scale-[0.98] disabled:opacity-50"
+        >
+          Continue
+        </button>
+      </div>
+    </form>
+  );
 
   return (
     <AuthLayout
@@ -215,7 +250,9 @@ function SetupPasswordContent() {
               )}
             </div>
             <p className="text-slate-600 dark:text-slate-300 text-[11px]">
-              Please choose a secure password to activate your account.
+              {memberInfo?.is_reset
+                ? 'Choose a new password for your account.'
+                : 'Please choose a secure password to activate your account.'}
             </p>
           </div>
 
@@ -271,18 +308,15 @@ function SetupPasswordContent() {
 
           {/* Password Requirements Gauge */}
           <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[11px] space-y-1">
-            <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>At least 8 characters</span>
-            </div>
-            <div className={`flex items-center gap-1.5 ${hasMixedCase ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Contains upper & lower case letters</span>
-            </div>
-            <div className={`flex items-center gap-1.5 ${hasNumberOrSpecial ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Contains number or symbol</span>
-            </div>
+            {passwordRules.map((rule) => (
+              <div
+                key={rule.id}
+                className={`flex items-center gap-1.5 ${rule.met ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{rule.label}</span>
+              </div>
+            ))}
             {password && confirmPassword && (
               <div className={`flex items-center gap-1.5 ${passwordsMatch ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -356,6 +390,8 @@ function SetupPasswordContent() {
         </form>
       )}
 
+      {!isValidatingToken && !tokenParam && !requestSent && codeEntryForm}
+
       {/* State F: Setup Link Request Dispatched */}
       {!isValidatingToken && !tokenParam && requestSent && (
         <div className="text-center py-6 space-y-4">
@@ -366,6 +402,7 @@ function SetupPasswordContent() {
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
             If an eligible account matching <strong className="text-[#1A1A2E] dark:text-white">{requestEmail}</strong> exists, a password setup link has been sent to your inbox.
           </p>
+          <div className="text-left">{codeEntryForm}</div>
           <div className="pt-2">
             <Link
               href="/login"

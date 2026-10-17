@@ -157,53 +157,17 @@ export interface PasswordRule {
 }
 
 /**
- * Extracts the identity fragments a password must not contain - the local
- * part of an email, and each word of a name - mirroring what Django's
- * UserAttributeSimilarityValidator checks server-side. Fragments under 4
- * characters are skipped: they'd false-positive on common short syllables.
+ * The checklist rendered under the password field. Mirrors the server's
+ * password rules (ComplexPasswordValidator).
  */
-function identityFragments(identifiers: Array<string | undefined>): string[] {
-  const fragments: string[] = [];
-  for (const raw of identifiers) {
-    const value = (raw || '').trim();
-    if (!value) continue;
-    const emailLocal = value.split('@')[0];
-    for (const word of `${value} ${emailLocal}`.split(/[\s@._-]+/)) {
-      const cleaned = word.trim().toLowerCase();
-      if (cleaned.length >= 4) fragments.push(cleaned);
-    }
-  }
-  return Array.from(new Set(fragments));
-}
-
-function containsIdentityFragment(password: string, identifiers: Array<string | undefined>): boolean {
-  const lowered = password.toLowerCase();
-  return identityFragments(identifiers).some((fragment) => lowered.includes(fragment));
-}
-
-/**
- * The checklist rendered under the password field. Same rules the server
- * enforces - the "no personal info" rule only appears when `identifiers` is
- * given, so the meter and checklist never disagree with the blocking error:
- * a password can't show as fully green/"Strong" while still being rejected
- * for containing the member's own name or email.
- */
-export function getPasswordRules(password: string, identifiers?: Array<string | undefined>): PasswordRule[] {
-  const rules: PasswordRule[] = [
+export function getPasswordRules(password: string): PasswordRule[] {
+  return [
     { id: 'length', label: `At least ${PASSWORD_MIN_LENGTH} characters`, met: password.length >= PASSWORD_MIN_LENGTH },
     { id: 'lower', label: 'One lowercase letter', met: /[a-z]/.test(password) },
     { id: 'upper', label: 'One uppercase letter', met: /[A-Z]/.test(password) },
     { id: 'digit', label: 'One number', met: /\d/.test(password) },
     { id: 'special', label: 'One special character', met: /[^A-Za-z0-9]/.test(password) },
   ];
-  if (identifiers && identityFragments(identifiers).length > 0) {
-    rules.push({
-      id: 'identity',
-      label: 'Does not contain your name or email',
-      met: !containsIdentityFragment(password, identifiers),
-    });
-  }
-  return rules;
 }
 
 export function validatePassword(password: string): string | undefined {
@@ -219,41 +183,18 @@ export function validatePassword(password: string): string | undefined {
   return undefined;
 }
 
-/**
- * Catches passwords Django's UserAttributeSimilarityValidator would reject, so
- * the member isn't told about it only after submitting.
- */
-export function validatePasswordNotSimilarToIdentity(
-  password: string,
-  identifiers: Array<string | undefined>,
-): string | undefined {
-  return containsIdentityFragment(password, identifiers)
-    ? 'Password must not contain your name or email address.'
-    : undefined;
-}
-
 export function validatePasswordConfirmation(password: string, confirmation: string): string | undefined {
   if (!confirmation) return 'Please re-enter your password.';
   if (password !== confirmation) return 'Passwords do not match.';
   return undefined;
 }
 
-/**
- * 0–4 score driving the strength meter. Presentation only; not a gate on its
- * own - but it factors in the identity rule (when `identifiers` is passed) so
- * it can never read "Strong" while that rule is the reason submission is
- * blocked.
- */
-export function getPasswordStrength(
-  password: string,
-  identifiers?: Array<string | undefined>,
-): { score: number; label: string } {
+/** 0–4 score driving the strength meter. Presentation only; not a gate on its own. */
+export function getPasswordStrength(password: string): { score: number; label: string } {
   if (!password) return { score: 0, label: '' };
-  const rules = getPasswordRules(password, identifiers);
-  let score = rules.filter((rule) => rule.met).length;
+  let score = getPasswordRules(password).filter((rule) => rule.met).length;
   if (password.length >= 12) score += 1;
   if (/(.)\1{2,}/.test(password)) score -= 1; // "aaa" style runs
-  if (identifiers && !rules.find((rule) => rule.id === 'identity')?.met) score = Math.min(score, 1);
 
   const normalized = Math.max(0, Math.min(4, score - 1));
   return { score: normalized, label: ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'][normalized] };
