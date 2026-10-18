@@ -30,6 +30,7 @@ import { fetchApi } from '@/lib/api-client';
 import { useToast } from '@/context/ToastContext';
 import { DetailDrawer } from './DetailDrawer';
 import { EditUserModal } from './EditUserModal';
+import Portal from '@/components/ui/Portal';
 
 interface MembersTabProps {
   forms?: Form[];
@@ -638,87 +639,89 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
       {/* Email Broadcast Modal */}
       <AnimatePresence>
         {isEmailModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden"
-            >
-              <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-orange-500/10 text-orange-400">
-                    <Mail className="w-5 h-5" />
+          <Portal>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden"
+              >
+                <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-orange-500/10 text-orange-400">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Email Member Roster</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Broadcasting to <strong>{filteredMembers.length}</strong> selected members
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => setIsEmailModalOpen(false)}
+                    className="p-2 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition active:scale-90"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
                   <div>
-                    <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Email Member Roster</h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Broadcasting to <strong>{filteredMembers.length}</strong> selected members
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Campaign Subject</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Welcome to SRKR Coding Club 2025!"
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Message Body</label>
+                    <textarea
+                      rows={4}
+                      placeholder="Hello {{full_name}}, your Club ID is {{club_id}}..."
+                      value={emailMessage}
+                      onChange={(e) => setEmailMessage(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Allowed parameters: <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;full_name&#125;&#125;</span>, <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;club_id&#125;&#125;</span>, <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;branch&#125;&#125;</span>, <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;email&#125;&#125;</span>.
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsEmailModalOpen(false)}
-                  className="p-2 min-h-9 min-w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition active:scale-90"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Campaign Subject</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Welcome to SRKR Coding Club 2025!"
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
-                  />
+                <div className="p-4 bg-slate-50 dark:bg-[#0f0f1a] border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                  <button
+                    onClick={() => setIsEmailModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendEmailCampaign}
+                    disabled={sendingEmail}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-md transition active:scale-95 inline-flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {sendingEmail ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Dispatching…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Send Campaign</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Message Body</label>
-                  <textarea
-                    rows={4}
-                    placeholder="Hello {{full_name}}, your Club ID is {{club_id}}..."
-                    value={emailMessage}
-                    onChange={(e) => setEmailMessage(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Allowed parameters: <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;full_name&#125;&#125;</span>, <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;club_id&#125;&#125;</span>, <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;branch&#125;&#125;</span>, <span className="font-mono text-orange-600 dark:text-orange-400">&#123;&#123;email&#125;&#125;</span>.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 dark:bg-[#0f0f1a] border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
-                <button
-                  onClick={() => setIsEmailModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition active:scale-95"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSendEmailCampaign}
-                  disabled={sendingEmail}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-md transition active:scale-95 inline-flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {sendingEmail ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Dispatching…</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Send Campaign</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </div>
+              </motion.div>
+            </div>
+          </Portal>
         )}
       </AnimatePresence>
     </div>

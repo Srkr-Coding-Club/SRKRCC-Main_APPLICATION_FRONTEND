@@ -511,7 +511,7 @@ export function FormBuilderTab({
                 <p className="text-[11px] text-slate-500 mt-0.5">Click a field to add it to the form.</p>
               </div>
 
-              <div className="p-3 space-y-4 max-h-[65vh] overflow-y-auto">
+              <div className="p-3 space-y-4 max-h-[65dvh] overflow-y-auto">
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 px-2 pb-1">
                     <Sparkles className="w-3 h-3 text-[#FF7A00]" />

@@ -137,7 +137,7 @@ export const ToastContainer: React.FC = () => {
   return (
     <div
       aria-live="polite"
-      className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-auto max-w-sm w-full"
+      className="fixed inset-x-4 bottom-20 z-[9999] flex flex-col gap-3 pointer-events-auto sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-full sm:max-w-sm"
     >
       {toasts.map((t) => (
         <ToastCard key={t.id} toast={t} onDismiss={dismissToast} />

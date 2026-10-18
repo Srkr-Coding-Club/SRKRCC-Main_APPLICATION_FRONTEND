@@ -161,7 +161,7 @@ export default function AlumniCarousel({ alumniList = INITIAL_ALUMNI }: AlumniCa
               initial="enter"
               animate="center"
               exit="exit"
-              className="grid md:grid-cols-12 gap-8 items-center w-full"
+              className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center w-full"
             >
               {/* Alumni Photo Frame with Gradient Border & Soft Glow */}
               <div className="md:col-span-4 flex flex-col items-center">
@@ -236,7 +236,7 @@ export default function AlumniCarousel({ alumniList = INITIAL_ALUMNI }: AlumniCa
                       onClick={() => setIsAutoplay(!isAutoplay)}
                       aria-label={isAutoplay ? 'Pause Autoplay' : 'Start Autoplay'}
                       title={isAutoplay ? 'Pause Carousel' : 'Play Carousel'}
-                      className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-800 glass-panel flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-[#FF7A00] transition-colors"
+                      className="w-11 h-11 sm:w-9 sm:h-9 rounded-full border border-slate-200 dark:border-slate-800 glass-panel flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-[#FF7A00] transition-colors"
                     >
                       {isAutoplay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
                     </button>
@@ -272,7 +272,7 @@ export default function AlumniCarousel({ alumniList = INITIAL_ALUMNI }: AlumniCa
                 setCurrentIndex(index);
               }}
               aria-label={`Go to slide ${index + 1}`}
-              className={`h-2.5 rounded-full transition-all duration-500 ${index === currentIndex
+              className={`relative h-2.5 rounded-full transition-all duration-500 after:absolute after:-inset-3 after:content-[''] ${index === currentIndex
                 ? 'w-10 bg-gradient-to-r from-[#FF7A00] via-[#FFA500] to-[#8B2E3B] shadow-sm'
                 : 'w-2.5 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600'
                 }`}

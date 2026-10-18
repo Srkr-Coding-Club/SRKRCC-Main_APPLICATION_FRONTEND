@@ -80,6 +80,7 @@ function ManageHackathon() {
                     {hackathon.is_registration_open ? 'Registration open' : 'Registration closed'}
                   </StatusPill>
                 )}
+                {hackathon.is_hidden && <StatusPill tone="slate">{hackathon.is_manually_hidden ? 'Hidden from public' : 'Outside visibility window'}</StatusPill>}
                 {hackathon.team_edits_locked && <StatusPill tone="amber">Team edits locked</StatusPill>}
                 <a
                   href={`/hackathons/${hackathon.slug}`}

@@ -106,6 +106,18 @@ export interface Event {
   quick_registration_fields?: ProfileFieldKey[];
 }
 
+/** What deleting a hackathon removes (GET /hackathons/{slug}/delete-impact/). */
+export interface HackathonDeleteImpact {
+  teams: number;
+  members: number;
+  problem_statements: number;
+  rounds: number;
+  round_entries: number;
+  announcements: number;
+  stages: number;
+  submissions: number;
+}
+
 export interface Hackathon {
   id: number;
   title: string;
@@ -119,6 +131,8 @@ export interface Hackathon {
   visible_from?: string | null;
   visible_until?: string | null;
   is_hidden?: boolean;
+  /** True only when an admin hid it (as opposed to the visible_from / visible_until window). */
+  is_manually_hidden?: boolean;
   banner_image?: string | null;
   registration_form?: number | null;
   form_slug?: string;

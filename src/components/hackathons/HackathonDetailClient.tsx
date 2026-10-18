@@ -113,7 +113,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
           All Hackathons
         </Link>
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-5">
             {/* Banner */}
             <div className="relative aspect-[16/6] w-full overflow-hidden rounded-3xl border border-journey-text/10 bg-journey-surface">
@@ -170,7 +170,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                 )}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Fact icon={UsersRound} label="Team size" value={minSize === maxSize ? `${maxSize} ${maxSize === 1 ? 'Member' : 'Members'}` : `${minSize} - ${maxSize} Members`} />
                 <Fact icon={Calendar} label="Registration deadline" value={deadline} />
                 {showVenue && <Fact icon={MapPin} label="Venue" value={hackathon.venue} />}

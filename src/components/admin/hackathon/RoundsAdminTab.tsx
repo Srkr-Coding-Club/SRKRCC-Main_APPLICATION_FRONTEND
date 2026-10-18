@@ -355,7 +355,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
   const formOptions = forms.map((f) => ({ value: String(f.id), label: `${f.title || f.slug} (${f.status})` }));
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
       {confirmDialog}
       {loadError && (
         <div className="lg:col-span-2">
@@ -677,7 +677,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
             <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className={INPUT} />
             {draftErrors.name && <p className="mt-1 text-[11px] text-rose-500">{draftErrors.name}</p>}
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className={LABEL}>Starts</label>
               <input type="datetime-local" value={draft.starts_at} onChange={(e) => setDraft((d) => ({ ...d, starts_at: e.target.value }))} className={INPUT} />

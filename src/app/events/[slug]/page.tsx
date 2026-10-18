@@ -53,7 +53,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   const poster = event.poster_image && isSafeHref(event.poster_image) ? event.poster_image : FALLBACK_POSTER;
 
   return (
-    <div className="relative isolate flex min-h-[calc(100vh-5rem)] items-center overflow-hidden py-8 transition-colors duration-300">
+    <div className="relative isolate flex min-h-[calc(100dvh-5rem)] items-center overflow-hidden py-8 transition-colors duration-300">
       <div
         aria-hidden="true"
         className="absolute inset-0 -z-10 overflow-hidden"

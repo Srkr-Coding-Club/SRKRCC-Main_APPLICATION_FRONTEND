@@ -3,6 +3,7 @@ import type {
   AdminRoundEntry,
   Hackathon,
   HackathonAnnouncement,
+  HackathonDeleteImpact,
   HackathonRound,
   HackathonStage,
   HackathonStats,
@@ -81,6 +82,11 @@ export const hackathonApi = {
     update: (slug: string, body: Partial<Hackathon>) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/`, patch(body)),
     setOpen: (slug: string, open: boolean) =>
       fetchApi<Hackathon>(`/hackathons/${enc(slug)}/${open ? 'reopen' : 'close'}/`, json({})),
+    hide: (slug: string) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/hide/`, json({})),
+    show: (slug: string) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/show/`, json({})),
+    deleteImpact: (slug: string) => fetchApi<HackathonDeleteImpact>(`/hackathons/${enc(slug)}/delete-impact/`),
+    remove: (slug: string, confirmSlug: string) =>
+      fetchApi<void>(`/hackathons/${enc(slug)}/?confirm_slug=${encodeURIComponent(confirmSlug)}`, { method: 'DELETE' }),
     teamEmails: {
       get: (slug: string) => fetchApi<TeamEmailSettingsPayload>(`/hackathons/${enc(slug)}/team-emails/`),
       save: (slug: string, emails: Record<string, { enabled: boolean; subject: string; body: string }>) =>

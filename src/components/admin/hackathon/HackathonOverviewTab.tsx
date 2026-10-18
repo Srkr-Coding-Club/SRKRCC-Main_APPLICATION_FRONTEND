@@ -65,7 +65,7 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
   const s = stats.teams_by_status;
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile icon={Users} label="Registered teams" value={s.REGISTERED} sub={`${s.FORMING} still forming`} onClick={() => onNavigate('teams')} />
         <Tile icon={UsersRound} label="Participants" value={stats.participants} sub="in active teams" />
         <Tile icon={Mail} label="Pending invites" value={stats.pending_invites} />
@@ -89,7 +89,7 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
               <Mail className="h-3.5 w-3.5" /> {reminding ? 'Sending…' : 'Remind leaders'}
             </button>
           </div>
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {stats.forming_teams.map((team) => (
               <li key={team.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-xs dark:border-slate-800">
                 <span className="min-w-0">
@@ -105,7 +105,7 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
         </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className={`${PANEL} space-y-3`}>
           <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Target className="h-4 w-4 text-[#FF7A00]" /> Problem statement uptake</h3>
           <p className="text-xs text-slate-500">

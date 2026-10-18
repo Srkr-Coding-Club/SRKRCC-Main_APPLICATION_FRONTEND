@@ -360,3 +360,11 @@ Backend contract and import steps: `SRKRCC-Main_APPLICATION_BACKEND/docs/modules
 ### Problem statement admin
 
 The Problem Statements tab has a **Domains** panel (`ProblemDomainsPanel`: chips with usage counts, remove disabled while a statement uses the domain) above the list. The add/edit form picks the domain from that list (with "+ New domain" inline), edits tags with `components/ui/TagInput.tsx` (chips, Enter/comma to add, suggestions from tags used elsewhere), and has an "Open for teams to pick" switch. No ID or display-order field: IDs are generated and order is changed with the arrows. The public explorer's domain pills follow the configured domain order.
+
+## Hackathon visibility and deletion (admin)
+
+- `useHackathonLifecycle` (`src/components/admin/hackathon/useHackathonLifecycle.tsx`) owns hide, show and delete for a hackathon. The admin list (`/admin/hackathons`) and the Settings tab both use it, so the confirm dialogs and toasts stay identical. Render its `dialogs` once.
+- Hide and show are for admins and club leads. Delete is admin only and goes through `DeleteHackathonDialog`: it loads `GET /hackathons/{slug}/delete-impact/`, offers "Hide instead", and enables the button only once the slug is typed (the API also requires `?confirm_slug=`).
+- `is_hidden` means hidden by an admin or by the `visible_from` / `visible_until` window; `is_manually_hidden` means hidden by an admin. Show only clears the manual hide, so a window-hidden hackathon is changed from its dates in Settings.
+- `Modal` (`src/components/ui/Modal.tsx`) renders through a portal to `document.body`. An inline `fixed` overlay inside a `glass-panel` (backdrop-filter) is positioned against that panel instead of the viewport.
+- Dialogs: `Modal` takes an optional `footer` (pinned Save/Cancel; wire the submit button to the form with `form="id"`), keeps its header pinned, opens as a bottom sheet on phones and stacks safely with confirm dialogs. Any other full-screen overlay should render through `src/components/ui/Portal.tsx`.

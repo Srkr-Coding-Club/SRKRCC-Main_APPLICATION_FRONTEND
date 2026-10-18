@@ -192,7 +192,7 @@ useLayoutEffect(() => {
             aria-label="Previous page"
             onClick={goLeft}
             disabled={!canGoLeft}
-            className={`inline-flex shrink-0 rounded-full bg-white p-1.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 sm:p-2.5 ${
+            className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white p-1.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 sm:p-2.5 ${
               canGoLeft
                 ? 'text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white'
                 : 'cursor-not-allowed text-slate-300 dark:text-slate-600'
@@ -232,7 +232,7 @@ useLayoutEffect(() => {
             aria-label="Next page"
             onClick={goRight}
             disabled={!canGoRight}
-            className={`inline-flex shrink-0 rounded-full bg-white p-1.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 sm:p-2.5 ${
+            className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white p-1.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 sm:p-2.5 ${
               canGoRight
                 ? 'text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white'
                 : 'cursor-not-allowed text-slate-300 dark:text-slate-600'
@@ -248,7 +248,7 @@ useLayoutEffect(() => {
             aria-label="Previous page"
             onClick={goLeft}
             disabled={!canGoLeft}
-            className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
+            className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
               canGoLeft
                 ? 'text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white'
                 : 'cursor-not-allowed text-slate-300 dark:text-slate-600'
@@ -272,7 +272,7 @@ useLayoutEffect(() => {
             aria-label="Next page"
             onClick={goRight}
             disabled={!canGoRight}
-            className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
+            className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
               canGoRight
                 ? 'text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white'
                 : 'cursor-not-allowed text-slate-300 dark:text-slate-600'

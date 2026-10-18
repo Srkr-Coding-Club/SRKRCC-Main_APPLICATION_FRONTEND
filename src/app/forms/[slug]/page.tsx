@@ -36,6 +36,7 @@ import {
   FieldLabel,
   BottomGradient,
 } from '@/components/ui/InputField';
+import Portal from '@/components/ui/Portal';
 
 /**
  * Intelligent matcher that matches FormField definitions to authenticated student profile fields.
@@ -1191,46 +1192,48 @@ export default function FormDetailSubmissionPage() {
 
       {/* Login Required Modal Dialog */}
       {showLoginModal && !currentUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="glass-panel rounded-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 text-center relative overflow-hidden">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-[#FF7A00] flex items-center justify-center mx-auto border border-orange-500/20">
-              <Lock className="w-7 h-7" />
-            </div>
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+            <div className="glass-panel rounded-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 text-center relative overflow-hidden">
+              <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-[#FF7A00] flex items-center justify-center mx-auto border border-orange-500/20">
+                <Lock className="w-7 h-7" />
+              </div>
 
-            <div className="space-y-2">
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">Sign In to Fill This Form</h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                You must be logged in with your college account to submit responses for <strong className="text-slate-900 dark:text-white">{form.title}</strong>.
-              </p>
-            </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">Sign In to Fill This Form</h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  You must be logged in with your college account to submit responses for <strong className="text-slate-900 dark:text-white">{form.title}</strong>.
+                </p>
+              </div>
 
-            <div className="pt-2 space-y-2.5">
-              <Link
-                href={`/login?next=/forms/${slug}`}
-                className="group/btn relative w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition"
+              <div className="pt-2 space-y-2.5">
+                <Link
+                  href={`/login?next=/forms/${slug}`}
+                  className="group/btn relative w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition"
+                >
+                  <span>Click Here to Sign In</span>
+                  <ArrowRight className="w-4 h-4" />
+                  <BottomGradient />
+                </Link>
+
+                <Link
+                  href={`/signup?next=/forms/${slug}`}
+                  className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition"
+                >
+                  Create New Account
+                </Link>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(false)}
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition active:scale-95"
               >
-                <span>Click Here to Sign In</span>
-                <ArrowRight className="w-4 h-4" />
-                <BottomGradient />
-              </Link>
-
-              <Link
-                href={`/signup?next=/forms/${slug}`}
-                className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition"
-              >
-                Create New Account
-              </Link>
+                Continue in preview mode
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setShowLoginModal(false)}
-              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition active:scale-95"
-            >
-              Continue in preview mode
-            </button>
           </div>
-        </div>
+        </Portal>
       )}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-8">

@@ -113,7 +113,7 @@ export default function AboutPage() {
 
         <ScrollReveal className="space-y-16">
           {/* Our story */}
-          <section className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center" data-reveal>
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center" data-reveal>
             <div className="space-y-5">
               <span className="block text-xs font-bold tracking-[0.3em] text-[#FF7A00] uppercase">
                 Our Story
@@ -147,7 +147,7 @@ export default function AboutPage() {
 
             <div className="relative">
               <div
-                className="absolute -inset-6 rounded-[10px] blur-2xl opacity-70 pointer-events-none"
+                className="absolute -inset-4 sm:-inset-6 rounded-[10px] blur-2xl opacity-70 pointer-events-none"
                 style={{ background: 'radial-gradient(closest-side, var(--glow-mid), transparent)' }}
               />
               <div
