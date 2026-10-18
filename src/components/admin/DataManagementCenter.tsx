@@ -308,154 +308,152 @@ interface EffectiveFilterDef {
   options?: FilterOption[];
 }
 
+const OPERATOR_LABELS: Record<FilterOperator, string> = {
+  eq: 'is',
+  neq: 'is not',
+  in: 'is any of',
+  contains: 'contains',
+  starts_with: 'starts with',
+  between: 'between',
+  gte: '≥',
+  lte: '≤',
+  gt: '>',
+  lt: '<',
+  empty: 'is empty',
+  not_empty: 'is not empty',
+};
+
+const DATE_OPERATOR_LABELS: Partial<Record<FilterOperator, string>> = {
+  gte: 'on or after',
+  lte: 'on or before',
+  eq: 'on date',
+};
+
+const NUMBER_OPERATOR_LABELS: Partial<Record<FilterOperator, string>> = {
+  eq: '=', neq: '!=', gte: '>=', lte: '<=', gt: '>', lt: '<',
+};
+
+/**
+ * The backend declares which filters a dataset supports (and their operators and
+ * options), so the UI offers exactly those. Nothing is guessed from column types,
+ * which used to offer filters the server then silently ignored.
+ */
 function buildEffectiveFilters(
   allColumns: ColumnDefinition[],
   schemaFilters: FilterDefinition[]
 ): EffectiveFilterDef[] {
-  const schemaFilterMap = new Map(schemaFilters.map((f) => [f.key, f]));
+  const columnByKey = new Map(allColumns.map((c) => [c.key, c]));
 
-  return allColumns.map((col) => {
-    const fromSchema = schemaFilterMap.get(col.key);
-    if (fromSchema) {
-      const opLabels: Record<string, string> = {
-        eq: 'equals',
-        neq: 'not equals',
-        contains: 'contains',
-        starts_with: 'starts with',
-        between: 'between',
-        gte: '>=',
-        lte: '<=',
-        gt: '>',
-        lt: '<',
-        empty: 'is empty',
-        not_empty: 'is not empty',
-      };
-      return {
-        key: col.key,
-        label: col.label,
-        type: fromSchema.type,
-        category: col.category,
-        operators: fromSchema.operators.map((op) => ({ op, label: opLabels[op] ?? op })),
-        options: fromSchema.options,
-      };
-    }
-
-    if (col.type === 'boolean') {
-      return {
-        key: col.key,
-        label: col.label,
-        type: 'boolean',
-        category: col.category,
-        operators: [{ op: 'eq', label: 'is' }],
-        options: [
-          { label: 'Yes', value: 'true' },
-          { label: 'No', value: 'false' },
-        ],
-      };
-    }
-
-    if (col.type === 'number' || col.type === 'rating') {
-      return {
-        key: col.key,
-        label: col.label,
-        type: 'number_range',
-        category: col.category,
-        operators: [
-          { op: 'eq', label: '=' },
-          { op: 'neq', label: '!=' },
-          { op: 'gte', label: '>=' },
-          { op: 'lte', label: '<=' },
-          { op: 'gt', label: '>' },
-          { op: 'lt', label: '<' },
-          { op: 'empty', label: 'is empty' },
-          { op: 'not_empty', label: 'is not empty' },
-        ],
-      };
-    }
-
-    if (col.type === 'date' || col.type === 'datetime') {
-      return {
-        key: col.key,
-        label: col.label,
-        type: 'date_range',
-        category: col.category,
-        operators: [
-          { op: 'gte', label: 'on or after' },
-          { op: 'lte', label: 'on or before' },
-          { op: 'eq', label: 'on date' },
-          { op: 'empty', label: 'is empty' },
-          { op: 'not_empty', label: 'is not empty' },
-        ],
-      };
-    }
-
-    if (col.type === 'badge') {
-      const commonBadgeOptions: Record<string, FilterOption[]> = {
-        role: [
-          { label: 'Affiliate', value: 'AFFILIATE' },
-          { label: 'Non-Affiliate', value: 'NON_AFFILIATE' },
-          { label: 'Volunteer', value: 'VOLUNTEER' },
-          { label: 'Judge', value: 'JUDGE' },
-          { label: 'Club Lead', value: 'CLUB_LEAD' },
-          { label: 'Admin', value: 'ADMIN' },
-        ],
-        membership_status: [
-          { label: 'Active', value: 'ACTIVE' },
-          { label: 'Inactive', value: 'INACTIVE' },
-          { label: 'Alumni', value: 'ALUMNI' },
-          { label: 'Suspended', value: 'SUSPENDED' },
-          { label: 'Pending', value: 'PENDING' },
-        ],
-        branch: [
-          { label: 'CSE', value: 'CSE' },
-          { label: 'IT', value: 'IT' },
-          { label: 'AIDS', value: 'AIDS' },
-          { label: 'AIML', value: 'AIML' },
-          { label: 'ECE', value: 'ECE' },
-          { label: 'EEE', value: 'EEE' },
-          { label: 'MECH', value: 'MECH' },
-          { label: 'CIVIL', value: 'CIVIL' },
-          { label: 'CSBS', value: 'CSBS' },
-        ],
-        difficulty: [
-          { label: 'Easy', value: 'EASY' },
-          { label: 'Medium', value: 'MEDIUM' },
-          { label: 'Hard', value: 'HARD' },
-        ],
-      };
-
-      const options = commonBadgeOptions[col.key];
-      return {
-        key: col.key,
-        label: col.label,
-        type: options ? 'select' : 'text',
-        category: col.category,
-        operators: [
-          { op: 'eq', label: 'equals' },
-          { op: 'neq', label: 'not equals' },
-          { op: 'contains', label: 'contains' },
-          { op: 'empty', label: 'is empty' },
-          { op: 'not_empty', label: 'is not empty' },
-        ],
-        options,
-      };
-    }
-
+  return schemaFilters.map((filter) => {
+    const labels =
+      filter.type === 'date_range' ? DATE_OPERATOR_LABELS
+      : filter.type === 'number_range' ? NUMBER_OPERATOR_LABELS
+      : {};
     return {
-      key: col.key,
-      label: col.label,
-      type: 'text',
-      category: col.category,
-      operators: [
-        { op: 'contains', label: 'contains' },
-        { op: 'eq', label: 'equals' },
-        { op: 'neq', label: 'not equals' },
-        { op: 'starts_with', label: 'starts with' },
-        { op: 'empty', label: 'is empty' },
-        { op: 'not_empty', label: 'is not empty' },
-      ],
+      key: filter.key,
+      label: filter.label,
+      type: filter.type,
+      category: columnByKey.get(filter.key)?.category ?? 'common',
+      operators: filter.operators.map((op) => ({ op, label: labels[op] ?? OPERATOR_LABELS[op] ?? op })),
+      options: filter.options,
     };
   });
+}
+
+/** Value a freshly added (or re-targeted) filter starts with. */
+function defaultFilterValue(def: EffectiveFilterDef | undefined, op: FilterOperator): FilterClause['value'] {
+  if (op === 'empty' || op === 'not_empty') return '';
+  const firstOption = def?.options?.[0];
+  if (op === 'in') return firstOption ? [String(firstOption.value)] : [];
+  if (firstOption) return String(firstOption.value);
+  return def?.type === 'boolean' ? 'true' : '';
+}
+
+/** Keep the value's shape right when the operator changes (single value <-> list). */
+function valueForOperator(def: EffectiveFilterDef | undefined, op: FilterOperator, value: FilterClause['value']): FilterClause['value'] {
+  if (op === 'empty' || op === 'not_empty') return '';
+  if (op === 'in') return Array.isArray(value) ? value : value === '' ? defaultFilterValue(def, op) : [String(value)];
+  if (Array.isArray(value)) return value[0] ?? defaultFilterValue(def, op);
+  return value;
+}
+
+const toIsoDate = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const daysAgo = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return toIsoDate(date);
+};
+
+const DATE_PRESETS: { label: string; value: () => string }[] = [
+  { label: 'Today', value: () => daysAgo(0) },
+  { label: 'Yesterday', value: () => daysAgo(1) },
+  { label: '7 days ago', value: () => daysAgo(7) },
+  { label: '30 days ago', value: () => daysAgo(30) },
+  { label: 'Start of this month', value: () => toIsoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)) },
+];
+
+function MultiSelectValue({
+  options,
+  value,
+  onChange,
+}: {
+  options: FilterOption[];
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const labelFor = (v: string) => options.find((o) => String(o.value) === v)?.label ?? v;
+  const summary =
+    value.length === 0 ? 'Pick…' : value.length <= 2 ? value.map(labelFor).join(', ') : `${value.length} selected`;
+
+  const toggle = (v: string) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="max-w-[180px] truncate text-xs font-semibold text-slate-900 dark:text-slate-100 outline-none"
+      >
+        {summary}
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          aria-multiselectable="true"
+          className="absolute left-0 top-7 z-50 max-h-56 w-56 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+        >
+          {options.map((o) => {
+            const v = String(o.value);
+            return (
+              <label
+                key={v}
+                className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-xs text-slate-800 hover:bg-blue-50 dark:text-slate-200 dark:hover:bg-blue-900/30"
+              >
+                <input type="checkbox" checked={value.includes(v)} onChange={() => toggle(v)} className="accent-blue-600" />
+                <span className="truncate">{o.label}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function FilterBar({
@@ -498,21 +496,13 @@ function FilterBar({
 
   const addFilter = (filterDef: EffectiveFilterDef) => {
     const firstOp = filterDef.operators[0]?.op ?? 'contains';
-    const defaultValue =
-      firstOp === 'empty' || firstOp === 'not_empty'
-        ? ''
-        : filterDef.options && filterDef.options.length > 0
-        ? String(filterDef.options[0].value)
-        : filterDef.type === 'boolean'
-        ? 'true'
-        : '';
 
     onFilterChange([
       ...activeFilters,
       {
         field: filterDef.key,
         operator: firstOp,
-        value: defaultValue,
+        value: defaultFilterValue(filterDef, firstOp),
       },
     ]);
     setShowFilterMenu(false);
@@ -528,15 +518,10 @@ function FilterBar({
     if (partial.field && partial.field !== current.field) {
       const newDef = effectiveFilterMap.get(partial.field);
       const newOp = newDef?.operators[0]?.op ?? 'contains';
-      const newVal =
-        newOp === 'empty' || newOp === 'not_empty'
-          ? ''
-          : newDef?.options && newDef.options.length > 0
-          ? String(newDef.options[0].value)
-          : newDef?.type === 'boolean'
-          ? 'true'
-          : '';
-      updated[idx] = { field: nextField, operator: newOp, value: newVal };
+      updated[idx] = { field: nextField, operator: newOp, value: defaultFilterValue(newDef, newOp) };
+    } else if (partial.operator && partial.operator !== current.operator) {
+      const def = effectiveFilterMap.get(current.field);
+      updated[idx] = { ...current, operator: partial.operator, value: valueForOperator(def, partial.operator, current.value) };
     } else {
       updated[idx] = { ...current, ...partial };
     }
@@ -620,6 +605,12 @@ function FilterBar({
               <span className="text-[11px] italic text-slate-400 dark:text-slate-500 px-1 select-none">
                 (any value)
               </span>
+            ) : af.operator === 'in' && def.options && def.options.length > 0 ? (
+              <MultiSelectValue
+                options={def.options}
+                value={Array.isArray(af.value) ? af.value : []}
+                onChange={(next) => updateFilter(idx, { value: next })}
+              />
             ) : def.options && def.options.length > 0 ? (
               <select
                 value={String(af.value)}
@@ -637,12 +628,30 @@ function FilterBar({
                 ))}
               </select>
             ) : def.type === 'date_range' ? (
-              <input
-                type="date"
-                value={String(af.value)}
-                onChange={(e) => updateFilter(idx, { value: e.target.value })}
-                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-semibold outline-none w-32 cursor-pointer"
-              />
+              <>
+                <input
+                  type="date"
+                  value={String(af.value)}
+                  onChange={(e) => updateFilter(idx, { value: e.target.value })}
+                  className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-semibold outline-none w-32 cursor-pointer"
+                />
+                <select
+                  value=""
+                  aria-label="Quick date"
+                  onChange={(e) => {
+                    const preset = DATE_PRESETS.find((p) => p.label === e.target.value);
+                    if (preset) updateFilter(idx, { value: preset.value() });
+                  }}
+                  className="bg-transparent text-[11px] text-slate-500 dark:text-slate-400 outline-none cursor-pointer w-14"
+                >
+                  <option value="">Quick</option>
+                  {DATE_PRESETS.map((p) => (
+                    <option key={p.label} value={p.label} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </>
             ) : def.type === 'number_range' ? (
               <input
                 type="number"

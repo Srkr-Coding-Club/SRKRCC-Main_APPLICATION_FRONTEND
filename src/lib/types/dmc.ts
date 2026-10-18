@@ -13,7 +13,7 @@ export type ColumnType = 'text' | 'email' | 'number' | 'date' | 'datetime' | 'ur
 export type ColumnCategory = 'common' | 'academic' | 'hackathon' | 'form_questions' | 'career' | 'codequest' | 'meta';
 export type ColumnRenderer = 'text' | 'link' | 'badge' | 'file_download' | 'star_rating' | 'date' | 'boolean' | 'email';
 export type FilterType = 'select' | 'text' | 'date_range' | 'boolean' | 'number_range';
-export type FilterOperator = 'eq' | 'neq' | 'contains' | 'starts_with' | 'between' | 'gte' | 'lte' | 'gt' | 'lt' | 'empty' | 'not_empty';
+export type FilterOperator = 'eq' | 'neq' | 'contains' | 'starts_with' | 'between' | 'gte' | 'lte' | 'gt' | 'lt' | 'empty' | 'not_empty' | 'in';
 export type ExportFormat = 'csv' | 'xlsx' | 'json';
 export type ExportRowScope = 'selected' | 'all_filtered';
 export type ExportColumnScope = 'visible' | 'all_permitted';
@@ -108,7 +108,8 @@ export interface SortClause {
 export interface FilterClause {
   field: string;
   operator: FilterOperator;
-  value: string | number | boolean;
+  /** `in` carries a list of picked options; every other operator a single value. */
+  value: string | number | boolean | string[];
 }
 
 export interface QueryRequest {
