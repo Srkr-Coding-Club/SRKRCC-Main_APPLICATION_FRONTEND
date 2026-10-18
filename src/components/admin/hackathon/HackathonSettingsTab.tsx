@@ -19,7 +19,6 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const [theme, setTheme] = useState('');
   const [prizePool, setPrizePool] = useState('₹50,000');
   const [bannerImage, setBannerImage] = useState('');
-  const [isFlagship, setIsFlagship] = useState(false);
   const [description, setDescription] = useState('');
 
   // Schedule
@@ -50,7 +49,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const currentSnapshot = JSON.stringify([
-    title, theme, prizePool, bannerImage, isFlagship, description, startDate, endDate, visibleFrom, visibleUntil,
+    title, theme, prizePool, bannerImage, description, startDate, endDate, visibleFrom, visibleUntil,
     opensAt, closesAt, minSize, maxSize, locked, openInnovation, required, faq,
     mode, venue, organizer, logoImage, tagsText, prizes,
   ]);
@@ -61,7 +60,6 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setTheme(hackathon.theme || '');
     setPrizePool(hackathon.prize_pool || '₹50,000');
     setBannerImage(hackathon.banner_image || '');
-    setIsFlagship(!!hackathon.is_flagship);
     setDescription(hackathon.description || '');
 
     setStartDate(toLocalInput(hackathon.start_date));
@@ -85,7 +83,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setPrizes(hackathon.prizes ?? []);
     setSavedSnapshot(JSON.stringify([
       hackathon.title || '', hackathon.theme || '', hackathon.prize_pool || '₹50,000', hackathon.banner_image || '',
-      !!hackathon.is_flagship, hackathon.description || '',
+      hackathon.description || '',
       toLocalInput(hackathon.start_date), toLocalInput(hackathon.end_date),
       toLocalInput(hackathon.visible_from), toLocalInput(hackathon.visible_until),
       toLocalInput(hackathon.registration_opens_at), toLocalInput(hackathon.registration_closes_at),
@@ -118,7 +116,6 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         theme: theme.trim(),
         prize_pool: prizePool.trim(),
         banner_image: bannerImage.trim() || null,
-        is_flagship: isFlagship,
         description: description,
 
         start_date: fromLocalInput(startDate) || hackathon.start_date,
@@ -253,21 +250,6 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
               {errors.banner_image && <p className="mt-1 text-[11px] text-rose-500">{errors.banner_image}</p>}
             </div>
           </div>
-
-          <label className="flex items-center gap-3 rounded-lg border border-slate-200 dark:border-slate-800 p-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isFlagship}
-              onChange={(e) => setIsFlagship(e.target.checked)}
-              className="h-4 w-4 accent-[#FF7A00]"
-            />
-            <span className="text-sm">
-              <span className="font-bold text-[#1A1A2E] dark:text-white">Flagship Edition</span>
-              <span className="block text-xs text-slate-500">
-                Mark this hackathon as the official IconCoders flagship edition with special crimson badge.
-              </span>
-            </span>
-          </label>
         </section>
 
         {/* Section 2: Event Dates & Schedule */}

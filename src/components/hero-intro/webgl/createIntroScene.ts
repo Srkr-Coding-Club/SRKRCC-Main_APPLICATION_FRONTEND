@@ -1,13 +1,17 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { clamp, easeOutCubic, smoothDamp, type DampState } from '../introMath';
-import { PLANETS } from '../solarSystem';
+import { clamp, easeOutCubic, smoothDamp, smoothstep, type DampState } from '../introMath';
+import { LAUNCH, PLANETS, planetPosition } from '../solarSystem';
 import { createJourneyPath, planetProximity, sunBrightness, systemPresence } from './journeyPath';
 import { createPlanet } from './planet';
 import { createFrameMonitor, nextPixelRatio, type QualitySettings } from './quality';
 import { createDust, createOrbits, createStarfield } from './space';
+import { createStream } from './stream';
 import { createSun } from './sun';
 import { createGlowTexture } from './textures';
+import { createGalaxies } from './galaxies';
+import { createNoiseTexture } from './noiseTexture';
+import { bangDolly, bangReveal, bangShake, createBigBang } from './bigBang';
 
 /* ------------------------------------------------------------------ */
 /* The solar-system journey and its render loop.                      */
@@ -24,12 +28,14 @@ const BACKGROUND = '#05060A';
 const FOV_LANDSCAPE = 42;
 const FOV_PORTRAIT = 62;
 const PORTRAIT_ASPECT = 0.8;
-const NEAR = 0.05;
-const FAR = 1400;
+const NEAR = 0.3;
+const FAR = 20000;
 
 const PROGRESS_SMOOTH_TIME = 0.7;
-const CAMERA_SMOOTH_TIME = 0.22;
-const LOOK_SMOOTH_TIME = 0.3;
+/* Progress is already critically damped, so the camera only needs a light second pass; */
+/* more lag lets planets (which follow progress directly) slide against the frame.      */
+const CAMERA_SMOOTH_TIME = 0.08;
+const LOOK_SMOOTH_TIME = 0.12;
 const GLANCE_YAW_MAX = THREE.MathUtils.degToRad(3);
 const GLANCE_PITCH_MAX = THREE.MathUtils.degToRad(2);
 const GLANCE_SMOOTH_TIME = 0.35;
@@ -76,12 +82,17 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
   const starfield = createStarfield(quality, glowTexture);
   const orbits = createOrbits();
   const dust = createDust(quality);
-  const sun = createSun();
-  scene.add(starfield.group, orbits.group, dust.points, sun.group);
+  const sun = createSun(glowTexture);
+  const noise = createNoiseTexture(quality.noiseSize);
+  const galaxies = createGalaxies(quality, glowTexture, noise);
+  const bang = createBigBang(quality, glowTexture, noise);
+  scene.add(galaxies.group, bang.group, starfield.group, orbits.group, dust.points, sun.group);
   onLoadProgress(0.65);
 
-  const planets = PLANETS.map((spec) => createPlanet(spec));
-  planets.forEach((planet) => scene.add(planet.group));
+  const planets = PLANETS.map((spec, i) => createPlanet(spec, i, glowTexture));
+  planets.forEach((planet) => scene.add(planet.group, planet.trail));
+  const stream = createStream(planets.map((planet) => planet.emblemObject));
+  scene.add(stream.group);
   scene.add(new THREE.AmbientLight('#1A2233', 0.45));
   // Soft studio reflections for the glossy technology emblems (planet shaders ignore it).
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -103,6 +114,8 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
   let portrait = false;
   let path = createJourneyPath(false);
   const lookTarget = new THREE.Vector3();
+  const drift = new THREE.Vector3();
+  const shake = new THREE.Vector3();
   const glanceEuler = new THREE.Euler(0, 0, 0, 'YXZ');
   const glanceQuaternion = new THREE.Quaternion();
   const proximities = PLANETS.map(() => 0);
@@ -146,7 +159,15 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
       return true;
     }
     if (step === 2) {
+      // Still struggling: drop the dust and thin the star fields (they are stored in random order, so a prefix is a fair sample).
       dust.points.visible = false;
+      galaxies.setDetail(0.7);
+      bang.setDetail(0.7);
+      return true;
+    }
+    if (step === 4) {
+      galaxies.setDetail(0.42);
+      bang.setDetail(0.45);
       return true;
     }
     return false;
@@ -164,15 +185,34 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
     monitor.sample(dt);
 
     const p = smoothDamp(progress, targetProgress, PROGRESS_SMOOTH_TIME, dt);
+
+    // The planets revolve with time, but the flight is scripted against where each one is at its encounter.
+    // So the camera shares the drift of whichever planet it is near, in proportion to how near: framing
+    // holds through an encounter and the shared drift fades out between planets.
+    drift.set(0, 0, 0);
+    PLANETS.forEach((planet, i) => {
+      const weight = planetProximity(p, i);
+      if (weight <= 0) return;
+      const now = planetPosition(planet, p, elapsed);
+      const scripted = planetPosition(planet, p, 0);
+      drift.x += (now.x - scripted.x) * weight;
+      drift.y += (now.y - scripted.y) * weight;
+      drift.z += (now.z - scripted.z) * weight;
+    });
+    // The Big Bang: the camera opens well back from the first frame and eases in, with a jolt at ignition.
+    const pullBack = 0.55 * bangDolly(elapsed, p);
+    bangShake(elapsed, shake);
+    const at = (axis: number) => path.position[axis](p);
+    const back = (axis: number) => (at(axis) - path.look[axis](p)) * pullBack;
     camera.position.set(
-      smoothDamp(position[0], path.position[0](p), CAMERA_SMOOTH_TIME, dt),
-      smoothDamp(position[1], path.position[1](p), CAMERA_SMOOTH_TIME, dt),
-      smoothDamp(position[2], path.position[2](p), CAMERA_SMOOTH_TIME, dt),
+      smoothDamp(position[0], at(0) + drift.x + back(0) + shake.x, CAMERA_SMOOTH_TIME, dt),
+      smoothDamp(position[1], at(1) + drift.y + back(1) + shake.y, CAMERA_SMOOTH_TIME, dt),
+      smoothDamp(position[2], at(2) + drift.z + back(2), CAMERA_SMOOTH_TIME, dt),
     );
     lookTarget.set(
-      smoothDamp(look[0], path.look[0](p), LOOK_SMOOTH_TIME, dt),
-      smoothDamp(look[1], path.look[1](p), LOOK_SMOOTH_TIME, dt),
-      smoothDamp(look[2], path.look[2](p), LOOK_SMOOTH_TIME, dt),
+      smoothDamp(look[0], path.look[0](p) + drift.x, LOOK_SMOOTH_TIME, dt),
+      smoothDamp(look[1], path.look[1](p) + drift.y, LOOK_SMOOTH_TIME, dt),
+      smoothDamp(look[2], path.look[2](p) + drift.z, LOOK_SMOOTH_TIME, dt),
     );
     camera.lookAt(lookTarget);
 
@@ -187,14 +227,23 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
 
     const awaken = easeOutCubic(elapsed / AWAKEN_SECONDS);
     renderer.toneMappingExposure = awaken;
-    const presence = systemPresence(p);
+    // Orbits and dust fade in as the camera arrives from the galaxy, and out again for the final dive.
+    const endFade = 1 - smoothstep(LAUNCH.shellCrossing - 0.02, LAUNCH.shellCrossing, p);
+    const presence = systemPresence(p) * endFade;
+    // The star sphere is a backdrop: it travels with the camera so it always reads as infinitely far.
+    starfield.group.position.copy(camera.position);
+    galaxies.update(elapsed, p, camera.position, renderer.domElement.height, camera.fov, bangReveal(elapsed, p));
+    bang.update(elapsed, p, renderer.domElement.height, camera.fov, camera);
+    // Worlds are present from the opening gathering on; only the final dive into the Sun takes them away.
+    const planetFade = 1 - smoothstep(LAUNCH.shellCrossing - 0.02, LAUNCH.shellCrossing, p);
 
     sun.update(elapsed, sunBrightness(p), camera.position);
     planets.forEach((planet, i) => {
       proximities[i] = planetProximity(p, i);
-      planet.update(elapsed, p, camera.position);
-      planet.group.visible = presence > 0.01;
+      planet.update(elapsed, p, camera.position, planetFade);
+      planet.group.visible = planetFade > 0.002;
     });
+    stream.update(elapsed, p, camera.position);
     orbits.update(proximities, presence);
     dust.update(dt, presence);
     starfield.stars.rotation.y += dt * 0.002;
@@ -245,6 +294,7 @@ export async function createIntroScene(canvas: HTMLCanvasElement, options: Intro
       });
       sun.dispose();
       glowTexture.dispose();
+      noise.dispose();
       environment.dispose();
       renderer.dispose();
     },

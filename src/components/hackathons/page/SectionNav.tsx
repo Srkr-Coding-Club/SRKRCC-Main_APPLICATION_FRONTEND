@@ -36,7 +36,7 @@ export function SectionNav({ sections }: { sections: PageSection[] }) {
   return (
     <nav
       aria-label="Hackathon sections"
-      className="sticky top-[72px] z-30 -mx-4 border-b border-slate-200 bg-[var(--background)]/90 px-4 backdrop-blur-md dark:border-white/10 sm:mx-0 sm:rounded-2xl sm:border sm:px-2"
+      className="sticky top-[72px] z-30 -mx-4 border-b border-journey-text/10 bg-[var(--background)]/90 px-4 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:border sm:px-2"
     >
       <ul className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {sections.map((section) => {
@@ -47,10 +47,10 @@ export function SectionNav({ sections }: { sections: PageSection[] }) {
                 href={`#${section.id}`}
                 onClick={(event) => jump(event, section.id)}
                 aria-current={active ? 'true' : undefined}
-                className={`block border-b-2 px-4 py-3.5 text-sm font-semibold transition ${
+                className={`block border-b-2 px-4 py-3.5 font-mono text-xs font-medium uppercase tracking-[0.14em] transition ${
                   active
-                    ? 'border-[#FF7A00] text-[#FF7A00]'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                    ? 'border-journey-accent text-journey-accent'
+                    : 'border-transparent text-journey-muted hover:text-journey-text'
                 }`}
               >
                 {section.label}
@@ -63,7 +63,7 @@ export function SectionNav({ sections }: { sections: PageSection[] }) {
   );
 }
 
-/** Section wrapper with the accent-bar heading used across the page. */
+/** Section wrapper with the hairline-accent heading used across the page, like the landing page's connectors. */
 export function PageSectionCard({
   id,
   title,
@@ -76,9 +76,12 @@ export function PageSectionCard({
   return (
     <section
       id={id}
-      className="scroll-mt-36 space-y-5 rounded-2xl border border-slate-200 bg-white/60 p-5 dark:border-white/10 dark:bg-white/[0.02] sm:p-7"
+      className="scroll-mt-36 space-y-5 rounded-2xl border border-journey-text/10 bg-journey-surface/50 p-5 sm:p-7"
     >
-      <h2 className="border-l-4 border-[#FF7A00] pl-3 text-xl font-bold text-[#1A1A2E] dark:text-white sm:text-2xl">{title}</h2>
+      <h2 className="flex items-center gap-3 text-xl font-semibold text-journey-text sm:text-2xl">
+        <span aria-hidden="true" className="h-px w-6 shrink-0 bg-journey-accent" />
+        {title}
+      </h2>
       {children}
     </section>
   );

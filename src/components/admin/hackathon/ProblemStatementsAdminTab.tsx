@@ -2,7 +2,7 @@
 
 import { LoadError } from './LoadError';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Download, Eye, EyeOff, FileUp, Pencil, Plus, Target, Trash2, Users } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Download, Eye, EyeOff, FileUp, Lightbulb, Pencil, Plus, Target, Trash2, Users } from 'lucide-react';
 import type { HackathonTeam, ProblemStatement } from '@/lib/types';
 import { apiErrorMessage, hackathonApi, type ProblemStatementUploadResult } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
@@ -11,7 +11,8 @@ import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { TagInput } from '@/components/ui/TagInput';
 import { ProblemDomainsPanel } from './ProblemDomainsPanel';
-import { StatusPill } from '@/components/ui/StatusPill';
+import { StatusPill, TEAM_STATUS_PILL } from '@/components/ui/StatusPill';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors } from './shared';
 
 interface Draft {
@@ -52,6 +53,9 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
   const [deleteTarget, setDeleteTarget] = useState<ProblemStatement | null>(null);
   // View teams modal state
   const [viewTeamsTarget, setViewTeamsTarget] = useState<ProblemStatement | null>(null);
+  // Open innovation: the team whose own problem is being read in full.
+  const [viewOpenInnovationTarget, setViewOpenInnovationTarget] = useState<HackathonTeam | null>(null);
+  const [allowOpenInnovation, setAllowOpenInnovation] = useState(false);
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -65,7 +69,12 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
     Promise.all([
       hackathonApi.problemStatements(slug).then(setItems).catch((err) => setLoadError(apiErrorMessage(err, 'Could not load problem statements.'))),
       hackathonApi.admin.teams(slug).then(setTeams).catch(() => setTeams([])),
-      hackathonApi.get(slug).then((hackathon) => setDomainList(hackathon.problem_domains ?? [])).catch(() => setDomainList([])),
+      hackathonApi.get(slug)
+        .then((hackathon) => {
+          setDomainList(hackathon.problem_domains ?? []);
+          setAllowOpenInnovation(Boolean(hackathon.allow_open_innovation));
+        })
+        .catch(() => setDomainList([])),
     ]).finally(() => setLoading(false));
   }, [slug]);
 
@@ -243,6 +252,12 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
   const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement>) => setDraft((d) => ({ ...d, [k]: e.target.value }));
 
   const assignedTeamsFor = (psId: number) => teams.filter((t) => t.problem_statement?.id === psId);
+  // Problems teams brought themselves, so the organizers see every problem in play, not only the official list.
+  const openInnovationTeams = useMemo(
+    () => teams.filter((team) => team.open_innovation).sort((a, b) => a.id - b.id),
+    [teams],
+  );
+  const openInnovationCode = (team: HackathonTeam) => team.open_innovation?.code ?? `OI-${String(team.id).padStart(3, '0')}`;
 
   return (
     <section className={`${PANEL} space-y-4`}>
@@ -336,6 +351,64 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!loading && (allowOpenInnovation || openInnovationTeams.length > 0) && (
+        <div className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h4 className="flex items-center gap-1.5 text-sm font-bold text-[#1A1A2E] dark:text-white">
+                <Lightbulb className="h-4 w-4 text-amber-500" /> Open innovation ({openInnovationTeams.length})
+              </h4>
+              <p className="text-xs text-slate-500">
+                Problems teams proposed themselves instead of picking a statement above. Together with the list above, this is every problem in play.
+              </p>
+            </div>
+            {!allowOpenInnovation && <StatusPill tone="slate">Turned off for new teams</StatusPill>}
+          </div>
+
+          {openInnovationTeams.length === 0 ? (
+            <p className="py-4 text-center text-xs text-slate-500">No team has proposed its own problem yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="py-2 pr-3">ID</th>
+                    <th className="py-2 pr-3">Title</th>
+                    <th className="py-2 pr-3">Domain</th>
+                    <th className="py-2 pr-3">Team</th>
+                    <th className="py-2 pr-3">Status</th>
+                    <th className="py-2 text-right">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {openInnovationTeams.map((team) => {
+                    const problem = team.open_innovation!;
+                    const pill = TEAM_STATUS_PILL[team.status] ?? { tone: 'slate' as const, label: team.status };
+                    return (
+                      <tr key={team.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
+                        <td className="py-2.5 pr-3 font-mono text-xs font-bold text-[#8B2E3B] dark:text-rose-300">{openInnovationCode(team)}</td>
+                        <td className="py-2.5 pr-3 font-semibold text-[#1A1A2E] dark:text-white">{problem.title}</td>
+                        <td className="py-2.5 pr-3 text-xs text-slate-500">{problem.domain || '-'}</td>
+                        <td className="py-2.5 pr-3 text-xs">
+                          <p className="font-semibold text-[#1A1A2E] dark:text-white">{team.name}</p>
+                          <p className="text-slate-400">{team.leader_email ?? '-'} · {team.member_count} member(s)</p>
+                        </td>
+                        <td className="py-2.5 pr-3"><StatusPill tone={pill.tone}>{pill.label}</StatusPill></td>
+                        <td className="py-2.5 text-right">
+                          <button onClick={() => setViewOpenInnovationTarget(team)} className={BTN_GHOST} title="Read the full problem">
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -519,6 +592,36 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
             <button onClick={() => setViewTeamsTarget(null)} className={BTN_GHOST}>Close</button>
           </div>
         </div>
+      </Modal>
+
+      {/* Open innovation problem, in full */}
+      <Modal
+        isOpen={viewOpenInnovationTarget !== null}
+        onClose={() => setViewOpenInnovationTarget(null)}
+        title={viewOpenInnovationTarget?.open_innovation ? viewOpenInnovationTarget.open_innovation.title : ''}
+        icon={Lightbulb}
+      >
+        {viewOpenInnovationTarget?.open_innovation && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-md bg-[#8B2E3B]/10 px-2 py-0.5 font-mono font-bold text-[#8B2E3B] dark:text-rose-300">
+                {openInnovationCode(viewOpenInnovationTarget)}
+              </span>
+              {viewOpenInnovationTarget.open_innovation.domain && (
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-bold uppercase text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                  {viewOpenInnovationTarget.open_innovation.domain}
+                </span>
+              )}
+              <span className="text-slate-400">Team {viewOpenInnovationTarget.name}</span>
+            </div>
+            <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-slate-200 p-4 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200">
+              <MarkdownRenderer content={viewOpenInnovationTarget.open_innovation.description || 'No description provided.'} />
+            </div>
+            <div className="flex justify-end">
+              <button onClick={() => setViewOpenInnovationTarget(null)} className={BTN_GHOST}>Close</button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Upload CSV Modal */}

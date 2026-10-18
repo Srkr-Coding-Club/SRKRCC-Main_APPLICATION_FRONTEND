@@ -50,7 +50,17 @@ function createLogo() {
   return logo;
 }
 
-export function createSun() {
+/* The Sun's glow: a white-hot core, a golden corona and a wide warm haze, all additive. */
+const GLOW_LAYERS = [
+  { color: '#FFF1D6', scale: 3.4, opacity: 0.95 },
+  { color: '#FFB347', scale: 8.5, opacity: 0.5 },
+  { color: '#FF7A00', scale: 20, opacity: 0.2 },
+] as const;
+/* The glow thins out as the camera closes on the Sun, so the logo stays clear. */
+const GLOW_FADE_NEAR = SUN_RADIUS * 2.2;
+const GLOW_FADE_FAR = SUN_RADIUS * 6;
+
+export function createSun(glowTexture: THREE.Texture) {
   const group = new THREE.Group();
 
   // A single warm point light stands in for the Sun's glow, so the logo's
@@ -58,14 +68,31 @@ export function createSun() {
   const light = new THREE.PointLight('#FFE2C0', 1.5, 0, 0);
   group.add(light);
 
+  const glows = GLOW_LAYERS.map((layer) => {
+    const sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: glowTexture, color: layer.color, transparent: true, opacity: layer.opacity, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }),
+    );
+    sprite.scale.setScalar(SUN_RADIUS * layer.scale);
+    group.add(sprite);
+    return { sprite, layer };
+  });
+
   const logo = createLogo();
   group.add(logo);
 
-  const update = (_time: number, brightness: number, camera: THREE.Vector3) => {
+  const update = (time: number, brightness: number, camera: THREE.Vector3) => {
     // Centred at the system's origin, always turned to face the viewer.
     logo.lookAt(camera);
     logo.visible = camera.length() > LOGO_HIDE_DISTANCE;
     light.intensity = 1.3 + brightness * 0.5;
+
+    // A slow, uneven pulse in the corona, like a star's surface activity.
+    const near = THREE.MathUtils.smoothstep(camera.length(), GLOW_FADE_NEAR, GLOW_FADE_FAR);
+    glows.forEach(({ sprite, layer }, i) => {
+      const pulse = 1 + 0.045 * Math.sin(time * (0.7 + i * 0.37) + i * 2.1) + 0.02 * Math.sin(time * 1.9 + i);
+      sprite.scale.setScalar(SUN_RADIUS * layer.scale * pulse);
+      sprite.material.opacity = layer.opacity * near * (0.8 + brightness * 0.35);
+    });
   };
 
   const dispose = () => {};

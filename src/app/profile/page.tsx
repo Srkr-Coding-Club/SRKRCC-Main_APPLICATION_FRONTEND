@@ -10,11 +10,13 @@ import {
   Hash,
   BookOpen,
   Award,
-  Star,
   Phone,
-  FolderGit2,
   Calendar,
+  CalendarCheck,
+  Code2,
   Flame,
+  Trophy,
+  UserCheck,
   CheckCircle2,
   LogOut,
   ShieldCheck,
@@ -80,9 +82,11 @@ interface FullUserProfile {
   registered_at?: string;
   referred_by_display?: string;
   streak: number;
-  points: number;
+  problems_solved: number;
   events_count: number;
-  projects_count: number;
+  events_registered_count: number;
+  events_attended_count: number;
+  hackathon_teams_count: number;
   registered_events: RegisteredEventItem[];
   badges: BadgeItem[];
 }
@@ -724,9 +728,11 @@ function ProfileContent() {
             registered_at: localUser.registered_at,
             referred_by_display: localUser.referred_by_display,
             streak: 0,
-            points: 0,
+            problems_solved: 0,
             events_count: 0,
-            projects_count: 0,
+            events_registered_count: 0,
+            events_attended_count: 0,
+            hackathon_teams_count: 0,
             registered_events: [],
             badges: [],
           }
@@ -802,9 +808,10 @@ function ProfileContent() {
     github: profile?.github_profile?.trim() || null,
     linkedin: profile?.linkedin_profile?.trim() || null,
     streak: profile?.streak ?? 0,
-    points: profile?.points ?? 0,
-    eventsCount: profile?.events_count ?? profile?.registered_events?.length ?? 0,
-    projectsCount: profile?.projects_count ?? 0,
+    problemsSolved: profile?.problems_solved ?? 0,
+    eventsRegistered: profile?.events_registered_count ?? 0,
+    eventsAttended: profile?.events_attended_count ?? 0,
+    hackathonTeams: profile?.hackathon_teams_count ?? 0,
   };
 
   const registeredEvents = profile?.registered_events || [];
@@ -922,10 +929,42 @@ function ProfileContent() {
 
           {/* ===== Activity column ===== */}
           <main className="min-w-0 space-y-6 lg:min-h-[34rem] lg:space-y-8">
-            {/* 4 cards beside the profile card; opening badges takes over the whole block */}
-            <section aria-label="Your progress and badges" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {/* 6 cards beside the profile card; opening badges takes over the whole block */}
+            <section aria-label="Your activity and badges" className="grid grid-cols-2 gap-3 xl:grid-cols-3">
               {!badgesOpen &&
                 [
+                  {
+                    label: 'Events registered',
+                    value: String(user.eventsRegistered),
+                    icon: <CalendarCheck className="h-5 w-5" />,
+                    iconClassName: 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400',
+                    valueClassName: 'text-sky-600 dark:text-sky-400',
+                    glow: '#0ea5e940',
+                  },
+                  {
+                    label: 'Events attended',
+                    value: String(user.eventsAttended),
+                    icon: <UserCheck className="h-5 w-5" />,
+                    iconClassName: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400',
+                    valueClassName: 'text-emerald-600 dark:text-emerald-400',
+                    glow: '#10b98140',
+                  },
+                  {
+                    label: 'Hackathon teams',
+                    value: String(user.hackathonTeams),
+                    icon: <Trophy className="h-5 w-5" />,
+                    iconClassName: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400',
+                    valueClassName: 'text-amber-600 dark:text-amber-400',
+                    glow: '#f59e0b40',
+                  },
+                  {
+                    label: 'Problems solved',
+                    value: String(user.problemsSolved),
+                    icon: <Code2 className="h-5 w-5" />,
+                    iconClassName: 'bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400',
+                    valueClassName: 'text-violet-600 dark:text-violet-400',
+                    glow: '#8b5cf640',
+                  },
                   {
                     label: 'Codequest streak',
                     value: String(user.streak),
@@ -934,23 +973,6 @@ function ProfileContent() {
                     iconClassName: 'bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400',
                     valueClassName: 'text-red-600 dark:text-red-400',
                     glow: '#ef444440',
-                  },
-                  {
-                    label: 'Projects',
-                    value: String(user.projectsCount),
-                    icon: <FolderGit2 className="h-5 w-5" />,
-                    iconClassName: 'bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400',
-                    valueClassName: 'text-violet-600 dark:text-violet-400',
-                    glow: '#8b5cf640',
-                  },
-                  {
-                    label: 'Member points',
-                    value: String(user.points),
-                    unit: 'XP',
-                    icon: <Star className="h-5 w-5 fill-current" />,
-                    iconClassName: 'bg-yellow-50 text-yellow-500 dark:bg-yellow-950/40 dark:text-yellow-400',
-                    valueClassName: 'text-yellow-600 dark:text-yellow-400',
-                    glow: '#eab30840',
                   },
                 ].map((stat) => (
                   <div key={stat.label} className="tile-in">
@@ -962,7 +984,7 @@ function ProfileContent() {
                 badges={badges}
                 open={badgesOpen}
                 onToggle={() => setBadgesOpen((prev) => !prev)}
-                className={badgesOpen ? 'col-span-2 xl:col-span-4' : ''}
+                className={badgesOpen ? 'col-span-2 xl:col-span-3' : ''}
               />
             </section>
 

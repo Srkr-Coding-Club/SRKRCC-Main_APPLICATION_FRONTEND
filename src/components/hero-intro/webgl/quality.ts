@@ -12,12 +12,18 @@ export interface QualitySettings {
   starCount: number;
   dustCount: number;
   sphereSegments: number;
+  /* Share of the full galaxy star budget this tier draws. */
+  galaxyDetail: number;
+  /* Particles in the Big Bang's flung matter. */
+  bangParticles: number;
+  /* Side of the shared noise texture (the procedural shaders read it instead of computing noise). */
+  noiseSize: number;
 }
 
 const SETTINGS: Record<QualityTier, Omit<QualitySettings, 'tier'>> = {
-  high: { maxPixelRatio: 2, antialias: true, starCount: 2400, dustCount: 900, sphereSegments: 64 },
-  medium: { maxPixelRatio: 1.5, antialias: true, starCount: 1600, dustCount: 500, sphereSegments: 48 },
-  low: { maxPixelRatio: 1, antialias: false, starCount: 900, dustCount: 220, sphereSegments: 32 },
+  high: { maxPixelRatio: 2, antialias: true, starCount: 2400, dustCount: 900, sphereSegments: 64, galaxyDetail: 1, bangParticles: 16000, noiseSize: 256 },
+  medium: { maxPixelRatio: 1.5, antialias: true, starCount: 1600, dustCount: 500, sphereSegments: 48, galaxyDetail: 0.65, bangParticles: 10000, noiseSize: 256 },
+  low: { maxPixelRatio: 1, antialias: false, starCount: 900, dustCount: 220, sphereSegments: 32, galaxyDetail: 0.42, bangParticles: 5500, noiseSize: 128 },
 };
 
 const PHONE_MAX_WIDTH = 768;

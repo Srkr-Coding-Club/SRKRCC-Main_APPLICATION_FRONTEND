@@ -13,6 +13,7 @@ import type { Event } from '@/lib/types';
 import { isSafeHref } from '@/lib/urlSafety';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import DetailsStack from '@/components/ui/StackCards';
+import QuickRegisterButton from '@/components/events/QuickRegisterButton';
 
 const FALLBACK_POSTER =
   'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1600&q=80';
@@ -177,6 +178,12 @@ function EventDetailCard({ event }: { event: Event }) {
               <Lock className="h-3.5 w-3.5" />
               Event full
             </span>
+          ) : event.is_quick_registration && event.form_slug ? (
+            <QuickRegisterButton
+              event={event}
+              className={`${stubButtonBase} bg-white text-[#8B2E3B] shadow-lg hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95`}
+              registeredClassName={`${stubButtonBase} bg-white/15 text-white/90`}
+            />
           ) : event.form_slug ? (
             <Link
               href={`/forms/${event.form_slug}`}

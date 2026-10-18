@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Calendar,
   Check,
-  Flame,
   Globe,
   Lightbulb,
   MapPin,
@@ -40,12 +39,12 @@ const DEFAULT_ORGANIZER = 'SRKR Coding Club, SRKR Engineering College';
 function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#FF7A00] shadow-sm dark:border-white/10 dark:bg-white/5">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-journey-text/10 bg-journey-surface text-journey-accent shadow-sm">
         <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
       <div className="min-w-0">
-        <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{label}</p>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{value}</p>
+        <p className="text-sm font-bold text-journey-text">{label}</p>
+        <p className="text-sm text-journey-muted">{value}</p>
       </div>
     </div>
   );
@@ -108,7 +107,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
       <div className="mx-auto max-w-6xl space-y-5 px-4 pb-24 sm:px-6 lg:px-8">
         <Link
           href="/hackathons"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-[#FF7A00]"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-journey-muted transition hover:text-journey-accent"
         >
           <ArrowLeft className="h-4 w-4" />
           All Hackathons
@@ -117,33 +116,28 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-5">
             {/* Banner */}
-            <div className="relative aspect-[16/6] w-full overflow-hidden rounded-3xl border border-slate-200 bg-[#1A1A2E] dark:border-white/10">
+            <div className="relative aspect-[16/6] w-full overflow-hidden rounded-3xl border border-journey-text/10 bg-journey-surface">
               {hackathon.banner_image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={hackathon.banner_image} alt={hackathon.title} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#2a1d2e] via-[#8B2E3B] to-[#FF7A00]">
-                  <Trophy className="h-20 w-20 text-white/20" aria-hidden="true" />
+                <div className="flex h-full w-full items-center justify-center bg-journey-surface">
+                  <Trophy className="h-20 w-20 text-journey-accent/30" aria-hidden="true" />
                 </div>
               )}
             </div>
 
             {/* Header card */}
-            <header className="space-y-5 rounded-3xl border border-slate-200 border-t-4 border-t-[#FF7A00] bg-white/70 p-5 dark:border-white/10 dark:border-t-[#FF7A00] dark:bg-white/[0.03] sm:p-7">
+            <header className="space-y-5 rounded-3xl border border-journey-text/10 bg-journey-surface/60 p-5 sm:p-7">
               <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-                  <ModeIcon className="h-4 w-4 text-[#FF7A00]" aria-hidden="true" />
+                <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-journey-text/80">
+                  <ModeIcon className="h-4 w-4 text-journey-accent" aria-hidden="true" />
                   {HACKATHON_MODE_LABEL[mode]}
-                  {hackathon.is_flagship && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#8B2E3B] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
-                      <Flame className="h-3 w-3 text-amber-300" /> IconCoders Flagship
-                    </span>
-                  )}
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
+                    className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.12em] ${
                       registrationOpen
                         ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                        : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                        : 'bg-journey-text/10 text-journey-text/80'
                     }`}
                   >
                     {registrationOpen ? 'Registrations live' : 'Registrations closed'}
@@ -153,7 +147,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                   type="button"
                   onClick={shareLink}
                   aria-label="Share this hackathon"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:border-[#FF7A00]/50 hover:text-[#FF7A00] active:scale-95 dark:border-white/10 dark:text-slate-300"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-journey-text/10 px-3 py-1.5 text-xs font-bold text-journey-text/80 transition hover:border-journey-accent/50 hover:text-journey-accent active:scale-95"
                 >
                   {shareState === 'copied' ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 className="h-3.5 w-3.5" />}
                   {shareState === 'copied' ? 'Link copied' : shareState === 'failed' ? 'Copy failed' : 'Share'}
@@ -162,16 +156,16 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
               <div className="flex items-start justify-between gap-5">
                 <div className="min-w-0 space-y-2">
-                  <h1 className="text-3xl font-extrabold tracking-tight text-[#1A1A2E] dark:text-white sm:text-4xl">{hackathon.title}</h1>
-                  <p className="text-base font-medium text-slate-600 dark:text-slate-300">{hackathon.organizer_name || DEFAULT_ORGANIZER}</p>
-                  {hackathon.theme && <p className="text-sm text-slate-500 dark:text-slate-400">{hackathon.theme}</p>}
+                  <h1 className="text-3xl font-extrabold tracking-tight text-journey-text sm:text-4xl">{hackathon.title}</h1>
+                  <p className="text-base font-medium text-journey-text/80">{hackathon.organizer_name || DEFAULT_ORGANIZER}</p>
+                  {hackathon.theme && <p className="text-sm text-journey-muted">{hackathon.theme}</p>}
                 </div>
                 {hackathon.logo_image && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={hackathon.logo_image}
                     alt={`${hackathon.title} logo`}
-                    className="hidden h-24 w-24 shrink-0 rounded-2xl border border-slate-200 bg-white object-cover shadow-sm dark:border-white/10 sm:block"
+                    className="hidden h-24 w-24 shrink-0 rounded-2xl border border-journey-text/10 bg-journey-surface object-cover shadow-sm sm:block"
                   />
                 )}
               </div>
@@ -184,16 +178,16 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
               </div>
 
               {(tags.length > 0 || hackathon.allow_open_innovation) && (
-                <ul className="flex flex-wrap gap-x-2 gap-y-1 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                <ul className="flex flex-wrap gap-x-2 gap-y-1 rounded-xl bg-journey-text/10 px-4 py-3 text-sm text-journey-text/80">
                   {tags.map((tag, index) => (
                     <li key={tag} className="flex items-center gap-2">
-                      {index > 0 && <span className="text-slate-400" aria-hidden="true">&bull;</span>}
+                      {index > 0 && <span className="text-journey-muted" aria-hidden="true">&bull;</span>}
                       {tag}
                     </li>
                   ))}
                   {hackathon.allow_open_innovation && (
                     <li className="flex items-center gap-2">
-                      {tags.length > 0 && <span className="text-slate-400" aria-hidden="true">&bull;</span>}
+                      {tags.length > 0 && <span className="text-journey-muted" aria-hidden="true">&bull;</span>}
                       <Lightbulb className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" /> Open innovation welcome
                     </li>
                   )}
@@ -215,11 +209,11 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
             <PageSectionCard id="details" title={`All that you need to know about ${hackathon.title}`}>
               {hackathon.description?.trim() ? (
-                <div className="prose max-w-none text-sm leading-relaxed text-slate-700 dark:prose-invert dark:text-slate-200 sm:text-base">
+                <div className="prose max-w-none text-sm leading-relaxed text-journey-text/80 dark:prose-invert sm:text-base">
                   <MarkdownRenderer content={hackathon.description} />
                 </div>
               ) : (
-                <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-white/10">
+                <p className="rounded-xl border border-dashed border-journey-text/10 p-6 text-center text-sm text-journey-muted">
                   The organizing committee will publish the official overview shortly.
                 </p>
               )}
@@ -239,7 +233,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
             <PageSectionCard id="dates" title="Dates and Deadlines">
               <DatesList rows={dateRows} />
-              <p className="text-xs text-slate-500">All times are in IST (Indian Standard Time).</p>
+              <p className="text-xs text-journey-muted">All times are in IST (Indian Standard Time).</p>
             </PageSectionCard>
 
             {hasPrizes && (
@@ -250,7 +244,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
             {(problems.length > 0 || hackathon.allow_open_innovation) && (
               <PageSectionCard id="problems" title="Problem Statements">
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-journey-muted">
                   Pick an official problem statement{hackathon.allow_open_innovation ? ' or bring your own idea through Open Innovation' : ''}.
                 </p>
                 <ProblemStatementsExplorer
@@ -276,22 +270,22 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
           {/* Registration card: stays in view while reading on large screens */}
           <aside className="hidden space-y-4 lg:sticky lg:top-[140px] lg:block">
-            <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-lg dark:border-white/10 dark:bg-white/[0.03]">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[#FF7A00]">Team registration</h2>
+            <div className="space-y-4 rounded-2xl border border-journey-text/10 bg-journey-surface/60 p-5 shadow-lg">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-journey-accent">Team registration</h2>
               <HackathonCTA hackathon={hackathon} />
-              <dl className="space-y-2 border-t border-slate-100 pt-4 text-sm dark:border-white/5">
+              <dl className="space-y-2 border-t border-journey-text/10 pt-4 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Deadline</dt>
-                  <dd className="text-right font-semibold text-[#1A1A2E] dark:text-white">{deadline}</dd>
+                  <dt className="text-journey-muted">Deadline</dt>
+                  <dd className="text-right font-semibold text-journey-text">{deadline}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Team size</dt>
-                  <dd className="font-semibold text-[#1A1A2E] dark:text-white">{minSize === maxSize ? maxSize : `${minSize} - ${maxSize}`}</dd>
+                  <dt className="text-journey-muted">Team size</dt>
+                  <dd className="font-semibold text-journey-text">{minSize === maxSize ? maxSize : `${minSize} - ${maxSize}`}</dd>
                 </div>
                 {hackathon.prize_pool && (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Prize pool</dt>
-                    <dd className="font-semibold text-[#1A1A2E] dark:text-white">{hackathon.prize_pool}</dd>
+                    <dt className="text-journey-muted">Prize pool</dt>
+                    <dd className="font-semibold text-journey-text">{hackathon.prize_pool}</dd>
                   </div>
                 )}
               </dl>

@@ -74,27 +74,27 @@ export function HackathonFAQSection({ hackathon }: { hackathon: Hackathon }) {
           return (
             <div
               key={faq.question}
-              className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/60 dark:bg-white/[0.02] overflow-hidden transition-all duration-200"
+              className="rounded-2xl border border-journey-text/10 bg-journey-surface/50 overflow-hidden transition-all duration-200"
             >
               <button
                 type="button"
                 onClick={() => toggle(idx)}
-                className="w-full flex items-center justify-between gap-4 p-5 text-left font-bold text-sm sm:text-base text-[#1A1A2E] dark:text-white hover:text-[#FF7A00] transition"
+                className="w-full flex items-center justify-between gap-4 p-5 text-left font-bold text-sm sm:text-base text-journey-text hover:text-journey-accent transition"
                 aria-expanded={isOpen}
               >
                 <span className="flex items-center gap-3">
-                  <HelpCircle className="h-4 w-4 shrink-0 text-[#FF7A00]" />
+                  <HelpCircle className="h-4 w-4 shrink-0 text-journey-accent" />
                   <span>{faq.question}</span>
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${
-                    isOpen ? 'rotate-180 text-[#FF7A00]' : ''
+                  className={`h-4 w-4 shrink-0 text-journey-muted transition-transform duration-200 ${
+                    isOpen ? 'rotate-180 text-journey-accent' : ''
                   }`}
                 />
               </button>
 
               {isOpen && (
-                <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-white/5">
+                <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-journey-text/80 leading-relaxed border-t border-journey-text/5">
                   <p>{faq.answer}</p>
                 </div>
               )}
@@ -104,17 +104,17 @@ export function HackathonFAQSection({ hackathon }: { hackathon: Hackathon }) {
       </div>
 
       {/* Support / Contact banner */}
-      <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="rounded-2xl border border-journey-text/10 bg-journey-text/[0.03] p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h4 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Still have questions?</h4>
-          <p className="text-xs text-slate-500">Reach out to the SRKR Coding Club organizing team anytime.</p>
+          <h4 className="text-sm font-bold text-journey-text">Still have questions?</h4>
+          <p className="text-xs text-journey-muted">Reach out to the SRKR Coding Club organizing team anytime.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <a
             href="mailto:srkrcodingclub@gmail.com"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#FF7A00] transition"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-journey-text/10 bg-journey-surface px-3.5 py-2 text-xs font-bold text-journey-text/90 hover:text-journey-accent transition"
           >
-            <Mail className="h-3.5 w-3.5 text-[#FF7A00]" />
+            <Mail className="h-3.5 w-3.5 text-journey-accent" />
             srkrcodingclub@gmail.com
           </a>
         </div>

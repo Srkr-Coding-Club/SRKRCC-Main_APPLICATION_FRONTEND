@@ -34,8 +34,8 @@ export function HackathonAnnouncementsFeed({
   if (announcements.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 py-8 text-center">
-        <Megaphone className="w-8 h-8 text-slate-400" />
-        <p className="text-sm text-slate-500">{emptyText}</p>
+        <Megaphone className="w-8 h-8 text-journey-muted" />
+        <p className="text-sm text-journey-muted">{emptyText}</p>
       </div>
     );
   }
@@ -47,7 +47,7 @@ export function HackathonAnnouncementsFeed({
         const Icon = style.icon;
         const open = openId === a.id;
         return (
-          <li key={a.id} className="relative overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-white/[0.02]">
+          <li key={a.id} className="relative overflow-hidden rounded-lg border border-journey-text/10 bg-journey-surface/50">
             <span className={`absolute inset-y-0 left-0 w-1 ${style.bar}`} />
             <button
               type="button"
@@ -57,17 +57,17 @@ export function HackathonAnnouncementsFeed({
             >
               <Icon className={`mt-0.5 w-4 h-4 shrink-0 ${style.text}`} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{a.title}</p>
-                <p className="mt-0.5 text-[11px] text-slate-400">
+                <p className="text-sm font-bold text-journey-text">{a.title}</p>
+                <p className="mt-0.5 text-[11px] text-journey-muted">
                   {formatDateTime(a.publish_at)}
                   {showAudience && a.audience !== 'PUBLIC' && (
-                    <span className="ml-2 font-semibold text-[#FF7A00]">
+                    <span className="ml-2 font-semibold text-journey-accent">
                       · {a.audience_label}{a.round_name ? `: ${a.round_name}` : ''}
                     </span>
                   )}
                 </p>
               </div>
-              <ChevronDown className={`mt-0.5 w-4 h-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`mt-0.5 w-4 h-4 shrink-0 text-journey-muted transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
               <div className="pl-11 pr-4 pb-4 text-sm">

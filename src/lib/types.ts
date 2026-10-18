@@ -98,13 +98,18 @@ export interface Event {
   registration_opens_at?: string | null;
   registration_closes_at?: string | null;
   registration_count?: number;
+  /** One-click registration: the form is made only of profile details, so a member registers with one click. */
+  is_quick_registration?: boolean;
+  /** The member details a one-click event collects (profile keys such as 'full_name', 'phone_number'). */
+  registration_profile_fields?: ProfileFieldKey[];
+  /** Write-only: the details to collect; the server builds the registration form from them. */
+  quick_registration_fields?: ProfileFieldKey[];
 }
 
 export interface Hackathon {
   id: number;
   title: string;
   slug: string;
-  is_flagship: boolean;
   theme: string;
   description: string;
   prize_pool: string;
@@ -382,6 +387,25 @@ export interface HackathonAnnouncement {
   /** When the audience email was dispatched; null = not sent yet. */
   emailed_at?: string | null;
   created_by_name?: string | null;
+}
+
+export interface TeamEmailSetting {
+  key: string;
+  label: string;
+  when: string;
+  recipients: string;
+  enabled: boolean;
+  /** Organizer override; empty = use `default_subject`. */
+  subject: string;
+  /** Organizer override; empty = use `default_body`. */
+  body: string;
+  default_subject: string;
+  default_body: string;
+}
+
+export interface TeamEmailSettingsPayload {
+  emails: TeamEmailSetting[];
+  placeholders: { key: string; description: string }[];
 }
 
 export interface HackathonStats {

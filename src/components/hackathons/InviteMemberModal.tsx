@@ -207,10 +207,10 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
   return (
     <Modal isOpen={isOpen} onClose={onClose} busy={busy} title="Invite Teammate" icon={UserPlus} maxWidth="max-w-lg">
       <form onSubmit={send} className="space-y-4">
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-journey-muted">
           Search by <strong>name</strong>, <strong>email</strong>, or <strong>Club ID</strong>. Suggestions appear as you type.
           {slotsLeft > 0 ? (
-            <span className="ml-1 font-semibold text-slate-700 dark:text-slate-300">
+            <span className="ml-1 font-semibold text-journey-text/80">
               ({slotsLeft} open slot{slotsLeft === 1 ? '' : 's'} remaining)
             </span>
           ) : (
@@ -224,9 +224,9 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
             Find Teammate
           </FieldLabel>
           <div className="relative">
-            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-journey-muted">
               {searching ? (
-                <Loader2 className="h-4 w-4 animate-spin text-[#FF7A00]" />
+                <Loader2 className="h-4 w-4 animate-spin text-journey-accent" />
               ) : (
                 <Search className="h-4 w-4" />
               )}
@@ -257,7 +257,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
               <button
                 type="button"
                 onClick={handleClearSelection}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-journey-muted hover:bg-journey-text/5 hover:text-journey-text transition"
                 title="Clear"
               >
                 <X className="h-3.5 w-3.5" />
@@ -271,7 +271,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
               id="invite-suggestions"
               role="listbox"
               aria-label="Matching members"
-              className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl divide-y divide-slate-100 dark:divide-slate-800/60"
+              className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-xl border border-journey-text/10 bg-journey-surface/95 backdrop-blur-md shadow-xl divide-y divide-journey-text/10"
             >
               {suggestions.map((user, index) => (
                 <li
@@ -281,7 +281,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
                   aria-selected={index === activeIndex}
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => handleSelectUser(user)}
-                  className={`flex cursor-pointer items-start justify-between gap-3 px-3 py-2.5 transition ${index === activeIndex ? 'bg-[#FF7A00]/10' : ''}`}
+                  className={`flex cursor-pointer items-start justify-between gap-3 px-3 py-2.5 transition ${index === activeIndex ? 'bg-journey-accent/10' : ''}`}
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
                     <div
@@ -295,14 +295,14 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="truncate text-xs font-bold text-[#1A1A2E] dark:text-white">{user.name}</span>
+                        <span className="truncate text-xs font-bold text-journey-text">{user.name}</span>
                         {user.club_id && (
-                          <span className="rounded border border-slate-200/60 bg-slate-100 px-1 font-mono text-[9px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800">
+                          <span className="rounded border border-journey-text/10/60 bg-journey-text/10 px-1 font-mono text-[9px] font-semibold text-journey-muted">
                             {user.club_id}
                           </span>
                         )}
                       </div>
-                      <p className="truncate text-[11px] text-slate-400">{user.email}</p>
+                      <p className="truncate text-[11px] text-journey-muted">{user.email}</p>
                       {!user.can_invite && user.reason && (
                         <p className="mt-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">{user.reason}</p>
                       )}
@@ -330,7 +330,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
             </p>
           )}
           {noResults && !searching && !rateLimited && !looksLikeEmail && query.trim().length >= MIN_SEARCH_LENGTH && (
-            <p className="text-xs text-slate-400 dark:text-slate-500 italic pt-1">
+            <p className="text-xs text-journey-muted italic pt-1">
               No members found matching &quot;{query.trim()}&quot;. Check spelling or ask them to register.
             </p>
           )}
@@ -338,8 +338,8 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
 
         {noResults && !searching && !rateLimited && looksLikeEmail && !selectedUser && (
           <div className="space-y-2 rounded-xl border border-sky-500/30 bg-sky-500/[0.05] p-4">
-            <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">No account uses {trimmedQuery} yet</p>
-            <p className="text-xs text-slate-600 dark:text-slate-300">
+            <p className="text-sm font-bold text-journey-text">No account uses {trimmedQuery} yet</p>
+            <p className="text-xs text-journey-text/80">
               We can email them a link to sign up. The invite waits on their dashboard once they create an account with this exact address.
               It uses one of your team&apos;s open slots until they respond.
             </p>
@@ -357,8 +357,8 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
         {/* Selected Member Preview Card */}
         <div className="min-h-[96px] transition-all">
           {searching && !selectedUser && (
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-200/60 dark:border-slate-800 bg-slate-50/50 dark:bg-white/[0.02] p-6 text-xs text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin text-[#FF7A00]" />
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-journey-text/10/60 bg-journey-text/[0.03]/50 p-6 text-xs text-journey-muted">
+              <Loader2 className="h-4 w-4 animate-spin text-journey-accent" />
               <span>Searching club members…</span>
             </div>
           )}
@@ -386,17 +386,17 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
                 {/* Member Information */}
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-sm font-bold text-[#1A1A2E] dark:text-white truncate">
+                    <h4 className="text-sm font-bold text-journey-text truncate">
                       {selectedUser.name}
                     </h4>
                     {selectedUser.club_id && (
-                      <span className="inline-flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      <span className="inline-flex items-center gap-1 rounded bg-journey-text/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-journey-text/80 border border-journey-text/10">
                         <IdCard className="h-2.5 w-2.5" /> {selectedUser.club_id}
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  <p className="text-xs text-journey-muted truncate">
                     {selectedUser.email}
                   </p>
 
@@ -428,19 +428,19 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
         </div>
 
         {/* Modal Actions */}
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex justify-end gap-2 pt-2 border-t border-journey-text/5">
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="px-4 py-2 rounded-lg text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
+            className="px-4 py-2 rounded-lg text-sm font-bold text-journey-muted hover:text-journey-text transition"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={busy || !selectedUser?.can_invite}
-            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-white text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <UserPlus className="h-4 w-4" />
             {busy ? 'Sending…' : 'Send Invite'}

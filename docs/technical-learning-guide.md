@@ -126,6 +126,14 @@ When students open registration forms, the application automatically matches and
    - If a required one is blank on the profile, the submit button is replaced by an "Update Your Profile" prompt (only while the form is open).
    - The backend discards whatever is sent for these fields and writes the profile value itself, so this UI is a mirror, not the source of truth.
 
+### One-click event registration
+
+Events can skip the form page entirely: a form made only of profile-bound fields is "one-click".
+
+   - **Admin:** `EventFormPanel` has a *Registration* choice (One-click or Custom form). One-click shows a checklist built from `PROFILE_FIELD_OPTIONS` (`src/lib/profileFields.ts`); name and email are always on. Saving sends `quick_registration_fields` and the backend builds and links the form. Choosing Custom form sends `registration_form` as before.
+   - **Public:** when the API reports `is_quick_registration`, `EventCard` and `EventDetailsStack` render `QuickRegisterButton` (`src/components/events/`) instead of a link to `/forms/<slug>`. The button posts an empty answers list to `/forms/submissions/`; the server fills the profile details.
+   - **States it handles:** signed out (goes to `/login?next=/events/<slug>`), already registered (`/forms/<slug>/my-response/`), a profile missing a chosen detail (`PROFILE_FIELD_MISSING`, with a link to `/profile`), and a closed or full event.
+
 ---
 
 ## 7. CodeQuest Admin Workspace
@@ -202,6 +210,8 @@ Backend contract: `apps/hackathons` — see the backend repo's `docs/modules/hac
 
 **API layer.** Every call goes through the typed wrappers in `src/lib/api/hackathons.ts` (`hackathonApi.*` for participants, `hackathonApi.admin.*` for organizers), built on `fetchApi`. Business-rule errors arrive as `{detail, code, field?}`; `apiErrorMessage(err)` picks the readable message and forms map `err.body.field` onto the matching input. Types live in `src/lib/types.ts` (`HackathonTeam`, `HackathonTeamInvite`, `ProblemStatement`, `ParticipantRound`, `MyTeamPayload`, `HackathonAnnouncement`, …).
 
+**Look and feel.** The hackathon pages follow the landing page's design system, not the site default. `app/hackathons/layout.tsx` wraps every hackathon route in `.journey-type` (`globals.css`), which switches the text and headings from Poppins/Inter to the display face (Archivo) with the landing's tighter heading spacing. Colours use the theme tokens (`text-journey-text`, `text-journey-muted`, `text-journey-accent`, `bg-journey-surface`, `border-journey-text/10`) instead of hardcoded slate or `#FF7A00`, so they flip with light and dark mode and keep the deeper accent orange in light mode for contrast. Section headings (`PageSectionCard`) use a hairline accent dash, and the section tabs and status pills use the mono face, as the landing does. When adding to these pages use the tokens, not hardcoded colours. The participant dashboard gets the typography from the layout but still uses its own colour classes.
+
 **Participant routes**
 
 | Route | Rendering | Notes |
@@ -217,7 +227,7 @@ Backend contract: `apps/hackathons` — see the backend repo's `docs/modules/hac
 
 `InviteMemberModal` debounces an exact-email lookup (`/user-lookup/`) and only enables "Send invite" when the server says `can_invite`. `RoundsTimeline` shows each round's status, the team's result and feedback only once the round is published, and a "Submit details" link to `/forms/{slug}` for the leader of a shortlisted team.
 
-**Admin routes.** `/admin/hackathons` lists hackathons; `/admin/hackathons/[slug]?tab=` hosts six tab components in `src/components/admin/hackathon/` (Overview, Settings, Problem Statements, Teams, Rounds, Announcements). They share input/button class constants and datetime helpers from `shared.ts`. `ProblemStatementsAdminTab` creates statements without an ID field (the server generates and returns it) and uploads CSVs through `hackathonApi.admin.uploadProblemStatements` as `FormData` — `fetchApi` skips the JSON content-type for it and the BFF proxy forwards the multipart body untouched. The page uses `useSearchParams`, so it is wrapped in `<Suspense>`. `AdminNavbar` matches child entries with `pathname.startsWith(href + '/')` so nested routes still highlight "Modules → Hackathon Management", and each hackathon card in `EventsHackathonsTab` links to its manage page.
+**Admin routes.** `/admin/hackathons` lists hackathons; `/admin/hackathons/[slug]?tab=` hosts six tab components in `src/components/admin/hackathon/` (Overview, Settings, Problem Statements, Teams, Rounds, Announcements). They share input/button class constants and datetime helpers from `shared.ts`. `ProblemStatementsAdminTab` creates statements without an ID field (the server generates and returns it) and uploads CSVs through `hackathonApi.admin.uploadProblemStatements` as `FormData` — `fetchApi` skips the JSON content-type for it and the BFF proxy forwards the multipart body untouched. Below the statements table it also lists the **open-innovation problems teams proposed themselves** (`OI-<team id>`, title, domain, team, status, and a viewer for the full description), built from the same `/teams/` payload the tab already loads, so organizers see every problem in play. The section shows whenever open innovation is enabled or any team has used it. The page uses `useSearchParams`, so it is wrapped in `<Suspense>`. `AdminNavbar` matches child entries with `pathname.startsWith(href + '/')` so nested routes still highlight "Modules → Hackathon Management", and each hackathon card in `EventsHackathonsTab` links to its manage page.
 
 ---
 

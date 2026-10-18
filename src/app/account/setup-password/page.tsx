@@ -37,6 +37,9 @@ function SetupPasswordContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // The reason the last attempt was rejected. A toast disappears in seconds, so the reason also stays
+  // on screen: otherwise a rejected password is easy to mistake for a saved one.
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
 
   // Form inputs for Mode 2 (Requesting setup link)
@@ -106,6 +109,7 @@ function SetupPasswordContent() {
       return;
     }
 
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/proxy/auth/setup-password/confirm/', {
@@ -124,7 +128,9 @@ function SetupPasswordContent() {
       setSetupComplete(true);
       toast.success('Password Established!', 'Your account is now active. You can sign in.');
     } catch (err: any) {
-      toast.error('Setup Failed', err.message || 'Password confirmation failed.');
+      const message = err.message || 'Password confirmation failed.';
+      setSubmitError(message);
+      toast.error('Setup Failed', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -266,7 +272,10 @@ function SetupPasswordContent() {
                 required
                 autoComplete="new-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setSubmitError(null);
+                }}
                 disabled={isSubmitting}
                 placeholder="••••••••••••"
                 className="w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
@@ -291,7 +300,10 @@ function SetupPasswordContent() {
                 required
                 autoComplete="new-password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setSubmitError(null);
+                }}
                 disabled={isSubmitting}
                 placeholder="••••••••••••"
                 className="w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00]"
@@ -324,6 +336,19 @@ function SetupPasswordContent() {
               </div>
             )}
           </div>
+
+          {submitError && (
+            <div
+              role="alert"
+              className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs flex items-start gap-2"
+            >
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-bold block">Your password was not changed</span>
+                <p>{submitError}</p>
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -375,7 +400,7 @@ function SetupPasswordContent() {
               />
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Enter the college email address associated with your club membership.
+              Enter the email address.
             </p>
           </div>
 

@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Search, Trash2 } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/context/ToastContext';
 
 interface AuditLogApi {
   id: number;
@@ -17,6 +19,17 @@ interface AuditLogApi {
 interface PaginatedAuditLogs {
   count: number;
   results: AuditLogApi[];
+}
+
+interface AuditMonth {
+  /** 'YYYY-MM' */
+  month: string;
+  count: number;
+}
+
+interface AuditMonthsResponse {
+  months: AuditMonth[];
+  can_delete: boolean;
 }
 
 interface AuditLogRecord {
@@ -35,6 +48,12 @@ const PAGE_SIZE = 50;
 const REFRESH_MS = 8000;
 const SEARCH_DEBOUNCE_MS = 300;
 
+/** 'YYYY-MM' -> 'October 2026'. Built from numbers so the browser's timezone cannot shift the month. */
+function monthLabel(month: string): string {
+  const [year, number] = month.split('-').map(Number);
+  return new Date(year, number - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
 function toRecord(entry: AuditLogApi): AuditLogRecord {
   return {
     id: entry.id,
@@ -47,6 +66,12 @@ function toRecord(entry: AuditLogApi): AuditLogRecord {
 }
 
 export function AuditLogsTab() {
+  const { toast } = useToast();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const [months, setMonths] = useState<AuditMonth[]>([]);
+  const [canDelete, setCanDelete] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [deletingMonth, setDeletingMonth] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -70,6 +95,7 @@ export function AuditLogsTab() {
     let cancelled = false;
     const params = new URLSearchParams({ page: String(page) });
     if (query) params.set('search', query);
+    if (selectedMonth) params.set('month', selectedMonth);
 
     fetchApi<PaginatedAuditLogs>(`/audit/?${params}`)
       .then((result) => {
@@ -88,7 +114,55 @@ export function AuditLogsTab() {
     return () => {
       cancelled = true;
     };
-  }, [page, query, refreshTick]);
+  }, [page, query, selectedMonth, refreshTick]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchApi<AuditMonthsResponse>('/audit/months/')
+      .then((result) => {
+        if (cancelled) return;
+        setMonths(result.months);
+        setCanDelete(result.can_delete);
+      })
+      .catch(() => {
+        /* the log table below reports load problems; the month list simply stays as it was */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshTick]);
+
+  const selectMonth = (month: string | null) => {
+    setSelectedMonth(month);
+    setPage(1);
+    setIsLoading(true);
+  };
+
+  const deleteMonth = async ({ month, count }: AuditMonth) => {
+    const confirmed = await confirm({
+      title: `Delete ${monthLabel(month)} audit logs?`,
+      message: (
+        <>
+          This permanently deletes all <strong>{count}</strong> audit {count === 1 ? 'entry' : 'entries'} from{' '}
+          <strong>{monthLabel(month)}</strong>. This cannot be undone. A record of the deletion is kept.
+        </>
+      ),
+      confirmLabel: 'Delete permanently',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setDeletingMonth(month);
+    try {
+      const result = await fetchApi<{ deleted: number }>(`/audit/months/${month}/`, { method: 'DELETE' });
+      toast.success(`${monthLabel(month)} audit logs deleted`, `${result.deleted} entries removed.`);
+      if (selectedMonth === month) selectMonth(null);
+      setRefreshTick((tick) => tick + 1);
+    } catch (error) {
+      toast.error('Could not delete audit logs', error instanceof Error ? error.message : undefined);
+    } finally {
+      setDeletingMonth(null);
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -123,6 +197,55 @@ export function AuditLogsTab() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2" aria-label="Audit logs by month">
+        <button
+          type="button"
+          onClick={() => selectMonth(null)}
+          aria-pressed={selectedMonth === null}
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+            selectedMonth === null
+              ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
+              : 'border-slate-300 text-slate-600 hover:border-[#FF7A00] dark:border-slate-700 dark:text-slate-300'
+          }`}
+        >
+          <CalendarDays className="h-3.5 w-3.5" /> All months
+        </button>
+        {months.map((item) => {
+          const active = selectedMonth === item.month;
+          return (
+            <div
+              key={item.month}
+              className={`inline-flex items-center overflow-hidden rounded-lg border text-xs font-bold transition ${
+                active ? 'border-[#FF7A00] bg-[#FF7A00]/10' : 'border-slate-300 dark:border-slate-700'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => selectMonth(item.month)}
+                aria-pressed={active}
+                className={`px-3 py-1.5 transition active:scale-95 ${
+                  active ? 'text-[#FF7A00]' : 'text-slate-600 hover:text-[#FF7A00] dark:text-slate-300'
+                }`}
+              >
+                {monthLabel(item.month)} <span className="ml-1 font-mono font-medium text-slate-400">{item.count}</span>
+              </button>
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={() => deleteMonth(item)}
+                  disabled={deletingMonth === item.month}
+                  aria-label={`Delete ${monthLabel(item.month)} audit logs`}
+                  title={`Delete ${monthLabel(item.month)} audit logs`}
+                  className="border-l border-slate-300 px-2 py-1.5 text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-500 disabled:opacity-40 dark:border-slate-700"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
       {loadError && (
         <p className="text-xs text-rose-500">{loadError}</p>
       )}
@@ -150,7 +273,7 @@ export function AuditLogsTab() {
             ) : logs.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-sm">
-                  {query ? 'No audit logs match your search.' : 'No audit logs recorded yet.'}
+                  {query ? 'No audit logs match your search.' : selectedMonth ? 'No audit logs in this month.' : 'No audit logs recorded yet.'}
                 </td>
               </tr>
             ) : (
@@ -207,6 +330,7 @@ export function AuditLogsTab() {
           </button>
         </div>
       </div>
+      {confirmDialog}
     </div>
   );
 }
