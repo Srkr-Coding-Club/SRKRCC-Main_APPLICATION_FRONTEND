@@ -86,8 +86,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
           ) : (
             <Link
               href={detailHref}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5"
-              style={{ backgroundColor: accent }}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 bg-journey-accent"
             >
               <Trophy className="h-3 w-3" />
               Register Team
