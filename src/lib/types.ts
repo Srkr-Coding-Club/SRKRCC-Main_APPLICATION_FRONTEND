@@ -389,6 +389,25 @@ export interface HackathonAnnouncement {
   created_by_name?: string | null;
 }
 
+export interface TeamEmailSetting {
+  key: string;
+  label: string;
+  when: string;
+  recipients: string;
+  enabled: boolean;
+  /** Organizer override; empty = use `default_subject`. */
+  subject: string;
+  /** Organizer override; empty = use `default_body`. */
+  body: string;
+  default_subject: string;
+  default_body: string;
+}
+
+export interface TeamEmailSettingsPayload {
+  emails: TeamEmailSetting[];
+  placeholders: { key: string; description: string }[];
+}
+
 export interface HackathonStats {
   teams_by_status: Record<HackathonTeamStatus, number>;
   teams_total: number;

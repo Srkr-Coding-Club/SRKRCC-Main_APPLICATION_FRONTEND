@@ -11,6 +11,7 @@ import type {
   MyTeamPayload,
   ProblemStatement,
   RoundEntryStatus,
+  TeamEmailSettingsPayload,
   UserLookupResult,
 } from '@/lib/types';
 
@@ -30,6 +31,7 @@ export interface ProblemStatementUploadResult {
 }
 const json = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body ?? {}) });
 const patch = (body: unknown): RequestInit => ({ method: 'PATCH', body: JSON.stringify(body) });
+const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) });
 
 /** Typed wrappers for /api/hackathons/* (see apps/hackathons/urls.py). */
 export const hackathonApi = {
@@ -79,6 +81,13 @@ export const hackathonApi = {
     update: (slug: string, body: Partial<Hackathon>) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/`, patch(body)),
     setOpen: (slug: string, open: boolean) =>
       fetchApi<Hackathon>(`/hackathons/${enc(slug)}/${open ? 'reopen' : 'close'}/`, json({})),
+    teamEmails: {
+      get: (slug: string) => fetchApi<TeamEmailSettingsPayload>(`/hackathons/${enc(slug)}/team-emails/`),
+      save: (slug: string, emails: Record<string, { enabled: boolean; subject: string; body: string }>) =>
+        fetchApi<TeamEmailSettingsPayload>(`/hackathons/${enc(slug)}/team-emails/`, put({ emails })),
+      test: (slug: string, email: string, subject: string, body: string) =>
+        fetchApi<{ sent_to: string }>(`/hackathons/${enc(slug)}/team-emails/test/`, json({ email, subject, body })),
+    },
     remindForming: (slug: string) => fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/remind-forming/`, json({})),
     timeline: {
       list: (slug: string) => fetchApi<HackathonStage[]>(`/hackathons/${enc(slug)}/timeline/`),
