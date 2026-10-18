@@ -10,7 +10,7 @@ export type PlanetChapter = 'technology' | 'club';
 
 /* Technology eras: the C hexagon, the HTML/CSS/JS shields, the Java cup, a binary tree.  */
 /* Club programs: a light bulb (awareness), a laptop with C code (workshops), a rocket    */
-/* (crash course), a trophy (events), the </> mark (hackathon), a daily flip-calendar     */
+/* (unused since the crash course merged into DSA), a trophy (events), the </> mark (hackathon), a daily flip-calendar     */
 /* (CodeQuest), a winner's podium (IconCoders, the flagship championship) and a           */
 /* checkered racing flag (EdgeCase, the biweekly DSA contest).                            */
 export type Emblem =
@@ -66,48 +66,52 @@ export const PLANETS: PlanetSpec[] = [
   },
   {
     id: 'awareness', chapter: 'club', eyebrow: 'Awareness sessions', title: 'Awareness', statement: 'Understand. Question. Explore.',
-    href: '/events', cta: 'Find a session', orbit: 43, angle: 5.48, lift: 1, radius: 2.0, emblem: 'bulb', side: 'left',
+    href: '/events', cta: 'Find a session', orbit: 43, angle: 2.45, lift: 1, radius: 2.0, emblem: 'bulb', side: 'left',
   },
   {
     id: 'c-workshops', chapter: 'club', eyebrow: 'C workshops', title: 'C Workshops', statement: 'From syntax to problem solving.',
     href: '/events', cta: 'See workshops', orbit: 50, angle: 0.52, lift: -1.2, radius: 2.2, emblem: 'laptop', side: 'right',
   },
   {
-    id: 'dsa-crash-course', chapter: 'club', eyebrow: 'DSA crash course', title: 'DSA Crash Course', statement: 'Think faster. Solve smarter.',
-    href: '/events', cta: 'Join the course', orbit: 57, angle: 1.77, lift: 0.9, radius: 2.0, emblem: 'rocket', side: 'left',
-  },
-  {
     id: 'coding-events', chapter: 'club', eyebrow: 'Coding events', title: 'Coding Events', statement: 'Where curiosity becomes competition.',
-    href: '/events', cta: 'See events', orbit: 64, angle: 3.1, lift: -0.8, radius: 2.2, emblem: 'trophy', side: 'right',
+    href: '/events', cta: 'See events', orbit: 57, angle: 3.1, lift: -0.8, radius: 2.2, emblem: 'trophy', side: 'left',
   },
   {
     id: 'hackoverflow', chapter: 'club', eyebrow: '24-hour hackathon', title: 'HACKoverflow', statement: 'Build. Break. Rebuild.',
-    href: '/hackathons', cta: 'Explore HACKoverflow', orbit: 72, angle: 3.9, lift: 1.4, radius: 2.2, emblem: 'brackets', side: 'left',
+    href: '/hackathons', cta: 'Explore HACKoverflow', orbit: 65, angle: 3.9, lift: 1.4, radius: 2.2, emblem: 'brackets', side: 'right',
   },
   {
     id: 'codequest', chapter: 'club', eyebrow: 'Daily problems', title: 'CodeQuest', statement: 'A journey through problems, projects and possibilities.',
-    href: '/codequest', cta: 'Start CodeQuest', orbit: 80, angle: 5.34, lift: -1, radius: 2.0, emblem: 'calendar', side: 'right',
+    href: '/codequest', cta: 'Start CodeQuest', orbit: 73, angle: 5.34, lift: -1, radius: 2.0, emblem: 'calendar', side: 'left',
   },
   {
     id: 'iconcoders', chapter: 'club', eyebrow: 'Community', title: 'IconCoders', statement: 'Learn from builders.',
-    href: '/iconcoders', cta: 'Explore IconCoders', orbit: 88, angle: 0.38, lift: 1.1, radius: 2.2, emblem: 'podium', side: 'left',
+    href: '/iconcoders', cta: 'Explore IconCoders', orbit: 81, angle: 0.38, lift: 1.1, radius: 2.2, emblem: 'podium', side: 'right',
   },
   {
     id: 'edgecase', chapter: 'club', eyebrow: 'Bi-weekly contests', title: 'EdgeCase', statement: 'Bi-weekly. Competitive. Relentless.',
-    href: '/events', cta: 'Enter EdgeCase', orbit: 97, angle: 1.43, lift: -1.3, radius: 1.9, emblem: 'flag', side: 'right',
+    href: '/events', cta: 'Enter EdgeCase', orbit: 89, angle: 1.43, lift: -1.3, radius: 1.9, emblem: 'flag', side: 'left',
   },
 ];
 
 export const SUN_RADIUS = 6;
+
+/* Where the centre of the Milky Way lies, with the Sun at the origin: the journey opens looking at it. */
+export const MILKY_WAY_CENTER = { x: -1100, y: 0, z: -700 } as const;
 
 /* How far the innermost planet travels round its orbit over the whole journey (radians). */
 /* Outer planets go slower, as in a real system (angular speed falls with orbit^1.5).     */
 const ORBIT_SWEEP = 1.2;
 const INNER_ORBIT = 17;
 
-/* World position of a planet on its orbit at a point in the journey: the planets orbit as you scroll. */
-export function planetPosition(planet: PlanetSpec, progress = 0) {
-  const angle = planet.angle + ORBIT_SWEEP * Math.pow(INNER_ORBIT / planet.orbit, 1.5) * progress;
+/* Idle revolution, in radians per second for the innermost planet (outer ones follow the same law). */
+/* Time moves the planets even when the visitor is not scrolling.                                    */
+const REVOLUTION_RATE = 0.05;
+
+/* World position of a planet on its orbit: it orbits as you scroll (`progress`) and revolves with time. */
+export function planetPosition(planet: PlanetSpec, progress = 0, time = 0) {
+  const pace = Math.pow(INNER_ORBIT / planet.orbit, 1.5);
+  const angle = planet.angle + pace * (ORBIT_SWEEP * progress + REVOLUTION_RATE * time);
   return { x: Math.cos(angle) * planet.orbit, y: planet.lift, z: Math.sin(angle) * planet.orbit };
 }
 
@@ -118,14 +122,14 @@ export function planetPosition(planet: PlanetSpec, progress = 0) {
 /* already parked on their orbit.                                                 */
 const ARRIVAL_SCALE = 0.1;
 const ARRIVAL_PUSH = 90;
-export function planetArrivalPosition(planet: PlanetSpec, progress: number) {
-  const { x, y, z } = planetPosition(planet, progress);
+export function planetArrivalPosition(planet: PlanetSpec, progress: number, time = 0) {
+  const { x, y, z } = planetPosition(planet, progress, time);
   return { x: x * ARRIVAL_SCALE, y: y * ARRIVAL_SCALE, z: z * ARRIVAL_SCALE + ARRIVAL_PUSH };
 }
 
 /* ------------------------------------------------------------------ */
 /* The journey, in scroll progress (0-1):                             */
-/*   void and opening lines -> the Sun -> twelve planet encounters    */
+/*   void and opening lines -> the Sun -> the planet encounters    */
 /*   -> the whole system from outer space -> back to the Sun, the     */
 /*   final title and invitation -> into the Sun and onto the page.    */
 /* ------------------------------------------------------------------ */
@@ -136,9 +140,10 @@ export const JOURNEY = {
   ],
   sunReveal: { start: 0.085, end: 0.135 },
   /* The window over which planets ease from their arrival position out to their orbit. */
-  arrival: { start: 0.02, end: 0.15 },
+  arrival: { start: 0.012, end: 0.15 },
   firstEncounter: 0.17,
-  encounterStep: 0.06,
+  /* Eleven encounters spread so the last still lands at ~0.83, ahead of the outer-space view. */
+  encounterStep: 0.066,
   /* Half-width of a planet's story window around its encounter. */
   encounterReach: 0.024,
   outerSpace: 0.885,

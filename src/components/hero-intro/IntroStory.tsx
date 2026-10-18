@@ -11,6 +11,9 @@ import { encounterAt, JOURNEY, PLANETS } from './solarSystem';
 /* timeline; each panel lives inside its planet's encounter window.   */
 /* ------------------------------------------------------------------ */
 
+/* Spoken over the Big Bang; timed in HeroIntro. */
+export const BANG_LINES = ['In the beginning, there was nothing.', 'Then, everything.'];
+
 const FINAL_LINES = ['Where curiosity becomes code.', 'Where code becomes capability.', 'Where builders find their orbit.'];
 
 export function choreographStory(timeline: gsap.core.Timeline) {
@@ -26,6 +29,9 @@ export function choreographStory(timeline: gsap.core.Timeline) {
     .fromTo('[data-intro="journey-hud"]', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.015 }, encounterAt(0) - JOURNEY.encounterStep * 0.6)
     .to('[data-intro="journey-hud"]', { autoAlpha: 0, duration: 0.015 }, JOURNEY.outerSpace - 0.01);
 
+  // A panel arrives only once the camera has nearly settled beside its planet, so a label never
+  // sits over another world, and it leaves while the camera is still settled (see the dwell in
+  // introPacing), so the world never slides out from behind it mid-sentence.
   PLANETS.forEach((_, i) => {
     const at = encounterAt(i);
     const reach = JOURNEY.encounterReach;
@@ -33,10 +39,10 @@ export function choreographStory(timeline: gsap.core.Timeline) {
       .fromTo(
         `[data-planet-panel="${i}"]`,
         { autoAlpha: 0, x: 24 },
-        { autoAlpha: 1, x: 0, duration: reach * 0.5, ease: 'power2.out' },
-        at - reach,
+        { autoAlpha: 1, x: 0, duration: reach * 0.25, ease: 'power2.out' },
+        at - reach * 0.32,
       )
-      .to(`[data-planet-panel="${i}"]`, { autoAlpha: 0, x: -16, duration: reach * 0.4, ease: 'power2.in' }, at + reach * 0.6);
+      .to(`[data-planet-panel="${i}"]`, { autoAlpha: 0, x: -16, duration: reach * 0.3, ease: 'power2.in' }, at + reach * 0.3);
   });
 
   timeline
@@ -64,8 +70,21 @@ function OrbitMark({ index }: { index: number }) {
 export default function IntroStory() {
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 top-[calc(var(--navbar-offset)*-1)] z-[25] motion-reduce:hidden group-data-[intro-done=true]/intro:invisible">
+      {/* Before the journey: two lines over the Big Bang, played on a clock rather than by scrolling. */}
+      <div data-intro="bang" data-hidden="false" className="absolute inset-0 flex items-end justify-center px-6 pb-[15%] text-center transition-opacity duration-700 data-[hidden=true]:opacity-0">
+        {BANG_LINES.map((line, i) => (
+          <p
+            key={line}
+            data-bang={i}
+            className="invisible absolute font-display text-[clamp(1.4rem,3.2vw,2.4rem)] font-medium tracking-[-0.02em] text-[#E6EAF2] opacity-0 [font-stretch:108%]"
+          >
+            {line}
+          </p>
+        ))}
+      </div>
+
       {/* The void: two lines, then the Sun. */}
-      <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+      <div className="absolute inset-0 flex items-end justify-center px-6 pb-[15%] text-center">
         {JOURNEY.openingLines.map((line, i) => (
           <p
             key={line.text}
@@ -93,7 +112,7 @@ export default function IntroStory() {
           <article
             data-planet-panel={i}
             aria-label={`${planet.eyebrow}: ${planet.title}`}
-            className="pointer-events-auto invisible rounded-xl border border-white/10 bg-[#07080D]/80 p-5 opacity-0 shadow-[0_24px_60px_rgba(0,0,0,0.45)] sm:p-6"
+            className="pointer-events-auto invisible rounded-xl border border-white/10 bg-[#07080D]/90 p-5 backdrop-blur-md opacity-0 shadow-[0_24px_60px_rgba(0,0,0,0.45)] sm:p-6"
           >
             <div className="flex items-center justify-between font-mono text-[11px] text-[#94A3B8]">
               <span className="flex items-center gap-3">
