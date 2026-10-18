@@ -64,11 +64,6 @@ const EMAIL_REGEX =
   /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/;
 export const EMAIL_MAX_LENGTH = 254;
 
-// Self-registration is restricted to the college's own domains - mirrors
-// ALLOWED_EMAIL_DOMAINS in apps/accounts/validators.py. The admin's "Create
-// New User" modal does not call validateEmail, so it is unaffected.
-const ALLOWED_EMAIL_DOMAINS = ['gmail.com', 'srkrec.ac.in'];
-
 export function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -80,10 +75,6 @@ export function validateEmail(value: string): string | undefined {
   if (!email.includes('@')) return 'Email must contain an @ sign.';
   if (!EMAIL_REGEX.test(email)) {
     return 'Enter a valid email address, for example you@example.com.';
-  }
-  const domain = email.split('@').pop() ?? '';
-  if (!ALLOWED_EMAIL_DOMAINS.includes(domain)) {
-    return 'Registration is open to @gmail.com or @srkrec.ac.in email addresses only.';
   }
   return undefined;
 }

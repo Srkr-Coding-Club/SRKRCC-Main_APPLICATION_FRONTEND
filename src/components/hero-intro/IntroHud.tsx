@@ -3,7 +3,7 @@ import { encounterAt, PLANETS } from './solarSystem';
 
 /* ------------------------------------------------------------------ */
 /* Mission control: the club's mark top-left, the journey readout     */
-/* ("03 / 12", Technology -> Community) top-right, and an orbital     */
+/* ("03 / 11", Technology -> Community) top-right, and an orbital     */
 /* navigation down the right edge on large screens - every planet,    */
 /* the current one lit, each one a jump target. HeroIntro marks the   */
 /* active planet (`data-active`) and writes the counter each frame    */
@@ -35,6 +35,20 @@ export default function IntroHud({ onNavigate }: { onNavigate: (progress: number
             <span className="group-data-[chapter=club]/chapter:text-[#F5F5F5]">Community</span>
           </p>
         </div>
+
+        {/* Between planets: where the flight is heading. */}
+        <button
+          type="button"
+          data-intro="hud-next"
+          data-visible="false"
+          onClick={(event) => onNavigate(encounterAt(Number(event.currentTarget.dataset.next ?? 0)))}
+          className="pointer-events-none absolute bottom-6 left-5 flex items-center gap-2.5 font-mono text-[11px] text-[#94A3B8] opacity-0 transition-opacity duration-500 hover:text-[#F5F5F5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFA500] data-[visible=true]:pointer-events-auto data-[visible=true]:opacity-100 sm:bottom-8 sm:left-10"
+        >
+          <span aria-hidden="true" className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF7A00]" />
+          <span className="uppercase tracking-[0.18em] text-[#64748B]">Next</span>
+          <span data-intro="hud-next-label" className="text-[#C3CAD6]" />
+          <span aria-hidden="true" className="text-[#FF7A00]">&rsaquo;</span>
+        </button>
 
         <nav aria-label="Journey" className="pointer-events-auto absolute right-6 top-1/2 hidden -translate-y-1/2 xl:block">
           <ol className="flex flex-col gap-1.5">

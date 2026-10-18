@@ -7,6 +7,7 @@ import IntroHud from './IntroHud';
 import IntroStory, { choreographStory } from './IntroStory';
 import { CHROME_MANAGED_ATTR, CINEMA_ATTR, markIntroSeen, shouldPlayIntro } from './introEligibility';
 import { clamp } from './introMath';
+import { journeyToScroll, SCROLL_SCALE, scrollToJourney } from './introPacing';
 import { encounterAt, JOURNEY, LAUNCH, PLANETS } from './solarSystem';
 import { detectQuality } from './webgl/quality';
 import type { IntroScene } from './webgl/createIntroScene';
@@ -15,14 +16,21 @@ gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
 
 const NAVBAR_HEIGHT_PX = 64;
-const SCROLL_DISTANCE = '+=1100%';
+/* 11 viewports of uniform pacing, stretched by the dwell and even-pace costs (see introPacing). */
+const SCROLL_DISTANCE = `+=${Math.round(1100 * SCROLL_SCALE)}%`;
 const DONE_PROGRESS = 0.999;
 const LOADER_DELAY_MS = 300;
 const LOADER_CELLS = 10;
-const CUE_DELAY_S = 1.8;
+const CUE_DELAY_S = 8.5;
 const TILT_RANGE_DEG = 30;
 const TILT_REST_BETA_DEG = 45;
 const LAYOUT_SETTLE_MS = 150;
+/* Soft snap: once scrolling has rested between planets, drift to the nearest encounter. */
+const SNAP_IDLE_MS = 260;
+const SNAP_REACH = JOURNEY.encounterStep * 0.42;
+const SNAP_SETTLED = 0.0015;
+const GLIDE_MIN_S = 0.7;
+const GLIDE_MAX_S = 2.2;
 
 /* Device-tilt look-around only where it needs no permission prompt (iOS requires one). */
 function canUseTilt() {
@@ -46,10 +54,20 @@ function activePlanetAt(progress: number) {
   return Math.abs(progress - encounterAt(index)) <= JOURNEY.encounterStep / 2 ? index : -1;
 }
 
+/* The planet the journey is heading for while it is between scenes, or -1 when none is ahead. */
+function nextPlanetAt(progress: number) {
+  if (progress >= JOURNEY.outerSpace - 0.01) return -1;
+  const index = Math.ceil((progress - JOURNEY.firstEncounter) / JOURNEY.encounterStep);
+  return Math.max(0, Math.min(PLANETS.length - 1, index));
+}
+
 /* What the status line says outside planet encounters. */
 function journeyStatus(progress: number, planet: number) {
   if (planet >= 0) return `Orbit ${String(planet + 1).padStart(2, '0')} · ${PLANETS[planet].eyebrow}`;
-  if (progress < JOURNEY.sunReveal.start) return 'Deep space';
+  if (progress < 0.018) return 'Intergalactic space';
+  if (progress < 0.04) return 'The Milky Way';
+  if (progress < 0.062) return 'Orion Arm';
+  if (progress < JOURNEY.sunReveal.start) return 'Entering the Solar System';
   if (progress < encounterAt(0)) return 'Approaching the Sun';
   if (progress < JOURNEY.finalReveal.start) return 'Outer system';
   return 'Returning to the Sun';
@@ -92,6 +110,9 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
     const hudCount = root?.querySelector<HTMLElement>('[data-intro="hud-count"]');
     const hudChapter = root?.querySelector<HTMLElement>('[data-intro="hud-chapter"]');
     const navItems = Array.from(root?.querySelectorAll<HTMLElement>('[data-orbit-nav]') ?? []);
+    const bangWrap = root?.querySelector<HTMLElement>('[data-intro="bang"]');
+    const hudNext = root?.querySelector<HTMLElement>('[data-intro="hud-next"]');
+    const hudNextLabel = root?.querySelector<HTMLElement>('[data-intro="hud-next-label"]');
     const loader = root?.querySelector<HTMLElement>('[data-intro="loader"]');
     const loaderBar = root?.querySelector<HTMLElement>('[data-intro="loader-bar"]');
     const loaderPercent = root?.querySelector<HTMLElement>('[data-intro="loader-percent"]');
@@ -109,6 +130,11 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
     let done = false;
     let activePlanet = -2;
     let status = '';
+    let shownUpcoming = -2;
+    let sceneStartedAt = 0;
+    let glide: gsap.core.Tween | null = null;
+    let snapTimer = 0;
+    let programmaticScroll = false;
 
     const ctx = gsap.context(() => {
       /* The handoff, positioned in scroll progress (0-1) and played by the damped progress. */
@@ -156,7 +182,22 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
             hudChapter.dataset.chapter = PLANETS[activePlanet].chapter;
           }
         }
-        const nextStatus = journeyStatus(progress, activePlanet);
+        if (hudNext && hudNextLabel) {
+          const upcoming = activePlanet >= 0 ? -1 : nextPlanetAt(progress);
+          if (upcoming !== shownUpcoming) {
+            shownUpcoming = upcoming;
+            hudNext.dataset.visible = String(upcoming >= 0);
+            if (upcoming >= 0) {
+              hudNext.dataset.next = String(upcoming);
+              hudNextLabel.textContent = `${String(upcoming + 1).padStart(2, '0')} ${PLANETS[upcoming].title}`;
+            }
+          }
+        }
+        // The opening seconds belong to the Big Bang: its captions and status, until the visitor scrolls on.
+        const bangAge = sceneStartedAt ? (performance.now() - sceneStartedAt) / 1000 : 0;
+        const inBang = sceneStartedAt > 0 && progress < 0.004 && bangAge < 9.5;
+        if (bangWrap) bangWrap.dataset.hidden = String(progress >= 0.004);
+        const nextStatus = inBang ? (bangAge < 1.9 ? 'Before time' : 'The Big Bang') : journeyStatus(progress, activePlanet);
         if (nextStatus !== status) {
           status = nextStatus;
           hudStatus.textContent = status;
@@ -193,18 +234,69 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
         pin: true,
         anticipatePin: 1,
         onUpdate: (self) => {
-          target = self.progress;
+          target = scrollToJourney(self.progress);
           scene?.setTargetProgress(target);
           wake();
         },
       });
-      target = trigger.progress;
+      target = scrollToJourney(trigger.progress);
 
+      const scrollTopFor = (progress: number) => trigger.start + journeyToScroll(progress) * (trigger.end - trigger.start);
+      const stopGlide = () => {
+        window.clearTimeout(snapTimer);
+        glide?.kill();
+        glide = null;
+        programmaticScroll = false;
+      };
+      /* Eased scroll to a journey progress; any manual input (wheel, touch, keys, drag) takes over. */
+      const glideTo = (progress: number) => {
+        stopGlide();
+        const from = window.scrollY;
+        const to = scrollTopFor(progress);
+        const distance = Math.abs(to - from);
+        if (distance < 2) return;
+        const state = { y: from };
+        programmaticScroll = true;
+        glide = gsap.to(state, {
+          y: to,
+          duration: clamp(distance / window.innerHeight / 9, GLIDE_MIN_S, GLIDE_MAX_S),
+          ease: 'power2.inOut',
+          onUpdate: () => window.scrollTo({ top: state.y, behavior: 'instant' }),
+          onComplete: stopGlide,
+        });
+      };
       navigateRef.current = (progress: number) => {
-        window.scrollTo({ top: trigger.start + progress * (trigger.end - trigger.start), behavior: 'instant' });
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          stopGlide();
+          window.scrollTo({ top: scrollTopFor(progress), behavior: 'instant' });
+        } else glideTo(progress);
       };
 
+      /* Soft snap, for mouse and trackpad only: touch momentum would fight it. */
+      const canSnap = !window.matchMedia('(pointer: coarse)').matches;
+      const snapToEncounter = () => {
+        if (!scene || done || target < encounterAt(0) - SNAP_REACH || target > encounterAt(PLANETS.length - 1) + SNAP_REACH) return;
+        const index = Math.max(0, Math.min(PLANETS.length - 1, Math.round((scrollToJourney(trigger.progress) - JOURNEY.firstEncounter) / JOURNEY.encounterStep)));
+        const gap = Math.abs(scrollToJourney(trigger.progress) - encounterAt(index));
+        if (gap > SNAP_REACH || gap < SNAP_SETTLED) return;
+        glideTo(encounterAt(index));
+      };
+      const onScroll = () => {
+        if (!canSnap || programmaticScroll) return;
+        window.clearTimeout(snapTimer);
+        snapTimer = window.setTimeout(snapToEncounter, SNAP_IDLE_MS);
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      const onUserInput = () => {
+        if (programmaticScroll) stopGlide();
+      };
+      window.addEventListener('wheel', onUserInput, { passive: true });
+      window.addEventListener('touchstart', onUserInput, { passive: true });
+      window.addEventListener('pointerdown', onUserInput, { passive: true });
+      window.addEventListener('keydown', onUserInput);
+
       skipIntroRef.current = () => {
+        stopGlide();
         target = 1;
         window.scrollTo({ top: trigger.end, behavior: 'instant' });
         if (scene) scene.jumpTo(1);
@@ -241,6 +333,13 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
           scene = created;
           window.clearTimeout(loaderTimer);
           gsap.to(loader, { autoAlpha: 0, duration: 0.3, overwrite: true });
+          sceneStartedAt = performance.now();
+          gsap
+            .timeline()
+            .fromTo('[data-bang="0"]', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 1.1, ease: 'power2.out' }, 0.5)
+            .to('[data-bang="0"]', { autoAlpha: 0, y: -8, duration: 0.5 }, 1.75)
+            .fromTo('[data-bang="1"]', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 1.2, ease: 'power2.out' }, 3.3)
+            .to('[data-bang="1"]', { autoAlpha: 0, y: -8, duration: 1.2 }, 7);
           gsap.fromTo('[data-intro="cue-text"]', { autoAlpha: 0 }, { autoAlpha: 1, duration: 1, delay: CUE_DELAY_S });
           if (target >= DONE_PROGRESS) scene.jumpTo(1);
           else scene.setTargetProgress(target);
@@ -251,7 +350,15 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
           if (!disposed) fallBackToPlainHero();
         });
 
-      return () => window.clearTimeout(loaderTimer);
+      return () => {
+        window.clearTimeout(loaderTimer);
+        stopGlide();
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('wheel', onUserInput);
+        window.removeEventListener('touchstart', onUserInput);
+        window.removeEventListener('pointerdown', onUserInput);
+        window.removeEventListener('keydown', onUserInput);
+      };
     }, root);
 
     /* Looking around: a small glance with the mouse, or by tilting a phone. */

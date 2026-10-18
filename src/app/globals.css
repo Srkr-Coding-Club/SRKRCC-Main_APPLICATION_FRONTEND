@@ -97,6 +97,23 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-poppins);
 }
 
+/* Landing-page typography for a section of the site: the display face for the text and the headings
+   (not Poppins headings over Inter text), with the landing's tighter heading spacing. Weight stays
+   with each heading's own classes. Applied by app/hackathons/layout.tsx. */
+.journey-type {
+  font-family: var(--font-display);
+}
+
+.journey-type h1,
+.journey-type h2,
+.journey-type h3,
+.journey-type h4,
+.journey-type h5,
+.journey-type h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
 /* Themed Scrollbar */
 html {
   scrollbar-color: #FF7A00 var(--background);
@@ -124,6 +141,16 @@ html {
 
 ::-webkit-scrollbar-corner {
   background: var(--background);
+}
+
+/* Browsers draw the calendar and clock icons of date/time inputs in dark gray, which disappears on
+   dark surfaces. color-scheme: dark makes them (and the picker popup) render light. */
+.dark input[type="date"],
+.dark input[type="datetime-local"],
+.dark input[type="time"],
+.dark input[type="month"],
+.dark input[type="week"] {
+  color-scheme: dark;
 }
 
 /* Custom Glassmorphism & UI Card Utilities */

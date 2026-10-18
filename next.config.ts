@@ -7,6 +7,26 @@ const imageHosts = (process.env.NEXT_IMAGE_REMOTE_HOSTS || 'images.unsplash.com'
   .map((host) => host.trim())
   .filter(Boolean);
 
+// HSTS makes browsers refuse plain HTTP for this site for HSTS_MAX_AGE_SECONDS, and they cannot be
+// told to forget it early: use a short value (e.g. 3600) until the deployment is settled. 0 turns
+// the header off.
+const DEFAULT_HSTS_SECONDS = 31536000;
+const parsedHstsSeconds = Number.parseInt(process.env.HSTS_MAX_AGE_SECONDS ?? '', 10);
+const hstsSeconds = Number.isNaN(parsedHstsSeconds) ? DEFAULT_HSTS_SECONDS : Math.max(parsedHstsSeconds, 0);
+
+const envFlag = (name: string, fallback: boolean): boolean => {
+  const value = (process.env[name] || '').trim().toLowerCase();
+  return value ? ['true', '1', 'yes'].includes(value) : fallback;
+};
+
+const hstsValue = [
+  `max-age=${hstsSeconds}`,
+  envFlag('HSTS_INCLUDE_SUBDOMAINS', true) && 'includeSubDomains',
+  envFlag('HSTS_PRELOAD', false) && 'preload',
+]
+  .filter(Boolean)
+  .join('; ');
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: process.env.DOCKER_BUILD === '1' || process.env.OUTPUT_STANDALONE === 'true' ? 'standalone' : undefined,
@@ -48,10 +68,7 @@ const nextConfig: NextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains',
-          },
+          ...(hstsSeconds > 0 ? [{ key: 'Strict-Transport-Security', value: hstsValue }] : []),
           {
             key: 'Content-Security-Policy-Report-Only',
             value: cspReportOnly,

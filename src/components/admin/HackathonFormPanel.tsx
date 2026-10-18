@@ -43,7 +43,6 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
   const [slug, setSlug] = useState('');
   const [theme, setTheme] = useState('');
   const [prizePool, setPrizePool] = useState('₹50,000');
-  const [isFlagship, setIsFlagship] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [bannerImage, setBannerImage] = useState('');
@@ -63,7 +62,6 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
     setSlugTouched(false);
     setTheme('');
     setPrizePool('₹50,000');
-    setIsFlagship(false);
     setStartDate('');
     setEndDate('');
     setBannerImage('');
@@ -80,7 +78,6 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
       setSlugTouched(true);
       setTheme(hackathon.theme);
       setPrizePool(hackathon.prize_pool);
-      setIsFlagship(hackathon.is_flagship);
       setStartDate(toDatetimeLocal(hackathon.start_date));
       setEndDate(toDatetimeLocal(hackathon.end_date));
       setBannerImage(hackathon.banner_image || '');
@@ -122,7 +119,6 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
         theme: theme.trim(),
         description,
         prize_pool: prizePool.trim(),
-        is_flagship: isFlagship,
         start_date: new Date(startDate).toISOString(),
         end_date: new Date(endDate).toISOString(),
         banner_image: bannerImage.trim() || null,
@@ -188,7 +184,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
                 setTitle(e.target.value);
                 if (!slugTouched) setSlug(slugify(e.target.value));
               }}
-              placeholder="e.g. IconCoders 2026 Flagship"
+              placeholder="e.g. Hackoverflow 2026"
               className={inputClasses}
             />
             {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
@@ -203,7 +199,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
                 setSlugTouched(true);
                 setSlug(slugify(e.target.value));
               }}
-              placeholder="iconcoders-2026-flagship"
+              placeholder="hackoverflow-2026"
               disabled={isEditMode}
               className={`${inputClasses} disabled:opacity-60`}
             />
@@ -223,27 +219,14 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
             {errors.theme && <p className="mt-1 text-[11px] text-rose-500">{errors.theme}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClasses}>Prize Pool</label>
-              <input
-                type="text"
-                value={prizePool}
-                onChange={(e) => setPrizePool(e.target.value)}
-                className={inputClasses}
-              />
-            </div>
-            <div className="flex items-end pb-2.5">
-              <label className="flex items-center gap-2 text-xs font-bold uppercase text-[#1A1A2E] dark:text-white cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isFlagship}
-                  onChange={(e) => setIsFlagship(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-[#FF7A00] focus:ring-[#FF7A00]"
-                />
-                IconCoders Flagship
-              </label>
-            </div>
+          <div>
+            <label className={labelClasses}>Prize Pool</label>
+            <input
+              type="text"
+              value={prizePool}
+              onChange={(e) => setPrizePool(e.target.value)}
+              className={inputClasses}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

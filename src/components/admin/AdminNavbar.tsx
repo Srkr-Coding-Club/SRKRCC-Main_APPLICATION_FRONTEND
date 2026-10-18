@@ -92,7 +92,7 @@ const navItems: NavItem[] = [
     hasDropdown: true,
     children: [
       { label: 'Members', shortLabel: 'Members', href: '/admin/members', desc: 'Club member directory', icon: UserCheck },
-      { label: 'Events & Hackathons', shortLabel: 'Events', href: '/admin/events', desc: 'Workshops & hackathon engine', icon: Trophy },
+      { label: 'Events & Workshops', shortLabel: 'Events', href: '/admin/events', desc: 'Workshops & Workshop Management', icon: Trophy },
       { label: 'Hackathon Management', shortLabel: 'Hackathons', href: '/admin/hackathons', desc: 'Teams, rounds, shortlisting & notices', icon: Flag },
       { label: 'Content Hub', shortLabel: 'Content', href: '/admin/content', desc: 'Blogs & career postings', icon: BookOpen },
       { label: 'Announcements', shortLabel: 'Announce', href: '/admin/announcements', desc: 'Landing page banner messages', icon: Megaphone },

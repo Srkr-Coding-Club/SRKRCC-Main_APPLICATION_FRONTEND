@@ -9,11 +9,20 @@ import type {
   DatasetSchemaResponse,
   ExportJobStatus,
   ExportRequest,
+  FilterClause,
   QueryRequest,
   QueryResponse,
 } from './types/dmc';
 
 const BASE = 'admin/dmc';
+
+/** Drops filters the admin is still filling in (no value yet) so a half-built filter never errors or narrows results. */
+export function completedFilters(filters: FilterClause[]): FilterClause[] {
+  return filters.filter((f) => {
+    if (f.operator === 'empty' || f.operator === 'not_empty') return true;
+    return Array.isArray(f.value) ? f.value.length > 0 : String(f.value).trim() !== '';
+  });
+}
 
 export const dmcApi = {
   /** GET /api/admin/dmc/datasets/ */
@@ -28,7 +37,7 @@ export const dmcApi = {
   query: (datasetId: string, req: QueryRequest) =>
     fetchApi<QueryResponse>(`${BASE}/datasets/${datasetId}/query/`, {
       method: 'POST',
-      body: JSON.stringify(req),
+      body: JSON.stringify({ ...req, filters: completedFilters(req.filters) }),
     }),
 
   /** POST /api/admin/dmc/datasets/<id>/export/ */
@@ -43,7 +52,7 @@ export const dmcApi = {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       cache: 'no-store',
-      body: JSON.stringify(req),
+      body: JSON.stringify({ ...req, filters: completedFilters(req.filters) }),
     });
 
     if (!res.ok) {

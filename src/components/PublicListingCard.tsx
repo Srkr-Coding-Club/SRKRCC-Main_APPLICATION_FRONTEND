@@ -92,7 +92,7 @@ export default function PublicListingCard({
       <SpotlightCard
         spotlightColor={accent}
         onEnter={handleHoverEnter}
-        className="glass-panel h-full w-full border border-slate-200/70 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-white/10"
+        className="h-full w-full border border-journey-text/10 bg-journey-surface/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-journey-accent/40"
       >
         <div
           className={`flex h-full flex-col overflow-hidden p-6 ${onCardClick ? 'cursor-pointer' : ''}`}
@@ -102,34 +102,31 @@ export default function PublicListingCard({
           }}
         >
           <div ref={categoryRef} className="flex min-h-7 items-center gap-2">
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white"
-              style={{ backgroundColor: accent }}
-            >
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-journey-accent/30 bg-journey-accent/10 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-journey-accent">
               {category}
             </span>
             {status}
           </div>
 
           {schedule && (
-            <div ref={scheduleRef} className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            <div ref={scheduleRef} className="mt-3 flex items-center gap-1.5 font-mono text-[11px] text-journey-muted">
               {schedule}
             </div>
           )}
 
           <div className="mt-6 overflow-hidden">
-            <h3 ref={titleRef} className="line-clamp-2 min-h-14 text-lg font-bold leading-snug tracking-tight text-slate-900 dark:text-white">
+            <h3 ref={titleRef} className="line-clamp-2 min-h-14 font-display text-lg font-semibold leading-snug tracking-tight text-journey-text">
               {title}
             </h3>
-            <div ref={descriptionRef} className={`mt-2 line-clamp-3 min-h-16 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400 ${descriptionClassName}`}>
+            <div ref={descriptionRef} className={`mt-2 line-clamp-3 min-h-16 text-[13px] leading-relaxed text-journey-muted ${descriptionClassName}`}>
               {description}
             </div>
           </div>
 
           {details && (
             <>
-              <div className="my-2 h-px w-full bg-slate-100 dark:bg-white/10" />
-              <div ref={detailsRef} className="text-[13px] text-slate-600 dark:text-slate-300">{details}</div>
+              <div className="my-2 h-px w-full bg-journey-text/10" />
+              <div ref={detailsRef} className="text-[13px] text-journey-text/80">{details}</div>
             </>
           )}
 

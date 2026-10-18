@@ -13,6 +13,7 @@ import {
 
 import { Event } from "@/lib/types";
 import PublicListingCard from "@/components/PublicListingCard";
+import QuickRegisterButton from "@/components/events/QuickRegisterButton";
 
 /** Flattens the Markdown "about" text into a one-paragraph snippet for the card preview. */
 function markdownToPreview(md: string): string {
@@ -98,7 +99,7 @@ export default function EventCard({
         }
         status={
           event.status === "CLOSED" ? (
-            <span className="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <span className="inline-flex items-center rounded-full bg-journey-text/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-journey-text/80">
               Closed
             </span>
           ) : null
@@ -112,7 +113,7 @@ export default function EventCard({
                     <Calendar className="h-3.5 w-3.5" style={{ color: accent }} />
                     {formattedDate}
                   </span>
-                  <span className="text-slate-300 dark:text-slate-600">•</span>
+                  <span className="text-journey-muted">•</span>
                   <span className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" style={{ color: accent }} />
                     {formattedTime}
@@ -127,12 +128,12 @@ export default function EventCard({
                 <CalendarClock className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
                 {registrationNotYetOpen ? (
                   <span>
-                    <span className="font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Registration Opens:</span>{" "}
+                    <span className="font-bold uppercase tracking-wide text-journey-muted">Registration Opens:</span>{" "}
                     {registrationOpensLabel}
                   </span>
                 ) : registrationClosesLabel ? (
                   <span>
-                    <span className="font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Registration Closes:</span>{" "}
+                    <span className="font-bold uppercase tracking-wide text-journey-muted">Registration Closes:</span>{" "}
                     {registrationClosesLabel}
                   </span>
                 ) : null}
@@ -168,20 +169,26 @@ export default function EventCard({
               type="button"
               aria-label={`View details for ${event.title}`}
               onClick={onDetailsClick}
-              className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 active:scale-95 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+              className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-journey-text/10 px-3 py-2.5 text-[13px] font-semibold text-journey-text/80 transition hover:border-journey-text/25 hover:text-journey-text active:scale-95"
             >
               Details
               <ArrowUpRight className="h-3.5 w-3.5" />
             </button>
             {event.status === "CLOSED" ? (
-              <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-[13px] font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500">
+              <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-journey-text/10 px-4 py-2.5 text-[13px] font-semibold text-journey-muted">
                 Registration Closed
               </span>
+            ) : event.is_quick_registration && event.form_slug ? (
+              <QuickRegisterButton
+                event={event}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 bg-journey-accent"
+                registeredClassName="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-[13px] font-semibold text-emerald-600 dark:text-emerald-400"
+                label="Register Now"
+              />
             ) : (
               <Link
                 href={event.form_slug ? `/forms/${event.form_slug}` : "/forms"}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95"
-                style={{ backgroundColor: accent }}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 bg-journey-accent"
               >
                 <Ticket className="h-4 w-4" />
                 Register Now

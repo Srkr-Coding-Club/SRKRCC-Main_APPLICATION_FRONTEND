@@ -21,8 +21,8 @@ export function MyHackathonsPanel() {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-xl font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
-        <Trophy className="w-5 h-5 text-[#FF7A00]" />
+      <h2 className="text-xl font-bold text-journey-text flex items-center gap-2">
+        <Trophy className="w-5 h-5 text-journey-accent" />
         My Hackathons
       </h2>
 
@@ -30,14 +30,14 @@ export function MyHackathonsPanel() {
         <Link
           key={`inv-${inv.id}`}
           href={`/hackathons/${inv.hackathon_slug}/dashboard`}
-          className="flex items-center gap-3 rounded-xl border border-[#FF7A00]/40 bg-[#FF7A00]/5 px-5 py-4 transition hover:border-[#FF7A00]"
+          className="flex items-center gap-3 rounded-xl border border-journey-accent/40 bg-journey-accent/5 px-5 py-4 transition hover:border-journey-accent"
         >
-          <Mail className="h-5 w-5 text-[#FF7A00]" />
+          <Mail className="h-5 w-5 text-journey-accent" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">Invite to join {inv.team_name}</p>
-            <p className="text-xs text-slate-500 truncate">{inv.hackathon_title} · from {inv.invited_by_name ?? 'the team leader'}</p>
+            <p className="text-sm font-bold text-journey-text">Invite to join {inv.team_name}</p>
+            <p className="text-xs text-journey-muted truncate">{inv.hackathon_title} · from {inv.invited_by_name ?? 'the team leader'}</p>
           </div>
-          <span className="text-xs font-bold text-[#FF7A00]">Respond →</span>
+          <span className="text-xs font-bold text-journey-accent">Respond →</span>
         </Link>
       ))}
 
@@ -47,22 +47,22 @@ export function MyHackathonsPanel() {
           <Link
             key={t.id}
             href={`/hackathons/${t.hackathon_slug}/dashboard`}
-            className="group relative flex items-center gap-4 overflow-hidden glass-panel rounded-xl border border-slate-200 dark:border-slate-800 px-5 py-4 transition hover:border-[#FF7A00]/60"
+            className="group relative flex items-center gap-4 overflow-hidden glass-panel rounded-xl border border-journey-text/10 px-5 py-4 transition hover:border-journey-accent/60"
           >
-            <span className="absolute inset-y-0 left-0 w-1 bg-[#8B2E3B]" />
+            <span className="absolute inset-y-0 left-0 w-1 bg-journey-accent" />
             <div className="min-w-0 flex-1 pl-1">
-              <p className="text-xs font-mono font-bold text-[#FF7A00] truncate">{t.hackathon_title}</p>
-              <p className="flex items-center gap-2 text-base font-bold text-[#1A1A2E] dark:text-white truncate">
+              <p className="text-xs font-mono font-bold text-journey-accent truncate">{t.hackathon_title}</p>
+              <p className="flex items-center gap-2 text-base font-bold text-journey-text truncate">
                 {t.name}
-                {t.is_leader && <Crown className="h-4 w-4 text-[#FF7A00]" aria-label="Team leader" />}
+                {t.is_leader && <Crown className="h-4 w-4 text-journey-accent" aria-label="Team leader" />}
               </p>
-              <p className="text-xs text-slate-500 truncate">
+              <p className="text-xs text-journey-muted truncate">
                 {t.member_count} member{t.member_count === 1 ? '' : 's'}
                 {t.problem_statement ? ` · ${t.problem_statement.code}: ${t.problem_statement.title}` : t.open_innovation ? ` · ${t.open_innovation.code}: ${t.open_innovation.title} (open innovation)` : ''}
               </p>
             </div>
             {pill && <StatusPill tone={pill.tone}>{pill.label}</StatusPill>}
-            <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#FF7A00]" />
+            <ArrowRight className="h-4 w-4 text-journey-muted transition group-hover:translate-x-0.5 group-hover:text-journey-accent" />
           </Link>
         );
       })}
