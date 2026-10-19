@@ -6,6 +6,7 @@ import {
   AlertCircle,
   ArrowLeft,
   Calendar,
+  CalendarPlus,
   Check,
   Globe,
   Lightbulb,
@@ -15,7 +16,7 @@ import {
   UsersRound,
   Wifi,
 } from 'lucide-react';
-import type { Hackathon, HackathonAnnouncement, ProblemStatement, PublicStage } from '@/lib/types';
+import type { Hackathon, HackathonAnnouncement, HackathonResults, ProblemStatement, PublicStage, ShowcaseProject } from '@/lib/types';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { HackathonCTA } from '@/components/hackathons/HackathonCTA';
 import { HackathonAnnouncementsFeed, formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
@@ -26,12 +27,19 @@ import { StagesTimeline } from '@/components/hackathons/page/StagesTimeline';
 import { DatesList, PrizeCards } from '@/components/hackathons/page/DatesAndPrizes';
 import { HACKATHON_MODE_LABEL, buildDateRows } from '@/lib/hackathonPage';
 import { profileFieldLabel } from '@/lib/profileFields';
+import BannerImage from '@/components/ui/BannerImage';
+import { downloadHackathonCalendar } from '@/lib/calendar';
+import { StaffShortcuts } from '@/components/hackathons/StaffShortcuts';
+import { ContactBlock, PeopleGrid, SponsorsGrid } from '@/components/hackathons/page/PeopleSections';
+import { ProjectShowcase, WinnersList } from '@/components/hackathons/page/ResultsSection';
 
 interface HackathonDetailClientProps {
   hackathon: Hackathon;
   problems: ProblemStatement[];
   announcements: HackathonAnnouncement[];
   stages: PublicStage[];
+  results?: HackathonResults | null;
+  showcase?: ShowcaseProject[];
 }
 
 const DEFAULT_ORGANIZER = 'SRKR Coding Club, SRKR Engineering College';
@@ -50,7 +58,7 @@ function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: st
   );
 }
 
-export function HackathonDetailClient({ hackathon, problems, announcements, stages }: HackathonDetailClientProps) {
+export function HackathonDetailClient({ hackathon, problems, announcements, stages, results = null, showcase = [] }: HackathonDetailClientProps) {
   const [shareState, setShareState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   const registrationOpen = hackathon.is_registration_open ?? hackathon.status !== 'CLOSED';
@@ -63,6 +71,15 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
   const tags = hackathon.tags ?? [];
   const hasPrizes = (hackathon.prizes?.length ?? 0) > 0 || !!hackathon.prize_pool?.trim();
   const dateRows = useMemo(() => buildDateRows(hackathon, stages), [hackathon, stages]);
+  const rules = hackathon.rules?.trim() ?? '';
+  const mentors = hackathon.mentors ?? [];
+  const judges = hackathon.judges ?? [];
+  const sponsors = hackathon.sponsors ?? [];
+  const contacts = hackathon.contacts ?? [];
+  const communityLinks = hackathon.community_links ?? [];
+  const hasContact = contacts.length > 0 || communityLinks.length > 0 || !!hackathon.venue_map_url;
+  const hasResults = !!results?.published && results.winners.length > 0;
+  const placesLeft = hackathon.max_teams ? Math.max(hackathon.max_teams - (hackathon.team_count ?? 0) + (hackathon.waitlisted_team_count ?? 0), 0) : null;
 
   const deadline = hackathon.registration_closes_at
     ? formatDateTime(hackathon.registration_closes_at)
@@ -79,10 +96,17 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
       ...(problems.length > 0 || hackathon.allow_open_innovation
         ? [{ id: 'problems', label: problems.length > 0 ? `Problem Statements (${problems.length})` : 'Problem Statements' }]
         : []),
+      ...(hasResults ? [{ id: 'results', label: 'Results' }] : []),
+      ...(showcase.length > 0 ? [{ id: 'showcase', label: `Projects (${showcase.length})` }] : []),
+      ...(rules ? [{ id: 'rules', label: 'Rules' }] : []),
+      ...(mentors.length > 0 ? [{ id: 'mentors', label: 'Mentors' }] : []),
+      ...(judges.length > 0 ? [{ id: 'judges', label: 'Judges' }] : []),
+      ...(sponsors.length > 0 ? [{ id: 'sponsors', label: 'Sponsors' }] : []),
       ...(announcements.length > 0 ? [{ id: 'announcements', label: `Announcements (${announcements.length})` }] : []),
+      ...(hasContact ? [{ id: 'contact', label: 'Contact' }] : []),
       { id: 'faq', label: 'FAQs' },
     ],
-    [stages.length, hasPrizes, problems.length, hackathon.allow_open_innovation, announcements.length],
+    [stages.length, hasPrizes, problems.length, hackathon.allow_open_innovation, announcements.length, hasResults, showcase.length, rules, mentors.length, judges.length, sponsors.length, hasContact],
   );
 
   const shareLink = async () => {
@@ -118,8 +142,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
             {/* Banner */}
             <div className="relative aspect-[16/6] w-full overflow-hidden rounded-3xl border border-journey-text/10 bg-journey-surface">
               {hackathon.banner_image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={hackathon.banner_image} alt={hackathon.title} className="h-full w-full object-cover" />
+                <BannerImage src={hackathon.banner_image} alt={hackathon.title} crop={hackathon.banner_crop} />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-journey-surface">
                   <Trophy className="h-20 w-20 text-journey-accent/30" aria-hidden="true" />
@@ -145,6 +168,15 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                 </div>
                 <button
                   type="button"
+                  onClick={() => downloadHackathonCalendar(hackathon)}
+                  aria-label="Add key dates to your calendar"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-journey-text/10 px-3 py-1.5 text-xs font-bold text-journey-text/80 transition hover:border-journey-accent/50 hover:text-journey-accent active:scale-95"
+                >
+                  <CalendarPlus className="h-3.5 w-3.5" />
+                  Add to calendar
+                </button>
+                <button
+                  type="button"
                   onClick={shareLink}
                   aria-label="Share this hackathon"
                   className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-journey-text/10 px-3 py-1.5 text-xs font-bold text-journey-text/80 transition hover:border-journey-accent/50 hover:text-journey-accent active:scale-95"
@@ -153,6 +185,8 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                   {shareState === 'copied' ? 'Link copied' : shareState === 'failed' ? 'Copy failed' : 'Share'}
                 </button>
               </div>
+
+              <StaffShortcuts slug={hackathon.slug} />
 
               <div className="flex items-start justify-between gap-5">
                 <div className="min-w-0 space-y-2">
@@ -175,6 +209,13 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                 <Fact icon={Calendar} label="Registration deadline" value={deadline} />
                 {showVenue && <Fact icon={MapPin} label="Venue" value={hackathon.venue} />}
                 {teams > 0 && <Fact icon={UsersRound} label="Teams registered" value={`${teams} ${teams === 1 ? 'team' : 'teams'}`} />}
+                {hackathon.max_teams ? (
+                  <Fact
+                    icon={UsersRound}
+                    label="Places"
+                    value={hackathon.is_full ? (hackathon.waitlist_enabled ? 'Full: new teams join the waitlist' : 'Full') : `${placesLeft} of ${hackathon.max_teams} left`}
+                  />
+                ) : null}
               </div>
 
               {(tags.length > 0 || hackathon.allow_open_innovation) && (
@@ -260,6 +301,50 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
             {announcements.length > 0 && (
               <PageSectionCard id="announcements" title="Announcements">
                 <HackathonAnnouncementsFeed announcements={announcements} />
+              </PageSectionCard>
+            )}
+
+            {hasResults && results && (
+              <PageSectionCard id="results" title="Results">
+                <WinnersList results={results} />
+              </PageSectionCard>
+            )}
+
+            {showcase.length > 0 && (
+              <PageSectionCard id="showcase" title="Project showcase">
+                <ProjectShowcase projects={showcase} />
+              </PageSectionCard>
+            )}
+
+            {rules && (
+              <PageSectionCard id="rules" title="Rules and code of conduct">
+                <div className="prose max-w-none text-sm leading-relaxed text-journey-text/80 dark:prose-invert">
+                  <MarkdownRenderer content={rules} />
+                </div>
+              </PageSectionCard>
+            )}
+
+            {mentors.length > 0 && (
+              <PageSectionCard id="mentors" title="Mentors">
+                <PeopleGrid people={mentors} />
+              </PageSectionCard>
+            )}
+
+            {judges.length > 0 && (
+              <PageSectionCard id="judges" title="Judges">
+                <PeopleGrid people={judges} />
+              </PageSectionCard>
+            )}
+
+            {sponsors.length > 0 && (
+              <PageSectionCard id="sponsors" title="Sponsors and partners">
+                <SponsorsGrid sponsors={sponsors} />
+              </PageSectionCard>
+            )}
+
+            {hasContact && (
+              <PageSectionCard id="contact" title="Contact and community">
+                <ContactBlock contacts={contacts} links={communityLinks} mapUrl={hackathon.venue_map_url} />
               </PageSectionCard>
             )}
 

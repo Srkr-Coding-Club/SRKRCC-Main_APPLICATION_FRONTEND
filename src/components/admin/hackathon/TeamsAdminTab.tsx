@@ -37,6 +37,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
   const [status, setStatus] = useState('');
   const [ps, setPs] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [statusReason, setStatusReason] = useState('');
   const [addQuery, setAddQuery] = useState('');
   const [addSelectedUser, setAddSelectedUser] = useState<UserLookupResult | null>(null);
   const [addSuggestions, setAddSuggestions] = useState<UserLookupResult[]>([]);
@@ -381,7 +382,12 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                     <td className="py-2.5 pr-3 text-xs font-mono" title={t.open_innovation ? `Open innovation: ${t.open_innovation.title}` : t.problem_statement?.title}>
                       {problemCode(t)}
                     </td>
-                    <td className="py-2.5 pr-3">{pill && <StatusPill tone={pill.tone}>{pill.label}</StatusPill>}</td>
+                    <td className="py-2.5 pr-3">
+                      <div className="flex flex-wrap gap-1">
+                        {pill && <StatusPill tone={pill.tone}>{pill.label}</StatusPill>}
+                        {t.is_waitlisted && <StatusPill tone="amber">Waitlisted</StatusPill>}
+                      </div>
+                    </td>
                     <td className="py-2.5 pr-3 text-xs">
                       {latest ? (
                         <span className="flex items-center gap-1.5">
@@ -447,7 +453,9 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                   </span>
                 )}
                 {selected.open_innovation && <StatusPill tone="purple">Open innovation</StatusPill>}
+                {selected.is_waitlisted && <StatusPill tone="amber">Waitlisted</StatusPill>}
               </div>
+              {selected.status_reason && <p className="text-xs text-slate-500">Reason given to the team: {selected.status_reason}</p>}
 
               {/* Reassign / Edit Problem Statement */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 space-y-2">
@@ -559,6 +567,9 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                       <p className="text-slate-500">
                         {[m.phone_number, m.college, m.branch, m.year ? `Year ${m.year}` : null, m.roll_number, m.club_id].filter(Boolean).join(' · ') || 'No profile details'}
                       </p>
+                      {Object.keys(m.answers ?? {}).length > 0 && (
+                        <p className="text-slate-500">{Object.entries(m.answers ?? {}).map(([key, value]) => `${key}: ${value === true ? 'yes' : value}`).join(' · ')}</p>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -701,10 +712,18 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
               {/* Team Status setting */}
               <div className="space-y-2">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Team status</p>
+                <input
+                  value={statusReason}
+                  onChange={(e) => setStatusReason(e.target.value)}
+                  maxLength={300}
+                  placeholder="Reason shown to the team (for disqualified / withdrawn)"
+                  aria-label="Reason for the status change"
+                  className={INPUT}
+                />
                 <FormSelect
                   value={selected.status}
                   allowClear={false}
-                  onChange={(v) => v !== selected.status && act(() => hackathonApi.admin.setTeamStatus(selected.id, v), 'Status updated')}
+                  onChange={(v) => v !== selected.status && act(() => hackathonApi.admin.setTeamStatus(selected.id, v, statusReason), 'Status updated').then(() => setStatusReason(''))}
                   options={STATUS_OPTIONS}
                   placeholder="Status"
                   disabled={busy}

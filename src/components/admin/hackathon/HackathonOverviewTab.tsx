@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Flag, Mail, Target, Users, UsersRound } from 'lucide-react';
 import type { HackathonStats } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
+import { AnalyticsPanel } from './AnalyticsPanel';
 import { LoadError } from './LoadError';
 import { useToast } from '@/context/ToastContext';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -155,6 +156,8 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
           )}
         </section>
       </div>
+
+      <AnalyticsPanel slug={slug} />
     </div>
   );
 }

@@ -3,10 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { X, Trophy } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
-import { Hackathon, Form } from '@/lib/types';
+import { Hackathon, Form, HackathonFeatures } from '@/lib/types';
 import { slugify } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { Switch } from '@/components/ui/Switch';
+import { FEATURE_OPTIONS } from '@/components/admin/hackathon/featureOptions';
 import { apiErrorMessage } from '@/lib/api/hackathons';
 import { firstFieldErrors } from '@/components/admin/hackathon/shared';
 
@@ -48,6 +50,8 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
   const [bannerImage, setBannerImage] = useState('');
   const [registrationForm, setRegistrationForm] = useState('');
   const [description, setDescription] = useState('');
+  const [features, setFeatures] = useState<HackathonFeatures>({});
+  const [maxTeams, setMaxTeams] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -67,6 +71,8 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
     setBannerImage('');
     setRegistrationForm('');
     setDescription('');
+    setFeatures({});
+    setMaxTeams('');
     setErrors({});
   };
 
@@ -123,6 +129,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
         end_date: new Date(endDate).toISOString(),
         banner_image: bannerImage.trim() || null,
         registration_form: registrationForm ? Number(registrationForm) : null,
+        ...(isEditMode ? {} : { features, max_teams: maxTeams.trim() ? Number(maxTeams) : null }),
       };
       const saved = isEditMode
         ? await fetchApi<Hackathon>(`/hackathons/${hackathon!.slug}/`, { method: 'PATCH', body: JSON.stringify(body) })
@@ -281,6 +288,29 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
               Not needed: teams register from the participant dashboard. Set team size, the registration window and problem statements under Manage after saving.
             </p>
           </div>
+
+          {!isEditMode && (
+            <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+              <legend className="px-1 text-xs font-bold uppercase text-[#1A1A2E] dark:text-white">Modules for this event</legend>
+              <p className="text-xs text-slate-500">Switch on only what you need. Everything here, and more (rules, eligibility, questions), can be changed later under Registration controls.</p>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {FEATURE_OPTIONS.map((option) => (
+                  <Switch
+                    key={option.key}
+                    label={option.label}
+                    description={option.description}
+                    checked={Boolean(features[option.key])}
+                    onChange={(checked) => setFeatures((current) => ({ ...current, [option.key]: checked }))}
+                  />
+                ))}
+              </div>
+              <div className="max-w-xs">
+                <label htmlFor="create-max-teams" className={labelClasses}>Maximum teams <span className="normal-case font-medium text-slate-400">(optional)</span></label>
+                <input id="create-max-teams" type="number" min={1} value={maxTeams} onChange={(e) => setMaxTeams(e.target.value)} placeholder="Unlimited" className={inputClasses} />
+                {errors.max_teams && <p className="mt-1 text-[11px] text-rose-500">{errors.max_teams}</p>}
+              </div>
+            </fieldset>
+          )}
 
           <MarkdownEditor
             label="About This Hackathon"

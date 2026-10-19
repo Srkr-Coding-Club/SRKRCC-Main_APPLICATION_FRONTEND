@@ -54,9 +54,17 @@ export function HackathonCTA({ hackathon }: { hackathon: Hackathon }) {
       </Link>
     );
   }
+  if (hackathon.is_full && !hackathon.waitlist_enabled) {
+    return (
+      <span className={MUTED}>
+        <Lock className="h-4 w-4" />
+        Registration full
+      </span>
+    );
+  }
   return (
     <Link href={dashboard} className={PRIMARY}>
-      Register Team
+      {hackathon.is_full ? 'Join the waitlist' : 'Register Team'}
       <ArrowRight className="h-4 w-4" />
     </Link>
   );

@@ -3,7 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   CheckCircle2,
   Clock,
   Download,
@@ -22,12 +24,14 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
-import type { AdminRoundEntry, Form, HackathonRound, HackathonTeam, RoundEntryStatus } from '@/lib/types';
+import type { AdminRoundEntry, Form, HackathonFeatures, HackathonRound, HackathonTeam, RoundEntryStatus, RoundKind } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
 import { Modal } from '@/components/ui/Modal';
 import { LoadError } from './LoadError';
+import { RoundAutoShortlist } from './RoundAutoShortlist';
+import { ROUND_KIND_LABEL, ROUND_KIND_OPTIONS, ROUND_TEMPLATES } from './roundKinds';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { downloadCSV } from '@/lib/dataManagement';
 import { FormSelect } from '@/components/ui/FormSelect';
@@ -37,6 +41,8 @@ import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, BTN, INPUT, LABEL, PANEL, firstFiel
 
 interface RoundDraft {
   name: string;
+  kind: RoundKind;
+  shortlist_limit: string;
   description: string;
   starts_at: string;
   ends_at: string;
@@ -50,7 +56,7 @@ const STATUS_OPTIONS = [
   { value: 'COMPLETED', label: 'Completed' },
 ];
 
-export function RoundsAdminTab({ slug }: { slug: string }) {
+export function RoundsAdminTab({ slug, features }: { slug: string; features: HackathonFeatures }) {
   const { toast } = useToast();
   const [rounds, setRounds] = useState<HackathonRound[]>([]);
   const [forms, setForms] = useState<Form[]>([]);
@@ -65,7 +71,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const [roundModal, setRoundModal] = useState<HackathonRound | 'new' | null>(null);
-  const [draft, setDraft] = useState<RoundDraft>({ name: '', description: '', starts_at: '', ends_at: '', status: 'UPCOMING', details_form: '' });
+  const [draft, setDraft] = useState<RoundDraft>({ name: '', kind: 'GENERAL', shortlist_limit: '', description: '', starts_at: '', ends_at: '', status: 'UPCOMING', details_form: '' });
   const [draftErrors, setDraftErrors] = useState<Record<string, string>>({});
 
   const [decision, setDecision] = useState<RoundEntryStatus | null>(null);
@@ -170,9 +176,9 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
     setRoundModal(r);
     setDraftErrors({});
     setDraft(r === 'new'
-      ? { name: `Round ${rounds.length + 1}`, description: '', starts_at: '', ends_at: '', status: 'UPCOMING', details_form: '' }
+      ? { name: `Round ${rounds.length + 1}`, kind: 'GENERAL', shortlist_limit: '', description: '', starts_at: '', ends_at: '', status: 'UPCOMING', details_form: '' }
       : {
-          name: r.name, description: r.description, starts_at: toLocalInput(r.starts_at), ends_at: toLocalInput(r.ends_at),
+          name: r.name, kind: r.kind, shortlist_limit: r.shortlist_limit ? String(r.shortlist_limit) : '', description: r.description, starts_at: toLocalInput(r.starts_at), ends_at: toLocalInput(r.ends_at),
           status: r.status, details_form: r.details_form ? String(r.details_form) : '',
         });
   };
@@ -181,6 +187,8 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
     e.preventDefault();
     const body = {
       name: draft.name.trim(),
+      kind: draft.kind,
+      shortlist_limit: draft.shortlist_limit.trim() ? Number(draft.shortlist_limit) : null,
       description: draft.description,
       starts_at: fromLocalInput(draft.starts_at),
       ends_at: fromLocalInput(draft.ends_at),
@@ -224,11 +232,28 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
   };
 
   // ---- decisions ----
+  /** Records a decision; when it would shortlist more than the round's target, asks first and retries. */
+  const decideTeams = async (body: Parameters<typeof hackathonApi.admin.decide>[2]) => {
+    if (!round) return;
+    try {
+      await hackathonApi.admin.decide(slug, round.id, body);
+    } catch (err: any) {
+      if (err?.body?.code !== 'SHORTLIST_LIMIT') throw err;
+      const ok = await confirm({
+        title: 'Shortlist more teams than planned?',
+        message: `${round.name} is meant to take ${err.body.limit} teams and this would make it ${err.body.would_be}.`,
+        confirmLabel: 'Shortlist anyway',
+      });
+      if (!ok) throw new Error('Cancelled: the shortlist was not changed.');
+      await hackathonApi.admin.decide(slug, round.id, { ...body, confirm_over_limit: true });
+    }
+  };
+
   const applyDecision = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!round || !decision) return;
     const ok = await run(
-      () => hackathonApi.admin.decide(slug, round.id, {
+      () => decideTeams({
         team_ids: [...checked].map((id) => entries.find((x) => x.id === id)!.team_id),
         status: decision,
         ...(clearFeedback ? { feedback: '' } : feedback.trim() ? { feedback: feedback.trim() } : {}),
@@ -326,7 +351,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
       if (!ok) return;
     }
     run(
-      () => hackathonApi.admin.decide(slug, round.id, {
+      () => decideTeams({
         team_ids: [teamId], status, ...(round.results_published ? { confirm_published: true } : {}),
       }),
       `${teamName} marked ${ENTRY_STATUS_PILL[status].label.toLowerCase()}`,
@@ -342,6 +367,11 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
         members: e.member_count,
         problem: e.problem_code ?? '',
         status: e.status,
+        idea_status: e.idea_status ?? '',
+        idea_score: e.idea_score ?? '',
+        project_submitted: e.has_project ? 'yes' : 'no',
+        project_score: e.project_score ?? '',
+        checked_in_members: e.checked_in,
         feedback: e.feedback,
         admin_notes: e.admin_notes,
         details_submitted: e.details_response_id ? 'yes' : 'no',
@@ -349,6 +379,21 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
       `${slug}-round-${round.order}-${Date.now()}.csv`,
     );
   };
+
+  const moveRound = async (id: number, delta: -1 | 1) => {
+    const ids = rounds.map((r) => r.id);
+    const from = ids.indexOf(id);
+    const to = from + delta;
+    if (from < 0 || to < 0 || to >= ids.length) return;
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    await run(() => hackathonApi.admin.reorderRounds(slug, ids), 'Round order changed');
+  };
+
+  const addSuggestedRounds = () => run(async () => {
+    for (const template of ROUND_TEMPLATES) {
+      await hackathonApi.admin.createRound(slug, { name: template.name, kind: template.kind, description: template.description });
+    }
+  }, 'Suggested rounds added');
 
   const allChecked = visible.length > 0 && visible.every((e) => checked.has(e.id));
   const toggleAll = () => setChecked(allChecked ? new Set() : new Set(visible.map((e) => e.id)));
@@ -371,27 +416,37 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
           <button onClick={() => openRound('new')} className={BTN_PRIMARY}><Plus className="h-3.5 w-3.5" /> New</button>
         </div>
         {rounds.length === 0 ? (
-          <p className="text-xs text-slate-500">
-            No rounds yet. The first round includes every registered team; each later round includes the teams shortlisted in the previous round.
-          </p>
+          <div className="space-y-2">
+            <p className="text-xs text-slate-500">
+              No rounds yet. The first round includes every registered team; each later round includes the teams shortlisted in the previous round.
+            </p>
+            <button type="button" onClick={addSuggestedRounds} disabled={busy} className={BTN_GHOST}><Sparkles className="h-3.5 w-3.5" /> Add suggested rounds</button>
+            <p className="text-[11px] text-slate-400">Idea review, project review and final pitch. Edit or delete any of them.</p>
+          </div>
         ) : (
           <ul className="space-y-1.5">
-            {rounds.map((r) => (
-              <li key={r.id}>
+            {rounds.map((r, index) => (
+              <li key={r.id} className="flex items-stretch gap-1">
                 <button
                   onClick={() => setSelectedId(r.id)}
-                  className={`w-full rounded-lg border px-3 py-2 text-left transition ${
+                  className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-left transition ${
                     r.id === selectedId
                       ? 'border-[#FF7A00] bg-[#FF7A00]/5'
                       : 'border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50'
                   }`}
                 >
-                  <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">R{r.order} · {r.name}</p>
+                  <p className="truncate text-sm font-bold text-[#1A1A2E] dark:text-white">R{r.order} · {r.name}</p>
                   <p className="text-[11px] text-slate-500">
-                    {r.entry_counts.total} teams · {r.entry_counts.SHORTLISTED} shortlisted
+                    {ROUND_KIND_LABEL[r.kind]} · {r.entry_counts.total} teams · {r.entry_counts.SHORTLISTED}{r.shortlist_limit ? `/${r.shortlist_limit}` : ''} shortlisted
                     {r.results_published ? ' · published' : ''}
                   </p>
                 </button>
+                {rounds.length > 1 && (
+                  <div className="flex flex-col justify-center">
+                    <button type="button" onClick={() => moveRound(r.id, -1)} disabled={busy || index === 0} aria-label={`Move ${r.name} earlier`} className="rounded p-1 text-slate-400 hover:text-[#FF7A00] disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => moveRound(r.id, 1)} disabled={busy || index === rounds.length - 1} aria-label={`Move ${r.name} later`} className="rounded p-1 text-slate-400 hover:text-[#FF7A00] disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -406,7 +461,8 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Round {round.order}: {round.name}</h3>
-                <StatusPill tone={ROUND_STATUS_PILL[round.status].tone}>{ROUND_STATUS_PILL[round.status].label}</StatusPill>
+                <StatusPill tone="purple">{ROUND_KIND_LABEL[round.kind]}</StatusPill>
+                <StatusPill tone={ROUND_STATUS_PILL[round.effective_status].tone}>{ROUND_STATUS_PILL[round.effective_status].label}</StatusPill>
                 {round.results_published ? (
                   <StatusPill tone="green" icon={Eye}>Results visible</StatusPill>
                 ) : (
@@ -498,7 +554,10 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
               </div>
               <div className="rounded-lg bg-emerald-500/10 p-3 border border-emerald-500/20">
                 <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase">Shortlisted</p>
-                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{round.entry_counts.SHORTLISTED}</p>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {round.entry_counts.SHORTLISTED}
+                  {round.shortlist_limit ? <span className="text-xs font-semibold"> of {round.shortlist_limit} planned</span> : null}
+                </p>
               </div>
               <div className="rounded-lg bg-rose-500/10 p-3 border border-rose-500/20">
                 <p className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold uppercase">Not Shortlisted</p>
@@ -517,6 +576,8 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
               </p>
             )}
           </div>
+
+          <RoundAutoShortlist key={round.id} slug={slug} round={round} features={features} onApplied={refresh} />
 
           {/* Search & Filter Bar */}
           <div className="flex flex-wrap items-center gap-2">
@@ -569,6 +630,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
                     </th>
                     <th className="py-2 pr-3">Team</th>
                     <th className="py-2 pr-3">Problem</th>
+                    <th className="py-2 pr-3">Evidence</th>
                     <th className="py-2 pr-3">Status</th>
                     <th className="py-2 pr-3">Promotion</th>
                     <th className="py-2 pr-3">Details</th>
@@ -599,6 +661,11 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
                         <p className="text-[11px] text-slate-500">{e.leader_email} · {e.member_count} members</p>
                       </td>
                       <td className="py-2.5 pr-3 text-xs font-mono">{e.problem_code ?? '-'}</td>
+                      <td className="py-2.5 pr-3 text-[11px] text-slate-500">
+                        <p>Idea: {e.idea_status ? `${e.idea_status.replace('_', ' ').toLowerCase()}${e.idea_score !== null ? ` · ${e.idea_score.toFixed(1)}` : ''}` : '–'}</p>
+                        <p>Project: {e.has_project ? (e.project_score !== null ? e.project_score.toFixed(1) : 'submitted') : '–'}</p>
+                        {features.check_in && <p>Checked in: {e.checked_in}</p>}
+                      </td>
                       <td className="py-2.5 pr-3">
                         <StatusPill tone={ENTRY_STATUS_PILL[e.status].tone}>{ENTRY_STATUS_PILL[e.status].label}</StatusPill>
                       </td>
@@ -677,6 +744,17 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
             <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className={INPUT} />
             {draftErrors.name && <p className="mt-1 text-[11px] text-rose-500">{draftErrors.name}</p>}
           </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className={LABEL}>Kind of round</label>
+              <FormSelect value={draft.kind} onChange={(v) => setDraft((d) => ({ ...d, kind: v as RoundKind }))} options={ROUND_KIND_OPTIONS} placeholder="Kind" allowClear={false} />
+            </div>
+            <div>
+              <label htmlFor="round-limit" className={LABEL}>Teams going through (target)</label>
+              <input id="round-limit" type="number" min={1} value={draft.shortlist_limit} onChange={(e) => setDraft((d) => ({ ...d, shortlist_limit: e.target.value }))} placeholder="No target" className={INPUT} />
+              {draftErrors.shortlist_limit && <p className="mt-1 text-[11px] text-rose-500">{draftErrors.shortlist_limit}</p>}
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className={LABEL}>Starts</label>
@@ -688,7 +766,7 @@ export function RoundsAdminTab({ slug }: { slug: string }) {
               {draftErrors.ends_at && <p className="mt-1 text-[11px] text-rose-500">{draftErrors.ends_at}</p>}
             </div>
             <div>
-              <label className={LABEL}>Status</label>
+              <label className={LABEL}>Status (used when no dates are set)</label>
               <FormSelect value={draft.status} onChange={(v) => setDraft((d) => ({ ...d, status: v }))} options={STATUS_OPTIONS} placeholder="Status" allowClear={false} />
             </div>
           </div>

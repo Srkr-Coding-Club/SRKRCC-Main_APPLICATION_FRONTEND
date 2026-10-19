@@ -1,7 +1,38 @@
 import { fetchApi } from '@/lib/api-client';
 import type {
   AdminRoundEntry,
+  AdminIdeasPayload,
+  AdminSubmissionsPayload,
+  CertificateVerification,
+  CheckInRoster,
+  FinderListing,
   Hackathon,
+  HackathonAnalytics,
+  HackathonAward,
+  AutoShortlistResult,
+  CriterionTarget,
+  HackathonCertificate,
+  IdeaLeaderboardPayload,
+  JudgingIdeasPayload,
+  RoundRuleKey,
+  HackathonIdea,
+  HackathonPermissionKey,
+  HackathonStaffRole,
+  IdeaDraft,
+  IdeaStatus,
+  MyHackathonPermissions,
+  MyIdeaPayload,
+  HackathonResults,
+  HackathonStaffMember,
+  JudgeReview,
+  JudgingCriterion,
+  JudgingPayload,
+  LeaderboardPayload,
+  MyCheckIn,
+  MySubmissionPayload,
+  ShowcaseProject,
+  SubmissionDraft,
+  SubmissionReviewRow,
   HackathonAnnouncement,
   HackathonDeleteImpact,
   HackathonRound,
@@ -30,6 +61,12 @@ export interface ProblemStatementUploadResult {
   codes: string[];
   errors: { row: number; message: string }[];
 }
+/** What a participant provides when joining: the organizers' rules and extra questions. */
+export interface RegistrationInput {
+  accept_rules?: boolean;
+  answers?: Record<string, string | boolean>;
+}
+
 const json = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body ?? {}) });
 const patch = (body: unknown): RequestInit => ({ method: 'PATCH', body: JSON.stringify(body) });
 const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) });
@@ -43,8 +80,53 @@ export const hackathonApi = {
   myTeam: (slug: string) => fetchApi<MyTeamPayload>(`/hackathons/${enc(slug)}/my-team/`),
   myTeams: () => fetchApi<HackathonTeam[]>('/hackathons/my-teams/'),
   myInvites: () => fetchApi<HackathonTeamInvite[]>('/hackathons/my-invites/'),
-  createTeam: (slug: string, body: TeamProblemBody & { name: string }) =>
+  createTeam: (slug: string, body: TeamProblemBody & RegistrationInput & { name: string }) =>
     fetchApi<HackathonTeam>(`/hackathons/${enc(slug)}/teams/`, json(body)),
+  saveMyRegistration: (slug: string, body: RegistrationInput) =>
+    fetchApi<{ rules_accepted_at: string | null; answers: Record<string, string | boolean>; missing: string[] }>(
+      `/hackathons/${enc(slug)}/my-registration/`, patch(body),
+    ),
+  updateTeamRecruiting: (teamId: number, body: { looking_for_members: boolean; looking_for: string }) =>
+    fetchApi<HackathonTeam>(`/hackathons/teams/${teamId}/`, patch(body)),
+  myPermissions: (slug: string) => fetchApi<MyHackathonPermissions>(`/hackathons/${enc(slug)}/my-permissions/`),
+  myIdea: (slug: string) => fetchApi<MyIdeaPayload>(`/hackathons/${enc(slug)}/my-idea/`),
+  saveIdea: (slug: string, body: IdeaDraft) =>
+    fetchApi<MyIdeaPayload>(`/hackathons/${enc(slug)}/my-idea/`, { method: 'PUT', body: JSON.stringify(body) }),
+  mySubmission: (slug: string) => fetchApi<MySubmissionPayload>(`/hackathons/${enc(slug)}/my-submission/`),
+  saveSubmission: (slug: string, body: SubmissionDraft) =>
+    fetchApi<MySubmissionPayload>(`/hackathons/${enc(slug)}/my-submission/`, { method: 'PUT', body: JSON.stringify(body) }),
+  myCheckIn: (slug: string) => fetchApi<MyCheckIn>(`/hackathons/${enc(slug)}/my-check-in/`),
+  myCertificate: (slug: string) => fetchApi<HackathonCertificate>(`/hackathons/${enc(slug)}/my-certificate/`),
+  verifyCertificate: (code: string) => fetchApi<CertificateVerification>(`/hackathons/certificates/verify/${enc(code)}/`),
+  results: (slug: string) => fetchApi<HackathonResults>(`/hackathons/${enc(slug)}/results/`),
+  showcase: (slug: string) => fetchApi<{ enabled: boolean; projects: ShowcaseProject[] }>(`/hackathons/${enc(slug)}/showcase/`),
+  finder: {
+    list: (slug: string) => fetchApi<FinderListing>(`/hackathons/${enc(slug)}/finder/`),
+    saveProfile: (slug: string, body: { skills: string; note: string }) =>
+      fetchApi<{ skills: string; note: string }>(`/hackathons/${enc(slug)}/finder/me/`, put(body)),
+    withdraw: (slug: string) => fetchApi<{ withdrawn: true }>(`/hackathons/${enc(slug)}/finder/me/`, { method: 'DELETE' }),
+    invite: (slug: string, seekerId: number) =>
+      fetchApi<{ invited: true }>(`/hackathons/${enc(slug)}/finder/seekers/${seekerId}/invite/`, json({})),
+    requestToJoin: (slug: string, teamId: number, message: string) =>
+      fetchApi<{ requested: true }>(`/hackathons/${enc(slug)}/finder/teams/${teamId}/request/`, json({ message })),
+  },
+  judging: {
+    ideas: (slug: string) => fetchApi<JudgingIdeasPayload>(`/hackathons/${enc(slug)}/judging/ideas/`),
+    reviewIdea: (slug: string, ideaId: number, body: { scores: Record<string, number>; comment: string }) =>
+      fetchApi<JudgeReview>(`/hackathons/${enc(slug)}/judging/ideas/${ideaId}/`, json(body)),
+    list: (slug: string) => fetchApi<JudgingPayload>(`/hackathons/${enc(slug)}/judging/`),
+    review: (slug: string, submissionId: number, body: { scores: Record<string, number>; comment: string }) =>
+      fetchApi<JudgeReview>(`/hackathons/${enc(slug)}/judging/${submissionId}/`, json(body)),
+  },
+  checkIn: {
+    roster: (slug: string) => fetchApi<CheckInRoster>(`/hackathons/${enc(slug)}/check-in/`),
+    checkIn: (slug: string, body: { user_id?: number; token?: string }) =>
+      fetchApi<{ created: boolean; user_id: number; name: string; team_name: string; checked_in_at: string }>(
+        `/hackathons/${enc(slug)}/check-in/`, json(body),
+      ),
+    undo: (slug: string, userId: number) =>
+      fetchApi<{ deleted: true }>(`/hackathons/${enc(slug)}/check-in/${userId}/`, { method: 'DELETE' }),
+  },
   lookupUser: (slug: string, query: string, teamId?: number) => {
     const params = new URLSearchParams();
     if (query.includes('@') && query.includes('.')) {
@@ -55,8 +137,8 @@ export const hackathonApi = {
     if (teamId) params.set('team_id', String(teamId));
     return fetchApi<UserLookupResult>(`/hackathons/${enc(slug)}/user-lookup/?${params.toString()}`);
   },
-  acceptInvite: (id: number) =>
-    fetchApi<{ accepted: true; team: HackathonTeam; hackathon_slug: string }>(`/hackathons/invites/${id}/accept/`, json({})),
+  acceptInvite: (id: number, registration: RegistrationInput = {}) =>
+    fetchApi<{ accepted: true; team: HackathonTeam; hackathon_slug: string }>(`/hackathons/invites/${id}/accept/`, json(registration)),
   declineInvite: (id: number) => fetchApi<{ declined: true }>(`/hackathons/invites/${id}/decline/`, json({})),
 
   // --- team (leader / member / admin) ---
@@ -82,6 +164,52 @@ export const hackathonApi = {
     update: (slug: string, body: Partial<Hackathon>) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/`, patch(body)),
     setOpen: (slug: string, open: boolean) =>
       fetchApi<Hackathon>(`/hackathons/${enc(slug)}/${open ? 'reopen' : 'close'}/`, json({})),
+    clone: (slug: string, body: { title: string; slug?: string; start_date: string; copy_problem_statements?: boolean }) =>
+      fetchApi<{ slug: string; title: string }>(`/hackathons/${enc(slug)}/clone/`, json(body)),
+    analytics: (slug: string) => fetchApi<HackathonAnalytics>(`/hackathons/${enc(slug)}/analytics/`),
+    participants: (slug: string) => fetchApi<Record<string, string | number>[]>(`/hackathons/${enc(slug)}/participants/`),
+    submissions: (slug: string) => fetchApi<AdminSubmissionsPayload>(`/hackathons/${enc(slug)}/submissions/`),
+    remindMissingSubmissions: (slug: string) =>
+      fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/submissions/remind/`, json({})),
+    submissionReviews: (slug: string, submissionId: number) =>
+      fetchApi<SubmissionReviewRow[]>(`/hackathons/${enc(slug)}/submissions/${submissionId}/reviews/`),
+    criteria: (slug: string, target: CriterionTarget = 'PROJECT') =>
+      fetchApi<Required<JudgingCriterion>[]>(`/hackathons/${enc(slug)}/criteria/?target=${target}`),
+    saveCriteria: (slug: string, criteria: JudgingCriterion[], target: CriterionTarget = 'PROJECT') =>
+      fetchApi<Required<JudgingCriterion>[]>(`/hackathons/${enc(slug)}/criteria/`, put({ criteria, target })),
+    seedCriteria: (slug: string, target: CriterionTarget = 'PROJECT') =>
+      fetchApi<Required<JudgingCriterion>[]>(`/hackathons/${enc(slug)}/criteria/?target=${target}`, json({})),
+    ideaLeaderboard: (slug: string) => fetchApi<IdeaLeaderboardPayload>(`/hackathons/${enc(slug)}/leaderboard/?target=IDEA`),
+    ideaReviews: (slug: string, ideaId: number) =>
+      fetchApi<SubmissionReviewRow[]>(`/hackathons/${enc(slug)}/ideas/${ideaId}/reviews/`),
+    reorderRounds: (slug: string, ids: number[]) =>
+      fetchApi<HackathonRound[]>(`/hackathons/${enc(slug)}/rounds/reorder/`, json({ ids })),
+    autoShortlist: (
+      slug: string,
+      id: number,
+      body: { rule: RoundRuleKey; value?: number; reject_rest?: boolean; apply?: boolean; confirm_published?: boolean; confirm_over_limit?: boolean },
+    ) => fetchApi<AutoShortlistResult & { round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/auto-shortlist/`, json(body)),
+    staff: (slug: string) => fetchApi<HackathonStaffMember[]>(`/hackathons/${enc(slug)}/staff/`),
+    addStaff: (slug: string, email: string, role: HackathonStaffRole, permissions?: HackathonPermissionKey[]) =>
+      fetchApi<HackathonStaffMember>(`/hackathons/${enc(slug)}/staff/`, json({ email, role, ...(permissions ? { permissions } : {}) })),
+    updateStaffPermissions: (slug: string, id: number, permissions: HackathonPermissionKey[]) =>
+      fetchApi<HackathonStaffMember>(`/hackathons/${enc(slug)}/staff/${id}/`, patch({ permissions })),
+    ideas: (slug: string) => fetchApi<AdminIdeasPayload>(`/hackathons/${enc(slug)}/ideas/`),
+    reviewIdea: (slug: string, id: number, body: { status: Exclude<IdeaStatus, 'SUBMITTED'>; feedback: string }) =>
+      fetchApi<HackathonIdea>(`/hackathons/${enc(slug)}/ideas/${id}/review/`, json(body)),
+    remindMissingIdeas: (slug: string) => fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/ideas/remind/`, json({})),
+    removeStaff: (slug: string, id: number) =>
+      fetchApi<{ deleted: true }>(`/hackathons/${enc(slug)}/staff/${id}/`, { method: 'DELETE' }),
+    leaderboard: (slug: string) => fetchApi<LeaderboardPayload>(`/hackathons/${enc(slug)}/leaderboard/`),
+    winners: (slug: string) => fetchApi<HackathonAward[]>(`/hackathons/${enc(slug)}/winners/`),
+    saveWinners: (slug: string, winners: HackathonAward[]) =>
+      fetchApi<HackathonAward[]>(`/hackathons/${enc(slug)}/winners/`, put({ winners })),
+    publishResults: (slug: string, notify = true) =>
+      fetchApi<{ published: boolean; published_at: string | null }>(`/hackathons/${enc(slug)}/results/publish/`, json({ notify })),
+    unpublishResults: (slug: string) =>
+      fetchApi<{ published: boolean }>(`/hackathons/${enc(slug)}/results/unpublish/`, json({})),
+    certificates: (slug: string) =>
+      fetchApi<{ eligible: number; preview: HackathonCertificate }>(`/hackathons/${enc(slug)}/certificates/`),
     hide: (slug: string) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/hide/`, json({})),
     show: (slug: string) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/show/`, json({})),
     deleteImpact: (slug: string) => fetchApi<HackathonDeleteImpact>(`/hackathons/${enc(slug)}/delete-impact/`),
@@ -141,8 +269,8 @@ export const hackathonApi = {
       fetchApi<{ deleted: true; id: number }>(`/hackathons/teams/${id}/`, { method: 'DELETE' }),
     addMember: (teamId: number, email: string) =>
       fetchApi<HackathonTeam>(`/hackathons/teams/${teamId}/admin-add-member/`, json({ email })),
-    setTeamStatus: (teamId: number, status: string) =>
-      fetchApi<HackathonTeam>(`/hackathons/teams/${teamId}/admin-set-status/`, json({ status })),
+    setTeamStatus: (teamId: number, status: string, reason = '') =>
+      fetchApi<HackathonTeam>(`/hackathons/teams/${teamId}/admin-set-status/`, json({ status, reason })),
 
     rounds: (slug: string) => fetchApi<HackathonRound[]>(`/hackathons/${enc(slug)}/rounds/`),
     createRound: (slug: string, body: Partial<HackathonRound> & { populate?: boolean }) =>
@@ -156,7 +284,7 @@ export const hackathonApi = {
     decide: (
       slug: string,
       id: number,
-      body: { team_ids: number[]; status: RoundEntryStatus; feedback?: string; admin_notes?: string; confirm_published?: boolean },
+      body: { team_ids: number[]; status: RoundEntryStatus; feedback?: string; admin_notes?: string; confirm_published?: boolean; confirm_over_limit?: boolean },
     ) => fetchApi<{ updated: number; round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/decide/`, json(body)),
     publishRound: (
       slug: string,

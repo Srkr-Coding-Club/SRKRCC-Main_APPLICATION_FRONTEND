@@ -3,8 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, HelpCircle, LayoutTemplate, Lock, Save, Trash2, Unlock, Sparkles, Calendar, Trophy, Users, Shield, FileText, Image as ImageIcon } from 'lucide-react';
-import type { Hackathon, ProfileFieldKey } from '@/lib/types';
+import Link from 'next/link';
+import type { Form, Hackathon, ProfileFieldKey } from '@/lib/types';
 import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
+import { fetchApi } from '@/lib/api-client';
+import { DEFAULT_BANNER_CROP, isDefaultBannerCrop, normalizeBannerCrop, type BannerCrop } from '@/lib/bannerCrop';
+import { BannerCropEditor } from './BannerCropEditor';
+import { FormSelect } from '@/components/ui/FormSelect';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
@@ -23,6 +28,10 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const [prizePool, setPrizePool] = useState('₹50,000');
   const [bannerImage, setBannerImage] = useState('');
   const [description, setDescription] = useState('');
+  const [bannerCrop, setBannerCrop] = useState<BannerCrop>(DEFAULT_BANNER_CROP);
+  const [registrationForm, setRegistrationForm] = useState('');
+  const [forms, setForms] = useState<Form[]>([]);
+  const [formsError, setFormsError] = useState(false);
 
   // Schedule
   const [startDate, setStartDate] = useState('');
@@ -52,11 +61,17 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const currentSnapshot = JSON.stringify([
-    title, theme, prizePool, bannerImage, description, startDate, endDate, visibleFrom, visibleUntil,
+    title, theme, prizePool, bannerImage, bannerCrop, registrationForm, description, startDate, endDate, visibleFrom, visibleUntil,
     opensAt, closesAt, minSize, maxSize, locked, openInnovation, required, faq,
     mode, venue, organizer, logoImage, tagsText, prizes,
   ]);
   const dirty = savedSnapshot !== '' && currentSnapshot !== savedSnapshot;
+
+  useEffect(() => {
+    fetchApi<Form[] | { results: Form[] }>('/forms/')
+      .then((res) => setForms(Array.isArray(res) ? res : res?.results || []))
+      .catch(() => setFormsError(true));
+  }, []);
 
   useEffect(() => {
     setTitle(hackathon.title || '');
@@ -64,6 +79,8 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setPrizePool(hackathon.prize_pool || '₹50,000');
     setBannerImage(hackathon.banner_image || '');
     setDescription(hackathon.description || '');
+    setBannerCrop(normalizeBannerCrop(hackathon.banner_crop));
+    setRegistrationForm(hackathon.registration_form ? String(hackathon.registration_form) : '');
 
     setStartDate(toLocalInput(hackathon.start_date));
     setEndDate(toLocalInput(hackathon.end_date));
@@ -86,6 +103,8 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setPrizes(hackathon.prizes ?? []);
     setSavedSnapshot(JSON.stringify([
       hackathon.title || '', hackathon.theme || '', hackathon.prize_pool || '₹50,000', hackathon.banner_image || '',
+      normalizeBannerCrop(hackathon.banner_crop),
+      hackathon.registration_form ? String(hackathon.registration_form) : '',
       hackathon.description || '',
       toLocalInput(hackathon.start_date), toLocalInput(hackathon.end_date),
       toLocalInput(hackathon.visible_from), toLocalInput(hackathon.visible_until),
@@ -118,7 +137,9 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         title: title.trim(),
         theme: theme.trim(),
         prize_pool: prizePool.trim(),
+        registration_form: registrationForm ? Number(registrationForm) : null,
         banner_image: bannerImage.trim() || null,
+        banner_crop: bannerImage.trim() && !isDefaultBannerCrop(bannerCrop) ? bannerCrop : {},
         description: description,
 
         start_date: fromLocalInput(startDate) || hackathon.start_date,
@@ -196,6 +217,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   });
   const lifecycleBusy = lifecycle.busySlug === hackathon.slug;
   const closed = hackathon.status === 'CLOSED';
+  const formOptions = forms.map((form) => ({ value: String(form.id), label: `${form.title?.trim() || form.slug} (${form.status})` }));
   const draft = hackathon.status === 'DRAFT';
 
   return (
@@ -259,6 +281,35 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
                 className={INPUT}
               />
               {errors.banner_image && <p className="mt-1 text-[11px] text-rose-500">{errors.banner_image}</p>}
+            </div>
+
+            {bannerImage.trim() && (
+              <div className="sm:col-span-2">
+                <BannerCropEditor imageUrl={bannerImage.trim()} value={bannerCrop} onChange={setBannerCrop} />
+                {errors.banner_crop && <p className="mt-1 text-[11px] text-rose-500">{errors.banner_crop}</p>}
+              </div>
+            )}
+
+            <div>
+              <label className={LABEL}>Linked form <span className="normal-case font-medium text-slate-400">(optional)</span></label>
+              <FormSelect
+                value={registrationForm}
+                onChange={setRegistrationForm}
+                options={formOptions}
+                placeholder={formsError ? 'Could not load forms' : 'No form linked'}
+              />
+              {errors.registration_form && <p className="mt-1 text-[11px] text-rose-500">{errors.registration_form}</p>}
+              <p className="mt-1 text-[11px] text-slate-400">
+                Ties a form from the Form Builder to this hackathon so its responses are counted here. Teams still register from the participant dashboard.
+                {hackathon.form_slug && (
+                  <>
+                    {' '}
+                    <Link href={`/admin/responses?form=${hackathon.form_slug}`} className="font-bold text-[#FF7A00] hover:underline">View responses</Link>
+                    {' · '}
+                    <Link href="/admin/forms" className="font-bold text-[#FF7A00] hover:underline">Open Form Builder</Link>
+                  </>
+                )}
+              </p>
             </div>
           </div>
         </section>
