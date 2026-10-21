@@ -257,7 +257,7 @@ export default function AdminNavbar() {
                           transition={{ duration: 0.18 }}
                           className="absolute left-1/2 -translate-x-1/2 top-full pt-3 w-72 z-50"
                         >
-                          <div className="p-1.5 rounded-2xl bg-[var(--card-bg)] border border-black/[0.08] dark:border-white/[0.1] shadow-2xl flex flex-col gap-0.5 max-h-[75vh] overflow-y-auto">
+                          <div className="p-1.5 rounded-2xl bg-[var(--card-bg)] border border-black/[0.08] dark:border-white/[0.1] shadow-2xl flex flex-col gap-0.5 max-h-[75dvh] overflow-y-auto">
                             {item.children?.map((child) => {
                               const ChildIcon = child.icon;
                               return (

@@ -112,7 +112,7 @@ export default function Footer() {
               <ul className="space-y-2.5 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {QUICK_LINKS.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="hover:text-[#FF7A00] transition-colors">
+                    <Link href={l.href} className="inline-block py-1.5 hover:text-[#FF7A00] transition-colors sm:py-0">
                       {l.label}
                     </Link>
                   </li>
@@ -128,7 +128,7 @@ export default function Footer() {
               <ul className="space-y-2.5 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {RESOURCES.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="hover:text-[#FF7A00] transition-colors">
+                    <Link href={l.href} className="inline-block py-1.5 hover:text-[#FF7A00] transition-colors sm:py-0">
                       {l.label}
                     </Link>
                   </li>
@@ -154,11 +154,11 @@ export default function Footer() {
                 <li className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
                   <div className="flex flex-wrap items-center gap-x-1.5">
-                    <a href="tel:+918500216667" className="hover:text-[#FF7A00] transition-colors">
+                    <a href="tel:+918500216667" className="inline-block py-1.5 hover:text-[#FF7A00] transition-colors sm:py-0">
                       +91 8500216667
                     </a>
                     <span>,</span>
-                    <a href="tel:+917997266366" className="hover:text-[#FF7A00] transition-colors">
+                    <a href="tel:+917997266366" className="inline-block py-1.5 hover:text-[#FF7A00] transition-colors sm:py-0">
                       +91 7997266366
                     </a>
                   </div>
@@ -194,7 +194,7 @@ export default function Footer() {
               </button>
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition active:scale-90 fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50"
+                className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition active:scale-90 fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 [html[data-intro-chrome]:not([data-intro-done=true])_&]:invisible"
                 aria-label="Back to top"
               >
                 <ArrowUp className="w-3.5 h-3.5" />

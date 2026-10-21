@@ -2,12 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Calendar, Flag, Plus, Users, Trophy } from 'lucide-react';
+import { ArrowRight, Calendar, Eye, EyeOff, Flag, Plus, Trash2, Users, Trophy } from 'lucide-react';
 import type { Hackathon } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
 import { HackathonFormPanel } from '@/components/admin/HackathonFormPanel';
+import { useHackathonLifecycle } from '@/components/admin/hackathon/useHackathonLifecycle';
+import { BTN_DANGER, BTN_GHOST } from '@/components/admin/hackathon/shared';
+import { getStoredUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +29,12 @@ export default function AdminHackathonsPage() {
   useEffect(() => {
     loadHackathons();
   }, []);
+
+  const canDelete = getStoredUser()?.role === 'ADMIN';
+  const { busySlug, toggleVisibility, requestDelete, dialogs } = useHackathonLifecycle({
+    onChanged: (updated) => setHackathons((prev) => prev.map((h) => (h.slug === updated.slug ? { ...h, ...updated } : h))),
+    onDeleted: (slug) => setHackathons((prev) => prev.filter((h) => h.slug !== slug)),
+  });
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">
@@ -48,6 +57,8 @@ export default function AdminHackathonsPage() {
           </button>
         </div>
 
+        {dialogs}
+
         {createOpen && (
           <HackathonFormPanel
             isOpen={createOpen}
@@ -60,7 +71,7 @@ export default function AdminHackathonsPage() {
         )}
 
         {loading ? (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {[0, 1].map((i) => (
               <div key={i} className="h-36 rounded-xl bg-slate-200 dark:bg-white/5 animate-pulse" />
             ))}
@@ -78,37 +89,69 @@ export default function AdminHackathonsPage() {
             </button>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {hackathons.map((h) => (
-              <Link
+              <div
                 key={h.slug}
-                href={`/admin/hackathons/${h.slug}`}
-                className="group glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 transition hover:border-[#FF7A00]/60"
+                className="group glass-panel flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 transition hover:border-[#FF7A00]/60"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-bold text-[#1A1A2E] dark:text-white">{h.title}</h2>
-                  <div className="flex gap-1.5">
-                    {h.is_hidden && <StatusPill tone="slate">Hidden</StatusPill>}
-                    <StatusPill tone={h.status === 'DRAFT' ? 'amber' : h.is_registration_open ? 'green' : 'slate'}>
-                      {h.status === 'DRAFT' ? 'Draft' : h.is_registration_open ? 'Registration open' : h.status === 'CLOSED' ? 'Closed' : 'Registration not open'}
-                    </StatusPill>
+                <Link href={`/admin/hackathons/${h.slug}`} className="min-w-0 flex-1 space-y-3 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h2 className="min-w-0 break-words font-bold text-[#1A1A2E] dark:text-white">{h.title}</h2>
+                    <div className="flex flex-wrap gap-1.5">
+                      {h.is_hidden && <StatusPill tone="slate" icon={EyeOff}>{h.is_manually_hidden ? 'Hidden' : 'Outside visibility window'}</StatusPill>}
+                      <StatusPill tone={h.status === 'DRAFT' ? 'amber' : h.is_registration_open ? 'green' : 'slate'}>
+                        {h.status === 'DRAFT' ? 'Draft' : h.is_registration_open ? 'Registration open' : h.status === 'CLOSED' ? 'Closed' : 'Registration not open'}
+                      </StatusPill>
+                    </div>
                   </div>
+                  <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5 text-[#FF7A00]" /> {formatDateTime(h.start_date)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5 text-[#FF7A00]" /> {h.team_count ?? 0} active teams
+                    </span>
+                    <span>
+                      Team size {h.min_team_size}–{h.max_team_size}
+                    </span>
+                  </div>
+                  <p className="flex items-center gap-1 text-xs font-bold text-[#FF7A00]">
+                    Manage <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+                  </p>
+                </Link>
+
+                <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3 dark:border-slate-800">
+                  {h.status !== 'DRAFT' && (
+                    <button
+                      type="button"
+                      onClick={() => toggleVisibility(h)}
+                      disabled={busySlug === h.slug || (h.is_hidden && !h.is_manually_hidden)}
+                      title={
+                        h.is_manually_hidden
+                          ? 'Show this hackathon on the public site again'
+                          : h.is_hidden
+                            ? 'Hidden by its visible from / until dates. Change them in Settings.'
+                            : 'Hide this hackathon from the public site'
+                      }
+                      className={`${BTN_GHOST} min-h-11 sm:min-h-0`}
+                    >
+                      {h.is_manually_hidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                      {h.is_manually_hidden ? 'Show' : 'Hide'}
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => requestDelete(h)}
+                      disabled={busySlug === h.slug}
+                      className={`${BTN_DANGER} ml-auto min-h-11 sm:min-h-0`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  )}
                 </div>
-                <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5 text-[#FF7A00]" /> {formatDateTime(h.start_date)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5 text-[#FF7A00]" /> {h.team_count ?? 0} active teams
-                  </span>
-                  <span>
-                    Team size {h.min_team_size}–{h.max_team_size}
-                  </span>
-                </div>
-                <p className="flex items-center gap-1 text-xs font-bold text-[#FF7A00]">
-                  Manage <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
-                </p>
-              </Link>
+              </div>
             ))}
           </div>
         )}

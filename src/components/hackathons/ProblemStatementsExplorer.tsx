@@ -173,7 +173,7 @@ export function ProblemStatementsExplorer({
 
       {/* Problem Statements Cards Grid */}
       {filteredProblems.length > 0 ? (
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {filteredProblems.map((ps) => {
             const isFull = ps.slots_left === 0;
             return (
@@ -366,7 +366,7 @@ export function ProblemStatementsExplorer({
               <h4 className="text-xs font-bold uppercase tracking-wider text-journey-muted">
                 Detailed Problem Specification & Guidelines
               </h4>
-              <div className="rounded-xl border border-journey-text/10 bg-journey-text/[0.03] p-4 sm:p-5 text-sm text-journey-text/90 leading-relaxed max-h-[50vh] overflow-y-auto">
+              <div className="rounded-xl border border-journey-text/10 bg-journey-text/[0.03] p-4 sm:p-5 text-sm text-journey-text/90 leading-relaxed max-h-[50dvh] overflow-y-auto">
                 <MarkdownRenderer content={activeProblem.description || 'No detailed description provided.'} />
               </div>
             </div>

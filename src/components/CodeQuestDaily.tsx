@@ -69,8 +69,8 @@ export default function CodeQuestDaily({ problems, today }: CodeQuestDailyProps)
     .slice(0, MAX_PREVIOUS_PROBLEMS);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3 lg:items-start lg:gap-8">
-      <section id="codequest-recent" className="scroll-mt-24 space-y-6 lg:col-span-2">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start lg:gap-8">
+      <section id="codequest-recent" className="min-w-0 scroll-mt-24 space-y-6 lg:col-span-2">
         {problemOfTheDay ? (
           <section className="relative overflow-hidden rounded-2xl glass-panel p-5 sm:p-6">
             <div

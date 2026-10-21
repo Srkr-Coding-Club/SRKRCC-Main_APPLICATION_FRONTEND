@@ -335,7 +335,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             <ThemeToggle />
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
-              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
+              className="w-11 h-11 sm:w-9 sm:h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
             >

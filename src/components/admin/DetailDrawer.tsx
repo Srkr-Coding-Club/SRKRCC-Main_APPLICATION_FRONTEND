@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import Portal from '@/components/ui/Portal';
 
 interface DetailDrawerProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerP
   if (!isOpen) return null;
 
   return (
-    <>
+    <Portal>
       {/* Backdrop overlay */}
       <motion.div
         key="drawer-overlay"
@@ -99,6 +100,6 @@ export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerP
           {children}
         </div>
       </motion.aside>
-    </>
+    </Portal>
   );
 }

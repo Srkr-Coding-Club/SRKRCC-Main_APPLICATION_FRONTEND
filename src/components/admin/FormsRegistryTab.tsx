@@ -32,6 +32,7 @@ import { relativeTime } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import Portal from '@/components/ui/Portal';
 
 interface FormsRegistryTabProps {
   forms: Form[];
@@ -275,89 +276,91 @@ export function FormsRegistryTab({
       
       {/* Schedule Modal */}
       {showScheduleModal && selectedForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="glass-panel rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-blue-500 font-bold text-base">
-                <Clock className="w-5 h-5" />
-                <h3>Schedule Launch Window</h3>
-              </div>
-              <button onClick={() => setShowScheduleModal(false)} className="flex items-center justify-center min-h-9 min-w-9 rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-90">
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Set automated publication start and close dates for <strong>{selectedForm.title}</strong>:
-            </p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Open Date (Start Submissions)</label>
-                <input
-                  type="datetime-local"
-                  value={schedOpenAt}
-                  onChange={(e) => setSchedOpenAt(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Close Date (Auto Lock)</label>
-                <input
-                  type="datetime-local"
-                  value={schedCloseAt}
-                  onChange={(e) => setSchedCloseAt(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSchedOpenAt('');
-                  setSchedCloseAt('');
-                }}
-                className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-500 hover:text-rose-400 transition active:scale-95"
-              >
-                Clear Dates
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowScheduleModal(false)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95"
-                >
-                  Cancel
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="glass-panel rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2 text-blue-500 font-bold text-base">
+                  <Clock className="w-5 h-5" />
+                  <h3>Schedule Launch Window</h3>
+                </div>
+                <button onClick={() => setShowScheduleModal(false)} className="flex items-center justify-center min-h-9 min-w-9 rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white transition-transform duration-100 active:scale-90">
+                  ✕
                 </button>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Set automated publication start and close dates for <strong>{selectedForm.title}</strong>:
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Open Date (Start Submissions)</label>
+                  <input
+                    type="datetime-local"
+                    value={schedOpenAt}
+                    onChange={(e) => setSchedOpenAt(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Close Date (Auto Lock)</label>
+                  <input
+                    type="datetime-local"
+                    value={schedCloseAt}
+                    onChange={(e) => setSchedCloseAt(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between gap-2">
                 <button
                   type="button"
-                  disabled={actionLoading}
                   onClick={() => {
-                    if (!schedOpenAt && !schedCloseAt) {
-                      toast.warning('Schedule Required', 'Please set at least an Open Date or Close Date.');
-                      return;
-                    }
-                    if (schedOpenAt && schedCloseAt && new Date(schedOpenAt) > new Date(schedCloseAt)) {
-                      toast.error('Invalid Range', 'Open Date cannot be later than Close Date.');
-                      return;
-                    }
-                    setShowScheduleModal(false);
-                    handleAction('schedule', {
-                      open_at: schedOpenAt ? new Date(schedOpenAt).toISOString() : null,
-                      close_at: schedCloseAt ? new Date(schedCloseAt).toISOString() : null,
-                    });
+                    setSchedOpenAt('');
+                    setSchedCloseAt('');
                   }}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition active:scale-95 disabled:opacity-60"
+                  className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-500 hover:text-rose-400 transition active:scale-95"
                 >
-                  Save Schedule
+                  Clear Dates
                 </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowScheduleModal(false)}
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    onClick={() => {
+                      if (!schedOpenAt && !schedCloseAt) {
+                        toast.warning('Schedule Required', 'Please set at least an Open Date or Close Date.');
+                        return;
+                      }
+                      if (schedOpenAt && schedCloseAt && new Date(schedOpenAt) > new Date(schedCloseAt)) {
+                        toast.error('Invalid Range', 'Open Date cannot be later than Close Date.');
+                        return;
+                      }
+                      setShowScheduleModal(false);
+                      handleAction('schedule', {
+                        open_at: schedOpenAt ? new Date(schedOpenAt).toISOString() : null,
+                        close_at: schedCloseAt ? new Date(schedCloseAt).toISOString() : null,
+                      });
+                    }}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition active:scale-95 disabled:opacity-60"
+                  >
+                    Save Schedule
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* Main Split View: Left list, Right detail */}
@@ -466,7 +469,7 @@ export function FormsRegistryTab({
               sit on top of a card's last line of text otherwise (dev-only chrome,
               stripped from production builds, but this keeps it from blocking
               scrolled content while testing). */}
-          <div className="space-y-2.5 lg:max-h-[calc(100vh-280px)] lg:overflow-y-auto pr-1 pb-14">
+          <div className="space-y-2.5 lg:max-h-[calc(100dvh-280px)] lg:overflow-y-auto pr-1 pb-14">
             {isLoading ? (
               /* Skeleton Loader Cards */
               <div className="space-y-3">

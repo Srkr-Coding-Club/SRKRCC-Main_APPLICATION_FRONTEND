@@ -6,6 +6,7 @@ import { CalendarClock, CheckCircle2, FileText, Flag } from 'lucide-react';
 import type { ParticipantRound } from '@/lib/types';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { ENTRY_STATUS_PILL, ROUND_STATUS_PILL, StatusPill } from '@/components/ui/StatusPill';
+import { ROUND_KIND_LABEL } from '@/components/admin/hackathon/roundKinds';
 import { formatDateTime } from './HackathonAnnouncementsFeed';
 
 export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[]; isLeader: boolean }) {
@@ -18,7 +19,7 @@ export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[
       {rounds.map((r) => {
         const entry = r.entry;
         const outcome = entry && r.results_published ? ENTRY_STATUS_PILL[entry.status] : null;
-        const dot = outcome?.tone === 'green' ? 'bg-emerald-500' : outcome?.tone === 'red' ? 'bg-rose-500' : r.status === 'ACTIVE' ? 'bg-journey-accent' : 'bg-journey-text/25';
+        const dot = outcome?.tone === 'green' ? 'bg-emerald-500' : outcome?.tone === 'red' ? 'bg-rose-500' : r.effective_status === 'ACTIVE' ? 'bg-journey-accent' : 'bg-journey-text/25';
         const schedule = r.starts_at || r.ends_at
           ? `${r.starts_at ? formatDateTime(r.starts_at) : 'TBA'} → ${r.ends_at ? formatDateTime(r.ends_at) : 'TBA'}`
           : null;
@@ -32,7 +33,8 @@ export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-journey-muted">Round {r.order}</span>
                 <h4 className="font-bold text-journey-text">{r.name}</h4>
-                <StatusPill tone={ROUND_STATUS_PILL[r.status].tone}>{ROUND_STATUS_PILL[r.status].label}</StatusPill>
+                {r.kind !== 'GENERAL' && <span className="rounded-full border border-journey-text/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-journey-muted">{ROUND_KIND_LABEL[r.kind]}</span>}
+                <StatusPill tone={ROUND_STATUS_PILL[r.effective_status].tone}>{ROUND_STATUS_PILL[r.effective_status].label}</StatusPill>
                 {entry && (outcome
                   ? <StatusPill tone={outcome.tone}>{outcome.label}</StatusPill>
                   : <StatusPill tone="slate">Results pending</StatusPill>)}
@@ -43,7 +45,7 @@ export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[
               {r.description?.trim() && (
                 <div className="text-sm text-journey-text/80"><MarkdownRenderer content={r.description} /></div>
               )}
-              {!entry && r.status !== 'UPCOMING' && (
+              {!entry && r.effective_status !== 'UPCOMING' && (
                 <p className="text-xs text-journey-muted">Your team is not part of this round.</p>
               )}
               {entry && r.results_published && entry.feedback?.trim() && (

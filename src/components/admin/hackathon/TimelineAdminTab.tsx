@@ -270,8 +270,21 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
         </ul>
       )}
 
-      <Modal isOpen={editing !== null} onClose={() => setEditing(null)} busy={busy} title={editing === 'new' ? 'Add stage' : 'Edit stage'} icon={GitBranch} maxWidth="max-w-3xl">
-        <form onSubmit={save} className="space-y-5">
+      <Modal
+        isOpen={editing !== null}
+        onClose={() => setEditing(null)}
+        busy={busy}
+        title={editing === 'new' ? 'Add stage' : 'Edit stage'}
+        icon={GitBranch}
+        maxWidth="max-w-3xl"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditing(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
+            <button type="submit" form="stage-form" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : editing === 'new' ? 'Add stage' : 'Save stage'}</button>
+          </div>
+        }
+      >
+        <form id="stage-form" onSubmit={save} className="space-y-5">
           <div className="space-y-2">
             <p className={LABEL}>Live preview</p>
             <ol className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700">
@@ -288,7 +301,7 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
           <MarkdownEditor label="Description" value={draft.description} onChange={(v) => update('description', v)} placeholder="What happens in this stage, what participants must do..." />
           {errors.description && <p className="-mt-3 text-[11px] text-rose-500">{errors.description}</p>}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Starts</label>
               <input type="datetime-local" value={draft.starts_at} onChange={(e) => update('starts_at', e.target.value)} className={INPUT} />
@@ -310,7 +323,7 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <p className={LABEL}>Colour</p>
               <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Stage colour">
@@ -373,7 +386,7 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Button label</label>
               <input value={draft.link_label} maxLength={40} onChange={(e) => update('link_label', e.target.value)} placeholder="e.g. Join the meeting" className={INPUT} />
@@ -390,11 +403,6 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
             <input type="checkbox" checked={draft.is_visible} onChange={(e) => update('is_visible', e.target.checked)} className="accent-[#FF7A00]" />
             Show on the public page
           </label>
-
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setEditing(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
-            <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : editing === 'new' ? 'Add stage' : 'Save stage'}</button>
-          </div>
         </form>
       </Modal>
     </section>

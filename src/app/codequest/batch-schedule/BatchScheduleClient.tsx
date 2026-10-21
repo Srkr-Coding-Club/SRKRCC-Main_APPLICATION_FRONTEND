@@ -158,7 +158,7 @@ export default function BatchScheduleClient() {
             return (
               <section key={index} className="glass-panel space-y-4 rounded-2xl p-5">
                 <div className="flex items-center justify-between"><h2 className="font-bold">Problem {index + 1}</h2>{entries.length > 1 && <button type="button" onClick={() => setEntries((current) => current.filter((_, i) => i !== index))} aria-label={`Remove problem ${index + 1}`} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"><Trash2 className="h-4 w-4" /></button>}</div>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <label className="sm:col-span-2"><span className="mb-1 block text-xs font-bold">Title *</span><input className={fieldClass} value={entry.title} onChange={(e) => update(index, 'title', e.target.value)} maxLength={200} required /></label>
                   <label>
                     <span className="mb-1 block text-xs font-bold">Scheduled date *</span>
