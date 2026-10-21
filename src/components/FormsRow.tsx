@@ -57,13 +57,13 @@ export default function FormsRow({ forms, now }: FormsRowProps) {
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:flex-nowrap">
         <button
           type="button"
           aria-label="Previous"
           onClick={goLeft}
           disabled={!canGoLeft}
-          className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
+          className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
             canGoLeft
               ? "text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white"
               : "cursor-not-allowed text-slate-300 dark:text-slate-600"
@@ -72,7 +72,7 @@ export default function FormsRow({ forms, now }: FormsRowProps) {
           <ChevronLeft className="h-5 w-5" />
         </button>
 
-        <div ref={containerRef} className="min-w-0 flex-1 overflow-hidden">
+        <div ref={containerRef} className="order-first w-full min-w-0 overflow-hidden sm:order-none sm:w-auto sm:flex-1">
           <div className="flex justify-center gap-5">
             {visibleForms.map((form, index) => {
               const openTime = form.open_at
@@ -86,7 +86,7 @@ export default function FormsRow({ forms, now }: FormsRowProps) {
               return (
                 <div
                   key={`${page}-${form.slug || form.id}`}
-                  className="h-full w-[300px] shrink-0 sm:w-[340px]"
+                  className="h-full w-[300px] max-w-full shrink-0 sm:w-[340px]"
                 >
                   <FormCard
                     form={form}
@@ -104,7 +104,7 @@ export default function FormsRow({ forms, now }: FormsRowProps) {
           aria-label="Next"
           onClick={goRight}
           disabled={!canGoRight}
-          className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
+          className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
             canGoRight
               ? "text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white"
               : "cursor-not-allowed text-slate-300 dark:text-slate-600"

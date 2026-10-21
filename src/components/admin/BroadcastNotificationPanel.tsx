@@ -262,7 +262,7 @@ export function BroadcastNotificationPanel() {
         maxWidth="max-w-3xl"
       >
         <form onSubmit={handleSend} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Title */}
             <div className="sm:col-span-2">
               <label className={LABEL}>Subject / Title *</label>
@@ -319,7 +319,7 @@ export function BroadcastNotificationPanel() {
           {/* Delivery Channels */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-white/[0.02] space-y-2">
             <label className={LABEL}>Delivery Channels *</label>
-            <div className="grid sm:grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <label className="flex items-start gap-2.5 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#12141D] cursor-pointer hover:border-[#FF7A00]/50 transition">
                 <input
                   type="checkbox"
@@ -365,7 +365,7 @@ export function BroadcastNotificationPanel() {
               <label className={LABEL}>Target Audience</label>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <FormSelect
                   value={audience}

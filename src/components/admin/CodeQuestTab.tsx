@@ -20,6 +20,7 @@ import { useToast } from "@/context/ToastContext";
 import { fetchApi } from "@/lib/api-client";
 import type { CodeQuestSubmission, Problem } from "@/lib/types";
 import PillButton from "@/components/PillButton";
+import Portal from '@/components/ui/Portal';
 
 type Difficulty = Problem["difficulty"];
 type ProblemForm = {
@@ -373,7 +374,7 @@ export function CodeQuestTab() {
 )}
           </div>
         </header>
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Stat
             icon={FileText}
             value={problems.length}
@@ -603,39 +604,41 @@ export function CodeQuestTab() {
         />
       )}
       {pendingDelete && (
-        <div
-          className="fixed inset-0 z-[65] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-sm rounded-2xl glass-panel p-6 shadow-2xl">
-            <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
-              Delete problem?
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Delete “{pendingDelete.title}”? Its submissions will also be
-              deleted. This cannot be undone.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setPendingDelete(null)}
-                disabled={deletingNow}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold disabled:opacity-50 dark:border-slate-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void remove(pendingDelete)}
-                disabled={deletingNow}
-                className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
-              >
-                {deletingNow ? "Deleting…" : "Delete problem"}
-              </button>
+        <Portal>
+          <div
+            className="fixed inset-0 z-[65] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="w-full max-w-sm rounded-2xl glass-panel p-6 shadow-2xl">
+              <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
+                Delete problem?
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Delete “{pendingDelete.title}”? Its submissions will also be
+                deleted. This cannot be undone.
+              </p>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPendingDelete(null)}
+                  disabled={deletingNow}
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold disabled:opacity-50 dark:border-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void remove(pendingDelete)}
+                  disabled={deletingNow}
+                  className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+                >
+                  {deletingNow ? "Deleting…" : "Delete problem"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </>
   );
@@ -731,145 +734,147 @@ function Editor({
   const dateMessage = dateErrorFor(form.scheduled_date);
   const urlMessage = urlErrorFor(form.external_url);
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
-      <form
-        onSubmit={submit}
-        className="mx-auto my-8 w-full rounded-2xl glass-panel shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
-          <div>
-            <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
-              {editing
-                ? "Edit scheduled problem"
-                : "Schedule a CodeQuest problem"}
-            </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              One problem can be assigned to each calendar date.
-            </p>
+    <Portal>
+      <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
+        <form
+          onSubmit={submit}
+          className="mx-auto my-8 w-full rounded-2xl glass-panel shadow-2xl"
+        >
+          <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
+            <div>
+              <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
+                {editing
+                  ? "Edit scheduled problem"
+                  : "Schedule a CodeQuest problem"}
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                One problem can be assigned to each calendar date.
+              </p>
+            </div>
+            <button type="button" onClick={close}>
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button type="button" onClick={close}>
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="grid gap-4 p-5 sm:grid-cols-2">
-          <Field label="Title *">
-            <input
-              className={input}
-              value={form.title}
-              onChange={(e) => set("title", e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Schedule date *">
-            <input
-              className={`${input} [color-scheme:light] dark:[color-scheme:dark]`}
-              type="date"
-              value={form.scheduled_date}
-              min={dateMin}
-              onChange={(e) => onDateChange(e.target.value)}
-              required
-            />
-            {dateMessage && (
-              <span className="mt-1 block text-xs font-semibold text-rose-600">
-                {dateMessage}
-              </span>
-            )}
-          </Field>
-          <Field label="Difficulty">
-            <select
-              className={`${input} text-slate-900 dark:text-white`}
-              style={{ colorScheme: "light" }}
-              value={form.difficulty}
-              onChange={(e) => set("difficulty", e.target.value as Difficulty)}
+          <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
+            <Field label="Title *">
+              <input
+                className={input}
+                value={form.title}
+                onChange={(e) => set("title", e.target.value)}
+                required
+              />
+            </Field>
+            <Field label="Schedule date *">
+              <input
+                className={`${input} [color-scheme:light] dark:[color-scheme:dark]`}
+                type="date"
+                value={form.scheduled_date}
+                min={dateMin}
+                onChange={(e) => onDateChange(e.target.value)}
+                required
+              />
+              {dateMessage && (
+                <span className="mt-1 block text-xs font-semibold text-rose-600">
+                  {dateMessage}
+                </span>
+              )}
+            </Field>
+            <Field label="Difficulty">
+              <select
+                className={`${input} text-slate-900 dark:text-white`}
+                style={{ colorScheme: "light" }}
+                value={form.difficulty}
+                onChange={(e) => set("difficulty", e.target.value as Difficulty)}
+              >
+                <option value="EASY" style={{ color: "#000", backgroundColor: "#fff" }}>Easy</option>
+                <option value="MEDIUM" style={{ color: "#000", backgroundColor: "#fff" }}>Medium</option>
+                <option value="HARD" style={{ color: "#000", backgroundColor: "#fff" }}>Hard</option>
+              </select>
+            </Field>
+            <Field label="Topics / tags">
+              <input
+                className={input}
+                value={form.tags}
+                onChange={(e) => set("tags", e.target.value)}
+                placeholder="Arrays, Hashing, DP"
+              />
+            </Field>
+            <Field label="External platform">
+              <input
+                className={input}
+                value={form.external_platform}
+                onChange={(e) => set("external_platform", e.target.value)}
+                placeholder="LeetCode"
+              />
+            </Field>
+            <Field label="External problem URL">
+              <input
+                className={input}
+                type="url"
+                value={form.external_url}
+                onChange={(e) => set("external_url", e.target.value)}
+                placeholder="https://…"
+                required
+              />
+              {attemptedSubmit && urlMessage && (
+                <span className="mt-1 block text-xs font-semibold text-rose-600">
+                  {urlMessage}
+                </span>
+              )}
+            </Field>
+            <Field label="Problem statement *" wide>
+              <textarea
+                className={input}
+                rows={6}
+                value={form.statement}
+                onChange={(e) => set("statement", e.target.value)}
+                required
+              />
+            </Field>
+            <Field label="Constraints" wide>
+              <textarea
+                className={input}
+                rows={2}
+                value={form.constraints}
+                onChange={(e) => set("constraints", e.target.value)}
+              />
+            </Field>
+            <Field label="Sample input">
+              <textarea
+                className={input}
+                rows={3}
+                value={form.sample_input}
+                onChange={(e) => set("sample_input", e.target.value)}
+              />
+            </Field>
+            <Field label="Sample output">
+              <textarea
+                className={input}
+                rows={3}
+                value={form.sample_output}
+                onChange={(e) => set("sample_output", e.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="flex justify-end gap-3 border-t border-slate-200 p-5 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={close}
+              className="px-4 py-2 text-sm font-bold"
             >
-              <option value="EASY" style={{ color: "#000", backgroundColor: "#fff" }}>Easy</option>
-              <option value="MEDIUM" style={{ color: "#000", backgroundColor: "#fff" }}>Medium</option>
-              <option value="HARD" style={{ color: "#000", backgroundColor: "#fff" }}>Hard</option>
-            </select>
-          </Field>
-          <Field label="Topics / tags">
-            <input
-              className={input}
-              value={form.tags}
-              onChange={(e) => set("tags", e.target.value)}
-              placeholder="Arrays, Hashing, DP"
-            />
-          </Field>
-          <Field label="External platform">
-            <input
-              className={input}
-              value={form.external_platform}
-              onChange={(e) => set("external_platform", e.target.value)}
-              placeholder="LeetCode"
-            />
-          </Field>
-          <Field label="External problem URL">
-            <input
-              className={input}
-              type="url"
-              value={form.external_url}
-              onChange={(e) => set("external_url", e.target.value)}
-              placeholder="https://…"
-              required
-            />
-            {attemptedSubmit && urlMessage && (
-              <span className="mt-1 block text-xs font-semibold text-rose-600">
-                {urlMessage}
-              </span>
-            )}
-          </Field>
-          <Field label="Problem statement *" wide>
-            <textarea
-              className={input}
-              rows={6}
-              value={form.statement}
-              onChange={(e) => set("statement", e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Constraints" wide>
-            <textarea
-              className={input}
-              rows={2}
-              value={form.constraints}
-              onChange={(e) => set("constraints", e.target.value)}
-            />
-          </Field>
-          <Field label="Sample input">
-            <textarea
-              className={input}
-              rows={3}
-              value={form.sample_input}
-              onChange={(e) => set("sample_input", e.target.value)}
-            />
-          </Field>
-          <Field label="Sample output">
-            <textarea
-              className={input}
-              rows={3}
-              value={form.sample_output}
-              onChange={(e) => set("sample_output", e.target.value)}
-            />
-          </Field>
-        </div>
-        <div className="flex justify-end gap-3 border-t border-slate-200 p-5 dark:border-slate-800">
-          <button
-            type="button"
-            onClick={close}
-            className="px-4 py-2 text-sm font-bold"
-          >
-            Cancel
-          </button>
-          <button
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#FF7A00] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
-          >
-            <Save className="h-4 w-4" />
-            {saving ? "Saving…" : editing ? "Save changes" : "Schedule problem"}
-          </button>
-        </div>
-      </form>
-    </div>
+              Cancel
+            </button>
+            <button
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#FF7A00] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving…" : editing ? "Save changes" : "Schedule problem"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Portal>
   );
 }
 function SubmissionDetail({
@@ -882,40 +887,42 @@ function SubmissionDetail({
   review: (s: CodeQuestSubmission, verdict: boolean) => Promise<void>;
 }) {
   return (
-    <div className="fixed inset-0 z-[70] overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="mx-auto my-12 max-w-3xl rounded-2xl glass-panel shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
-          <div>
-            <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
-              {submission.problem_title}
-            </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              {submission.user_name || submission.user_email} ·{" "}
-              {submission.language}
-            </p>
+    <Portal>
+      <div className="fixed inset-0 z-[70] overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
+        <div className="mx-auto my-12 max-w-3xl rounded-2xl glass-panel shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
+            <div>
+              <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
+                {submission.problem_title}
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                {submission.user_name || submission.user_email} ·{" "}
+                {submission.language}
+              </p>
+            </div>
+            <button onClick={close}>
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button onClick={close}>
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <pre className="max-h-[55vh] overflow-auto whitespace-pre-wrap bg-slate-950 p-5 font-mono text-xs leading-relaxed text-slate-100">
-          {submission.code}
-        </pre>
-        <div className="flex justify-end gap-2 p-5">
-          <button
-            onClick={() => void review(submission, false)}
-            className="rounded-lg border border-rose-200 px-4 py-2 text-sm font-bold text-rose-600"
-          >
-            Mark incorrect
-          </button>
-          <button
-            onClick={() => void review(submission, true)}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
-          >
-            Accept solution
-          </button>
+          <pre className="max-h-[55dvh] overflow-auto whitespace-pre-wrap bg-slate-950 p-5 font-mono text-xs leading-relaxed text-slate-100">
+            {submission.code}
+          </pre>
+          <div className="flex justify-end gap-2 p-5">
+            <button
+              onClick={() => void review(submission, false)}
+              className="rounded-lg border border-rose-200 px-4 py-2 text-sm font-bold text-rose-600"
+            >
+              Mark incorrect
+            </button>
+            <button
+              onClick={() => void review(submission, true)}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
+            >
+              Accept solution
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Portal>
   );
 }

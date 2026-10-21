@@ -420,8 +420,14 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
         title={editing === 'new' ? 'Add problem statement' : 'Edit problem statement'}
         icon={Target}
         maxWidth="max-w-2xl"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditing(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
+            <button type="submit" form="problem-statement-form" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : 'Save'}</button>
+          </div>
+        }
       >
-        <form onSubmit={save} className="space-y-4">
+        <form id="problem-statement-form" onSubmit={save} className="space-y-4">
           <p className="rounded-lg bg-slate-100 dark:bg-white/5 px-3 py-2 text-xs text-slate-500">
             {editing === 'new'
               ? 'An ID (PS-001, PS-002…) is generated automatically when you save.'
@@ -432,7 +438,7 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
             <input value={draft.title} onChange={set('title')} placeholder="Smart campus attendance" className={INPUT} />
             {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Domain *</label>
               {domainOptions.length > 0 && (
@@ -496,10 +502,6 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
               <span className="block text-xs text-slate-500">Untick to hide it from participants. Teams already on it keep it.</span>
             </span>
           </label>
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setEditing(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
-            <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : 'Save'}</button>
-          </div>
         </form>
       </Modal>
 
@@ -614,7 +616,7 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
               )}
               <span className="text-slate-400">Team {viewOpenInnovationTarget.name}</span>
             </div>
-            <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-slate-200 p-4 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200">
+            <div className="max-h-[50dvh] overflow-y-auto rounded-lg border border-slate-200 p-4 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200">
               <MarkdownRenderer content={viewOpenInnovationTarget.open_innovation.description || 'No description provided.'} />
             </div>
             <div className="flex justify-end">

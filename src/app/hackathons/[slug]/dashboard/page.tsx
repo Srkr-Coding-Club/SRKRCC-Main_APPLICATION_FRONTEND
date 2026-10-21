@@ -19,10 +19,15 @@ import { TeamFormModal } from '@/components/hackathons/TeamFormModal';
 import { InviteMemberModal } from '@/components/hackathons/InviteMemberModal';
 import { RoundsTimeline } from '@/components/hackathons/RoundsTimeline';
 import { HackathonAnnouncementsFeed, formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
-
-const PANEL = 'glass-panel rounded-2xl border border-journey-text/10 p-5 sm:p-6';
-const H2 = 'flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-journey-accent';
-const BTN = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed';
+import { AcceptInviteModal } from '@/components/hackathons/AcceptInviteModal';
+import { SubmissionPanel } from '@/components/hackathons/SubmissionPanel';
+import { IdeaPanel } from '@/components/hackathons/IdeaPanel';
+import { StaffShortcuts } from '@/components/hackathons/StaffShortcuts';
+import {
+  CalendarShareCard, CertificateCard, CheckInCard, MyRegistrationCard, RecruitingCard, ResultsNotice, WaitlistNotice,
+} from '@/components/hackathons/ParticipantCards';
+import { needsRegistrationDetails } from '@/components/hackathons/RegistrationDetailsFields';
+import { BTN, H2, PANEL } from '@/components/hackathons/dashboardStyles';
 
 export default function HackathonDashboardPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -38,6 +43,7 @@ export default function HackathonDashboardPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [teamModal, setTeamModal] = useState<'create' | 'edit' | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteToAccept, setInviteToAccept] = useState<HackathonTeamInvite | null>(null);
   const [preselectedProblemId, setPreselectedProblemId] = useState('');
 
   const me = getStoredUser();
@@ -190,6 +196,8 @@ export default function HackathonDashboardPage() {
           )}
         </div>
 
+        <StaffShortcuts slug={slug} />
+
         {/* Profile completeness */}
         {data.profile_missing.length > 0 && (
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
@@ -201,8 +209,12 @@ export default function HackathonDashboardPage() {
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
           <div className="space-y-6">
+            {team && data.registration && data.registration.missing.length > 0 && (
+              <MyRegistrationCard hackathon={hackathon} registration={data.registration} onSaved={() => load()} />
+            )}
+
             {/* ---------------- No team yet ---------------- */}
             {!team && (
               <>
@@ -222,7 +234,9 @@ export default function HackathonDashboardPage() {
                           </div>
                           <button
                             disabled={!!busyKey || data.profile_missing.length > 0 || !canJoinOrCreate}
-                            onClick={() => run(`accept-${inv.id}`, () => hackathonApi.acceptInvite(inv.id), `You joined ${inv.team_name}!`)}
+                            onClick={() => (needsRegistrationDetails(hackathon)
+                              ? setInviteToAccept(inv)
+                              : run(`accept-${inv.id}`, () => hackathonApi.acceptInvite(inv.id), `You joined ${inv.team_name}!`))}
                             className={`${BTN} bg-emerald-600 text-white hover:bg-emerald-700`}
                           >
                             <Check className="h-3.5 w-3.5" /> {busyKey === `accept-${inv.id}` ? 'Joining…' : 'Accept'}
@@ -238,6 +252,13 @@ export default function HackathonDashboardPage() {
                         </li>
                       ))}
                     </ul>
+                  </section>
+                )}
+
+                {hackathon.features?.team_finder && (
+                  <section className={`${PANEL} flex flex-wrap items-center justify-between gap-3`}>
+                    <p className="text-sm text-journey-text/80">Looking for teammates? Browse people and teams that are looking.</p>
+                    <Link href={`/hackathons/${slug}/finder`} className={`${BTN} bg-journey-accent text-white`}>Open the team finder</Link>
                   </section>
                 )}
 
@@ -295,8 +316,10 @@ export default function HackathonDashboardPage() {
                 {(team.status === 'DISQUALIFIED' || team.status === 'WITHDRAWN') && (
                   <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
                     This team is {team.status.toLowerCase()} and can no longer take part.
+                    {team.status_reason && <span className="mt-1 block font-normal">Reason from the organizers: {team.status_reason}</span>}
                   </p>
                 )}
+                {team.is_waitlisted && <WaitlistNotice />}
                 {!editable && (team.status === 'FORMING' || team.status === 'REGISTERED') && (
                   <p className="flex items-center gap-1.5 text-xs text-journey-muted"><Lock className="h-3.5 w-3.5" /> Team changes are locked. Contact the organizers for any correction.</p>
                 )}
@@ -428,6 +451,9 @@ export default function HackathonDashboardPage() {
               </section>
             )}
 
+            {team && hackathon.features?.ideas && team.status === 'REGISTERED' && !team.is_waitlisted && <IdeaPanel hackathon={hackathon} />}
+            {team && hackathon.features?.submissions && team.status === 'REGISTERED' && !team.is_waitlisted && <SubmissionPanel hackathon={hackathon} />}
+
             {team && (
               <section className={`${PANEL} space-y-4`}>
                 <h2 className={H2}><Flag className="h-4 w-4" /> Rounds</h2>
@@ -438,6 +464,11 @@ export default function HackathonDashboardPage() {
 
           {/* ---------------- Sidebar ---------------- */}
           <aside className="space-y-6">
+            {hackathon.results_published && <ResultsNotice hackathon={hackathon} />}
+            {team && hackathon.features?.check_in && team.status === 'REGISTERED' && !team.is_waitlisted && <CheckInCard slug={slug} />}
+            {team && hackathon.features?.certificates && <CertificateCard hackathon={hackathon} />}
+            {team && isLeader && editable && hackathon.features?.team_finder && <RecruitingCard hackathon={hackathon} team={team} onSaved={() => load()} />}
+
             {team && (
               <section className={`${PANEL} space-y-3`}>
                 <h2 className={H2}><Target className="h-4 w-4" /> {team.open_innovation ? 'Your problem' : 'Problem statement'}</h2>
@@ -478,6 +509,10 @@ export default function HackathonDashboardPage() {
               <p className="text-journey-text/80"><span className="font-semibold">Starts:</span> {formatDateTime(hackathon.start_date)}</p>
               <p className="text-journey-text/80"><span className="font-semibold">Ends:</span> {formatDateTime(hackathon.end_date)}</p>
               <p className="text-journey-text/80"><span className="font-semibold">Prize pool:</span> {hackathon.prize_pool}</p>
+              {hackathon.submission_deadline && hackathon.features?.submissions && (
+                <p className="text-journey-text/80"><span className="font-semibold">Submission deadline:</span> {formatDateTime(hackathon.submission_deadline)}</p>
+              )}
+              <div className="pt-2"><CalendarShareCard hackathon={hackathon} /></div>
             </section>
           </aside>
         </div>
@@ -492,8 +527,17 @@ export default function HackathonDashboardPage() {
         team={teamModal === 'edit' ? team : null}
         initialProblemId={preselectedProblemId}
         problemLocked={problemLocked}
+        registration={hackathon}
         onSaved={() => load()}
       />
+      {inviteToAccept && (
+        <AcceptInviteModal
+          invite={inviteToAccept}
+          hackathon={hackathon}
+          onClose={() => setInviteToAccept(null)}
+          onAccepted={() => { setInviteToAccept(null); invalidateMyHackathonStatus(slug); load(); }}
+        />
+      )}
       {team && (
         <InviteMemberModal
           isOpen={inviteOpen}

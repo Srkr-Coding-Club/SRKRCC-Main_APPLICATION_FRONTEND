@@ -78,7 +78,7 @@ export default function CodeQuestCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   const navButtonClass =
-    'inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white/60 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/60 disabled:hover:text-slate-600 dark:border-slate-700 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white dark:disabled:hover:bg-white/5 dark:disabled:hover:text-slate-300';
+    'inline-flex h-10 w-10 sm:h-7 sm:w-7 items-center justify-center rounded-lg border border-slate-200 bg-white/60 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/60 disabled:hover:text-slate-600 dark:border-slate-700 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white dark:disabled:hover:bg-white/5 dark:disabled:hover:text-slate-300';
 
   const solvedStatus = solvedLoading
     ? 'Loading your solved progress…'

@@ -62,7 +62,7 @@ export function LoadingSpinner({
 
 export function PageLoader({ label = 'Loading SRKRCC Platform...' }: { label?: string }) {
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
+    <div className="min-h-[70dvh] flex items-center justify-center px-4">
       <LoadingSpinner size="xl" label={label} />
     </div>
   );

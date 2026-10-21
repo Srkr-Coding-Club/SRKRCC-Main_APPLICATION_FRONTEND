@@ -21,6 +21,7 @@ import { fetchApi } from '@/lib/api-client';
 import { useToast } from '@/context/ToastContext';
 import { Form, AttendanceSession, AttendanceReport, AttendanceScanResult } from '@/lib/types';
 import { AttendanceReportTab } from '@/components/admin/AttendanceReportTab';
+import Portal from '@/components/ui/Portal';
 
 const QR_REGION_ID = 'attendance-qr-scanner-region';
 const SAME_TOKEN_COOLDOWN_MS = 3000;
@@ -437,116 +438,118 @@ export function AttendanceScannerTab({ hideReportTab = false }: AttendanceScanne
     <div className="space-y-6">
       {/* Attendance Confirmation / Result Popup Modal */}
       {scanModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="bg-[#0D0E15]/95 backdrop-blur-2xl rounded-2xl max-w-md w-full p-6 sm:p-8 border border-orange-500/20 shadow-2xl shadow-orange-500/10 space-y-6 text-center relative overflow-hidden animate-in zoom-in-95 duration-150"
-          >
-            {/* Top Ambient Glow matching theme */}
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
             <div
-              className={`absolute -top-20 left-1/2 -translate-x-1/2 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-40 ${
-                scanModal.kind === 'new'
-                  ? 'bg-gradient-to-r from-[#FF7A00] to-emerald-500'
-                  : scanModal.kind === 'already'
-                  ? 'bg-gradient-to-r from-[#FF7A00] to-amber-500'
-                  : 'bg-rose-500'
-              }`}
-            />
+              role="dialog"
+              aria-modal="true"
+              className="bg-[#0D0E15]/95 backdrop-blur-2xl rounded-2xl max-w-md w-full p-6 sm:p-8 border border-orange-500/20 shadow-2xl shadow-orange-500/10 space-y-6 text-center relative overflow-hidden animate-in zoom-in-95 duration-150"
+            >
+              {/* Top Ambient Glow matching theme */}
+              <div
+                className={`absolute -top-20 left-1/2 -translate-x-1/2 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-40 ${
+                  scanModal.kind === 'new'
+                    ? 'bg-gradient-to-r from-[#FF7A00] to-emerald-500'
+                    : scanModal.kind === 'already'
+                    ? 'bg-gradient-to-r from-[#FF7A00] to-amber-500'
+                    : 'bg-rose-500'
+                }`}
+              />
 
-            {/* Icon Status */}
-            <div className="relative flex justify-center pt-1">
-              {scanModal.kind === 'new' ? (
-                <div className="w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 ring-8 ring-emerald-500/10 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/20">
-                  <CheckCircle2 className="w-10 h-10" />
-                </div>
-              ) : scanModal.kind === 'already' ? (
-                <div className="w-20 h-20 rounded-full bg-amber-500/15 border-2 border-amber-500/40 ring-8 ring-amber-500/10 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/20">
-                  <AlertTriangle className="w-10 h-10" />
-                </div>
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-rose-500/15 border-2 border-rose-500/40 ring-8 ring-rose-500/10 flex items-center justify-center text-rose-400 shadow-lg shadow-rose-500/20">
-                  <XCircle className="w-10 h-10" />
-                </div>
-              )}
-            </div>
-
-            {/* Content Details */}
-            <div className="space-y-3">
-              <div>
-                <span
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-                    scanModal.kind === 'new'
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                      : scanModal.kind === 'already'
-                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                  }`}
-                >
-                  {scanModal.kind === 'new' ? (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5 text-[#FF7A00]" /> Attendance Marked
-                    </>
-                  ) : scanModal.kind === 'already' ? (
-                    <>
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" /> Already Checked In
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-3.5 h-3.5 text-rose-400" /> Scan Failed
-                    </>
-                  )}
-                </span>
+              {/* Icon Status */}
+              <div className="relative flex justify-center pt-1">
+                {scanModal.kind === 'new' ? (
+                  <div className="w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 ring-8 ring-emerald-500/10 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/20">
+                    <CheckCircle2 className="w-10 h-10" />
+                  </div>
+                ) : scanModal.kind === 'already' ? (
+                  <div className="w-20 h-20 rounded-full bg-amber-500/15 border-2 border-amber-500/40 ring-8 ring-amber-500/10 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/20">
+                    <AlertTriangle className="w-10 h-10" />
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-rose-500/15 border-2 border-rose-500/40 ring-8 ring-rose-500/10 flex items-center justify-center text-rose-400 shadow-lg shadow-rose-500/20">
+                    <XCircle className="w-10 h-10" />
+                  </div>
+                )}
               </div>
 
-              {scanModal.displayName ? (
-                <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  {scanModal.displayName}
-                </h3>
-              ) : (
-                <h3 className="text-xl font-bold text-rose-400">Invalid Badge</h3>
-              )}
-
-              {scanModal.kind === 'error' ? (
-                <p className="text-xs text-rose-300 px-4">
-                  {scanModal.message || 'The scanned QR code is not valid for this attendance session.'}
-                </p>
-              ) : (
-                <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 space-y-1 text-xs">
-                  {scanModal.sessionText && (
-                    <p className="font-bold text-slate-200">{scanModal.sessionText}</p>
-                  )}
-                  {scanModal.formTitle && (
-                    <p className="text-[11px] text-[#FF9E00] font-medium truncate">Event: {scanModal.formTitle}</p>
-                  )}
-                  {scanModal.scannedAt && (
-                    <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5 pt-1">
-                      <Clock className="w-3 h-3 text-[#FF7A00]" />
-                      {new Date(scanModal.scannedAt).toLocaleTimeString('en-IN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </p>
-                  )}
+              {/* Content Details */}
+              <div className="space-y-3">
+                <div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                      scanModal.kind === 'new'
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        : scanModal.kind === 'already'
+                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                        : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                    }`}
+                  >
+                    {scanModal.kind === 'new' ? (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-[#FF7A00]" /> Attendance Marked
+                      </>
+                    ) : scanModal.kind === 'already' ? (
+                      <>
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400" /> Already Checked In
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-3.5 h-3.5 text-rose-400" /> Scan Failed
+                      </>
+                    )}
+                  </span>
                 </div>
-              )}
-            </div>
 
-            {/* Action Button */}
-            <div className="pt-1">
-              <button
-                type="button"
-                autoFocus
-                onClick={closeModal}
-                className="w-full py-3.5 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#FF7A00] via-[#FF9E00] to-[#FF7A00] hover:brightness-110 shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98]"
-              >
-                <span>Scan Next Participant</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+                {scanModal.displayName ? (
+                  <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    {scanModal.displayName}
+                  </h3>
+                ) : (
+                  <h3 className="text-xl font-bold text-rose-400">Invalid Badge</h3>
+                )}
+
+                {scanModal.kind === 'error' ? (
+                  <p className="text-xs text-rose-300 px-4">
+                    {scanModal.message || 'The scanned QR code is not valid for this attendance session.'}
+                  </p>
+                ) : (
+                  <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 space-y-1 text-xs">
+                    {scanModal.sessionText && (
+                      <p className="font-bold text-slate-200">{scanModal.sessionText}</p>
+                    )}
+                    {scanModal.formTitle && (
+                      <p className="text-[11px] text-[#FF9E00] font-medium truncate">Event: {scanModal.formTitle}</p>
+                    )}
+                    {scanModal.scannedAt && (
+                      <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5 pt-1">
+                        <Clock className="w-3 h-3 text-[#FF7A00]" />
+                        {new Date(scanModal.scannedAt).toLocaleTimeString('en-IN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Button */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={closeModal}
+                  className="w-full py-3.5 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#FF7A00] via-[#FF9E00] to-[#FF7A00] hover:brightness-110 shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98]"
+                >
+                  <span>Scan Next Participant</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* Header + form/session pickers */}

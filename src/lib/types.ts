@@ -106,6 +106,18 @@ export interface Event {
   quick_registration_fields?: ProfileFieldKey[];
 }
 
+/** What deleting a hackathon removes (GET /hackathons/{slug}/delete-impact/). */
+export interface HackathonDeleteImpact {
+  teams: number;
+  members: number;
+  problem_statements: number;
+  rounds: number;
+  round_entries: number;
+  announcements: number;
+  stages: number;
+  submissions: number;
+}
+
 export interface Hackathon {
   id: number;
   title: string;
@@ -119,7 +131,11 @@ export interface Hackathon {
   visible_from?: string | null;
   visible_until?: string | null;
   is_hidden?: boolean;
+  /** True only when an admin hid it (as opposed to the visible_from / visible_until window). */
+  is_manually_hidden?: boolean;
   banner_image?: string | null;
+  /** Admin-chosen framing of the banner; empty object = centred, no zoom. */
+  banner_crop?: { x?: number; y?: number; zoom?: number };
   registration_form?: number | null;
   form_slug?: string;
   form_title?: string;
@@ -146,6 +162,82 @@ export interface Hackathon {
   faq?: { question: string; answer: string }[];
   is_registration_open?: boolean;
   allow_open_innovation?: boolean;
+  /** Event operations, all switched and configured by organizers. */
+  features?: HackathonFeatures;
+  max_teams?: number | null;
+  max_participants?: number | null;
+  waitlist_enabled?: boolean;
+  waitlisted_team_count?: number;
+  is_full?: boolean;
+  eligibility?: HackathonEligibility;
+  rules?: string;
+  require_rules_acceptance?: boolean;
+  registration_questions?: RegistrationQuestion[];
+  problem_statements_reveal_at?: string | null;
+  problems_revealed?: boolean;
+  submission_opens_at?: string | null;
+  submission_deadline?: string | null;
+  submissions_open?: boolean;
+  idea_opens_at?: string | null;
+  idea_deadline?: string | null;
+  /** Organizers must approve an idea before it counts. */
+  idea_review_required?: boolean;
+  /** Only teams with an accepted idea may submit a project. */
+  project_requires_approved_idea?: boolean;
+  results_published_at?: string | null;
+  results_published?: boolean;
+  show_leaderboard?: boolean;
+  certificate_config?: Partial<CertificateConfig>;
+  mentors?: PublicPerson[];
+  judges?: PublicPerson[];
+  sponsors?: HackathonSponsor[];
+  contacts?: HackathonContact[];
+  community_links?: { label: string; url: string }[];
+  venue_map_url?: string | null;
+}
+
+export type HackathonFeatureKey = 'ideas' | 'submissions' | 'judging' | 'check_in' | 'certificates' | 'team_finder' | 'showcase';
+export type HackathonFeatures = Partial<Record<HackathonFeatureKey, boolean>>;
+export interface HackathonEligibility {
+  colleges?: string[];
+  branches?: string[];
+  years?: string[];
+}
+export type RegistrationQuestionType = 'text' | 'textarea' | 'select' | 'checkbox' | 'url' | 'number';
+export interface RegistrationQuestion {
+  key: string;
+  label: string;
+  type: RegistrationQuestionType;
+  required: boolean;
+  options?: string[];
+}
+export interface PublicPerson {
+  name: string;
+  role: string;
+  bio: string;
+  photo_url: string;
+  link: string;
+}
+export interface HackathonSponsor {
+  name: string;
+  logo_url: string;
+  url: string;
+  tier: string;
+}
+export interface HackathonContact {
+  name: string;
+  role: string;
+  email: string;
+  phone: string;
+}
+export type CertificateEligibility = 'REGISTERED' | 'SUBMITTED' | 'CHECKED_IN';
+export interface CertificateConfig {
+  title: string;
+  body: string;
+  signatory_name: string;
+  signatory_title: string;
+  eligibility: CertificateEligibility;
+  released: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -205,6 +297,8 @@ export interface HackathonTeamMember {
   year?: number | null;
   roll_number?: string | null;
   college?: string;
+  answers?: Record<string, string | boolean>;
+  rules_accepted_at?: string | null;
 }
 
 export interface HackathonTeamInvite {
@@ -240,6 +334,12 @@ export interface HackathonTeam {
   name: string;
   hackathon_slug: string;
   status: HackathonTeamStatus;
+  /** Queued because the hackathon was at capacity when the team formed. */
+  is_waitlisted?: boolean;
+  /** Why the organizers disqualified or withdrew the team. */
+  status_reason?: string;
+  looking_for_members?: boolean;
+  looking_for?: string;
   problem_statement: ProblemStatementBrief | null;
   /** Set (and problem_statement null) when the team brought its own problem. */
   open_innovation: OpenInnovationProblem | null;
@@ -263,6 +363,8 @@ export interface ParticipantRound {
   id: number;
   order: number;
   name: string;
+  kind: RoundKind;
+  effective_status: RoundStatus;
   description: string;
   starts_at: string | null;
   ends_at: string | null;
@@ -286,6 +388,8 @@ export interface MyTeamPayload {
   is_leader: boolean;
   invites: HackathonTeamInvite[];
   rounds: ParticipantRound[];
+  /** The caller's own answers to the organizers' rules and questions. */
+  registration: { rules_accepted: boolean; answers: Record<string, string | boolean>; missing: string[] } | null;
 }
 
 export interface UserLookupResult {
@@ -325,14 +429,21 @@ export interface HackathonStage extends PublicStage {
   updated_at: string;
 }
 
+export type RoundKind = 'GENERAL' | 'SCREENING' | 'IDEA_REVIEW' | 'PROJECT_REVIEW' | 'PITCH' | 'FINAL';
+
 export interface HackathonRound {
   id: number;
   order: number;
   name: string;
+  kind: RoundKind;
+  /** How many teams should go through; shortlisting more asks for confirmation. */
+  shortlist_limit: number | null;
   description: string;
   starts_at: string | null;
   ends_at: string | null;
   status: RoundStatus;
+  /** What the dates say right now (falls back to `status` when no dates are set). */
+  effective_status: RoundStatus;
   details_form: number | null;
   details_form_slug?: string | null;
   details_form_title?: string | null;
@@ -365,6 +476,12 @@ export interface AdminRoundEntry {
   decided_at: string | null;
   details_response_id: number | null;
   is_promoted_to_next?: boolean;
+  /** Facts that help decide, from the idea and project phases and check-in. */
+  idea_status: IdeaStatus | null;
+  idea_score: number | null;
+  has_project: boolean;
+  project_score: number | null;
+  checked_in: number;
 }
 
 export interface HackathonAnnouncement {
@@ -1077,3 +1194,355 @@ export interface UniversalCommitResult {
   is_raw_vault?: boolean;
 }
 
+
+// ---------------------------------------------------------------------------
+// Hackathon event operations: submissions, judging, results, check-in, finder
+// ---------------------------------------------------------------------------
+
+export type SubmissionWindowState = 'OFF' | 'NOT_OPEN' | 'OPEN' | 'CLOSED';
+
+export interface HackathonSubmission {
+  id: number;
+  team_id: number;
+  team_name: string;
+  project_title: string;
+  tagline: string;
+  description: string;
+  repo_url: string;
+  demo_url: string | null;
+  video_url: string | null;
+  slides_url: string | null;
+  tech_stack: string[];
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MySubmissionPayload {
+  state: SubmissionWindowState;
+  /** Whether the idea phase lets this team into the project phase. */
+  gate: { required: boolean; satisfied: boolean; reason: string };
+  opens_at: string | null;
+  deadline: string | null;
+  submission: HackathonSubmission | null;
+  can_edit: boolean;
+}
+
+export interface SubmissionDraft {
+  project_title: string;
+  tagline: string;
+  description: string;
+  repo_url: string;
+  demo_url: string;
+  video_url: string;
+  slides_url: string;
+  tech_stack: string[];
+  is_public: boolean;
+}
+
+export interface AdminSubmissionRow extends Omit<HackathonSubmission, 'created_at' | 'team_name'> {
+  /** Team name. */
+  team: string;
+  team_status: string;
+  score: number;
+  review_count: number;
+  submitted_at: string;
+}
+
+export interface AdminSubmissionsPayload {
+  state: SubmissionWindowState;
+  rows: AdminSubmissionRow[];
+  missing: { id: number; name: string }[];
+}
+
+export type CriterionTarget = 'PROJECT' | 'IDEA';
+
+export interface JudgingCriterion {
+  id?: number;
+  name: string;
+  description: string;
+  max_score: number;
+  weight: number;
+  order?: number;
+}
+
+export type HackathonPermissionKey =
+  | 'settings' | 'content' | 'teams' | 'rounds' | 'ideas' | 'submissions' | 'judging' | 'judge' | 'results' | 'check_in' | 'insights' | 'staff';
+export type HackathonStaffRole = 'ORGANIZER' | 'JUDGE' | 'VOLUNTEER';
+
+export interface HackathonStaffMember {
+  id: number;
+  role: HackathonStaffRole;
+  user_id: number;
+  email: string;
+  name: string;
+  permissions: HackathonPermissionKey[];
+}
+
+export interface MyHackathonPermissions {
+  permissions: HackathonPermissionKey[];
+  is_site_organizer: boolean;
+  roles: HackathonStaffRole[];
+  catalog: { key: HackathonPermissionKey; label: string; description: string }[];
+  presets: Record<HackathonStaffRole, HackathonPermissionKey[]>;
+}
+
+export interface JudgeReview {
+  scores: Record<string, number>;
+  comment: string;
+  total: number;
+}
+
+export interface JudgingSubmission extends HackathonSubmission {
+  is_own_team: boolean;
+  my_review: JudgeReview | null;
+}
+
+export interface JudgingPayload {
+  enabled: boolean;
+  criteria: Required<JudgingCriterion>[];
+  submissions: JudgingSubmission[];
+  reviewed: number;
+  total: number;
+  /** Idea scoring is on: ideas are scored against their own rubric. */
+  ideas_scoring?: boolean;
+}
+
+export interface LeaderboardRow {
+  rank: number;
+  submission_id: number;
+  team_id: number;
+  team_name: string;
+  project_title: string;
+  score: number;
+  review_count: number;
+}
+
+export interface LeaderboardPayload {
+  judges: number;
+  rows: LeaderboardRow[];
+  criteria: Required<JudgingCriterion>[];
+}
+
+export interface SubmissionReviewRow {
+  id: number;
+  judge: string;
+  scores: Record<string, number>;
+  comment: string;
+  total: number;
+  updated_at: string;
+}
+
+export interface HackathonAward {
+  id?: number;
+  team_id: number;
+  team_name?: string;
+  title: string;
+  rank: number;
+  prize: string;
+  note: string;
+}
+
+export interface HackathonResults {
+  published: boolean;
+  published_at?: string | null;
+  winners: (HackathonAward & { project_title: string; project_url: string })[];
+  leaderboard: LeaderboardRow[];
+}
+
+export interface ShowcaseProject {
+  id: number;
+  team_name: string;
+  project_title: string;
+  tagline: string;
+  description: string;
+  repo_url: string;
+  demo_url: string | null;
+  video_url: string | null;
+  slides_url: string | null;
+  tech_stack: string[];
+  award: string | null;
+  members: string[];
+}
+
+export interface CheckInParticipant {
+  user_id: number;
+  name: string;
+  email: string;
+  team_id: number;
+  team_name: string;
+  role: 'LEADER' | 'MEMBER';
+  checked_in: boolean;
+  checked_in_at: string | null;
+}
+
+export interface CheckInRoster {
+  participants: CheckInParticipant[];
+  total: number;
+  checked_in: number;
+}
+
+export interface MyCheckIn {
+  token: string;
+  checked_in: boolean;
+  checked_in_at: string | null;
+}
+
+export interface HackathonCertificate {
+  kind: 'PARTICIPATION' | 'WINNER';
+  title: string;
+  body: string;
+  name: string;
+  team: string;
+  hackathon: string;
+  organizer: string;
+  date: string;
+  signatory_name: string;
+  signatory_title: string;
+  code: string;
+}
+
+export interface CertificateVerification {
+  valid: boolean;
+  name: string;
+  hackathon: string;
+  kind: 'PARTICIPATION' | 'WINNER';
+  award: string | null;
+  team: string;
+}
+
+export interface FinderSeeker {
+  id: number;
+  name: string;
+  skills: string;
+  note: string;
+  profile: string;
+  is_me: boolean;
+}
+
+export interface FinderTeam {
+  id: number;
+  name: string;
+  looking_for: string;
+  members: number;
+  max_members: number;
+  problem: string | null;
+  leader: string;
+}
+
+export interface FinderListing {
+  seekers: FinderSeeker[];
+  teams: FinderTeam[];
+  my_profile: { skills: string; note: string } | null;
+}
+
+export interface HackathonAnalytics {
+  funnel: { key: string; label: string; count: number }[];
+  checked_in: number;
+  waitlisted_teams: number;
+  by_branch: { label: string; count: number }[];
+  by_year: { label: string; count: number }[];
+  by_college: { label: string; count: number }[];
+  joined_per_day: { date: string; count: number }[];
+  capacity: { max_teams: number | null; max_participants: number | null; placed_teams: number; placed_participants: number };
+}
+
+// Phase 1 of submissions: the idea (plan), reviewed before the project (implementation) phase.
+export type IdeaStatus = 'SUBMITTED' | 'APPROVED' | 'CHANGES_REQUESTED' | 'REJECTED';
+
+export interface HackathonIdea {
+  /** Average judge score out of 100 against the idea rubric. */
+  score: number;
+  review_count: number;
+  id: number;
+  team_id: number;
+  team_name: string;
+  title: string;
+  problem: string;
+  solution: string;
+  plan: string;
+  tech_stack: string[];
+  deck_url: string | null;
+  status: IdeaStatus;
+  feedback: string;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IdeaDraft {
+  title: string;
+  problem: string;
+  solution: string;
+  plan: string;
+  tech_stack: string[];
+  deck_url: string;
+}
+
+export interface MyIdeaPayload {
+  state: SubmissionWindowState;
+  opens_at: string | null;
+  deadline: string | null;
+  review_required: boolean;
+  project_requires_idea: boolean;
+  idea: HackathonIdea | null;
+  can_edit: boolean;
+}
+
+export interface AdminIdeasPayload {
+  state: SubmissionWindowState;
+  rows: (HackathonIdea & { team_status: string })[];
+  missing: { id: number; name: string }[];
+  counts: Record<IdeaStatus, number>;
+}
+
+export type RoundRuleKey =
+  | 'PROJECT_SCORE_TOP' | 'PROJECT_SCORE_MIN' | 'IDEA_SCORE_TOP' | 'IDEA_SCORE_MIN' | 'IDEA_APPROVED' | 'HAS_PROJECT' | 'CHECKED_IN';
+
+export interface AutoShortlistRow {
+  entry_id: number;
+  team_id: number;
+  team_name: string;
+  status: RoundEntryStatus;
+  metric: number | null;
+  selected: boolean;
+}
+
+export interface AutoShortlistResult {
+  rule: RoundRuleKey;
+  selected: AutoShortlistRow[];
+  not_selected: AutoShortlistRow[];
+  applied: boolean;
+  limit: number | null;
+  over_limit: boolean;
+}
+
+export interface IdeaLeaderboardRow {
+  rank: number;
+  idea_id: number;
+  team_id: number;
+  team_name: string;
+  title: string;
+  status: IdeaStatus;
+  score: number;
+  review_count: number;
+}
+
+export interface IdeaLeaderboardPayload {
+  judges: number;
+  rows: IdeaLeaderboardRow[];
+  criteria: Required<JudgingCriterion>[];
+}
+
+export interface JudgingIdea extends HackathonIdea {
+  is_own_team: boolean;
+  my_review: JudgeReview | null;
+}
+
+export interface JudgingIdeasPayload {
+  enabled: boolean;
+  criteria: Required<JudgingCriterion>[];
+  ideas: JudgingIdea[];
+  reviewed: number;
+  total: number;
+}

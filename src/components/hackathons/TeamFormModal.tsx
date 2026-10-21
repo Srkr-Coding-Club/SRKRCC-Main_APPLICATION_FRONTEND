@@ -9,6 +9,10 @@ import { FieldLabel, SpotlightInput, SpotlightTextarea } from '@/components/ui/I
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { apiErrorMessage, hackathonApi, type TeamProblemBody } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
+import {
+  EMPTY_REGISTRATION, RegistrationDetailsFields, registrationErrors, toRegistrationInput,
+  type RegistrationConfig, type RegistrationValue,
+} from './RegistrationDetailsFields';
 
 type ProblemMode = 'statement' | 'open' | 'none';
 
@@ -28,6 +32,8 @@ interface TeamFormModalProps {
   initialProblemId?: string;
   /** The team is already in a round: its problem can no longer be changed by the leader. */
   problemLocked?: boolean;
+  /** The organizers' rules and extra questions, asked when a team is created. */
+  registration?: RegistrationConfig;
   onSaved: (team: HackathonTeam) => void;
 }
 
@@ -58,7 +64,7 @@ function ModeButton({ active, icon: Icon, children, onClick }: { active: boolean
   );
 }
 
-export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowOpenInnovation, team, initialProblemId, problemLocked = false, onSaved }: TeamFormModalProps) {
+export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowOpenInnovation, team, initialProblemId, problemLocked = false, registration, onSaved }: TeamFormModalProps) {
   const { toast } = useToast();
   const editing = Boolean(team);
   const lockedProblem = editing && problemLocked;
@@ -70,6 +76,8 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
   const [domain, setDomain] = useState('');
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [details, setDetails] = useState<RegistrationValue>(EMPTY_REGISTRATION);
+  const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
 
   const active = useMemo(() => problemStatements.filter((p) => p.is_active), [problemStatements]);
   const domains = useMemo(() => [...new Set(active.map((p) => p.domain).filter(Boolean))], [active]);
@@ -85,6 +93,8 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
     setDomain(team?.open_innovation?.domain ?? '');
     setMode(team?.open_innovation ? 'open' : hasStatements ? 'statement' : 'none');
     setErrors({});
+    setDetails(EMPTY_REGISTRATION);
+    setDetailErrors({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, team, hasStatements, initialProblemId]);
 
@@ -140,19 +150,23 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
     e.preventDefault();
     const next = validate();
     setErrors(next);
-    if (Object.keys(next).length) return;
+    const missingDetails = !editing && registration ? registrationErrors(registration, details) : {};
+    setDetailErrors(missingDetails);
+    if (Object.keys(next).length || Object.keys(missingDetails).length) return;
 
     setBusy(true);
     try {
       const body = { name: name.trim(), ...problemBody() };
-      const saved = editing ? await hackathonApi.updateTeam(team!.id, body) : await hackathonApi.createTeam(slug, body);
+      const saved = editing ? await hackathonApi.updateTeam(team!.id, body) : await hackathonApi.createTeam(slug, { ...body, ...toRegistrationInput(details) });
       toast.success(editing ? 'Team updated' : 'Team created', editing ? undefined : 'Now invite your teammates by email.');
       onSaved(saved);
       onClose();
     } catch (err: any) {
-      const field = err?.body?.field as keyof FieldErrors | undefined;
+      const field = err?.body?.field as string | undefined;
       const message = apiErrorMessage(err);
-      setErrors(field && FIELD_KEYS.includes(field) ? { [field]: message } : { form: message });
+      const detailField = field === 'accept_rules' || (registration?.registration_questions ?? []).some((question) => question.key === field);
+      if (detailField && field) setDetailErrors({ [field]: message });
+      else setErrors(field && FIELD_KEYS.includes(field as keyof FieldErrors) ? { [field]: message } : { form: message });
     } finally {
       setBusy(false);
     }
@@ -263,6 +277,10 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
               </div>
             )}
           </div>
+        )}
+
+        {!editing && registration && (
+          <RegistrationDetailsFields config={registration} value={details} onChange={setDetails} errors={detailErrors} />
         )}
 
         {!editing && (

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Trophy } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
-import { Hackathon, HackathonAnnouncement, ProblemStatement, PublicStage } from '@/lib/types';
+import { Hackathon, HackathonAnnouncement, HackathonResults, ProblemStatement, PublicStage, ShowcaseProject } from '@/lib/types';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 import { HackathonDetailClient } from '@/components/hackathons/HackathonDetailClient';
@@ -22,12 +22,17 @@ async function getHackathon(slug: string): Promise<HackathonLookup> {
 }
 
 async function getPublicExtras(slug: string) {
-  const [problems, announcements, stages] = await Promise.all([
+  const [problems, announcements, stages, results, showcase] = await Promise.all([
     fetchApi<ProblemStatement[]>(`/hackathons/${encodeURIComponent(slug)}/problem-statements/`).catch(() => []),
     fetchApi<HackathonAnnouncement[]>(`/hackathons/${encodeURIComponent(slug)}/announcements/`).catch(() => []),
     fetchApi<PublicStage[]>(`/hackathons/${encodeURIComponent(slug)}/stages/`).catch(() => []),
+    fetchApi<HackathonResults>(`/hackathons/${encodeURIComponent(slug)}/results/`).catch(() => null),
+    fetchApi<{ enabled: boolean; projects: ShowcaseProject[] }>(`/hackathons/${encodeURIComponent(slug)}/showcase/`).catch(() => null),
   ]);
-  return { problems: problems || [], announcements: announcements || [], stages: stages || [] };
+  return {
+    problems: problems || [], announcements: announcements || [], stages: stages || [],
+    results: results || null, showcase: showcase?.enabled ? showcase.projects : [],
+  };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -38,6 +43,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${hackathon.title} | SRKR Coding Club Hackathons`,
     description: `${hackathon.theme}. Total Prize Pool: ${hackathon.prize_pool}. Explore problem statements, rules, schedule, and team registration on the official SRKRCC portal.`,
+    openGraph: {
+      title: hackathon.title,
+      description: hackathon.theme,
+      type: 'website',
+      ...(hackathon.banner_image ? { images: [{ url: hackathon.banner_image, alt: hackathon.title }] } : {}),
+    },
+    twitter: { card: hackathon.banner_image ? 'summary_large_image' : 'summary', title: hackathon.title, description: hackathon.theme },
   };
 }
 
@@ -66,7 +78,7 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
   }
   if (!hackathon) notFound();
 
-  const { problems, announcements, stages } = await getPublicExtras(slug);
+  const { problems, announcements, stages, results, showcase } = await getPublicExtras(slug);
 
   return (
     <HackathonDetailClient
@@ -74,6 +86,8 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
       problems={problems}
       announcements={announcements}
       stages={stages}
+      results={results}
+      showcase={showcase}
     />
   );
 }

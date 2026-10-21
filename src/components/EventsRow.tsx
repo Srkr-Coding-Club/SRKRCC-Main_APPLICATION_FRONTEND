@@ -53,13 +53,13 @@ export default function EventsRow({ title, cards }: EventsRowProps) {
     <div className="relative">
       {title && <h2 className="mb-4 text-xl font-bold text-slate-900 dark:text-white">{title}</h2>}
 
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:flex-nowrap">
         <button
           type="button"
           aria-label="Previous page"
           onClick={goLeft}
           disabled={!canGoLeft}
-          className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
+          className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
             canGoLeft
               ? 'text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white'
               : 'cursor-not-allowed text-slate-300 dark:text-slate-600'
@@ -68,7 +68,7 @@ export default function EventsRow({ title, cards }: EventsRowProps) {
           <ChevronLeft className="h-5 w-5" />
         </button>
 
-        <div ref={containerRef} className="min-w-0 flex-1 overflow-hidden">
+        <div ref={containerRef} className="order-first w-full min-w-0 overflow-hidden sm:order-none sm:w-auto sm:flex-1">
           <div className="flex justify-center gap-5">
             {visibleCards.map((card, index) => (
               <div key={`${page}-${index}`} className="w-full max-w-[300px] shrink-0">
@@ -83,7 +83,7 @@ export default function EventsRow({ title, cards }: EventsRowProps) {
           aria-label="Next page"
           onClick={goRight}
           disabled={!canGoRight}
-          className={`shrink-0 rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
+          className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white p-2.5 shadow-lg transition-all duration-200 dark:bg-white/10 active:scale-95 ${
             canGoRight
               ? 'text-slate-700 hover:scale-110 hover:shadow-xl dark:text-white'
               : 'cursor-not-allowed text-slate-300 dark:text-slate-600'

@@ -59,7 +59,7 @@ export function PrizeCards({ hackathon }: { hackathon: Hackathon }) {
           Total prize pool: <strong className="text-[#1A1A2E] dark:text-white">{hackathon.prize_pool}</strong>
         </p>
       )}
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {prizes.map((prize, index) => (
           <li
             key={`${prize.title}-${index}`}

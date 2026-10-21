@@ -105,8 +105,8 @@ export default function EventCard({
           ) : null
         }
         schedule={
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
               {formattedDate ? (
                 <>
                   <span className="flex items-center gap-1.5">
@@ -175,20 +175,20 @@ export default function EventCard({
               <ArrowUpRight className="h-3.5 w-3.5" />
             </button>
             {event.status === "CLOSED" ? (
-              <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-journey-text/10 px-4 py-2.5 text-[13px] font-semibold text-journey-muted">
+              <span className="inline-flex min-w-[8.5rem] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-journey-text/10 px-4 py-2.5 text-[13px] font-semibold text-journey-muted">
                 Registration Closed
               </span>
             ) : event.is_quick_registration && event.form_slug ? (
               <QuickRegisterButton
                 event={event}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 bg-journey-accent"
-                registeredClassName="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-[13px] font-semibold text-emerald-600 dark:text-emerald-400"
+                className="inline-flex min-w-[8.5rem] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 bg-journey-accent"
+                registeredClassName="inline-flex min-w-[8.5rem] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-500/10 px-4 py-2.5 text-[13px] font-semibold text-emerald-600 dark:text-emerald-400"
                 label="Register Now"
               />
             ) : (
               <Link
                 href={event.form_slug ? `/forms/${event.form_slug}` : "/forms"}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 bg-journey-accent"
+                className="inline-flex min-w-[8.5rem] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 bg-journey-accent"
               >
                 <Ticket className="h-4 w-4" />
                 Register Now

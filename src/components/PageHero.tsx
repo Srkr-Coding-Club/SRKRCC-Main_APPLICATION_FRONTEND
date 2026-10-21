@@ -38,13 +38,13 @@ export default function PageHero({
         className="pointer-events-none absolute bottom-0 left-0 h-px w-2/3 bg-gradient-to-r from-journey-accent/60 to-transparent"
       />
 
-      <div className="relative z-10 grid items-center gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(230px,0.7fr)]">
-        <div className="max-w-3xl">
+      <div className="relative z-10 grid grid-cols-1 items-center gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(230px,0.7fr)]">
+        <div className="min-w-0 max-w-3xl">
           <div className="inline-flex max-w-full items-center gap-2.5 rounded-full border border-journey-accent/30 bg-journey-accent/10 px-3.5 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-journey-accent sm:text-[11px]">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-journey-accent/15 text-journey-accent">
               {icon}
             </span>
-            <span className="truncate">{eyebrow}</span>
+            <span className="min-w-0 truncate">{eyebrow}</span>
           </div>
 
           <h1 className="mt-6 pb-2 max-w-4xl text-balance font-display text-[clamp(2.25rem,5.3vw,4.5rem)] font-semibold leading-[1.04] tracking-[-0.035em] text-journey-text">

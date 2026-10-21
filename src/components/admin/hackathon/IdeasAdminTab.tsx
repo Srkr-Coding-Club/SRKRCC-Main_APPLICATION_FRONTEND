@@ -1,0 +1,212 @@
+'use client';
+
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { BellRing, Check, Download, ExternalLink, Lightbulb, MessageSquareWarning, Save, X } from 'lucide-react';
+import type { AdminIdeasPayload, Hackathon, IdeaStatus } from '@/lib/types';
+import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
+import { downloadCSV } from '@/lib/dataManagement';
+import { useToast } from '@/context/ToastContext';
+import { Switch } from '@/components/ui/Switch';
+import { StatusPill, type PillTone } from '@/components/ui/StatusPill';
+import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
+import { FeatureOffNotice } from './FeatureOffNotice';
+import { LoadError } from './LoadError';
+import { SubmissionPhases } from './SubmissionPhases';
+import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInput } from './shared';
+import { useHackathonPatch } from './useHackathonPatch';
+
+const STATUS_PILL: Record<IdeaStatus, { tone: PillTone; label: string }> = {
+  SUBMITTED: { tone: 'amber', label: 'Waiting for review' },
+  APPROVED: { tone: 'green', label: 'Approved' },
+  CHANGES_REQUESTED: { tone: 'orange', label: 'Changes requested' },
+  REJECTED: { tone: 'red', label: 'Rejected' },
+};
+const FILTERS: { value: IdeaStatus | ''; label: string }[] = [
+  { value: '', label: 'All' }, { value: 'SUBMITTED', label: 'To review' }, { value: 'CHANGES_REQUESTED', label: 'Changes requested' },
+  { value: 'APPROVED', label: 'Approved' }, { value: 'REJECTED', label: 'Rejected' },
+];
+
+interface IdeasAdminTabProps {
+  hackathon: Hackathon;
+  onSaved: (hackathon: Hackathon) => void;
+  onEnable: () => void;
+}
+
+export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabProps) {
+  const { toast } = useToast();
+  const slug = hackathon.slug;
+  const { busy: saving, errors, save } = useHackathonPatch(hackathon, onSaved);
+  const enabled = Boolean(hackathon.features?.ideas);
+  const [opensAt, setOpensAt] = useState(toLocalInput(hackathon.idea_opens_at));
+  const [deadline, setDeadline] = useState(toLocalInput(hackathon.idea_deadline));
+  const [reviewRequired, setReviewRequired] = useState(hackathon.idea_review_required ?? true);
+  const [gate, setGate] = useState(Boolean(hackathon.project_requires_approved_idea));
+  const [data, setData] = useState<AdminIdeasPayload | null>(null);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState<IdeaStatus | ''>('');
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const [reviewing, setReviewing] = useState(false);
+  const [reminding, setReminding] = useState(false);
+
+  const load = useCallback(() => {
+    setError('');
+    hackathonApi.admin.ideas(slug).then(setData).catch((err) => setError(apiErrorMessage(err, 'Could not load ideas.')));
+  }, [slug]);
+
+  useEffect(() => {
+    if (enabled) load();
+  }, [enabled, load]);
+
+  const rows = useMemo(() => (data?.rows ?? []).filter((row) => !filter || row.status === filter), [data, filter]);
+
+  if (!enabled) return <FeatureOffNotice title="Idea submission" description="Turn this module on to collect each team's plan before the project phase." onEnable={onEnable} />;
+
+  const saveSettings = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await save({
+      idea_opens_at: fromLocalInput(opensAt), idea_deadline: fromLocalInput(deadline),
+      idea_review_required: reviewRequired, project_requires_approved_idea: gate,
+    }, 'Idea phase saved');
+  };
+
+  const review = async (id: number, status: Exclude<IdeaStatus, 'SUBMITTED'>) => {
+    setReviewing(true);
+    try {
+      await hackathonApi.admin.reviewIdea(slug, id, { status, feedback });
+      toast.success(status === 'APPROVED' ? 'Idea approved' : status === 'REJECTED' ? 'Idea rejected' : 'Changes requested', 'The team was notified.');
+      setFeedback('');
+      setOpenId(null);
+      load();
+    } catch (err) {
+      toast.error('Could not save the review', apiErrorMessage(err));
+    } finally {
+      setReviewing(false);
+    }
+  };
+
+  const remind = async () => {
+    setReminding(true);
+    try {
+      const { reminded } = await hackathonApi.admin.remindMissingIdeas(slug);
+      toast.success(reminded ? `Reminded ${reminded} team${reminded === 1 ? '' : 's'}` : 'Every team has submitted an idea');
+    } catch (err) {
+      toast.error('Could not send reminders', apiErrorMessage(err));
+    } finally {
+      setReminding(false);
+    }
+  };
+
+  const exportCsv = () => {
+    if (data) downloadCSV(data.rows.map((row) => ({
+      team: row.team_name, status: row.status, title: row.title, problem: row.problem, solution: row.solution, plan: row.plan,
+      tech_stack: row.tech_stack.join(', '), deck_url: row.deck_url ?? '', feedback: row.feedback, submitted: row.updated_at,
+    })), `${slug}-ideas-${Date.now()}.csv`);
+  };
+
+  return (
+    <div className="space-y-6">
+      <SubmissionPhases hackathon={hackathon} />
+
+      <form onSubmit={saveSettings} className={`${PANEL} space-y-4`}>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Lightbulb className="h-4 w-4 text-[#FF7A00]" /> Phase 1: idea (plan)</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="idea-opens" className={LABEL}>Opens</label>
+            <input id="idea-opens" type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} className={INPUT} />
+            <p className="mt-1 text-[11px] text-slate-400">Blank = open now.</p>
+          </div>
+          <div>
+            <label htmlFor="idea-deadline" className={LABEL}>Deadline</label>
+            <input id="idea-deadline" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className={INPUT} />
+            {errors.idea_deadline ? <p className="mt-1 text-[11px] text-rose-500">{errors.idea_deadline}</p> : <p className="mt-1 text-[11px] text-slate-400">Must be before the project deadline.</p>}
+          </div>
+        </div>
+        <Switch label="Review every idea" description="Teams wait for your approval. Off = ideas are accepted the moment they are submitted." checked={reviewRequired} onChange={setReviewRequired} />
+        <Switch
+          label="Project phase needs an accepted idea"
+          description="Only teams whose idea is approved (or, with review off, submitted) can submit a project. Off = every registered team may."
+          checked={gate}
+          onChange={setGate}
+        />
+        <button type="submit" disabled={saving} className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save idea phase'}</button>
+      </form>
+
+      {error && <LoadError message={error} onRetry={load} />}
+
+      {data && (
+        <section className={`${PANEL} space-y-4`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">
+              {data.rows.length} idea{data.rows.length === 1 ? '' : 's'} · {data.counts.SUBMITTED} to review · {data.missing.length} registered teams without one
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={remind} disabled={reminding || data.missing.length === 0 || data.state === 'CLOSED'} className={BTN_GHOST}><BellRing className="h-3.5 w-3.5" /> {reminding ? 'Sending…' : 'Remind teams without one'}</button>
+              <button type="button" onClick={exportCsv} disabled={data.rows.length === 0} className={BTN_GHOST}><Download className="h-3.5 w-3.5" /> Export CSV</button>
+            </div>
+          </div>
+
+          <div role="tablist" aria-label="Filter ideas" className="flex flex-wrap gap-1.5">
+            {FILTERS.map((item) => (
+              <button key={item.value} type="button" role="tab" aria-selected={filter === item.value} onClick={() => setFilter(item.value)}
+                className={`rounded-full border px-3 py-1 text-xs font-bold ${filter === item.value ? 'border-[#FF7A00] bg-[#FF7A00]/10 text-[#C25A00] dark:text-[#FF9A4A]' : 'border-slate-200 text-slate-500 dark:border-slate-700'}`}>
+                {item.label}{item.value ? ` (${data.counts[item.value]})` : ` (${data.rows.length})`}
+              </button>
+            ))}
+          </div>
+
+          {rows.length === 0 ? <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">Nothing here.</p> : (
+            <ul className="space-y-3">
+              {rows.map((row) => {
+                const open = openId === row.id;
+                const pill = STATUS_PILL[row.status];
+                return (
+                  <li key={row.id} className="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold text-[#1A1A2E] dark:text-white">{row.title}</p>
+                        <p className="text-xs text-slate-500">
+                          {row.team_name} · updated {formatDateTime(row.updated_at)}
+                          {row.review_count > 0 && <> · judges&apos; score <strong>{row.score.toFixed(1)}</strong> ({row.review_count} judge{row.review_count === 1 ? '' : 's'})</>}
+                        </p>
+                      </div>
+                      <StatusPill tone={pill.tone}>{pill.label}</StatusPill>
+                    </div>
+                    <button type="button" onClick={() => { setOpenId(open ? null : row.id); setFeedback(row.feedback); }} aria-expanded={open} className="text-xs font-bold text-[#FF7A00] hover:underline">
+                      {open ? 'Hide details' : 'Read and review'}
+                    </button>
+                    {open && (
+                      <div className="space-y-3 text-sm">
+                        {[['The problem', row.problem], ['The approach', row.solution], ['The plan', row.plan]].map(([label, text]) => text && (
+                          <div key={label}><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p><p className="whitespace-pre-line text-slate-700 dark:text-slate-200">{text}</p></div>
+                        ))}
+                        {row.tech_stack.length > 0 && <p className="text-xs text-slate-500">Tech: {row.tech_stack.join(', ')}</p>}
+                        {row.deck_url && <a href={row.deck_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#FF7A00] hover:underline">Slides <ExternalLink className="h-3 w-3" /></a>}
+                        <div>
+                          <label htmlFor={`feedback-${row.id}`} className={LABEL}>Note to the team (required unless you approve)</label>
+                          <textarea id={`feedback-${row.id}`} rows={3} maxLength={1000} value={feedback} onChange={(e) => setFeedback(e.target.value)} className={INPUT} />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" disabled={reviewing} onClick={() => review(row.id, 'APPROVED')} className={BTN_PRIMARY}><Check className="h-3.5 w-3.5" /> Approve</button>
+                          <button type="button" disabled={reviewing || !feedback.trim()} onClick={() => review(row.id, 'CHANGES_REQUESTED')} className={BTN_GHOST}><MessageSquareWarning className="h-3.5 w-3.5" /> Request changes</button>
+                          <button type="button" disabled={reviewing || !feedback.trim()} onClick={() => review(row.id, 'REJECTED')} className={BTN_GHOST}><X className="h-3.5 w-3.5" /> Reject</button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {data.missing.length > 0 && (
+            <details className="text-sm">
+              <summary className="cursor-pointer font-bold text-slate-600 dark:text-slate-300">Teams without an idea ({data.missing.length})</summary>
+              <ul className="mt-2 flex flex-wrap gap-2">{data.missing.map((team) => <li key={team.id} className="rounded-full border border-slate-200 px-3 py-1 text-xs dark:border-slate-700">{team.name}</li>)}</ul>
+            </details>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}

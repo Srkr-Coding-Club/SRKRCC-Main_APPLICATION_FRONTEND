@@ -530,3 +530,26 @@ input[type="reset"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* Printing a certificate: hide everything except the sheet so "Save as PDF" is just the certificate. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .certificate-print,
+  .certificate-print * {
+    visibility: visible;
+  }
+  .certificate-print {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+}

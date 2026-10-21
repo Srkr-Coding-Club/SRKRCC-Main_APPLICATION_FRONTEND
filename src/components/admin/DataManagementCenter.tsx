@@ -21,6 +21,7 @@ import type {
   ExportFormat, FilterClause, FilterDefinition, FilterOption, FilterType, FilterOperator, SortClause
 } from '@/lib/types/dmc';
 import EmailTemplateEditor, { EmailRecipient } from '@/components/admin/EmailTemplateEditor';
+import Portal from '@/components/ui/Portal';
 
 // ============================================================================
 // Group Icons mapping
@@ -850,84 +851,86 @@ function ExportModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-panel-solid rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-          <div className="flex items-center gap-2">
-            <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <span className="text-base font-bold text-slate-900 dark:text-white">Export Dataset</span>
-          </div>
-          <button onClick={onClose} className="flex items-center justify-center min-h-9 min-w-9 p-1.5 transition-transform duration-100 active:scale-90"><X className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" /></button>
-        </div>
-        <div className="p-6 space-y-5">
-          {asyncJob ? (
-            <div className="text-center py-6">
-              <RefreshCw className={`w-9 h-9 mx-auto mb-3 ${asyncJob.status === 'COMPLETED' ? 'text-emerald-500' : 'text-blue-600 animate-spin'}`} />
-              <p className="text-sm text-slate-900 dark:text-white font-bold">{asyncJob.status === 'COMPLETED' ? 'Export Ready! Downloading…' : `Exporting ${asyncJob.status.toLowerCase()}…`}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Large datasets are prepared asynchronously in the background.</p>
+    <Portal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-panel-solid rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        >
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+            <div className="flex items-center gap-2">
+              <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <span className="text-base font-bold text-slate-900 dark:text-white">Export Dataset</span>
             </div>
-          ) : (
-            <>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-2">Export Format</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {formats.map(({ fmt, label, enabled }) => (
-                    <button
-                      key={fmt}
-                      disabled={!enabled}
-                      onClick={() => setFormat(fmt)}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all active:scale-95
-                        ${format === fmt ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50 dark:bg-slate-800'}
-                        ${!enabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-2">Export Scope</label>
-                <div className="flex gap-2">
-                  {(['all_filtered', 'selected'] as const).map(s => (
-                    <button
-                      key={s}
-                      onClick={() => setRowScope(s)}
-                      disabled={s === 'selected' && selectedIds.size === 0}
-                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95
-                        ${rowScope === s ? 'bg-blue-50 dark:bg-blue-600/20 border-blue-600 dark:border-blue-500 text-blue-700 dark:text-blue-300' : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400'}`}
-                    >
-                      {s === 'all_filtered' ? 'All (Matching Filters)' : `Selected Rows Only (${selectedIds.size})`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl p-3.5 text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                <p>Columns: <span className="text-slate-900 dark:text-slate-100 font-bold">{visibleKeys.length} visible columns</span></p>
-                {activeFilters.length > 0 && <p>Filters: <span className="text-blue-600 dark:text-blue-400 font-bold">{activeFilters.length} active filters</span></p>}
-              </div>
-              {error && <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" /> {error}</p>}
-            </>
-          )}
-        </div>
-        {!asyncJob && (
-          <div className="px-6 pb-5 flex gap-3">
-            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-[0.98]">Cancel</button>
-            <button
-              onClick={handleExport}
-              disabled={loading}
-              className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 active:scale-[0.98]"
-            >
-              {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Start Export
-            </button>
+            <button onClick={onClose} className="flex items-center justify-center min-h-9 min-w-9 p-1.5 transition-transform duration-100 active:scale-90"><X className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" /></button>
           </div>
-        )}
-      </motion.div>
-    </div>
+          <div className="p-6 space-y-5">
+            {asyncJob ? (
+              <div className="text-center py-6">
+                <RefreshCw className={`w-9 h-9 mx-auto mb-3 ${asyncJob.status === 'COMPLETED' ? 'text-emerald-500' : 'text-blue-600 animate-spin'}`} />
+                <p className="text-sm text-slate-900 dark:text-white font-bold">{asyncJob.status === 'COMPLETED' ? 'Export Ready! Downloading…' : `Exporting ${asyncJob.status.toLowerCase()}…`}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Large datasets are prepared asynchronously in the background.</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-2">Export Format</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {formats.map(({ fmt, label, enabled }) => (
+                      <button
+                        key={fmt}
+                        disabled={!enabled}
+                        onClick={() => setFormat(fmt)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all active:scale-95
+                          ${format === fmt ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50 dark:bg-slate-800'}
+                          ${!enabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-2">Export Scope</label>
+                  <div className="flex gap-2">
+                    {(['all_filtered', 'selected'] as const).map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setRowScope(s)}
+                        disabled={s === 'selected' && selectedIds.size === 0}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95
+                          ${rowScope === s ? 'bg-blue-50 dark:bg-blue-600/20 border-blue-600 dark:border-blue-500 text-blue-700 dark:text-blue-300' : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400'}`}
+                      >
+                        {s === 'all_filtered' ? 'All (Matching Filters)' : `Selected Rows Only (${selectedIds.size})`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl p-3.5 text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                  <p>Columns: <span className="text-slate-900 dark:text-slate-100 font-bold">{visibleKeys.length} visible columns</span></p>
+                  {activeFilters.length > 0 && <p>Filters: <span className="text-blue-600 dark:text-blue-400 font-bold">{activeFilters.length} active filters</span></p>}
+                </div>
+                {error && <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" /> {error}</p>}
+              </>
+            )}
+          </div>
+          {!asyncJob && (
+            <div className="px-6 pb-5 flex gap-3">
+              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-[0.98]">Cancel</button>
+              <button
+                onClick={handleExport}
+                disabled={loading}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 active:scale-[0.98]"
+              >
+                {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                Start Export
+              </button>
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </Portal>
   );
 }
 
@@ -1185,7 +1188,7 @@ export default function DataManagementCenter() {
   const hasDataset = !!activeDataset;
 
   return (
-    <div className="relative flex h-[calc(100vh-74px)] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
+    <div className="relative flex h-[calc(100dvh-74px)] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* Mobile datasets toggle - sidebar is hidden below md, so this is the only way in */}
       <button
         onClick={() => setSidebarOpen(true)}

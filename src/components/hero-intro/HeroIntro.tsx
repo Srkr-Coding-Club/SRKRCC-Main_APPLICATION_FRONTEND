@@ -120,6 +120,7 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
 
     const html = document.documentElement;
     html.setAttribute(CHROME_MANAGED_ATTR, '');
+    html.dataset.introDone = 'false';
     setCinema(true);
 
     let scene: IntroScene | null = null;
@@ -211,6 +212,7 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
         if (nextDone !== done) {
           done = nextDone;
           root.dataset.introDone = String(done);
+          html.dataset.introDone = String(done);
           if (skipRef.current) skipRef.current.dataset.introDone = String(done);
           if (done) markIntroSeen();
         }
@@ -407,6 +409,7 @@ export default function HeroIntro({ children }: { children: React.ReactNode }) {
       navigateRef.current = () => {};
       setCinema(false);
       html.removeAttribute(CHROME_MANAGED_ATTR);
+      delete html.dataset.introDone;
     };
   }, []);
 

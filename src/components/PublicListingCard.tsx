@@ -95,7 +95,7 @@ export default function PublicListingCard({
         className="h-full w-full border border-journey-text/10 bg-journey-surface/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-journey-accent/40"
       >
         <div
-          className={`flex h-full flex-col overflow-hidden p-6 ${onCardClick ? 'cursor-pointer' : ''}`}
+          className={`flex h-full min-w-0 flex-col overflow-hidden p-5 sm:p-6 ${onCardClick ? 'cursor-pointer' : ''}`}
           onClick={(event) => {
             if ((event.target as HTMLElement).closest('a, button')) return;
             onCardClick?.(event);
@@ -109,7 +109,7 @@ export default function PublicListingCard({
           </div>
 
           {schedule && (
-            <div ref={scheduleRef} className="mt-3 flex items-center gap-1.5 font-mono text-[11px] text-journey-muted">
+            <div ref={scheduleRef} className="mt-3 flex min-w-0 flex-wrap items-center gap-1.5 font-mono text-[11px] text-journey-muted">
               {schedule}
             </div>
           )}
@@ -130,7 +130,7 @@ export default function PublicListingCard({
             </>
           )}
 
-          {footer && <div className="mt-auto flex items-center gap-2 pt-6">{footer}</div>}
+          {footer && <div className="mt-auto flex flex-wrap items-center gap-2 pt-6">{footer}</div>}
         </div>
       </SpotlightCard>
     </div>

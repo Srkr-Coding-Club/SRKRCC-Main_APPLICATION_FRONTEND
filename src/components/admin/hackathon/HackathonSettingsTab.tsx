@@ -1,14 +1,22 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { HelpCircle, LayoutTemplate, Lock, Save, Unlock, Sparkles, Calendar, Trophy, Users, Shield, FileText, Image as ImageIcon } from 'lucide-react';
-import type { Hackathon, ProfileFieldKey } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, HelpCircle, LayoutTemplate, Lock, Save, Trash2, Unlock, Sparkles, Calendar, Trophy, Users, Shield, FileText, Image as ImageIcon } from 'lucide-react';
+import Link from 'next/link';
+import type { Form, Hackathon, ProfileFieldKey } from '@/lib/types';
 import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
+import { fetchApi } from '@/lib/api-client';
+import { DEFAULT_BANNER_CROP, isDefaultBannerCrop, normalizeBannerCrop, type BannerCrop } from '@/lib/bannerCrop';
+import { BannerCropEditor } from './BannerCropEditor';
+import { FormSelect } from '@/components/ui/FormSelect';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
-import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
+import { getStoredUser } from '@/lib/auth';
+import { useHackathonLifecycle } from './useHackathonLifecycle';
+import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
 
 
 export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackathon; onSaved: (h: Hackathon) => void }) {
@@ -20,6 +28,10 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const [prizePool, setPrizePool] = useState('₹50,000');
   const [bannerImage, setBannerImage] = useState('');
   const [description, setDescription] = useState('');
+  const [bannerCrop, setBannerCrop] = useState<BannerCrop>(DEFAULT_BANNER_CROP);
+  const [registrationForm, setRegistrationForm] = useState('');
+  const [forms, setForms] = useState<Form[]>([]);
+  const [formsError, setFormsError] = useState(false);
 
   // Schedule
   const [startDate, setStartDate] = useState('');
@@ -49,11 +61,17 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const currentSnapshot = JSON.stringify([
-    title, theme, prizePool, bannerImage, description, startDate, endDate, visibleFrom, visibleUntil,
+    title, theme, prizePool, bannerImage, bannerCrop, registrationForm, description, startDate, endDate, visibleFrom, visibleUntil,
     opensAt, closesAt, minSize, maxSize, locked, openInnovation, required, faq,
     mode, venue, organizer, logoImage, tagsText, prizes,
   ]);
   const dirty = savedSnapshot !== '' && currentSnapshot !== savedSnapshot;
+
+  useEffect(() => {
+    fetchApi<Form[] | { results: Form[] }>('/forms/')
+      .then((res) => setForms(Array.isArray(res) ? res : res?.results || []))
+      .catch(() => setFormsError(true));
+  }, []);
 
   useEffect(() => {
     setTitle(hackathon.title || '');
@@ -61,6 +79,8 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setPrizePool(hackathon.prize_pool || '₹50,000');
     setBannerImage(hackathon.banner_image || '');
     setDescription(hackathon.description || '');
+    setBannerCrop(normalizeBannerCrop(hackathon.banner_crop));
+    setRegistrationForm(hackathon.registration_form ? String(hackathon.registration_form) : '');
 
     setStartDate(toLocalInput(hackathon.start_date));
     setEndDate(toLocalInput(hackathon.end_date));
@@ -83,6 +103,8 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setPrizes(hackathon.prizes ?? []);
     setSavedSnapshot(JSON.stringify([
       hackathon.title || '', hackathon.theme || '', hackathon.prize_pool || '₹50,000', hackathon.banner_image || '',
+      normalizeBannerCrop(hackathon.banner_crop),
+      hackathon.registration_form ? String(hackathon.registration_form) : '',
       hackathon.description || '',
       toLocalInput(hackathon.start_date), toLocalInput(hackathon.end_date),
       toLocalInput(hackathon.visible_from), toLocalInput(hackathon.visible_until),
@@ -115,7 +137,9 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         title: title.trim(),
         theme: theme.trim(),
         prize_pool: prizePool.trim(),
+        registration_form: registrationForm ? Number(registrationForm) : null,
         banner_image: bannerImage.trim() || null,
+        banner_crop: bannerImage.trim() && !isDefaultBannerCrop(bannerCrop) ? bannerCrop : {},
         description: description,
 
         start_date: fromLocalInput(startDate) || hackathon.start_date,
@@ -185,12 +209,21 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     }
   };
 
+  const router = useRouter();
+  const canDelete = getStoredUser()?.role === 'ADMIN';
+  const lifecycle = useHackathonLifecycle({
+    onChanged: onSaved,
+    onDeleted: () => router.replace('/admin/hackathons'),
+  });
+  const lifecycleBusy = lifecycle.busySlug === hackathon.slug;
   const closed = hackathon.status === 'CLOSED';
+  const formOptions = forms.map((form) => ({ value: String(form.id), label: `${form.title?.trim() || form.slug} (${form.status})` }));
   const draft = hackathon.status === 'DRAFT';
 
   return (
-    <form onSubmit={save} className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <form onSubmit={save} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       {confirmDialog}
+      {lifecycle.dialogs}
       <div className="space-y-6">
         {/* Section 1: General Event Info */}
         <section className={`${PANEL} space-y-4`}>
@@ -199,7 +232,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             General Information
           </h3>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className={LABEL}>Hackathon Title</label>
               <input
@@ -249,6 +282,35 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
               />
               {errors.banner_image && <p className="mt-1 text-[11px] text-rose-500">{errors.banner_image}</p>}
             </div>
+
+            {bannerImage.trim() && (
+              <div className="sm:col-span-2">
+                <BannerCropEditor imageUrl={bannerImage.trim()} value={bannerCrop} onChange={setBannerCrop} />
+                {errors.banner_crop && <p className="mt-1 text-[11px] text-rose-500">{errors.banner_crop}</p>}
+              </div>
+            )}
+
+            <div>
+              <label className={LABEL}>Linked form <span className="normal-case font-medium text-slate-400">(optional)</span></label>
+              <FormSelect
+                value={registrationForm}
+                onChange={setRegistrationForm}
+                options={formOptions}
+                placeholder={formsError ? 'Could not load forms' : 'No form linked'}
+              />
+              {errors.registration_form && <p className="mt-1 text-[11px] text-rose-500">{errors.registration_form}</p>}
+              <p className="mt-1 text-[11px] text-slate-400">
+                Ties a form from the Form Builder to this hackathon so its responses are counted here. Teams still register from the participant dashboard.
+                {hackathon.form_slug && (
+                  <>
+                    {' '}
+                    <Link href={`/admin/responses?form=${hackathon.form_slug}`} className="font-bold text-[#FF7A00] hover:underline">View responses</Link>
+                    {' · '}
+                    <Link href="/admin/forms" className="font-bold text-[#FF7A00] hover:underline">Open Form Builder</Link>
+                  </>
+                )}
+              </p>
+            </div>
           </div>
         </section>
 
@@ -259,7 +321,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             Event Schedule & Visibility Window
           </h3>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Start Date & Time</label>
               <input
@@ -339,7 +401,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
           <p className="text-xs text-slate-500">
             What visitors see on the hackathon page. The stages timeline has its own tab (Public Timeline).
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Event format</label>
               <select value={mode} onChange={(e) => setMode(e.target.value as NonNullable<Hackathon['mode']>)} className={INPUT}>
@@ -377,7 +439,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             <ul className="space-y-3">
               {prizes.map((prize, index) => (
                 <li key={index} className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <input
                       value={prize.title}
                       maxLength={100}
@@ -472,7 +534,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             Team Registration & Squad Rules
           </h3>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Registration opens</label>
               <input type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} className={INPUT} />
@@ -601,6 +663,47 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             )}
           </button>
         </div>
+
+        {!draft && (
+          <div className={`${PANEL} space-y-3`}>
+            <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Public visibility</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {hackathon.is_manually_hidden
+                ? 'Hidden: removed from the public site. Only admins and club leads can open it.'
+                : hackathon.is_hidden
+                  ? 'Outside its "visible from / until" window, so it is not public. Change the dates above to show it.'
+                  : 'Public: listed on the site and open to visitors.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => lifecycle.toggleVisibility(hackathon)}
+              disabled={lifecycleBusy || (hackathon.is_hidden && !hackathon.is_manually_hidden)}
+              className={BTN_GHOST}
+            >
+              {hackathon.is_manually_hidden ? (
+                <>
+                  <Eye className="h-3.5 w-3.5" /> Show on public site
+                </>
+              ) : (
+                <>
+                  <EyeOff className="h-3.5 w-3.5" /> Hide from public site
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {canDelete && (
+          <div className={`${PANEL} space-y-3 border-rose-500/30`}>
+            <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400">Danger zone</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Permanently deletes this hackathon with its teams, rounds, announcements and submissions. Consider hiding it instead.
+            </p>
+            <button type="button" onClick={() => lifecycle.requestDelete(hackathon)} disabled={lifecycleBusy} className={`${BTN_DANGER} border border-rose-500/40`}>
+              <Trash2 className="h-3.5 w-3.5" /> Delete hackathon
+            </button>
+          </div>
+        )}
       </aside>
     </form>
   );

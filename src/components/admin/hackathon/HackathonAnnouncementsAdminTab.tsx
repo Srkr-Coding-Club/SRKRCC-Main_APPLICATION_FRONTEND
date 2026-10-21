@@ -214,7 +214,7 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
           <MarkdownEditor label="Message *" value={draft.message} onChange={(v) => setDraft((d) => ({ ...d, message: v }))} placeholder="Schedule changes, venue, next steps…" />
           {errors.message && <p className="-mt-2 text-[11px] text-rose-500">{errors.message}</p>}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Audience</label>
               <FormSelect value={draft.audience} onChange={(v) => setDraft((d) => ({ ...d, audience: v as HackathonAnnouncementAudience }))} options={AUDIENCES} placeholder="Audience" allowClear={false} />
@@ -259,7 +259,7 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Publish at</label>
               <input type="datetime-local" value={draft.publish_at} onChange={(e) => setDraft((d) => ({ ...d, publish_at: e.target.value }))} className={INPUT} />
