@@ -108,6 +108,8 @@ make start
 | **Production Build** | `make build` | Runs Next.js build verification (`pnpm run build`). |
 | **Start Production** | `make start` | Runs Next.js production server (`pnpm start`). |
 | **Code Linting** | `make lint` | Runs ESLint checks. |
+| **Unit Tests** | `pnpm test` | Runs Vitest: the form condition engine (against the vectors it shares with the backend), the condition builder, multi-page navigation and autosave, the public form page, and axe accessibility checks of the form and the admin dialogs. |
+| **Browser Tests** | `pnpm test:e2e` | Runs Playwright in Chromium against `next dev` on port 3100 (the API is answered by the tests, no backend needed): filling the public form by keyboard, validation focus, multi-page navigation, draft restore, languages, redirects, and an axe accessibility check with real colours. Needs the browser once: `pnpm exec playwright install chromium`. |
 
 ---
 
@@ -157,6 +159,7 @@ SRKRCC-Main_APPLICATION_FRONTEND/
 │       ├── api-client.ts      ← Fetch wrapper for Django REST backend
 │       └── types.ts           ← Shared TypeScript interfaces
 └── docs/                      ← Technical learning guide
+    ├── dynamic-form-frontend.md
     └── technical-learning-guide.md
 ```
 
@@ -168,3 +171,5 @@ For under-the-hood technical details on how Next.js 15 App Router, React Server 
 * **[AGENTS.md](AGENTS.md)** — Architectural preservation & agent rules
 * **[CONTRIBUTING.md](CONTRIBUTING.md)** — Branching strategy & Git contribution guide
 * **[docs/technical-learning-guide.md](docs/technical-learning-guide.md)** — Deep-dive technical learning guide
+* **[docs/dynamic-form-frontend.md](docs/dynamic-form-frontend.md)** - How the form builder and the public form work here: the two validation engines, autosave, accessibility, tests
+* **[docs/manual-test-form-builder.md](docs/manual-test-form-builder.md)** - Tick-box manual test of the form builder, the public form and email verification, to run with the backend and frontend together

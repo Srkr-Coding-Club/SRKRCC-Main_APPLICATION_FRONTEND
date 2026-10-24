@@ -21,16 +21,28 @@ const OPERATOR_ALIASES: Record<string, string> = {
   '==': 'equals', '!=': 'not_equals', '>': 'gt', '>=': 'gte', '<': 'lt', '<=': 'lte',
 };
 
-const ENFORCED_ACTIONS = new Set(['show', 'hide', 'require', 'optional']);
-const DEFERRED_ACTIONS = new Set(['skip', 'skip_to_section', 'end_form', 'set_value', 'restrict_options', 'display_message']);
+// set_value / restrict_options are also enforced by the server on submit; display_message is UI only.
+// skip_to_section / end_form route between pages and only mean something on a PAGE_BREAK.
+const ENFORCED_ACTIONS = new Set([
+  'show', 'hide', 'require', 'optional', 'set_value', 'restrict_options', 'display_message',
+  'skip_to_section', 'end_form',
+]);
+const ROUTING_ACTIONS = new Set(['skip_to_section', 'end_form']);
+// Stored for old forms, but nothing acts on it.
+const DEFERRED_ACTIONS = new Set(['skip']);
 
-export interface NLeaf { field: number | string | null; operator: string; value: any; }
+/** `value_field`: compare against another question's answer instead of a fixed `value`. */
+export interface NLeaf { field: number | string | null; operator: string; value: any; value_field?: number | string; }
 export interface NGroup { logic: 'AND' | 'OR'; rules: (NLeaf | NGroup)[]; }
-export interface NConditional extends NGroup { action: string; }
+/** `action_value`: what set_value stores, which options restrict_options allows, or the display_message text. */
+export interface NConditional extends NGroup { action: string; action_value?: any; }
 
 function coerceRef(raw: any): number | string | null {
   const n = Number(raw);
   if (Number.isInteger(n)) return n;
+  // The old builder's unfinished-rule placeholder: "no field chosen yet", never a real reference.
+  if (typeof raw === 'string' && raw.trim().toLowerCase() === 'parent') return null;
+  // Other non-numeric ids only exist for unsaved questions in the builder's live preview.
   if (typeof raw === 'string' && raw.trim()) return raw.trim();
   return null;
 }
@@ -57,7 +69,17 @@ function normalizeNode(node: any): NLeaf | NGroup | null {
     operator = OPERATOR_ALIASES[operator] ?? operator;
     value = node.value;
   }
-  return { field, operator, value };
+  const leaf: NLeaf = { field, operator, value };
+  if (node.value_field !== undefined && node.value_field !== null && node.value_field !== '') {
+    const valueField = coerceRef(node.value_field);
+    if (valueField !== null) leaf.value_field = valueField;
+  }
+  return leaf;
+}
+
+function withActionValue(out: NConditional, raw: any): NConditional {
+  if (raw.action_value !== undefined && raw.action_value !== null) out.action_value = raw.action_value;
+  return out;
 }
 
 export function normalizeConditional(raw: any): NConditional | null {
@@ -70,7 +92,7 @@ export function normalizeConditional(raw: any): NConditional | null {
     const rules = raw.rules.map(normalizeNode).filter(Boolean) as (NLeaf | NGroup)[];
     if (!rules.length) return null;
     const logic = String(raw.logic || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND';
-    return { logic, rules, action };
+    return withActionValue({ logic, rules, action }, raw);
   }
 
   const leaf = normalizeNode(raw);
@@ -78,22 +100,44 @@ export function normalizeConditional(raw: any): NConditional | null {
   if (leaf.field === null && (leaf as NLeaf).operator === 'equals' && (raw.field ?? raw.if) === undefined) {
     return null; // genuinely no condition
   }
-  return { logic: 'AND', rules: [leaf], action };
+  return withActionValue({ logic: 'AND', rules: [leaf], action }, raw);
 }
 
 // ---------------------------------------------------------------------------
 // Operators (mirror conditional.evaluate_operator)
 // ---------------------------------------------------------------------------
 
-function asNum(v: any): number | null {
+const PLAIN_NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+const GROUPED_NUMBER = /^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/;
+
+// Mirrors values.parse_number: plain decimals (or well-formed 1,234 groups) only - no hex, no
+// NaN/Infinity, nothing huge or over-precise - so both engines call the same things numbers.
+export function asNum(v: any): number | null {
   if (typeof v === 'boolean') return null;
-  const n = Number(String(v ?? '').trim().replace(/,/g, ''));
-  return Number.isFinite(n) && String(v ?? '').trim() !== '' ? n : null;
+  let t = typeof v === 'number' ? String(v) : String(v ?? '').trim();
+  if (t === '' || t.length > 64) return null;
+  if (t.includes(',')) {
+    if (!GROUPED_NUMBER.test(t)) return null;
+    t = t.replace(/,/g, '');
+  }
+  if (!PLAIN_NUMBER.test(t)) return null;
+  const n = Number(t);
+  if (!Number.isFinite(n) || Math.abs(n) >= 1e31) return null;
+  if (!Number.isInteger(n)) {
+    const [whole, fraction = ''] = t.replace(/^[+-]/, '').split(/e/i)[0].split('.');
+    if (fraction.length > 15 || (whole.replace(/^0+/, '') + fraction).length > 15) return null;
+  }
+  return n;
 }
+
+// Mirrors values.parse_date: a real YYYY-MM-DD, optionally followed by a time of day (ignored).
 function asDate(v: any): number | null {
-  if (v == null || v === '') return null;
-  const t = Date.parse(String(v));
-  return Number.isNaN(t) ? null : t;
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/.exec(String(v ?? '').trim());
+  if (!m) return null;
+  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const t = Date.UTC(year, month - 1, day);
+  const d = new Date(t);
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day ? t : null;
 }
 function asList(v: any): any[] {
   if (Array.isArray(v)) return v;
@@ -194,20 +238,92 @@ function evalNode(node: NLeaf | NGroup, values: Map<number | string, any>): bool
   if (node.field === null) return null; // broken {if:"parent"} placeholder - ignore
   const left = values.get(node.field);
   if (isEmpty(left) && !EMPTY_OK_OPERATORS.has(node.operator)) return false;
-  return evaluateOperator(node.operator, left, node.value);
+  let right = node.value;
+  if (node.value_field !== undefined) {
+    // Compare against another answer; dormant until that one is answered too.
+    right = values.get(node.value_field);
+    if (isEmpty(right) && !EMPTY_OK_OPERATORS.has(node.operator)) return false;
+  }
+  return evaluateOperator(node.operator, left, right);
 }
 
 export interface Layout {
   visible: Set<string>;
   requiredOverrides: Map<string, boolean>;
+  /** set_value: question id -> the answer a condition assigns to it. */
+  setValues: Map<string, any>;
+  /** restrict_options: question id -> the only options currently allowed. */
+  allowedOptions: Map<string, string[]>;
+  /** display_message: question id -> the note to show. */
+  messages: Map<string, string>;
+  /** Question ids per page. A PAGE_BREAK heads the page it starts; page 0 has no break. */
+  pages: string[][];
+  /** Indexes of the pages that routing skips given the answers so far. */
+  skippedPages: Set<number>;
+}
+
+/** Fields in display order (stable for equal `order`), without deleted ones. */
+function inDisplayOrder(fields: FormField[]): FormField[] {
+  return fields
+    .filter((f) => !f.is_deleted)
+    .map((f, index) => ({ f, index }))
+    .sort((a, b) => (Number(a.f.order) || 0) - (Number(b.f.order) || 0) || a.index - b.index)
+    .map(({ f }) => f);
+}
+
+export function splitPages(fields: FormField[]): string[][] {
+  const pages: string[][] = [[]];
+  for (const f of inDisplayOrder(fields)) {
+    if (f.type === 'PAGE_BREAK') pages.push([String(f.id)]);
+    else pages[pages.length - 1].push(String(f.id));
+  }
+  return pages;
+}
+
+/**
+ * Walk the pages from the start. Leaving a page, the PAGE_BREAK that starts the next one may route:
+ * `skip_to_section` jumps ahead to a later PAGE_BREAK, `end_form` ends the form there. A rule that
+ * cannot be evaluated never routes. Only answers on reachable pages count.
+ */
+function skippedPagesFor(
+  pages: string[][],
+  norm: Map<string, NConditional>,
+  visible: Set<string>,
+  values: Map<number | string, any>,
+): Set<number> {
+  const breakPage = new Map<string, number>();
+  pages.forEach((page, index) => { if (index > 0) breakPage.set(page[0], index); });
+  const effective = new Map<number | string, any>();
+  for (const [k, v] of values) if (visible.has(String(k))) effective.set(k, v);
+
+  const skipped = new Set<number>();
+  let current = 0;
+  while (current < pages.length - 1) {
+    let following = current + 1;
+    const n = norm.get(pages[following][0]);
+    if (n && ROUTING_ACTIONS.has(n.action) && evalNode(n, effective) === true) {
+      if (n.action === 'end_form') {
+        for (let p = following; p < pages.length; p++) skipped.add(p);
+        break;
+      }
+      const target = breakPage.get(String(Number.parseInt(String(n.action_value), 10)));
+      if (target !== undefined && target > following) {
+        for (let p = following; p < target; p++) skipped.add(p);
+        following = target;
+      }
+    }
+    current = following;
+  }
+  return skipped;
 }
 
 /**
  * `valuesByStrId` - the form's current answers keyed by String(field.id).
- * Returns which fields are visible and any require/optional overrides.
+ * Returns which fields are visible, any require/optional overrides, the values and notes conditions
+ * produce, and which pages routing skips. Mirrors `compute_layout` on the server.
  */
 export function computeLayout(fields: FormField[], valuesByStrId: Record<string, any>): Layout {
-  const active = fields.filter((f) => !f.is_deleted);
+  const active = inDisplayOrder(fields);
   const norm = new Map<string, NConditional>();
   for (const f of active) {
     const n = normalizeConditional(f.conditional_logic);
@@ -221,51 +337,86 @@ export function computeLayout(fields: FormField[], valuesByStrId: Record<string,
     currentValues.set(Number.isInteger(n) ? n : String(f.id), v);
   }
 
-  const visible = new Set<string>(active.map((f) => String(f.id)));
-  const overrides = new Map<string, boolean>();
+  const pages = splitPages(fields);
+  let skippedPages = new Set<number>();
+  let visible = new Set<string>();
+  let overrides = new Map<string, boolean>();
 
-  const maxPasses = active.length + 1;
-  for (let pass = 0; pass < maxPasses; pass++) {
-    let changed = false;
-    const effective = new Map<number | string, any>();
-    for (const [k, v] of currentValues) {
-      // Only visible fields feed conditions.
-      const f = active.find((x) => String(x.id) === String(k));
-      if (f && visible.has(String(f.id))) effective.set(k, v);
-    }
+  for (let routePass = 0; routePass <= pages.length; routePass++) {
+    const forcedHidden = new Set<string>();
+    skippedPages.forEach((index) => pages[index].forEach((id) => forcedHidden.add(id)));
+    visible = new Set<string>(active.map((f) => String(f.id)).filter((id) => !forcedHidden.has(id)));
+    overrides = new Map<string, boolean>();
 
-    for (const f of active) {
-      const key = String(f.id);
-      const n = norm.get(key);
-      if (!n) continue;
-      const satisfied = evalNode(n, effective);
-      const truth = satisfied === null ? true : satisfied;
-      const action = n.action;
+    const maxPasses = active.length + 1;
+    for (let pass = 0; pass < maxPasses; pass++) {
+      let changed = false;
+      const effective = new Map<number | string, any>();
+      for (const [k, v] of currentValues) {
+        // Only visible fields feed conditions.
+        if (visible.has(String(k))) effective.set(k, v);
+      }
 
-      if (action === 'show') {
-        if (truth && !visible.has(key)) { visible.add(key); changed = true; }
-        else if (!truth && visible.has(key)) { visible.delete(key); changed = true; }
-      } else if (action === 'hide') {
-        if (truth && visible.has(key)) { visible.delete(key); changed = true; }
-        else if (!truth && !visible.has(key)) { visible.add(key); changed = true; }
-      } else if (action === 'require') {
-        const want = truth ? true : undefined;
-        if (overrides.get(key) !== want) {
-          if (want === undefined) overrides.delete(key); else overrides.set(key, true);
-          changed = true;
-        }
-      } else if (action === 'optional') {
-        const want = truth ? false : undefined;
-        if ((overrides.has(key) ? overrides.get(key) : undefined) !== want) {
-          if (want === undefined) overrides.delete(key); else overrides.set(key, false);
-          changed = true;
+      for (const f of active) {
+        const key = String(f.id);
+        const n = norm.get(key);
+        if (!n || forcedHidden.has(key)) continue;
+        const satisfied = evalNode(n, effective);
+        const truth = satisfied === null ? true : satisfied;
+        const action = n.action;
+
+        if (action === 'show') {
+          if (truth && !visible.has(key)) { visible.add(key); changed = true; }
+          else if (!truth && visible.has(key)) { visible.delete(key); changed = true; }
+        } else if (action === 'hide') {
+          if (truth && visible.has(key)) { visible.delete(key); changed = true; }
+          else if (!truth && !visible.has(key)) { visible.add(key); changed = true; }
+        } else if (action === 'require') {
+          const want = truth ? true : undefined;
+          if (overrides.get(key) !== want) {
+            if (want === undefined) overrides.delete(key); else overrides.set(key, true);
+            changed = true;
+          }
+        } else if (action === 'optional') {
+          const want = truth ? false : undefined;
+          if ((overrides.has(key) ? overrides.get(key) : undefined) !== want) {
+            if (want === undefined) overrides.delete(key); else overrides.set(key, false);
+            changed = true;
+          }
         }
       }
+      if (!changed) break;
     }
-    if (!changed) break;
+
+    const routed = skippedPagesFor(pages, norm, visible, currentValues);
+    const same = routed.size === skippedPages.size && [...routed].every((p) => skippedPages.has(p));
+    if (same) break;
+    skippedPages = routed;
   }
 
-  return { visible, requiredOverrides: overrides };
+  // Value-style actions read the settled visibility, so they run once, after the fixpoint.
+  const setValues = new Map<string, any>();
+  const allowedOptions = new Map<string, string[]>();
+  const messages = new Map<string, string>();
+  const finalValues = new Map<number | string, any>();
+  for (const f of active) {
+    if (!visible.has(String(f.id))) continue;
+    const n = Number(f.id);
+    finalValues.set(Number.isInteger(n) ? n : String(f.id), valuesByStrId[String(f.id)]);
+  }
+  for (const f of active) {
+    const key = String(f.id);
+    const n = norm.get(key);
+    if (!n || !visible.has(key) || n.action_value === undefined) continue;
+    if (n.action !== 'set_value' && n.action !== 'restrict_options' && n.action !== 'display_message') continue;
+    const satisfied = evalNode(n, finalValues);
+    if (!(satisfied === null ? true : satisfied)) continue;
+    if (n.action === 'set_value') setValues.set(key, n.action_value);
+    else if (n.action === 'restrict_options') allowedOptions.set(key, (Array.isArray(n.action_value) ? n.action_value : [n.action_value]).map(String));
+    else messages.set(key, String(n.action_value));
+  }
+
+  return { visible, requiredOverrides: overrides, setValues, allowedOptions, messages, pages, skippedPages };
 }
 
 export function isFieldRequired(field: FormField, layout: Layout): boolean {
