@@ -46,3 +46,13 @@ Every question type is labelled, errors are tied to their question and announced
 ## Environment
 
 `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (optional; only for forms that switch the bot check on). The matching secret, `TURNSTILE_SECRET_KEY`, belongs to the backend.
+
+## Email Verification (what the website does)
+
+The rules and the API are in the backend repo (`docs/features/email-verification.md`). Here, one provider and a few small components make them visible:
+
+- `src/context/EmailVerificationContext.tsx` reads `email_verification` from `/auth/me/` (when signed in), follows signing in and out, re-checks when the tab regains focus (and every 15 seconds while blocked), and owns the "send the link" and "change email" actions with their cooldown. Outside the provider it reports "nothing to verify", so isolated pages and tests are unaffected.
+- `VerificationBanner` (under the navbar: days left and a **Verify email** button), `VerifyDialog` (opened wherever the API answers `403 EMAIL_VERIFICATION_REQUIRED`; the API client raises one window event for it and keeps the person signed in), `BlockedScreen` (replaces a private page after the deadline; public pages never), `EmailVerificationCard` (profile page) and the shared `VerifyPanel`.
+- `/account/verify-email` confirms with a button (a page load never uses the link, because mail scanners open links) and removes the token from the address bar; `/account/verify-email/not-me` is the "This wasn't me" page.
+- A form is readable by an unverified person, but its questions are disabled (a `<fieldset disabled>`), autosave and the tab backup are off, and Submit is disabled with an explanation.
+- Which pages count as private is in one place: `isPrivateRoute` in `src/lib/emailVerification.ts`. The server enforces the same rules; this only decides what to draw.

@@ -36,6 +36,7 @@ import {
 import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated } from '@/lib/auth';
 import { fetchApi } from '@/lib/api-client';
 import { EditProfileModal } from '@/components/EditProfileModal';
+import { EmailVerificationCard } from '@/components/verification/EmailVerificationCard';
 import { College, displayCollegeName } from '@/lib/colleges';
 import { MyHackathonsPanel } from '@/components/hackathons/MyHackathonsPanel';
 import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
@@ -904,6 +905,8 @@ function ProfileContent() {
               onEdit={() => setIsEditModalOpen(true)}
               onLogout={handleLogout}
             />
+
+            <EmailVerificationCard />
 
             {(isStaff || canScan) && (
               <div className="flex flex-wrap gap-2.5">

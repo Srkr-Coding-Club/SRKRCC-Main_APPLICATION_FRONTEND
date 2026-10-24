@@ -172,3 +172,4 @@ For under-the-hood technical details on how Next.js 15 App Router, React Server 
 * **[CONTRIBUTING.md](CONTRIBUTING.md)** — Branching strategy & Git contribution guide
 * **[docs/technical-learning-guide.md](docs/technical-learning-guide.md)** — Deep-dive technical learning guide
 * **[docs/dynamic-form-frontend.md](docs/dynamic-form-frontend.md)** - How the form builder and the public form work here: the two validation engines, autosave, accessibility, tests
+* **[docs/manual-test-form-builder.md](docs/manual-test-form-builder.md)** - Tick-box manual test of the form builder, the public form and email verification, to run with the backend and frontend together

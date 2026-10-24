@@ -1,4 +1,5 @@
 import { redirectToLogin, refreshAccessToken } from './auth';
+import { VERIFICATION_REQUIRED_CODE, VERIFICATION_REQUIRED_EVENT } from './emailVerification';
 
 const API_BASE_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
@@ -98,9 +99,17 @@ export async function fetchApi<T>(
       }
       // Preserve the structured payload (e.g. the form engine's {errors:[...]})
       // so callers can render per-field messages, not just the summary string.
-      const err = new Error(errMsg) as Error & { status?: number; body?: any; retryAfter?: number };
+      const err = new Error(errMsg) as Error & { status?: number; body?: any; retryAfter?: number; code?: string };
       err.status = response.status;
       err.body = errBody;
+      // A feature needs a verified email (or the account is blocked): one shared dialog explains it, and - unlike a 401 -
+      // the person stays signed in.
+      if (response.status === 403 && errBody?.code === VERIFICATION_REQUIRED_CODE) {
+        err.code = VERIFICATION_REQUIRED_CODE;
+        if (isClient && !(options as { silentVerification?: boolean }).silentVerification) {
+          window.dispatchEvent(new CustomEvent(VERIFICATION_REQUIRED_EVENT, { detail: errBody }));
+        }
+      }
       if (response.status === 429) {
         const wait = Number(errBody?.retry_after ?? response.headers.get('retry-after'));
         if (Number.isFinite(wait) && wait > 0) err.retryAfter = Math.ceil(wait);

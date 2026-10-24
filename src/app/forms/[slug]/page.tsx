@@ -37,6 +37,8 @@ import {
 } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { SubmissionThanks } from '@/components/forms/SubmissionThanks';
+import { useEmailVerification } from '@/context/EmailVerificationContext';
+import { restrictsFeatures } from '@/lib/emailVerification';
 import { normalizeLanguage, translate, type FormStringKey } from '@/lib/i18n/formStrings';
 import { TurnstileWidget } from '@/components/forms/TurnstileWidget';
 import {
@@ -936,6 +938,10 @@ export default function FormDetailSubmissionPage() {
     });
   }, [form, submissionChecked, isEditMode]);
 
+  // Anyone may read a form, but filling one in needs a verified email address (when the site enforces it).
+  const verification = useEmailVerification();
+  const verifyLocked = !!currentUser && restrictsFeatures(verification.state);
+
   // What an untouched form holds, so the autosave can tell the person's own typing from the form's starting values.
   const freshAnswers = React.useMemo(() => {
     const fields = (form?.fields as FormField[]) || [];
@@ -948,7 +954,7 @@ export default function FormDetailSubmissionPage() {
     owner: currentUser?.id,
     freshAnswers: freshAnswers,
     fields: (form?.fields as FormField[]) || [],
-    enabled: !!currentUser && !!form && submissionChecked && !isEditMode && !isSubmitted && !isLockedToSingleExistingResponse,
+    enabled: !!currentUser && !!form && submissionChecked && !isEditMode && !isSubmitted && !isLockedToSingleExistingResponse && verification.loaded && !verifyLocked,
     formData,
     currentPage: activePage,
     onRestore: (restored) => {
@@ -1313,6 +1319,11 @@ export default function FormDetailSubmissionPage() {
     if (!currentUser) {
       setShowLoginModal(true);
       toast.warning('Sign In Required', 'Please sign in with your college account to submit this form.');
+      return;
+    }
+
+    if (verifyLocked) {
+      verification.openDialog({ reason: 'feature' });
       return;
     }
 
@@ -1740,6 +1751,14 @@ export default function FormDetailSubmissionPage() {
                   )}
                 </div>
               )}
+              {verifyLocked && (
+                <div role="region" aria-label="Email verification" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+                  <p className="font-bold">Verify your email address to fill in this form.</p>
+                  <p className="mt-1">You can read the questions now. Answering needs a verified email.</p>
+                  <button type="button" onClick={() => verification.openDialog({ reason: 'feature' })} className="mt-3 min-h-9 rounded-lg bg-[#C25100] px-4 py-2 text-sm font-bold text-white hover:bg-[#A84600]">Verify email</button>
+                </div>
+              )}
+              <fieldset disabled={verifyLocked} className="m-0 min-w-0 space-y-6 border-0 p-0 [&[disabled]]:opacity-70 [&[disabled]_canvas]:pointer-events-none">
               {form.fields?.map((sourceField) => {
                 // restrict_options narrows the choices a condition allows; a full option (optionLimits) is not offered
                 // unless this person already holds it. {{id}} in the text shows that question's answer.
@@ -2496,6 +2515,7 @@ export default function FormDetailSubmissionPage() {
                   </div>
                 );
               })}
+              </fieldset>
 
               {/* Submit Action */}
               {(() => {
@@ -2615,7 +2635,7 @@ export default function FormDetailSubmissionPage() {
                     <button
                       key="submit-form"
                       type="submit"
-                      disabled={isSubmitting || isClosed || isBeforeOpen || cooldown > 0 || (!!form.captcha_enabled && !isEditMode && !captchaToken)}
+                      disabled={isSubmitting || isClosed || isBeforeOpen || cooldown > 0 || verifyLocked || (!!form.captcha_enabled && !isEditMode && !captchaToken)}
                       className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <span>

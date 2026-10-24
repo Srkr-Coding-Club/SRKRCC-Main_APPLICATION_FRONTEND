@@ -53,3 +53,17 @@ Run the backend and the frontend together (`python manage.py runserver`, `pnpm d
 - [ ] Dark mode on the form, builder and responses.
 - [ ] Zoom the page to 200%: nothing is cut off.
 - [ ] Every dialog (History, Analytics, Review, Templates): focus moves in, Tab stays inside, Escape closes, focus returns to the button.
+
+## 9. Email verification (set `EMAIL_VERIFICATION_MODE=banner`, then `features`, then `block`)
+- [ ] Sign up with a new account and any email address: nothing is sent, and a banner says "Verify your email address" (with "N days left" in `block` mode).
+- [ ] Press **Verify email**: one email arrives (check spam). Press it again at once: it waits about a minute. The email has two links.
+- [ ] Open the first link: the page shows your address and waits. Nothing happens until you press **Confirm my email**. Press it: "Email confirmed", the banner disappears (also on another open tab after you click back into it).
+- [ ] Open the same link again, and on your phone: "Already confirmed".
+- [ ] Ask for a new link and use the OLD one: "expired or replaced".
+- [ ] In `features` mode, unverified: a form shows its questions but they are disabled, with "Verify your email address to fill in this form"; event or team actions open the "Verify your email" dialog. Verify, and they work.
+- [ ] An unverified admin or club lead: the admin panel actions ask to verify first.
+- [ ] **Wrong address?** Change it with your password: the NEW address gets a link and your address only changes after you confirm it.
+- [ ] In `block` mode, set a test account's deadline in the past (Django admin, or `extend_verification_deadlines`): private pages (profile, admin, hackathon dashboards) show "Verify your email to continue"; the home page, events, forms and hackathon lists still open. Verify on another device and press "I have verified": the page returns without signing in again.
+- [ ] **This wasn't me** (second link in the email): the page asks first; pressing it removes an unused account (or switches off a used one) and stops mail to that address for a while.
+- [ ] Reset your password through "Forgot / Set Up?": that also verifies you.
+- [ ] Break-glass: `python manage.py verify_email_manually <email>` verifies an account from the server.
