@@ -25,12 +25,14 @@ import {
   Code,
   Megaphone,
   Flag,
+  Wrench,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
 import ThemeToggle from '../ThemeToggle';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { getStoredUser, AuthUser } from '@/lib/auth';
+import { useMaintenanceAttention } from '@/lib/maintenance';
 
 interface NavChild {
   label: string;
@@ -70,6 +72,7 @@ const navItems: NavItem[] = [
       { label: 'Import Data', shortLabel: 'Import', href: '/admin/csv-ingestion', desc: 'Bulk CSV / Excel ingestion', icon: UploadCloud },
       { label: 'Data Health', shortLabel: 'Health', href: '/admin/data-health', desc: 'Stats, warnings & activity', icon: Activity },
       { label: 'Background Jobs', shortLabel: 'Jobs', href: '/admin/jobs', desc: 'Bulk email, export & import job status', icon: ListChecks },
+      { label: 'Maintenance', shortLabel: 'Maintenance', href: '/admin/maintenance', desc: 'Clean-up tasks to run when needed', icon: Wrench },
       ],
   },
   {
@@ -115,6 +118,8 @@ export default function AdminNavbar() {
   const navRef = useRef<HTMLElement>(null);
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  // Only administrators can see the Maintenance page, so only they ask what needs running.
+  const maintenanceAttention = useMaintenanceAttention(currentUser?.role === 'ADMIN');
 
   useEffect(() => {
     setCurrentUser(getStoredUser());
@@ -229,6 +234,9 @@ export default function AdminNavbar() {
                   >
                     <Icon className="w-3.5 h-3.5" />
                     {item.shortLabel}
+                    {maintenanceAttention > 0 && item.children?.some((c) => c.href === '/admin/maintenance') && (
+                      <span className="h-2 w-2 rounded-full bg-amber-500" role="img" aria-label={`${maintenanceAttention} maintenance task${maintenanceAttention === 1 ? '' : 's'} need running`} />
+                    )}
                     {item.hasDropdown && (
                       <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                     )}
@@ -271,8 +279,11 @@ export default function AdminNavbar() {
                                     <ChildIcon className="w-4 h-4" />
                                   </div>
                                   <div className="flex flex-col">
-                                    <span className="text-[13px] font-semibold text-[#1A1A2E] dark:text-white group-hover/item:text-[#FF7A00] transition-colors">
+                                    <span className="flex items-center gap-2 text-[13px] font-semibold text-[#1A1A2E] dark:text-white group-hover/item:text-[#FF7A00] transition-colors">
                                       {child.label}
+                                      {child.href === '/admin/maintenance' && maintenanceAttention > 0 && (
+                                        <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-black" aria-label={`${maintenanceAttention} need running`}>{maintenanceAttention}</span>
+                                      )}
                                     </span>
                                     <span className="text-[11px] text-[#1A1A2E]/50 dark:text-white/40 leading-snug mt-0.5">
                                       {child.desc}
@@ -408,6 +419,9 @@ export default function AdminNavbar() {
                           >
                             <span className="w-1 h-1 rounded-full bg-[#FF7A00]" />
                             {child.label}
+                            {child.href === '/admin/maintenance' && maintenanceAttention > 0 && (
+                              <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-black" aria-label={`${maintenanceAttention} need running`}>{maintenanceAttention}</span>
+                            )}
                           </Link>
                         ))}
                       </div>

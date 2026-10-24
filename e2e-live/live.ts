@@ -9,6 +9,8 @@ import type { Page } from '@playwright/test';
  */
 export const BACKEND_URL = 'http://127.0.0.1:8001';
 export const SITE_URL = 'http://localhost:3200';
+export const STORAGE_URL = process.env.LIVE_STORAGE_URL || 'http://localhost:4566';
+export const BUCKET = 'srkrcc-live-uploads';
 
 const root = resolve(__dirname, '..');
 export const backendDir = process.env.LIVE_BACKEND_DIR || resolve(root, '..', 'SRKRCC-Main_APPLICATION_BACKEND');
@@ -31,6 +33,12 @@ export function liveEnv(): NodeJS.ProcessEnv {
     FRONTEND_URL: SITE_URL,
     CLIENT_IP_SHARED_SECRET: 'live-e2e-shared-secret',
     SENTRY_DSN: '',
+    FORM_UPLOADS_BACKEND: 's3',
+    FORM_UPLOAD_BUCKET: BUCKET,
+    FORM_UPLOAD_ENDPOINT_URL: STORAGE_URL,
+    FORM_UPLOAD_REGION: 'us-east-1',
+    AWS_ACCESS_KEY_ID: 'test',
+    AWS_SECRET_ACCESS_KEY: 'test',
     PYTHONIOENCODING: 'utf-8',
   };
 }

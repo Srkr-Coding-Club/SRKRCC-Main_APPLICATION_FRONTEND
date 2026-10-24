@@ -38,6 +38,9 @@ import ResponsesExportModal, {
   ResponseExportScope,
 } from './ResponsesExportModal';
 import { isNonAnswerType } from '@/lib/fieldTypes';
+import { useUploadConfig } from '@/lib/uploadConfig';
+import { FormFilesTab } from './FormFilesTab';
+import { StoredFile } from './StoredFile';
 
 const ResponseTimelineChart = dynamic(
   () => import('./ResponseTimelineChart'),
@@ -49,7 +52,7 @@ interface ResponsesViewerTabProps {
   initialFormSlug?: string;
 }
 
-function renderCellValue(type: string, value: unknown): React.ReactNode {
+function renderCellValue(type: string, value: unknown, formSlug?: string): React.ReactNode {
   if (value === null || value === undefined || value === '') {
     return <span className="text-slate-600 italic text-[11px]">-</span>;
   }
@@ -74,6 +77,10 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
     return (
       <div className="flex flex-wrap gap-2">
         {files.map((f, i) => {
+          // A file sent straight to storage is kept by reference; its link is fetched when someone opens it.
+          if (formSlug && f && typeof f === 'object' && typeof f.upload_id === 'string') {
+            return <StoredFile key={f.upload_id} slug={formSlug} file={f} />;
+          }
           // Answer entry is either a bare string (legacy / absolute URL) or
           // { name, size, type?, url? }. url is a data: URI for inline captures.
           const url: string = typeof f === 'string' ? f : (f?.url || '');
@@ -301,7 +308,7 @@ function ResponseDrawerContent({
                 {ans.field_type}
               </span>
             </div>
-            <div>{renderCellValue(ans.field_type, ans.value)}</div>
+            <div>{renderCellValue(ans.field_type, ans.value, form.slug)}</div>
           </div>
         ))}
       </div>
@@ -329,6 +336,8 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportScope, setExportScope] = useState<ResponseExportScope>('all');
+  const [view, setView] = useState<'responses' | 'files'>('responses');
+  const uploadConfig = useUploadConfig();
 
   const formOptions = useMemo(
     () => forms.map((f) => ({ value: f.slug, label: f.title?.trim() || f.slug || 'Untitled form' })),
@@ -340,6 +349,10 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
     () => (selectedForm?.fields?.filter((f) => !isNonAnswerType(f.type)) ?? []),
     [selectedForm]
   );
+
+  const fileQuestions = useMemo(() => fieldColumns.filter((f) => f.type === 'FILE' || f.type === 'MULTI_FILE'), [fieldColumns]);
+  const hasFilesView = uploadConfig.direct_upload && fileQuestions.length > 0;
+  useEffect(() => { if (!hasFilesView) setView('responses'); }, [hasFilesView, selectedSlug]);
 
   // Column keys match the export endpoint: `q_<field id>` for each question.
   const exportColumns: ResponseExportColumn[] = useMemo(
@@ -571,6 +584,34 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
     );
   }
 
+  const viewToggle = hasFilesView && (
+    <div role="group" aria-label="What to show" className="inline-flex overflow-hidden rounded-xl border border-slate-300 dark:border-slate-700">
+      {(['responses', 'files'] as const).map((choice) => (
+        <button
+          key={choice}
+          type="button"
+          aria-pressed={view === choice}
+          onClick={() => setView(choice)}
+          className={`px-4 py-2 text-xs font-bold ${view === choice ? 'bg-[#C2410C] text-white' : 'text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+        >
+          {choice === 'responses' ? 'Responses' : 'Files'}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (view === 'files' && hasFilesView) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <FormSelect value={selectedSlug} options={formOptions} placeholder="Select a form…" onChange={(v) => { setSelectedSlug(v); setSelectedIds(new Set()); }} className="min-w-[200px] flex-1" />
+          {viewToggle}
+        </div>
+        <FormFilesTab slug={selectedSlug} fileFields={fileQuestions.map((f) => ({ id: Number(f.id), label: f.label }))} />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-4">
@@ -583,6 +624,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             onChange={(v) => { setSelectedSlug(v); setSelectedIds(new Set()); }}
             className="flex-1 min-w-[200px]"
           />
+          {viewToggle}
 
           {/* Search */}
           <div className="relative">
@@ -775,7 +817,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                           const ans = getAnswerForField(resp, f.id);
                           return (
                             <td key={f.id} className="px-4 py-3">
-                              {renderCellValue(f.type, ans?.value ?? null)}
+                              {renderCellValue(f.type, ans?.value ?? null, selectedSlug)}
                             </td>
                           );
                         })}

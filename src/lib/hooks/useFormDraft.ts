@@ -23,13 +23,15 @@ export interface RestoredDraft {
 export type DraftStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 const NOT_SAVED_TYPES = ['FILE', 'MULTI_FILE', 'SIGNATURE'];
+/** Files that go straight to storage are remembered by reference, so a draft can keep them. */
+const UPLOAD_TYPES = ['FILE', 'MULTI_FILE'];
 export const DRAFT_SAVE_DELAY_MS = 1500;
 
 /** The answers worth keeping: real answers to ordinary questions, without files or profile-filled ones. */
-export function persistableAnswers(fields: FormField[], formData: Record<string, any>): Record<string, any> {
+export function persistableAnswers(fields: FormField[], formData: Record<string, any>, keepUploads = false): Record<string, any> {
   const kept: Record<string, any> = {};
   for (const field of fields) {
-    if (field.is_deleted || isNonAnswerType(field.type) || NOT_SAVED_TYPES.includes(field.type) || field.profile_field) continue;
+    if (field.is_deleted || isNonAnswerType(field.type) || (NOT_SAVED_TYPES.includes(field.type) && !(keepUploads && UPLOAD_TYPES.includes(field.type))) || field.profile_field) continue;
     const value = formData[String(field.id)];
     if (!isEmpty(value)) kept[String(field.id)] = value;
   }
@@ -70,7 +72,7 @@ export function clearFormBackup(slug: string, owner: unknown) {
 
 const requestOptions = (extra: RequestInit = {}) => ({ silentAuth: true, ...extra }) as RequestInit;
 
-export function useFormDraft({ slug, owner, fields, enabled, formData, currentPage, freshAnswers, onRestore }: {
+export function useFormDraft({ slug, owner, fields, enabled, formData, currentPage, freshAnswers, keepUploads = false, onRestore }: {
   slug: string;
   /** Who is filling it in (their user id), so a local copy is only ever offered back to them. */
   owner?: string | number | null;
@@ -84,6 +86,8 @@ export function useFormDraft({ slug, owner, fields, enabled, formData, currentPa
    * finished is then recognised as the person's own change instead of being taken as the starting point.
    */
   freshAnswers?: Record<string, any>;
+  /** Files are uploaded straight to storage, so their references belong in the draft. */
+  keepUploads?: boolean;
   onRestore: (draft: RestoredDraft) => void;
 }) {
   const [ready, setReady] = useState(false);
@@ -137,11 +141,11 @@ export function useFormDraft({ slug, owner, fields, enabled, formData, currentPa
   // Save a moment after the last change.
   useEffect(() => {
     if (!enabled || !ready || stopped.current) return;
-    const answers = persistableAnswers(fields, formData);
+    const answers = persistableAnswers(fields, formData, keepUploads);
     const snapshot = JSON.stringify([answers, currentPage]);
     if (lastSaved.current === null) {
       // Nothing was restored: the untouched form is the starting point. Without that knowledge, whatever is on screen now is.
-      lastSaved.current = freshRef.current ? JSON.stringify([persistableAnswers(fields, freshRef.current), 0]) : snapshot;
+      lastSaved.current = freshRef.current ? JSON.stringify([persistableAnswers(fields, freshRef.current, keepUploads), 0]) : snapshot;
       if (lastSaved.current === snapshot) return;
     }
     if (snapshot === lastSaved.current) return;
@@ -164,7 +168,7 @@ export function useFormDraft({ slug, owner, fields, enabled, formData, currentPa
       }
     }, DRAFT_SAVE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [enabled, ready, fields, formData, currentPage, slug, owner]);
+  }, [enabled, ready, fields, formData, currentPage, slug, owner, keepUploads]);
 
   return { status, savedAt };
 }

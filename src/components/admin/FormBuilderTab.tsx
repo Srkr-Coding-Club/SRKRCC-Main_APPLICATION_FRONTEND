@@ -53,6 +53,7 @@ import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import EmailTemplateEditor from '@/components/admin/EmailTemplateEditor';
 import { GraduationCap, IdCard, Mail as MailIcon, QrCode, Sparkles, Bell, Megaphone, UserCheck, BarChart3 } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
+import { fileLimitHint, useUploadConfig } from '@/lib/uploadConfig';
 import ConditionBuilder from '@/components/admin/ConditionBuilder';
 import { CalculatedFieldEditor, CrossFieldRulesEditor, FieldControls, HiddenFieldEditor, PipeInsert } from '@/components/admin/FieldControls';
 import { calculatedValues } from '@/lib/formula';
@@ -1655,6 +1656,7 @@ function ValidationPanel({ field, siblingFields, onChange }: {
   onChange: (patch: Partial<ValidationRules>) => void;
 }) {
   const r: ValidationRules = field.validation_rules || {};
+  const uploadConfig = useUploadConfig();
   const t = field.type;
   const textLike = t === 'TEXT' || t === 'PARAGRAPH';
 
@@ -1767,7 +1769,7 @@ function ValidationPanel({ field, siblingFields, onChange }: {
           <div className="grid grid-cols-2 gap-2">
             <LabeledInput label="Allowed types (.pdf,.docx)" type="text" value={r.allowedFileTypes} onChange={(v) => onChange({ allowedFileTypes: v })} />
             <LabeledInput label="Blocked types" type="text" value={r.blockedFileTypes} onChange={(v) => onChange({ blockedFileTypes: v })} />
-            <LabeledInput label="Max file size (MB)" type="number" value={r.maxFileSizeMB} onChange={(v) => onChange({ maxFileSizeMB: v })} />
+            <LabeledInput label="Max file size (MB)" type="number" value={r.maxFileSizeMB} placeholder={`${uploadConfig.default_mb} (default)`} hint={fileLimitHint(uploadConfig, r.maxFileSizeMB)} onChange={(v) => onChange({ maxFileSizeMB: v })} />
             <LabeledInput label="Min file size (KB)" type="number" value={r.minFileSizeKB} onChange={(v) => onChange({ minFileSizeKB: v })} />
           </div>
           {t === 'MULTI_FILE' && (
@@ -1859,11 +1861,15 @@ function LabeledInput({
   type,
   value,
   onChange,
+  placeholder,
+  hint,
 }: {
   label: string;
   type: string;
   value: string | number | undefined;
   onChange: (v: any) => void;
+  placeholder?: string;
+  hint?: string;
 }) {
   // Keep exactly what the user typed in local state so intermediate values like
   // "1.", "-", or "0.50" don't get rewritten mid-keystroke (which ate characters
@@ -1912,8 +1918,10 @@ function LabeledInput({
         inputMode={isNumber ? 'decimal' : undefined}
         value={raw}
         onChange={handleChange}
+        placeholder={placeholder}
         className="w-full px-2.5 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
       />
+      {hint && <p className="mt-1 text-[10px] text-slate-500">{hint}</p>}
     </div>
   );
 }

@@ -56,3 +56,15 @@ The rules and the API are in the backend repo (`docs/features/email-verification
 - `/account/verify-email` confirms with a button (a page load never uses the link, because mail scanners open links) and removes the token from the address bar; `/account/verify-email/not-me` is the "This wasn't me" page.
 - A form is readable by an unverified person, but its questions are disabled (a `<fieldset disabled>`), autosave and the tab backup are off, and Submit is disabled with an explanation.
 - Which pages count as private is in one place: `isPrivateRoute` in `src/lib/emailVerification.ts`. The server enforces the same rules; this only decides what to draw.
+
+## File uploads (direct to storage)
+
+When the server reports `direct_upload` (`GET /forms/upload-config/`, read by `src/lib/uploadConfig.ts`), file questions on the form page use `src/components/forms/FileUploadField.tsx` instead of the older inline (base64) picker:
+
+- `src/lib/fileUpload.ts` does the three steps: ask the server for a signed form, post the file straight to storage (XMLHttpRequest, for progress and cancel), then ask the server to confirm. Errors become an `UploadError` with a message and whether a retry makes sense.
+- The picker checks size and type in the browser first (the question's "Max file size", else the server default of 2 MB), then uploads up to three files at a time. Images show a preview from the local file; every file has a progress bar, Cancel/Remove and, after a connection error, Retry. Leaving the page mid-upload asks for confirmation.
+- The answer holds only references (`{upload_id, name, size, type}`), never file data. The form cannot be submitted while any file is still uploading.
+- Drafts keep these references (the server re-checks them on restore), so the old "attach your files again" notice only shows when direct upload is off.
+- The form builder's "Max file size (MB)" box shows the default and the platform maximum.
+
+Tests: `src/lib/__tests__/fileUpload.test.ts`, `src/components/forms/__tests__/FileUploadField.test.tsx`, `e2e/file-uploads.spec.ts`.

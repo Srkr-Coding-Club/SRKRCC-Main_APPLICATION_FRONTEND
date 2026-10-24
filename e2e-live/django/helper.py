@@ -73,6 +73,45 @@ def count_responses(args):
     emit({'count': Response.objects.filter(form__slug=args.slug, user__email__iexact=args.email).count()})
 
 
+def make_upload_form(args):
+    from apps.forms.models import FieldType, Form, FormField, FormStatus
+    form, _ = Form.objects.get_or_create(slug=args.slug, defaults={'title': 'Upload Form', 'status': FormStatus.PUBLISHED, 'allow_multiple_responses': True, 'max_responses_per_user': 50})
+    if not form.fields.exists():
+        FormField.objects.create(form=form, label='Full name', type=FieldType.TEXT, is_required=True, order=1)
+        FormField.objects.create(form=form, label='Photo', type=FieldType.FILE, is_required=True, order=2)
+        FormField.objects.create(form=form, label='Documents', type=FieldType.MULTI_FILE, order=3, validation_rules={'maxFiles': 2, 'maxFileSizeMB': 1})
+    emit({'id': form.pk, 'fields': {f.label: f.pk for f in form.fields.all()}})
+
+
+def uploads(args):
+    from apps.forms.models import FormUpload
+    rows = FormUpload.objects.filter(form__slug=args.slug).order_by('created_at')
+    emit([{'id': str(u.pk), 'name': u.original_name, 'state': u.state, 'size': u.size, 'key': u.key, 'response': u.response_id} for u in rows])
+
+
+def object_exists(args):
+    import boto3
+    from django.conf import settings
+    s3 = boto3.client('s3', region_name=settings.FORM_UPLOAD_REGION, endpoint_url=settings.FORM_UPLOAD_ENDPOINT_URL)
+    try:
+        head = s3.head_object(Bucket=settings.FORM_UPLOAD_BUCKET, Key=args.key)
+        emit({'exists': True, 'size': head['ContentLength']})
+    except Exception:  # noqa: BLE001
+        emit({'exists': False})
+
+
+def stale_drafts(args):
+    from apps.forms.models import Form, ResponseDraft
+    form = Form.objects.get(slug=args.slug)
+    made = 0
+    for number in range(args.count):
+        person = User.objects.create_user(username=f'stale{number}-{User.objects.count()}', email=f'stale{number}.{User.objects.count()}@example.org', password='x')
+        draft = ResponseDraft.objects.create(form=form, user=person, answers={})
+        ResponseDraft.objects.filter(pk=draft.pk).update(updated_at=timezone.now() - timedelta(days=45))
+        made += 1
+    emit({'made': made, 'remaining': ResponseDraft.objects.filter(updated_at__lt=timezone.now() - timedelta(days=30)).count()})
+
+
 def mailbox(args):
     """Every email written so far, newest last: recipients, subject and the links found in the plain-text body."""
     messages = []
@@ -117,6 +156,10 @@ p = sub.add_parser('get_user'); p.set_defaults(fn=get_user); p.add_argument('ema
 p = sub.add_parser('count_users'); p.set_defaults(fn=count_users); p.add_argument('email')
 p = sub.add_parser('make_form'); p.set_defaults(fn=make_form); p.add_argument('slug')
 p = sub.add_parser('count_responses'); p.set_defaults(fn=count_responses); p.add_argument('slug'); p.add_argument('email')
+p = sub.add_parser('make_upload_form'); p.set_defaults(fn=make_upload_form); p.add_argument('slug')
+p = sub.add_parser('uploads'); p.set_defaults(fn=uploads); p.add_argument('slug')
+p = sub.add_parser('object_exists'); p.set_defaults(fn=object_exists); p.add_argument('key')
+p = sub.add_parser('stale_drafts'); p.set_defaults(fn=stale_drafts); p.add_argument('slug'); p.add_argument('--count', type=int, default=3)
 for name, fn in (('mailbox', mailbox), ('clear_mailbox', clear_mailbox), ('clear_cache', clear_cache)):
     sub.add_parser(name).set_defaults(fn=fn)
 

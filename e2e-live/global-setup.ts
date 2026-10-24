@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BACKEND_URL, backendDir, envFilePath, liveEnv, mailDir, python, stateDir } from './live';
+import { BACKEND_URL, BUCKET, SITE_URL, STORAGE_URL, backendDir, envFilePath, liveEnv, mailDir, python, stateDir } from './live';
 
 /** Build a throw-away database, migrate it, and start the real backend on port 8001. */
 export default async function globalSetup() {
@@ -12,6 +12,10 @@ export default async function globalSetup() {
     cwd: backendDir, env: { ...process.env, PYTHONPATH: backendDir, DEBUG: 'True' }, stdio: 'inherit',
   });
   execFileSync(python, ['manage.py', 'migrate', '--noinput'], { cwd: backendDir, env: liveEnv(), stdio: ['ignore', 'ignore', 'inherit'] });
+
+  execFileSync(python, [join(__dirname, 'django', 'prepare_bucket.py'), STORAGE_URL, BUCKET, SITE_URL], {
+    cwd: backendDir, env: liveEnv(), stdio: 'inherit',
+  });
 
   const log = join(stateDir, 'backend.log');
   writeFileSync(log, '');

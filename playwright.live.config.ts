@@ -30,6 +30,7 @@ export default defineConfig({
       NEXT_PUBLIC_API_BASE_URL: 'http://127.0.0.1:8001/api',
       CLIENT_IP_SHARED_SECRET: 'live-e2e-shared-secret',
       NEXT_DIST_DIR: '',
+      UPLOAD_CONNECT_SRC: process.env.LIVE_STORAGE_URL || 'http://localhost:4566',
     },
   },
 });

@@ -11,6 +11,8 @@ import { getConstraintHint, validateSubmission, validateFieldValue, getCrossFiel
 import { computeLayout, isFieldRequired } from '@/lib/formConditional';
 import { nextReachable, pageIndexByField, pageProgress, previousReachable, settlePage } from '@/lib/formPages';
 import { clearFormBackup, useFormDraft } from '@/lib/hooks/useFormDraft';
+import FileUploadField from '@/components/forms/FileUploadField';
+import { useUploadConfig } from '@/lib/uploadConfig';
 import { isNonAnswerType } from '@/lib/fieldTypes';
 import { calculatedValues } from '@/lib/formula';
 import { pipeText } from '@/lib/formPiping';
@@ -783,6 +785,13 @@ export default function FormDetailSubmissionPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const uploadConfig = useUploadConfig();
+  // Questions whose files are still being sent; the form cannot be submitted until they finish.
+  const [uploadingFields, setUploadingFields] = useState<Record<string, boolean>>({});
+  const anyUploading = Object.values(uploadingFields).some(Boolean);
+  const setFieldUploading = React.useCallback((fieldId: number | string, busy: boolean) => {
+    setUploadingFields((prev) => (!!prev[String(fieldId)] === busy ? prev : { ...prev, [String(fieldId)]: busy }));
+  }, []);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   // Bot protection: the honeypot stays empty for people; the Turnstile token is single-use, so every attempt asks for a new one.
@@ -953,8 +962,9 @@ export default function FormDetailSubmissionPage() {
     slug,
     owner: currentUser?.id,
     freshAnswers: freshAnswers,
+    keepUploads: uploadConfig.direct_upload,
     fields: (form?.fields as FormField[]) || [],
-    enabled: !!currentUser && !!form && submissionChecked && !isEditMode && !isSubmitted && !isLockedToSingleExistingResponse && verification.loaded && !verifyLocked,
+    enabled: !!currentUser && !!form && submissionChecked && !isEditMode && !isSubmitted && !isLockedToSingleExistingResponse && verification.loaded && uploadConfig.loaded && !verifyLocked,
     formData,
     currentPage: activePage,
     onRestore: (restored) => {
@@ -966,7 +976,7 @@ export default function FormDetailSubmissionPage() {
         'Welcome back',
         restored.form_changed
           ? 'We restored your saved answers. The form was updated since, so please check them.'
-          : hasFiles
+          : hasFiles && !uploadConfig.direct_upload
           ? 'We restored your saved answers. Files are not saved, so attach them again.'
           : 'We restored your saved answers.',
       );
@@ -1324,6 +1334,11 @@ export default function FormDetailSubmissionPage() {
 
     if (verifyLocked) {
       verification.openDialog({ reason: 'feature' });
+      return;
+    }
+
+    if (anyUploading) {
+      toast.warning('Files are still uploading', 'Please wait for the uploads to finish, then submit.');
       return;
     }
 
@@ -2233,7 +2248,32 @@ export default function FormDetailSubmissionPage() {
                     )}
 
                     {/* FILE / MULTI_FILE Field */}
-                    {(field.type === 'FILE' || field.type === 'MULTI_FILE') && (
+                    {(field.type === 'FILE' || field.type === 'MULTI_FILE') && uploadConfig.direct_upload && !currentUser && (
+                      <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500 dark:border-slate-700">Sign in to attach files to this form.</p>
+                    )}
+                    {(field.type === 'FILE' || field.type === 'MULTI_FILE') && uploadConfig.direct_upload && !!currentUser && (
+                      <FileUploadField
+                        slug={slug}
+                        fieldId={Number(field.id)}
+                        multiple={field.type === 'MULTI_FILE'}
+                        rules={field.validation_rules}
+                        defaultMb={uploadConfig.default_mb}
+                        value={formData[field.id]}
+                        invalid={isErr}
+                        describedBy={errorId}
+                        disabled={isLockedToSingleExistingResponse}
+                        onChange={(next) => handleInputChange(field, next)}
+                        onBusyChange={(busy) => setFieldUploading(field.id, busy)}
+                        onBlur={() => handleFieldBlur(field, formData[field.id])}
+                        onProblem={(message) => setErrors((prev) => {
+                          if (message) setTouched((t) => ({ ...t, [String(field.id)]: true }));
+                          const next = { ...prev };
+                          if (message) next[String(field.id)] = message; else delete next[String(field.id)];
+                          return next;
+                        })}
+                      />
+                    )}
+                    {(field.type === 'FILE' || field.type === 'MULTI_FILE') && !uploadConfig.direct_upload && (
                       <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-center bg-[#FAFAFC] dark:bg-[#0D0E15] hover:border-[#FF7A00]/50 transition">
                         <Upload className="w-8 h-8 text-[#FF7A00] mx-auto mb-2" />
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
@@ -2635,7 +2675,7 @@ export default function FormDetailSubmissionPage() {
                     <button
                       key="submit-form"
                       type="submit"
-                      disabled={isSubmitting || isClosed || isBeforeOpen || cooldown > 0 || verifyLocked || (!!form.captcha_enabled && !isEditMode && !captchaToken)}
+                      disabled={isSubmitting || anyUploading || isClosed || isBeforeOpen || cooldown > 0 || verifyLocked || (!!form.captcha_enabled && !isEditMode && !captchaToken)}
                       className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <span>
