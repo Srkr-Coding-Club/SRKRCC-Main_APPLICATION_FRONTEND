@@ -37,6 +37,10 @@ import ResponsesExportModal, {
   ResponseExportFormat,
   ResponseExportScope,
 } from './ResponsesExportModal';
+import { isNonAnswerType } from '@/lib/fieldTypes';
+import { useUploadConfig } from '@/lib/uploadConfig';
+import { FormFilesTab } from './FormFilesTab';
+import { StoredFile } from './StoredFile';
 
 const ResponseTimelineChart = dynamic(
   () => import('./ResponseTimelineChart'),
@@ -48,7 +52,7 @@ interface ResponsesViewerTabProps {
   initialFormSlug?: string;
 }
 
-function renderCellValue(type: string, value: unknown): React.ReactNode {
+function renderCellValue(type: string, value: unknown, formSlug?: string): React.ReactNode {
   if (value === null || value === undefined || value === '') {
     return <span className="text-slate-600 italic text-[11px]">-</span>;
   }
@@ -73,6 +77,10 @@ function renderCellValue(type: string, value: unknown): React.ReactNode {
     return (
       <div className="flex flex-wrap gap-2">
         {files.map((f, i) => {
+          // A file sent straight to storage is kept by reference; its link is fetched when someone opens it.
+          if (formSlug && f && typeof f === 'object' && typeof f.upload_id === 'string') {
+            return <StoredFile key={f.upload_id} slug={formSlug} file={f} />;
+          }
           // Answer entry is either a bare string (legacy / absolute URL) or
           // { name, size, type?, url? }. url is a data: URI for inline captures.
           const url: string = typeof f === 'string' ? f : (f?.url || '');
@@ -300,7 +308,7 @@ function ResponseDrawerContent({
                 {ans.field_type}
               </span>
             </div>
-            <div>{renderCellValue(ans.field_type, ans.value)}</div>
+            <div>{renderCellValue(ans.field_type, ans.value, form.slug)}</div>
           </div>
         ))}
       </div>
@@ -328,6 +336,8 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportScope, setExportScope] = useState<ResponseExportScope>('all');
+  const [view, setView] = useState<'responses' | 'files'>('responses');
+  const uploadConfig = useUploadConfig();
 
   const formOptions = useMemo(
     () => forms.map((f) => ({ value: f.slug, label: f.title?.trim() || f.slug || 'Untitled form' })),
@@ -336,9 +346,13 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
 
   const selectedForm = forms.find((f) => f.slug === selectedSlug) ?? null;
   const fieldColumns: FormField[] = useMemo(
-    () => (selectedForm?.fields?.filter((f) => f.type !== 'SECTION') ?? []),
+    () => (selectedForm?.fields?.filter((f) => !isNonAnswerType(f.type)) ?? []),
     [selectedForm]
   );
+
+  const fileQuestions = useMemo(() => fieldColumns.filter((f) => f.type === 'FILE' || f.type === 'MULTI_FILE'), [fieldColumns]);
+  const hasFilesView = uploadConfig.direct_upload && fileQuestions.length > 0;
+  useEffect(() => { if (!hasFilesView) setView('responses'); }, [hasFilesView, selectedSlug]);
 
   // Column keys match the export endpoint: `q_<field id>` for each question.
   const exportColumns: ResponseExportColumn[] = useMemo(
@@ -570,6 +584,34 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
     );
   }
 
+  const viewToggle = hasFilesView && (
+    <div role="group" aria-label="What to show" className="inline-flex overflow-hidden rounded-xl border border-slate-300 dark:border-slate-700">
+      {(['responses', 'files'] as const).map((choice) => (
+        <button
+          key={choice}
+          type="button"
+          aria-pressed={view === choice}
+          onClick={() => setView(choice)}
+          className={`px-4 py-2 text-xs font-bold ${view === choice ? 'bg-[#C2410C] text-white' : 'text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+        >
+          {choice === 'responses' ? 'Responses' : 'Files'}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (view === 'files' && hasFilesView) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <FormSelect value={selectedSlug} options={formOptions} placeholder="Select a form…" onChange={(v) => { setSelectedSlug(v); setSelectedIds(new Set()); }} className="min-w-[200px] flex-1" />
+          {viewToggle}
+        </div>
+        <FormFilesTab slug={selectedSlug} fileFields={fileQuestions.map((f) => ({ id: Number(f.id), label: f.label }))} />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-4">
@@ -582,12 +624,14 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             onChange={(v) => { setSelectedSlug(v); setSelectedIds(new Set()); }}
             className="flex-1 min-w-[200px]"
           />
+          {viewToggle}
 
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
             <input
               type="text"
+              aria-label="Search responses"
               placeholder="Search…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -596,9 +640,9 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
           </div>
 
           {/* Date range */}
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+          <input type="date" aria-label="Submitted from" title="Submitted from" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
             className="py-2 px-3 text-sm glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 focus:outline-none focus:border-orange-500/60" />
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+          <input type="date" aria-label="Submitted until" title="Submitted until" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
             className="py-2 px-3 text-sm glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 focus:outline-none focus:border-orange-500/60" />
 
           {/* Toggles */}
@@ -682,10 +726,12 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
           <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
-                <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase">
+                <thead className="bg-[#FAFAFC] dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 uppercase">
                   <tr>
                     <th className="sticky left-0 z-20 bg-[#FAFAFC] dark:bg-[#0f0f1a] px-4 py-3 w-10">
                       <button
+                        aria-label={selectedIds.size === data.results.length ? 'Clear the selection' : 'Select every response on this page'}
+                        aria-pressed={selectedIds.size === data.results.length}
                         onClick={() => {
                           const allIds = data.results.map((r) => r.id);
                           if (selectedIds.size === allIds.length) setSelectedIds(new Set());
@@ -727,7 +773,10 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                         onClick={() => setDrawerResponse(resp)}
                       >
                         <td className="sticky left-0 z-10 glass-panel px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => toggleRow(resp.id)} className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 hover:text-orange-400 transition-transform duration-100 active:scale-90">
+                          <button
+                            aria-label={`Select the response from ${resp.user?.name || resp.user_name || resp.user_email || `#${resp.id}`}`}
+                            aria-pressed={isSelected}
+                            onClick={() => toggleRow(resp.id)} className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 hover:text-orange-400 transition-transform duration-100 active:scale-90">
                             {isSelected ? <CheckSquare className="w-4 h-4 text-orange-500" /> : <Square className="w-4 h-4" />}
                           </button>
                         </td>
@@ -735,9 +784,15 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                           <div className="flex items-center gap-2">
                             {gap && <AlertCircle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />}
                             <div className="flex flex-col min-w-0">
-                              <span className="font-bold text-slate-900 dark:text-white truncate max-w-[180px]">
+                              {/* The row opens the response on click; this button gives the keyboard the same way in. */}
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setDrawerResponse(resp); }}
+                                aria-label={`Open the response from ${resp.user?.name || resp.user_name || resp.user_email || `#${resp.id}`}`}
+                                className="text-left font-bold text-slate-900 dark:text-white truncate max-w-[180px] hover:underline focus-visible:underline"
+                              >
                                 {resp.user?.name || resp.user_name || (resp.is_manual_entry ? 'Admin Entry' : 'Anonymous Student')}
-                              </span>
+                              </button>
                               <span className="text-[10px] text-slate-400 font-normal truncate max-w-[180px]">
                                 {resp.user?.email || resp.user_email || 'No email'}
                               </span>
@@ -762,7 +817,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                           const ans = getAnswerForField(resp, f.id);
                           return (
                             <td key={f.id} className="px-4 py-3">
-                              {renderCellValue(f.type, ans?.value ?? null)}
+                              {renderCellValue(f.type, ans?.value ?? null, selectedSlug)}
                             </td>
                           );
                         })}
@@ -780,6 +835,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
           <div className="flex items-center justify-center gap-3">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
+              aria-label="Previous page"
               disabled={page === 1}
               className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition active:scale-90"
             >
@@ -791,6 +847,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              aria-label="Next page"
               disabled={page === totalPages}
               className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white disabled:opacity-30 transition active:scale-90"
             >

@@ -86,6 +86,9 @@ export const metadata: Metadata = {
 };
 
 import { ToastProvider } from '@/context/ToastContext';
+import { EmailVerificationProvider } from '@/context/EmailVerificationContext';
+import { VerificationBanner } from '@/components/verification/VerificationBanner';
+import { VerificationGate } from '@/components/verification/VerificationGate';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import BackendHeartbeat from '@/components/BackendHeartbeat';
 
@@ -111,11 +114,16 @@ export default async function RootLayout({
             scroll intro plays, so they don't flash in and out (see HeroIntro). */}
         <script dangerouslySetInnerHTML={{ __html: INTRO_CINEMA_SCRIPT }} />
         <ToastProvider>
-          <BackendHeartbeat />
-          <NavbarSwitcher moduleFlags={moduleFlags} />
-          <main className="flex-grow">{children}</main>
-          <Footer />
-          <ToastContainer />
+          <EmailVerificationProvider>
+            <BackendHeartbeat />
+            <NavbarSwitcher moduleFlags={moduleFlags} />
+            <VerificationBanner />
+            <main className="flex-grow">
+              <VerificationGate>{children}</VerificationGate>
+            </main>
+            <Footer />
+            <ToastContainer />
+          </EmailVerificationProvider>
         </ToastProvider>
       </body>
     </html>

@@ -14,7 +14,8 @@ function cn(...classes: Array<string | false | null | undefined>) {
 }
 
 const fieldBaseClass =
-  'glass-panel block w-full rounded-xl border px-3 py-2 text-sm ' +
+  // 16px on phones: iPhones zoom the whole page when a smaller text box is tapped.
+  'glass-panel block w-full rounded-xl border px-3 py-2 text-base sm:text-sm ' +
   'text-[#1A1A2E] dark:text-white border-slate-300 dark:border-slate-700 ' +
   'placeholder:text-slate-400 dark:placeholder:text-slate-500 ' +
   'focus:outline-none focus:border-[#FF7A00] focus:ring-1 focus:ring-[#FF7A00] ' +
@@ -73,7 +74,7 @@ export function FieldLabel({
   children: React.ReactNode;
 }) {
   return (
-    <label htmlFor={htmlFor} className="block text-sm font-semibold text-[#1A1A2E] dark:text-white">
+    <label id={htmlFor ? `${htmlFor}-label` : undefined} htmlFor={htmlFor} className="block text-sm font-semibold text-[#1A1A2E] dark:text-white [overflow-wrap:anywhere]">
       {children}
       {required && (
         <>

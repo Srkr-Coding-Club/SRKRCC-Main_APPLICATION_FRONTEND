@@ -713,6 +713,20 @@ export interface ValidationRules {
   // cross-field + custom message
   crossField?: CrossFieldRule[];
   patternError?: string;
+  /** The admin's own wording per failure. Keys: any rule name, plus "required", "type", "options", "unique", "optionLimits". */
+  messages?: Record<string, string>;
+  /** No other response may give the same answer (case-insensitive). */
+  unique?: boolean;
+  /** {option: how many responses may choose it}; a full option stops being offered. */
+  optionLimits?: Record<string, number>;
+  /** Pre-filled on the form: text, a number or date as text, an option, or a list of options. */
+  defaultValue?: string | string[];
+  /** HIDDEN questions: the link parameter (?name=value) that fills the answer. */
+  queryParam?: string;
+  /** CALCULATED questions: arithmetic over {question id} references, e.g. "{12} * {13}". */
+  formula?: string;
+  /** CALCULATED questions: places after the decimal point, 0-6. */
+  decimals?: number;
 }
 
 export type ConditionalOperator =
@@ -770,6 +784,9 @@ export type FieldType =
   | 'DATE'
   | 'TIME'
   | 'SECTION'
+  | 'PAGE_BREAK'
+  | 'HIDDEN'
+  | 'CALCULATED'
   | 'RATING'
   | 'LINEAR_SCALE'
   | 'MATRIX_RADIO'
@@ -842,6 +859,14 @@ export interface Form {
   notify_members_on_publish?: boolean;
   notification_title?: string;
   notification_message?: string;
+  /** After submitting: thank-you text ({{id}} is piped), where to go next and after how many seconds. */
+  confirmation_message?: string;
+  redirect_url?: string;
+  redirect_delay_seconds?: number;
+  /** Ask for a Cloudflare Turnstile check before the response is accepted. */
+  captcha_enabled?: boolean;
+  /** Language of the form's own buttons and prompts: 'en' | 'te' | 'hi' (lib/i18n/formStrings.ts). */
+  language?: string;
   /** QR-code attendance tracking - see apps/forms/models.py's attendance_* fields. */
   attendance_enabled?: boolean;
   attendance_start_date?: string | null;

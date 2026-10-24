@@ -1,6 +1,10 @@
 import { redirectToLogin, refreshAccessToken } from './auth';
+import { VERIFICATION_REQUIRED_CODE, VERIFICATION_REQUIRED_EVENT } from './emailVerification';
 
 const API_BASE_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+
+// A rate-limited read that asks for no more than this is retried once on its own.
+const MAX_AUTO_RETRY_SECONDS = 5;
 
 export async function fetchApi<T>(
   endpoint: string,
@@ -60,6 +64,16 @@ export async function fetchApi<T>(
       if (!(options as { silentAuth?: boolean }).silentAuth) redirectToLogin();
     }
 
+    // Rate limited: a read that only has to wait a moment is retried once, quietly, instead of showing an error.
+    if (response.status === 429 && method === 'GET' && !(options as { throttleRetried?: boolean }).throttleRetried) {
+      const wait = Number(response.headers.get('retry-after'));
+      if (Number.isFinite(wait) && wait > 0 && wait <= MAX_AUTO_RETRY_SECONDS) {
+        clearTimeout(timeout);
+        await new Promise((resolve) => setTimeout(resolve, wait * 1000 + Math.random() * 500));
+        return fetchApi<T>(endpoint, { ...options, throttleRetried: true } as RequestInit, isRetry);
+      }
+    }
+
     if (!response.ok) {
       let errMsg = `API error: ${response.status} ${response.statusText}`;
       let errBody: any = null;
@@ -85,9 +99,21 @@ export async function fetchApi<T>(
       }
       // Preserve the structured payload (e.g. the form engine's {errors:[...]})
       // so callers can render per-field messages, not just the summary string.
-      const err = new Error(errMsg) as Error & { status?: number; body?: any };
+      const err = new Error(errMsg) as Error & { status?: number; body?: any; retryAfter?: number; code?: string };
       err.status = response.status;
       err.body = errBody;
+      // A feature needs a verified email (or the account is blocked): one shared dialog explains it, and - unlike a 401 -
+      // the person stays signed in.
+      if (response.status === 403 && errBody?.code === VERIFICATION_REQUIRED_CODE) {
+        err.code = VERIFICATION_REQUIRED_CODE;
+        if (isClient && !(options as { silentVerification?: boolean }).silentVerification) {
+          window.dispatchEvent(new CustomEvent(VERIFICATION_REQUIRED_EVENT, { detail: errBody }));
+        }
+      }
+      if (response.status === 429) {
+        const wait = Number(errBody?.retry_after ?? response.headers.get('retry-after'));
+        if (Number.isFinite(wait) && wait > 0) err.retryAfter = Math.ceil(wait);
+      }
       throw err;
     }
 

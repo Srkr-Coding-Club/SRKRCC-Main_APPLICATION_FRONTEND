@@ -10,6 +10,7 @@
 
 import { FormField, SubmissionErrorItem, CrossFieldRule } from './types';
 import { computeLayout, isFieldRequired, isEmpty, evaluateOperator, Layout } from './formConditional';
+import { isNonAnswerType } from './fieldTypes';
 
 interface FileLike { name: string; size: number }
 
@@ -110,21 +111,91 @@ export function getConstraintHint(field: FormField): string | null {
 // Value coercion (mirror values.coerce_value, best-effort)
 // ---------------------------------------------------------------------------
 
-function toFiles(v: any): FileLike[] { return Array.isArray(v) ? v : v ? [v] : []; }
+// Only things that look like a picked file: anything else (a number, a string from a damaged draft) is not a file.
+const looksLikeFile = (f: any): f is FileLike => !!f && typeof f === 'object' && typeof f.name === 'string';
+function toFiles(v: any): FileLike[] { return (Array.isArray(v) ? v : v ? [v] : []).filter(looksLikeFile); }
 
 // ---------------------------------------------------------------------------
 // Per-rule checks
 // ---------------------------------------------------------------------------
 
+// Letters/digits of any script (names like "José" or Telugu / Hindi names), mirroring the
+// backend's unicode-aware check. Falls back to ASCII on engines without \p{...} support.
+function unicodeRe(source: string, fallback: RegExp): RegExp {
+  try { return new RegExp(source, 'u'); } catch { return fallback; }
+}
+const ALPHA_RE = unicodeRe('^[\\p{L}\\p{M} ]+$', /^[A-Za-z ]+$/);
+const ALNUM_RE = unicodeRe('^[\\p{L}\\p{M}\\p{Nd}]+$', /^[A-Za-z0-9]+$/);
+
 const FORMAT_RE: Record<string, RegExp> = {
-  alpha: /^[A-Za-z ]+$/, alphabetic: /^[A-Za-z ]+$/,
-  alphanumeric: /^[A-Za-z0-9]+$/, numeric: /^[0-9]+$/,
+  alpha: ALPHA_RE, alphabetic: ALPHA_RE,
+  alphanumeric: ALNUM_RE, numeric: /^[0-9]+$/,
   integer: /^-?[0-9]+$/, decimal: /^-?[0-9]+(\.[0-9]+)?$/,
   username: /^[A-Za-z0-9._-]{3,}$/, slug: /^[-a-zA-Z0-9_]+$/,
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_RE = /^https?:\/\/[^\s]+$/i;
 const PHONE_RE = /^\+?[0-9][0-9\s\-().]{5,}$/;
+const CLUB_ID_RE = /^[A-Za-z0-9_-]{3,32}$/;
+
+// Hard ceilings - mirror apps/forms/validation/limits.py.
+const MAX_TEXT_LENGTH: Record<string, number> = {
+  TEXT: 1000, PARAGRAPH: 10000, EMAIL: 254, PHONE: 32, URL: 2048, CLUB_ID: 32, RADIO: 500, DROPDOWN: 500,
+};
+const MAX_ITEM_LENGTH = 500;
+const MAX_COLLECTION_ITEMS = 200;
+const PHONE_MIN_DIGITS = 7;
+const PHONE_MAX_DIGITS = 15;
+const DATE_MIN_YEAR = 1900;
+const DATE_MAX_YEARS_AHEAD = 50;
+const DEFAULT_MAX_FILES = 10;
+const MAX_SIGNATURE_CHARS = 700 * 1024;
+const DEFAULT_BLOCKED_EXTENSIONS = ['.exe', '.msi', '.bat', '.cmd', '.com', '.scr', '.dll', '.vbs', '.ps1', '.html', '.htm', '.xhtml', '.svg'];
+const GROUPED_NUMBER_RE = /^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/;
+const PLAIN_NUMBER_RE = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS_RE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
+
+/** Control characters and unpaired surrogates can't be stored by the server. */
+function hasForbiddenChars(s: string): boolean {
+  if (CONTROL_CHARS_RE.test(s)) return true;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) {
+      const next = s.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) i++; else return true;
+    } else if (c >= 0xdc00 && c <= 0xdfff) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Mirrors values.parse_number: finite, well-formed, bounded, not over-precise. */
+function numberProblem(raw: unknown): string | null {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? null : 'Must be a valid number.';
+  let t = String(raw ?? '').trim();
+  if (t === '') return 'Must be a valid number.';
+  if (t.length > 64) return 'That number is too long.';
+  if (t.includes(',')) {
+    if (!GROUPED_NUMBER_RE.test(t)) return 'Must be a valid number.';
+    t = t.replace(/,/g, '');
+  }
+  if (!PLAIN_NUMBER_RE.test(t)) return 'Must be a valid number.';
+  const n = Number(t);
+  if (!Number.isFinite(n)) return 'Must be a valid number.';
+  if (Math.abs(n) >= 1e31) return 'That number is too large.';
+  if (!Number.isInteger(n)) {
+    const mantissa = t.replace(/^[+-]/, '').split(/e/i)[0];
+    const [whole, fraction = ''] = mantissa.split('.');
+    if (fraction.length > 15 || (whole.replace(/^0+/, '') + fraction).length > 15) return 'That number has too many decimal places.';
+  }
+  return null;
+}
+
+function hostOf(url: string): string | null {
+  try { return new URL(url.trim()).hostname.toLowerCase(); } catch { return null; }
+}
 const FORMAT_MSG: Record<string, string> = {
   alpha: 'Only letters and spaces are allowed.', alphabetic: 'Only letters and spaces are allowed.',
   alphanumeric: 'Only letters and digits are allowed.', numeric: 'Only digits are allowed.',
@@ -133,10 +204,38 @@ const FORMAT_MSG: Record<string, string> = {
   slug: 'Use letters, digits, dashes and underscores only.',
 };
 
+const CHOICE_FIELD_TYPES = ['RADIO', 'DROPDOWN', 'CHECKBOX', 'MATRIX_RADIO', 'MATRIX_CHECKBOX'];
+
+/** Questions nobody types an answer to, so they are never "required": a hidden field or a calculated one. */
+function isNeverRequired(type: FormField['type']): boolean {
+  return type === 'HIDDEN' || type === 'CALCULATED';
+}
+
+function requiredMessage(field: FormField): string {
+  return field.validation_rules?.messages?.required || `'${field.label}' is required.`;
+}
+
+/** Type and option failures come back as plain text; the admin may have worded them their own way. */
+function customTypeMessages(field: FormField, errors: string[]): string[] {
+  const messages = field.validation_rules?.messages || {};
+  const custom = (CHOICE_FIELD_TYPES.includes(field.type) && messages.options) || messages.type;
+  return custom ? errors.map(() => custom) : errors;
+}
+
 function fieldTypeErrors(field: FormField, value: any): string[] {
   const r = field.validation_rules || {};
   const out: string[] = [];
   const str = typeof value === 'string' ? value : String(value ?? '');
+
+  if (typeof value === 'string') {
+    if (hasForbiddenChars(value)) return ['Contains characters that are not allowed.'];
+    const ceiling = MAX_TEXT_LENGTH[field.type];
+    if (ceiling && value.trim().length > ceiling) return [`Must be at most ${ceiling} characters.`];
+  }
+  if (field.type === 'CHECKBOX' && Array.isArray(value)) {
+    if (value.length > MAX_COLLECTION_ITEMS) return ['Too many selections.'];
+    if (value.some((v) => typeof v !== 'string' || hasForbiddenChars(v) || v.length > MAX_ITEM_LENGTH)) return ['A selection is not valid.'];
+  }
 
   switch (field.type) {
     case 'EMAIL': {
@@ -150,10 +249,29 @@ function fieldTypeErrors(field: FormField, value: any): string[] {
     case 'PHONE':
       if (r.pattern) { try { if (!new RegExp(r.pattern).test(str)) out.push(r.patternError || 'Phone number format is invalid.'); } catch {} }
       else if (!PHONE_RE.test(str.trim())) out.push('Enter a valid phone number.');
+      else {
+        const digits = (str.match(/[0-9]/g) || []).length;
+        if (digits < PHONE_MIN_DIGITS || digits > PHONE_MAX_DIGITS) out.push(`A phone number must have ${PHONE_MIN_DIGITS} to ${PHONE_MAX_DIGITS} digits.`);
+      }
       break;
-    case 'NUMBER':
-      if (Number.isNaN(Number(value))) out.push('Must be a valid number.');
+    case 'CLUB_ID':
+      if (!CLUB_ID_RE.test(str)) out.push('A Club ID has 3 to 32 letters, digits, dashes or underscores.');
       break;
+    case 'DATE': {
+      const lo = `${DATE_MIN_YEAR}-01-01`;
+      const hi = `${new Date().getFullYear() + DATE_MAX_YEARS_AHEAD}-12-31`;
+      if (/^\d{4}-\d{2}-\d{2}/.test(str) && (str.slice(0, 10) < lo || str.slice(0, 10) > hi)) out.push(`Enter a date between ${lo} and ${hi}.`);
+      break;
+    }
+    case 'SIGNATURE':
+      if (str.length > MAX_SIGNATURE_CHARS) out.push('The signature image is too large.');
+      else if (!/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(str) && !/^https?:\/\/\S+$/i.test(str)) out.push('A signature must be a PNG image.');
+      break;
+    case 'NUMBER': {
+      const problem = numberProblem(value);
+      if (problem) out.push(problem);
+      break;
+    }
     case 'RADIO':
     case 'DROPDOWN': {
       const opts = (field.options || []).map((o) => String(o));
@@ -177,7 +295,7 @@ function fieldTypeErrors(field: FormField, value: any): string[] {
     case 'LINEAR_SCALE': {
       const n = Number(value);
       const lo = field.min_value ?? 1, hi = field.max_value ?? 5;
-      if (Number.isNaN(n)) out.push('Must be a number.');
+      if (!Number.isFinite(n)) out.push('Must be a number.');
       else {
         if ((r.integerOnly ?? true) && !Number.isInteger(n)) out.push('Must be a whole number.');
         if (n < lo || n > hi) out.push(`Choose a value between ${lo} and ${hi}.`);
@@ -225,48 +343,53 @@ function ruleErrors(field: FormField, value: any): string[] {
   const r = field.validation_rules || {};
   const out: string[] = [];
   const custom = r.patternError;
-  const push = (m: string) => out.push(custom || m);
+  const messages = r.messages || {};
+  // The admin's own wording for this kind of failure wins over the built-in one.
+  const push = (m: string, key: string) => out.push(messages[key] || m);
+  // patternError is the admin's message for a failed pattern / format only, never for other rules.
+  const pushPattern = (m: string, key: string) => out.push(messages[key] || custom || m);
   const str = typeof value === 'string' ? value : (Array.isArray(value) || (value && typeof value === 'object')) ? null : String(value);
   const num = Number(value);
   const arr = Array.isArray(value) ? value : null;
 
   // length / words / text-shape
   if (str !== null) {
-    if (r.minLength != null && str.length < r.minLength) push(`Must be at least ${r.minLength} characters.`);
-    if (r.maxLength != null && str.length > r.maxLength) push(`Must be at most ${r.maxLength} characters.`);
-    if (r.exactLength != null && str.length !== r.exactLength) push(`Must be exactly ${r.exactLength} characters.`);
-    if (r.minWords != null && str.trim().split(/\s+/).filter(Boolean).length < r.minWords) push(`Must be at least ${r.minWords} words.`);
-    if (r.maxWords != null && str.trim().split(/\s+/).filter(Boolean).length > r.maxWords) push(`Must be at most ${r.maxWords} words.`);
-    if (r.pattern) { try { if (!new RegExp(r.pattern).test(str)) push('Value does not match the required format.'); } catch {} }
+    if (r.minLength != null && str.length < r.minLength) push(`Must be at least ${r.minLength} characters.`, 'minLength');
+    if (r.maxLength != null && str.length > r.maxLength) push(`Must be at most ${r.maxLength} characters.`, 'maxLength');
+    if (r.exactLength != null && str.length !== r.exactLength) push(`Must be exactly ${r.exactLength} characters.`, 'exactLength');
+    if (r.minWords != null && str.trim().split(/\s+/).filter(Boolean).length < r.minWords) push(`Must be at least ${r.minWords} words.`, 'minWords');
+    if (r.maxWords != null && str.trim().split(/\s+/).filter(Boolean).length > r.maxWords) push(`Must be at most ${r.maxWords} words.`, 'maxWords');
+    // Whole-value match, like the server: an unanchored "[0-9]{10}" must not accept "abc1234567890xyz".
+    if (r.pattern) { try { if (!new RegExp(`^(?:${r.pattern})$`).test(str)) pushPattern('Value does not match the required format.', 'pattern'); } catch {} }
     if (r.format && r.format !== 'any') {
       const f = r.format;
-      if (f === 'email') { if (!EMAIL_RE.test(str)) push('Enter a valid email address.'); }
-      else if (f === 'url') { if (!URL_RE.test(str)) push('Enter a valid URL.'); }
-      else if (f === 'phone') { if (!PHONE_RE.test(str)) push('Enter a valid phone number.'); }
-      else if (f === 'date') { if (Number.isNaN(Date.parse(str))) push('Enter a valid date.'); }
-      else if (FORMAT_RE[f] && !FORMAT_RE[f].test(str)) push(FORMAT_MSG[f] || 'Invalid format.');
+      if (f === 'email') { if (!EMAIL_RE.test(str)) pushPattern('Enter a valid email address.', 'format'); }
+      else if (f === 'url') { if (!URL_RE.test(str)) pushPattern('Enter a valid URL.', 'format'); }
+      else if (f === 'phone') { if (!PHONE_RE.test(str)) pushPattern('Enter a valid phone number.', 'format'); }
+      else if (f === 'date') { if (Number.isNaN(Date.parse(str))) pushPattern('Enter a valid date.', 'format'); }
+      else if (FORMAT_RE[f] && !FORMAT_RE[f].test(str)) pushPattern(FORMAT_MSG[f] || 'Invalid format.', 'format');
     }
-    if (r.allowedChars) { const ok = new Set(r.allowedChars); const bad = [...str].filter((c) => !ok.has(c) && !/\s/.test(c)); if (bad.length) push(`These characters are not allowed: ${[...new Set(bad)].join('')}`); }
-    if (r.disallowedChars) { const ban = new Set(r.disallowedChars); const hit = [...str].filter((c) => ban.has(c)); if (hit.length) push(`These characters are not allowed: ${[...new Set(hit)].join('')}`); }
-    if (r.startsWith && !str.startsWith(r.startsWith)) push(`Must start with '${r.startsWith}'.`);
-    if (r.endsWith && !str.endsWith(r.endsWith)) push(`Must end with '${r.endsWith}'.`);
-    if (r.contains && !str.includes(r.contains)) push(`Must contain '${r.contains}'.`);
-    if (r.notContains && str.includes(r.notContains)) push(`Must not contain '${r.notContains}'.`);
+    if (r.allowedChars) { const ok = new Set(r.allowedChars); const bad = [...str].filter((c) => !ok.has(c) && !/\s/.test(c)); if (bad.length) push(`These characters are not allowed: ${[...new Set(bad)].join('')}`, 'allowedChars'); }
+    if (r.disallowedChars) { const ban = new Set(r.disallowedChars); const hit = [...str].filter((c) => ban.has(c)); if (hit.length) push(`These characters are not allowed: ${[...new Set(hit)].join('')}`, 'disallowedChars'); }
+    if (r.startsWith && !str.startsWith(r.startsWith)) push(`Must start with '${r.startsWith}'.`, 'startsWith');
+    if (r.endsWith && !str.endsWith(r.endsWith)) push(`Must end with '${r.endsWith}'.`, 'endsWith');
+    if (r.contains && !str.includes(r.contains)) push(`Must contain '${r.contains}'.`, 'contains');
+    if (r.notContains && str.includes(r.notContains)) push(`Must not contain '${r.notContains}'.`, 'notContains');
   }
 
   // numeric
-  if (!Number.isNaN(num) && str !== null && field.type !== 'DATE' && field.type !== 'TIME') {
-    if (r.minValue != null && num < r.minValue) push(`Must be at least ${r.minValue}.`);
-    if (r.maxValue != null && num > r.maxValue) push(`Must be at most ${r.maxValue}.`);
-    if (r.exactValue != null && num !== r.exactValue) push(`Must be exactly ${r.exactValue}.`);
-    if (r.gt != null && !(num > r.gt)) push(`Must be greater than ${r.gt}.`);
-    if (r.gte != null && !(num >= r.gte)) push(`Must be greater than or equal to ${r.gte}.`);
-    if (r.lt != null && !(num < r.lt)) push(`Must be less than ${r.lt}.`);
-    if (r.lte != null && !(num <= r.lte)) push(`Must be less than or equal to ${r.lte}.`);
-    if (r.integerOnly && !Number.isInteger(num)) push('Must be a whole number.');
-    if (r.positiveOnly && num <= 0) push('Must be a positive number.');
-    if (r.allowNegative === false && num < 0) push('Negative numbers are not allowed.');
-    if (r.step && r.step > 0) { const base = r.minValue ?? 0; if (Math.abs((num - base) % r.step) > 1e-9) push(`Must be in increments of ${r.step}.`); }
+  if (Number.isFinite(num) && str !== null && field.type !== 'DATE' && field.type !== 'TIME') {
+    if (r.minValue != null && num < r.minValue) push(`Must be at least ${r.minValue}.`, 'minValue');
+    if (r.maxValue != null && num > r.maxValue) push(`Must be at most ${r.maxValue}.`, 'maxValue');
+    if (r.exactValue != null && num !== r.exactValue) push(`Must be exactly ${r.exactValue}.`, 'exactValue');
+    if (r.gt != null && !(num > r.gt)) push(`Must be greater than ${r.gt}.`, 'gt');
+    if (r.gte != null && !(num >= r.gte)) push(`Must be greater than or equal to ${r.gte}.`, 'gte');
+    if (r.lt != null && !(num < r.lt)) push(`Must be less than ${r.lt}.`, 'lt');
+    if (r.lte != null && !(num <= r.lte)) push(`Must be less than or equal to ${r.lte}.`, 'lte');
+    if (r.integerOnly && !Number.isInteger(num)) push('Must be a whole number.', 'integerOnly');
+    if (r.positiveOnly && num <= 0) push('Must be a positive number.', 'positiveOnly');
+    if (r.allowNegative === false && num < 0) push('Negative numbers are not allowed.', 'allowNegative');
+    if (r.step && r.step > 0) { const base = r.minValue ?? 0; if (Math.abs((num - base) % r.step) > 1e-9) push(`Must be in increments of ${r.step}.`, 'step'); }
   }
 
   // email domains
@@ -274,42 +397,53 @@ function ruleErrors(field: FormField, value: any): string[] {
     const allow = r.allowedDomains ? (Array.isArray(r.allowedDomains) ? r.allowedDomains : String(r.allowedDomains).split(/[,;]\s*/)) : null;
     const block = r.blockedDomains ? (Array.isArray(r.blockedDomains) ? r.blockedDomains : String(r.blockedDomains).split(/[,;]\s*/)) : null;
     for (const d of domainOf(value)) {
-      if (allow && allow.length && !allow.map((x) => x.toLowerCase().replace(/^@/, '')).includes(d)) push(`Email must be on: ${allow.join(', ')}.`);
-      if (block && block.map((x) => x.toLowerCase().replace(/^@/, '')).includes(d)) push(`Emails from '${d}' are not accepted.`);
+      if (allow && allow.length && !allow.map((x) => x.toLowerCase().replace(/^@/, '')).includes(d)) push(`Email must be on: ${allow.join(', ')}.`, 'allowedDomains');
+      if (block && block.map((x) => x.toLowerCase().replace(/^@/, '')).includes(d)) push(`Emails from '${d}' are not accepted.`, 'blockedDomains');
     }
+  }
+
+  // URL domains - judged on the host, subdomains included ("github.com" covers "gist.github.com")
+  if (field.type === 'URL' && typeof value === 'string') {
+    const toList = (v: unknown): string[] => (Array.isArray(v) ? v : typeof v === 'string' ? v.split(/[,;]\s*/) : [])
+      .map((x) => String(x).trim().toLowerCase().replace(/^@/, '')).filter(Boolean);
+    const allow = toList(r.allowedDomains), block = toList(r.blockedDomains);
+    const host = hostOf(value);
+    const covers = (list: string[]) => !!host && list.some((d) => host === d || host.endsWith(`.${d}`));
+    if (allow.length && !covers(allow)) push(`Link must be on one of: ${allow.join(', ')}.`, 'allowedDomains');
+    if (block.length && covers(block)) push(`Links from '${host}' are not accepted.`, 'blockedDomains');
   }
 
   // phone digits
   if ((field.type === 'PHONE') && str !== null) {
     const digits = (str.match(/[0-9]/g) || []).length;
-    if (r.minDigits != null && digits < r.minDigits) push(`Must contain at least ${r.minDigits} digits.`);
-    if (r.maxDigits != null && digits > r.maxDigits) push(`Must contain at most ${r.maxDigits} digits.`);
-    if (r.numericOnly && !/^\+?[0-9\s\-().]+$/.test(str)) push('Only digits and phone punctuation are allowed.');
+    if (r.minDigits != null && digits < r.minDigits) push(`Must contain at least ${r.minDigits} digits.`, 'minDigits');
+    if (r.maxDigits != null && digits > r.maxDigits) push(`Must contain at most ${r.maxDigits} digits.`, 'maxDigits');
+    if (r.numericOnly && !/^\+?[0-9\s\-().]+$/.test(str)) push('Only digits and phone punctuation are allowed.', 'numericOnly');
   }
-  if (field.type === 'URL' && r.requireHttps && str !== null && !/^https:\/\//i.test(str)) push('URL must start with https://.');
+  if (field.type === 'URL' && r.requireHttps && str !== null && !/^https:\/\//i.test(str)) push('URL must start with https://.', 'requireHttps');
 
   // date / time
   if (field.type === 'DATE' && str !== null) {
     const d = str; // YYYY-MM-DD lexicographic
     const bound = (b?: string) => (b === 'today' ? new Date().toISOString().slice(0, 10) : b);
     const mn = bound(r.minDate || r.notBefore), mx = bound(r.maxDate || r.notAfter);
-    if (mn && d < mn) push(`Date must be on or after ${mn}.`);
-    if (mx && d > mx) push(`Date must be on or before ${mx}.`);
+    if (mn && d < mn) push(`Date must be on or after ${mn}.`, 'minDate');
+    if (mx && d > mx) push(`Date must be on or before ${mx}.`, 'maxDate');
     const today = new Date().toISOString().slice(0, 10);
-    if (r.pastOnly && d >= today) push('Date must be in the past.');
-    if (r.futureOnly && d <= today) push('Date must be in the future.');
-    if (r.allowToday === false && d === today) push("Today's date is not allowed.");
+    if (r.pastOnly && d >= today) push('Date must be in the past.', 'pastOnly');
+    if (r.futureOnly && d <= today) push('Date must be in the future.', 'futureOnly');
+    if (r.allowToday === false && d === today) push("Today's date is not allowed.", 'allowToday');
   }
   if (field.type === 'TIME' && str !== null) {
-    if (r.minTime && str < r.minTime) push(`Time must be at or after ${r.minTime}.`);
-    if (r.maxTime && str > r.maxTime) push(`Time must be at or before ${r.maxTime}.`);
+    if (r.minTime && str < r.minTime) push(`Time must be at or after ${r.minTime}.`, 'minTime');
+    if (r.maxTime && str > r.maxTime) push(`Time must be at or before ${r.maxTime}.`, 'maxTime');
   }
 
   // selection counts
   if (arr) {
-    if (r.minSelected != null && arr.length < r.minSelected) push(`Select at least ${r.minSelected} option(s).`);
-    if (r.maxSelected != null && arr.length > r.maxSelected) push(`Select at most ${r.maxSelected} option(s).`);
-    if (r.exactSelected != null && arr.length !== r.exactSelected) push(`Select exactly ${r.exactSelected} option(s).`);
+    if (r.minSelected != null && arr.length < r.minSelected) push(`Select at least ${r.minSelected} option(s).`, 'minSelected');
+    if (r.maxSelected != null && arr.length > r.maxSelected) push(`Select at most ${r.maxSelected} option(s).`, 'maxSelected');
+    if (r.exactSelected != null && arr.length !== r.exactSelected) push(`Select exactly ${r.exactSelected} option(s).`, 'exactSelected');
   }
 
   // matrix - mirrors backend rules.py::_required_rows / _all_rows_required / _min_per_row / _max_per_row
@@ -322,22 +456,22 @@ function ruleErrors(field: FormField, value: any): string[] {
       );
       if (Array.isArray(r.requiredRows) && r.requiredRows.length) {
         const missing = r.requiredRows.filter((row) => !answered.has(String(row).trim().toLowerCase()));
-        if (missing.length) push(`These rows require an answer: ${missing.join(', ')}.`);
+        if (missing.length) push(`These rows require an answer: ${missing.join(', ')}.`, 'requiredRows');
       }
       if (r.allRowsRequired) {
         const rows = (field.rows || []).map((row) => String(row));
         const missing = rows.filter((row) => !answered.has(row.trim().toLowerCase()));
-        if (missing.length) push(`Every row requires an answer; missing: ${missing.join(', ')}.`);
+        if (missing.length) push(`Every row requires an answer; missing: ${missing.join(', ')}.`, 'allRowsRequired');
       }
       const cellCount = (cell: any) => (Array.isArray(cell) ? cell.length : cell !== null && cell !== undefined && cell !== '' ? 1 : 0);
       if (r.minPerRow != null) {
         for (const [k, cell] of Object.entries(matrixVal)) {
-          if (cellCount(cell) < r.minPerRow) { push(`Row '${k}' needs at least ${r.minPerRow} selection(s).`); break; }
+          if (cellCount(cell) < r.minPerRow) { push(`Row '${k}' needs at least ${r.minPerRow} selection(s).`, 'minPerRow'); break; }
         }
       }
       if (r.maxPerRow != null) {
         for (const [k, cell] of Object.entries(matrixVal)) {
-          if (cellCount(cell) > r.maxPerRow) { push(`Row '${k}' allows at most ${r.maxPerRow} selection(s).`); break; }
+          if (cellCount(cell) > r.maxPerRow) { push(`Row '${k}' allows at most ${r.maxPerRow} selection(s).`, 'maxPerRow'); break; }
         }
       }
     }
@@ -346,17 +480,21 @@ function ruleErrors(field: FormField, value: any): string[] {
   // files
   if (field.type === 'FILE' || field.type === 'MULTI_FILE') {
     const files = toFiles(value);
+    const given = Array.isArray(value) ? value.length : value ? 1 : 0;
+    if (given > files.length) push('Choose the file again; what was attached is not a usable file.', 'type');
     const ext = (n: string) => (n.includes('.') ? '.' + n.split('.').pop()!.toLowerCase() : '');
     const allowed = r.allowedFileTypes ? r.allowedFileTypes.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).map((e) => (e.startsWith('.') ? e : `.${e}`)) : [];
     const blocked = r.blockedFileTypes ? r.blockedFileTypes.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).map((e) => (e.startsWith('.') ? e : `.${e}`)) : [];
+    if (field.type === 'FILE' && files.length > 1) push('Attach only one file.', 'maxFiles');
+    if (field.type === 'MULTI_FILE' && r.maxFiles == null && files.length > DEFAULT_MAX_FILES) push(`Attach at most ${DEFAULT_MAX_FILES} file(s).`, 'maxFiles');
     for (const f of files) {
-      if (allowed.length && !allowed.includes(ext(f.name))) push(`Allowed file types: ${r.allowedFileTypes}.`);
-      if (blocked.includes(ext(f.name))) push(`'${f.name}' is a blocked file type.`);
-      if (r.maxFileSizeMB && f.size > r.maxFileSizeMB * 1024 * 1024) push(`'${f.name}' exceeds the ${r.maxFileSizeMB} MB limit.`);
-      if (r.minFileSizeKB && f.size > 0 && f.size < r.minFileSizeKB * 1024) push(`'${f.name}' is smaller than the ${r.minFileSizeKB} KB minimum.`);
+      if (allowed.length && !allowed.includes(ext(f.name))) push(`Allowed file types: ${r.allowedFileTypes}.`, 'allowedFileTypes');
+      if (blocked.includes(ext(f.name)) || (DEFAULT_BLOCKED_EXTENSIONS.includes(ext(f.name)) && !allowed.includes(ext(f.name)))) push(`'${f.name}' is a blocked file type.`, 'blockedFileTypes');
+      if (r.maxFileSizeMB && f.size > r.maxFileSizeMB * 1024 * 1024) push(`'${f.name}' exceeds the ${r.maxFileSizeMB} MB limit.`, 'maxFileSizeMB');
+      if (r.minFileSizeKB && f.size > 0 && f.size < r.minFileSizeKB * 1024) push(`'${f.name}' is smaller than the ${r.minFileSizeKB} KB minimum.`, 'minFileSizeKB');
     }
-    if (r.maxFiles != null && files.length > r.maxFiles) push(`Attach at most ${r.maxFiles} file(s).`);
-    if (r.minFiles != null && files.length < r.minFiles) push(`Attach at least ${r.minFiles} file(s).`);
+    if (r.maxFiles != null && files.length > r.maxFiles) push(`Attach at most ${r.maxFiles} file(s).`, 'maxFiles');
+    if (r.minFiles != null && files.length < r.minFiles) push(`Attach at least ${r.minFiles} file(s).`, 'minFiles');
   }
 
   return out;
@@ -367,10 +505,10 @@ function ruleErrors(field: FormField, value: any): string[] {
 // ---------------------------------------------------------------------------
 
 export function validateFieldValue(field: FormField, value: any, requiredOverride?: boolean): string | null {
-  if (field.type === 'SECTION') return null;
-  const required = requiredOverride ?? field.is_required;
-  if (isEmpty(value)) return required ? `${field.label} is required.` : null;
-  const errs = [...fieldTypeErrors(field, value), ...ruleErrors(field, value)];
+  if (isNonAnswerType(field.type)) return null;
+  const required = (requiredOverride ?? field.is_required) && !isNeverRequired(field.type);
+  if (isEmpty(value)) return required ? requiredMessage(field) : null;
+  const errs = [...customTypeMessages(field, fieldTypeErrors(field, value)), ...ruleErrors(field, value)];
   return errs[0] ?? null;
 }
 
@@ -430,7 +568,7 @@ export function validateSubmission(
   fields: FormField[],
   valuesByStrId: Record<string, any>,
 ): ClientValidationResult {
-  const active = fields.filter((f) => !f.is_deleted && f.type !== 'SECTION');
+  const active = fields.filter((f) => !f.is_deleted && !isNonAnswerType(f.type));
   const layout = computeLayout(fields, valuesByStrId);
   const errors: SubmissionErrorItem[] = [];
   const payload: Record<string, any> = {};
@@ -443,14 +581,14 @@ export function validateSubmission(
     const required = isFieldRequired(field, layout);
 
     if (isEmpty(value)) {
-      if (required) {
-        errors.push({ field_id: Number(field.id) || null, label: field.label, code: 'REQUIRED', rule: 'required', message: `'${field.label}' is required.` });
+      if (required && !isNeverRequired(field.type)) {
+        errors.push({ field_id: Number(field.id) || null, label: field.label, code: 'REQUIRED', rule: 'required', message: requiredMessage(field) });
       }
       continue;
     }
 
     payload[key] = value;
-    for (const m of fieldTypeErrors(field, value)) errors.push({ field_id: Number(field.id) || null, label: field.label, code: 'TYPE', message: m });
+    for (const m of customTypeMessages(field, fieldTypeErrors(field, value))) errors.push({ field_id: Number(field.id) || null, label: field.label, code: 'TYPE', message: m });
     for (const m of ruleErrors(field, value)) errors.push({ field_id: Number(field.id) || null, label: field.label, code: 'RULE', message: m });
   }
 
