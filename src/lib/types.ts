@@ -182,6 +182,14 @@ export interface Hackathon {
   idea_deadline?: string | null;
   /** Organizers must approve an idea before it counts. */
   idea_review_required?: boolean;
+  /** Rupees a team pays with its idea (0 = free); the payment screenshot is then required. */
+  idea_fee_amount?: number;
+  idea_payment_note?: string;
+  idea_deck_required?: boolean;
+  idea_linkedin_required?: boolean;
+  /** Teams may edit a submitted idea. */
+  idea_edits_enabled?: boolean;
+  idea_edits_until?: string | null;
   /** Only teams with an accepted idea may submit a project. */
   project_requires_approved_idea?: boolean;
   results_published_at?: string | null;
@@ -1488,12 +1496,28 @@ export interface HackathonIdea {
   plan: string;
   tech_stack: string[];
   deck_url: string | null;
+  linkedin_url: string | null;
+  /** The uploaded .ppt / .pptx. */
+  deck_file: IdeaFileInfo | null;
+  /** Only sent to the team and to organizers; never to judges. */
+  payment_proof?: IdeaFileInfo | null;
+  transaction_id?: string;
   status: IdeaStatus;
   feedback: string;
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export interface IdeaFileInfo {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  state: string;
+}
+
+export type IdeaFileKind = 'DECK' | 'PAYMENT';
 
 export interface IdeaDraft {
   title: string;
@@ -1502,6 +1526,24 @@ export interface IdeaDraft {
   plan: string;
   tech_stack: string[];
   deck_url: string;
+  linkedin_url: string;
+  transaction_id: string;
+  /** Left out = keep the saved file, null = remove it, an id = use that upload. */
+  deck_file_id?: string | null;
+  payment_file_id?: string | null;
+}
+
+/** The organizers' choices for the idea form. */
+export interface IdeaConfig {
+  fee_amount: number;
+  payment_note: string;
+  deck_required: boolean;
+  linkedin_required: boolean;
+  files_available: boolean;
+  /** The QR code teams scan to pay, if the organizers uploaded one. */
+  payment_qr: { id: string; name: string } | null;
+  edits_enabled: boolean;
+  edits_until: string | null;
 }
 
 export interface MyIdeaPayload {
@@ -1512,6 +1554,9 @@ export interface MyIdeaPayload {
   project_requires_idea: boolean;
   idea: HackathonIdea | null;
   can_edit: boolean;
+  /** Why a team that already submitted cannot edit now (empty when it can). */
+  edit_blocked_reason: string;
+  config: IdeaConfig;
 }
 
 export interface AdminIdeasPayload {
@@ -1519,6 +1564,7 @@ export interface AdminIdeasPayload {
   rows: (HackathonIdea & { team_status: string })[];
   missing: { id: number; name: string }[];
   counts: Record<IdeaStatus, number>;
+  config: IdeaConfig;
 }
 
 export type RoundRuleKey =

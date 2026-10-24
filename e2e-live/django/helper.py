@@ -112,6 +112,37 @@ def stale_drafts(args):
     emit({'made': made, 'remaining': ResponseDraft.objects.filter(updated_at__lt=timezone.now() - timedelta(days=30)).count()})
 
 
+def make_idea_hackathon(args):
+    """A live hackathon with the idea phase on, a registered team led by args.leader, and a judge."""
+    from datetime import timedelta
+    from apps.hackathons.models import Hackathon, HackathonStaff, Team, TeamMember
+    now = timezone.now()
+    hack, _ = Hackathon.objects.get_or_create(slug=args.slug, defaults=dict(
+        title='Idea Storm', theme='t', description='d', start_date=now + timedelta(days=20), end_date=now + timedelta(days=21),
+        status='LIVE', min_team_size=1, max_team_size=3, features={'ideas': True, 'judging': True},
+        idea_deadline=now + timedelta(days=10), idea_review_required=True,
+    ))
+    leader = User.objects.get(email__iexact=args.leader)
+    team, _ = Team.objects.get_or_create(hackathon=hack, name='Bin Busters', defaults=dict(leader=leader, status='REGISTERED'))
+    TeamMember.objects.get_or_create(team=team, user=leader, defaults=dict(role='LEADER'))
+    if args.judge:
+        HackathonStaff.objects.get_or_create(hackathon=hack, user=User.objects.get(email__iexact=args.judge), defaults=dict(role='JUDGE', permissions=[]))
+    emit({'id': hack.pk, 'team': team.pk})
+
+
+def idea_state(args):
+    from apps.hackathons.models import IdeaSubmission
+    idea = IdeaSubmission.objects.filter(team__hackathon__slug=args.slug).select_related('deck_file', 'payment_proof').first()
+    if idea is None:
+        emit(None)
+        return
+    emit({
+        'id': idea.pk, 'status': idea.status, 'linkedin': idea.linkedin_url, 'txn': idea.transaction_id,
+        'deck': idea.deck_file and {'name': idea.deck_file.original_name, 'state': idea.deck_file.state, 'key': idea.deck_file.key},
+        'payment': idea.payment_proof and {'name': idea.payment_proof.original_name, 'state': idea.payment_proof.state, 'key': idea.payment_proof.key},
+    })
+
+
 def mailbox(args):
     """Every email written so far, newest last: recipients, subject and the links found in the plain-text body."""
     messages = []
@@ -160,6 +191,8 @@ p = sub.add_parser('make_upload_form'); p.set_defaults(fn=make_upload_form); p.a
 p = sub.add_parser('uploads'); p.set_defaults(fn=uploads); p.add_argument('slug')
 p = sub.add_parser('object_exists'); p.set_defaults(fn=object_exists); p.add_argument('key')
 p = sub.add_parser('stale_drafts'); p.set_defaults(fn=stale_drafts); p.add_argument('slug'); p.add_argument('--count', type=int, default=3)
+p = sub.add_parser('make_idea_hackathon'); p.set_defaults(fn=make_idea_hackathon); p.add_argument('slug'); p.add_argument('--leader', required=True); p.add_argument('--judge')
+p = sub.add_parser('idea_state'); p.set_defaults(fn=idea_state); p.add_argument('slug')
 for name, fn in (('mailbox', mailbox), ('clear_mailbox', clear_mailbox), ('clear_cache', clear_cache)):
     sub.add_parser(name).set_defaults(fn=fn)
 

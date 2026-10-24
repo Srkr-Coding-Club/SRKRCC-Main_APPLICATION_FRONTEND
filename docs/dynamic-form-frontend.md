@@ -68,3 +68,13 @@ When the server reports `direct_upload` (`GET /forms/upload-config/`, read by `s
 - The form builder's "Max file size (MB)" box shows the default and the platform maximum.
 
 Tests: `src/lib/__tests__/fileUpload.test.ts`, `src/components/forms/__tests__/FileUploadField.test.tsx`, `e2e/file-uploads.spec.ts`.
+
+## Hackathon idea form (slides, payment, editing)
+
+`src/components/hackathons/IdeaPanel.tsx` is the team leader's idea form. Besides the written parts it shows, depending on what the organizers switched on (`config` from `GET /hackathons/{slug}/my-idea/`): a `.ppt/.pptx` picker, the LinkedIn post link, and, when a fee is set, the amount, the "how to pay" note, a payment-screenshot picker and an optional transaction ID. The pickers are the shared `FileUploadField` with `uploadWith` / `discardWith` pointing at `src/lib/ideaUpload.ts` (same direct-to-storage flow as form uploads). Submitting is disabled while a file is still going; the request sends `deck_file_id` / `payment_file_id` (an id, or `null` to remove). When editing is switched off the leader sees the saved idea read-only with the reason (`edit_blocked_reason`) and its files (opened through short-lived links).
+
+Organizers set all of this on the manager's **Ideas** tab (fee, how to pay, presentation and LinkedIn required, "Teams can edit a submitted idea" with an optional "Editing closes at" time) and see each idea's LinkedIn link, presentation, payment screenshot and transaction ID there. The judging page shows judges the slides and LinkedIn link only; payment details never reach them.
+
+Tests: `src/components/hackathons/__tests__/IdeaPanel.test.tsx`; live: `e2e-live/hackathon-ideas.live.spec.ts` (`pnpm test:e2e:live`).
+
+**Payment QR code.** On the manager's Ideas tab organizers upload the QR image under "Payment QR code" (it is saved the moment it uploads, with a Remove button). The idea form shows it in the payment box with "Scan this QR code with any UPI app and pay ₹N" (`src/components/hackathons/PaymentQr.tsx`; its link lasts a minute, so it is fetched when shown and again on "Try again" or when a new QR is uploaded).
