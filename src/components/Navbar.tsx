@@ -177,7 +177,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               <BrainLogo size={36} showRays animated />
             </motion.div>
             <div className="flex flex-col leading-none">
-              <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.32em] text-[#1A1A2E]/45 dark:text-white/40">
+              <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.32em] text-[#1A1A2E]/70 dark:text-white/60">
                 SRKR
               </span>
               <span className="ember-text font-poppins text-xl sm:text-2xl font-extrabold leading-[1.1] tracking-tight">

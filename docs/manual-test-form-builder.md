@@ -1,0 +1,55 @@
+# Manual test: dynamic form builder (everything not yet committed)
+
+Run the backend and the frontend together (`python manage.py runserver`, `pnpm dev`), sign in as an **admin**, and use a second browser window signed in as a normal member. Tick each box as you go.
+
+## 0. Setup
+- [ ] Run migrations (`python manage.py migrate`); there are new ones up to `0031_form_language`.
+- [ ] `CLIENT_IP_SHARED_SECRET` is set to the same value on backend and frontend.
+- [ ] (Only for the bot check) `TURNSTILE_SECRET_KEY` on the backend, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` on the frontend.
+
+## 1. Build a form (Admin → Forms → Builder)
+- [ ] Add questions of every type; each has help text ("+ Add description"). Save as draft. Reload: nothing is lost.
+- [ ] Add a **Page break**; the form shows "Page 1 of 2" for members.
+- [ ] Add a **Hidden** question (query parameter `ref`) and a **Calculated** one (formula `{1} * {2}`).
+- [ ] **Add conditions** on a question: watch an earlier question, "equals", a value. Save.
+- [ ] Try to nest conditions more than 8 groups deep (via import): saving is refused with a clear message.
+
+## 2. Fill the form (member window, `/forms/<slug>`)
+- [ ] The conditional question appears and disappears as you change the answer; a required one blocks Submit only while shown.
+- [ ] Calculated total updates as you type; hidden value arrives from `?ref=poster-7`.
+- [ ] Press Submit with errors: focus jumps to the first problem, errors are read out, answers stay.
+- [ ] Use only the keyboard (Tab, Enter, arrows in the dropdown, Escape closes it).
+- [ ] Type some answers, close the tab, come back: "We restored your saved answers".
+- [ ] Sign out in another tab, then press Submit: you are sent to sign in, and your answers are back afterwards.
+- [ ] Double-click Submit: only one response is stored.
+
+## 3. After submitting
+- [ ] Builder → "After submitting": set a thank-you message with `{{1}}`, a redirect `/events`, delay 5s, language Telugu. Save, submit as a member: message shows the answer, countdown runs, "Stay here" cancels, "Go now" skips.
+- [ ] Enter `javascript:alert(1)` as the redirect: it is flagged and refused on save.
+- [ ] Switch the form language: buttons, "Page 1 of 2" and the thank-you screen change language.
+
+## 4. Safety and limits
+- [ ] Bot check on without a server secret: Publish is refused with a clear message (also when saving as published or re-opening).
+- [ ] Rapidly submit/log in with a wrong password more than 10 times for one account: you are paused with "Try again in Ns"; another account on the same computer is not.
+- [ ] A form with a limited option (e.g. Morning limited to 2): after 2 people choose it, it disappears for others.
+- [ ] Two members submitting the last slot at the same moment: only one succeeds.
+
+## 5. Editing a live form
+- [ ] Publish, get a response, then change the form and Save: a **"Review changes"** dialog lists what changes and warns about existing responses; "Keep editing" saves nothing.
+- [ ] Try to change the type of a question that already has answers: refused.
+- [ ] Delete a question other questions depend on: you are warned and its rules are cleaned up.
+
+## 6. History, copies, templates
+- [ ] **History**: lists versions; pick one, "What going back would change", then Restore (asks first; saved as a new version).
+- [ ] Forms list → **Duplicate**, **Save as template**, **Export file**, **Import** (good file works, broken file shows a clear message), **From template**.
+
+## 7. Analytics and responses
+- [ ] Builder → **Analytics**: totals, per-day chart, per-question counts, "where unfinished responses stopped".
+- [ ] Admin → Responses: search, page through, open a response with the keyboard, select several and delete (asks first).
+- [ ] Answers containing `<b>text</b>` or very long text are shown as plain text and do not break the table.
+
+## 8. Look and feel
+- [ ] Phone width (360px): no sideways scrolling; Submit is reachable; Telugu text fits.
+- [ ] Dark mode on the form, builder and responses.
+- [ ] Zoom the page to 200%: nothing is cut off.
+- [ ] Every dialog (History, Analytics, Review, Templates): focus moves in, Tab stays inside, Escape closes, focus returns to the button.

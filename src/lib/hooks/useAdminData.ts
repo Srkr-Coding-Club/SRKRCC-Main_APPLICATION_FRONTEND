@@ -5,6 +5,8 @@ import { FeatureFlag, Form, FormField, ProfileFieldKey, ValidationRules } from '
 import { fetchApi } from '@/lib/api-client';
 import { buildAuthFetchOptions } from '@/lib/dataManagement';
 import { useToast } from '@/context/ToastContext';
+import { isNonAnswerType } from '@/lib/fieldTypes';
+import type { ChangeReview } from '@/lib/formHistory';
 
 /**
  * Sensible out-of-the-box validation for a newly-added field, so an admin
@@ -218,6 +220,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
     notify_members_on_publish?: boolean;
     notification_title?: string;
     notification_message?: string;
+    confirmation_message?: string;
+    redirect_url?: string;
+    redirect_delay_seconds?: number;
+    captcha_enabled?: boolean;
+    language?: string;
     attendance_enabled?: boolean;
     attendance_start_date?: string | null;
     attendance_days?: number;
@@ -250,6 +257,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
     notify_members_on_publish: false,
     notification_title: '',
     notification_message: '',
+    confirmation_message: '',
+    redirect_url: '',
+    redirect_delay_seconds: 5,
+    captcha_enabled: false,
+    language: 'en',
     attendance_enabled: false,
     attendance_start_date: null,
     attendance_days: 1,
@@ -663,7 +675,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         // A profile-bound field defaults to required - it's on the form
         // precisely because the registration needs that data one way or
         // another; the admin can still relax it in the field settings.
-        is_required: profileField ? true : type !== 'SECTION',
+        is_required: profileField ? true : !isNonAnswerType(type),
         validation_rules: defaultValidationRulesFor(type),
         profile_field: profileField,
       },
@@ -687,7 +699,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
 
   const handleAddFieldAtIndex = (type: FormField['type'], label: string, index: number) => {
     setBuilderFields((prev) => {
-      const newField: FormField = { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: 0, validation_rules: defaultValidationRulesFor(type) };
+      const newField: FormField = { id: Date.now().toString(), label, type, is_required: !isNonAnswerType(type), order: 0, validation_rules: defaultValidationRulesFor(type) };
       const updated = [...prev];
       updated.splice(index, 0, newField);
       return updated.map((f, i) => ({ ...f, order: i + 1 }));
@@ -786,6 +798,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
       notify_members_on_publish: form.notify_members_on_publish ?? false,
       notification_title: form.notification_title || '',
       notification_message: form.notification_message || '',
+      confirmation_message: form.confirmation_message || '',
+      redirect_url: form.redirect_url || '',
+      redirect_delay_seconds: form.redirect_delay_seconds ?? 5,
+      captcha_enabled: form.captcha_enabled ?? false,
+      language: form.language || 'en',
       attendance_enabled: form.attendance_enabled ?? false,
       attendance_start_date: form.attendance_start_date ?? null,
       attendance_days: form.attendance_days ?? 1,
@@ -810,6 +827,17 @@ export function useAdminData(options?: UseAdminDataOptions) {
     // PREVIOUS form's preview.
     setPreviewAnswers({});
     setSubmittedTestData(null);
+  };
+
+  // The change review shown before a live form is saved (resolved by the builder page's modal).
+  const [pendingReview, setPendingReview] = useState<{ review: ChangeReview; resolve: (go: boolean) => void } | null>(null);
+  const askToConfirmChanges = (review: ChangeReview) =>
+    new Promise<boolean>((resolve) => {
+      setPendingReview({ review, resolve });
+    });
+  const settleReview = (go: boolean) => {
+    pendingReview?.resolve(go);
+    setPendingReview(null);
   };
 
   const handleSaveForm = async (
@@ -873,6 +901,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
       notify_members_on_publish: formMeta.notify_members_on_publish ?? false,
       notification_title: formMeta.notification_title || '',
       notification_message: formMeta.notification_message || '',
+      confirmation_message: formMeta.confirmation_message || '',
+      redirect_url: formMeta.redirect_url || '',
+      redirect_delay_seconds: formMeta.redirect_delay_seconds ?? 5,
+      captcha_enabled: formMeta.captcha_enabled ?? false,
+      language: formMeta.language || 'en',
       attendance_enabled: formMeta.attendance_enabled ?? false,
       attendance_start_date: formMeta.attendance_start_date || null,
       attendance_days: formMeta.attendance_days ?? 1,
@@ -896,6 +929,8 @@ export function useAdminData(options?: UseAdminDataOptions) {
           max_value: f.max_value ?? null,
           conditional_logic: f.conditional_logic || {},
           validation_rules: f.validation_rules || {},
+          // A question filled from the member's profile must keep saying so, or it turns back into an ordinary question.
+          profile_field: f.profile_field ?? null,
           order: idx + 1,
         };
       }),
@@ -908,6 +943,25 @@ export function useAdminData(options?: UseAdminDataOptions) {
       publishedForms.some((f) => f.slug === lookupSlug && f.id !== undefined);
 
     try {
+      // A form that is already live changes for everyone the moment it is saved, so show what is about to
+      // change (and what it means for the responses already in) and ask first. Problems the save itself would
+      // report are left for the save to report.
+      const isLive = formMeta.status === 'PUBLISHED' || formMeta.status === 'SCHEDULED';
+      if (isExistingForm && isLive && targetStatus !== 'DRAFT') {
+        const review = await fetchApi<ChangeReview>(`/forms/${lookupSlug}/preview-changes/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(() => null);
+        if (review && !review.diff.is_empty) {
+          const go = await askToConfirmChanges(review);
+          if (!go) {
+            toast.info('Not saved', 'Your changes are still in the editor.');
+            return;
+          }
+        }
+      }
+
       let saved: Form;
       if (isExistingForm) {
         // Form is already registered in backend: perform PUT update directly
@@ -994,6 +1048,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
                   max_value: f.max_value ?? null,
                   conditional_logic: f.conditional_logic || {},
                   validation_rules: f.validation_rules || {},
+                  profile_field: f.profile_field ?? null,
                   order: i + 1,
                 })),
               }),
@@ -1036,6 +1091,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
         notify_members_on_publish: saved.notify_members_on_publish ?? false,
         notification_title: saved.notification_title || '',
         notification_message: saved.notification_message || '',
+        confirmation_message: saved.confirmation_message || '',
+        redirect_url: saved.redirect_url || '',
+        redirect_delay_seconds: saved.redirect_delay_seconds ?? 5,
+        captcha_enabled: saved.captcha_enabled ?? false,
+        language: saved.language || 'en',
         attendance_enabled: saved.attendance_enabled ?? false,
         attendance_start_date: saved.attendance_start_date ?? null,
         attendance_days: saved.attendance_days ?? 1,
@@ -1282,6 +1342,8 @@ export function useAdminData(options?: UseAdminDataOptions) {
     handleDuplicateField,
     handleReorderFields,
     handleSaveForm,
+    pendingReview: pendingReview?.review ?? null,
+    settleReview,
     handleFormStatusTransition,
     handleEditFormInBuilder,
     loadFormBySlug,

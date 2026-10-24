@@ -134,6 +134,11 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     if (respCacheControl) {
       responseHeaders['cache-control'] = respCacheControl;
     }
+    // How long to wait after a rate-limited (429) answer, so the page can show a countdown.
+    const respRetryAfter = response.headers.get('retry-after');
+    if (respRetryAfter) {
+      responseHeaders['retry-after'] = respRetryAfter;
+    }
     const respETag = response.headers.get('etag');
     if (respETag) {
       responseHeaders['etag'] = respETag;

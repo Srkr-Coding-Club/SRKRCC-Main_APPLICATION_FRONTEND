@@ -9,6 +9,12 @@ import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
 import { displayCollegeName } from '@/lib/colleges';
 import { getConstraintHint, validateSubmission, validateFieldValue, getCrossFieldError } from '@/lib/formValidation';
 import { computeLayout, isFieldRequired } from '@/lib/formConditional';
+import { nextReachable, pageIndexByField, pageProgress, previousReachable, settlePage } from '@/lib/formPages';
+import { clearFormBackup, useFormDraft } from '@/lib/hooks/useFormDraft';
+import { isNonAnswerType } from '@/lib/fieldTypes';
+import { calculatedValues } from '@/lib/formula';
+import { pipeText } from '@/lib/formPiping';
+import { defaultAnswers, hiddenAnswers } from '@/lib/formDefaults';
 import { useToast } from '@/context/ToastContext';
 import {
   FileText,
@@ -27,8 +33,12 @@ import {
   Check,
   ChevronDown,
   Star,
+  Info,
 } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import { SubmissionThanks } from '@/components/forms/SubmissionThanks';
+import { normalizeLanguage, translate, type FormStringKey } from '@/lib/i18n/formStrings';
+import { TurnstileWidget } from '@/components/forms/TurnstileWidget';
 import {
   SpotlightInput,
   SpotlightTextarea,
@@ -371,8 +381,34 @@ function ModernSelect({
 }: ModernSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const selectedOption = options.find((option) => option === value);
+
+  // Keyboard: Escape closes and gives focus back; the arrow keys open the list and move through it.
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    const items = () => Array.from(selectRef.current?.querySelectorAll<HTMLElement>('[role="option"]') ?? []);
+    if (event.key === 'Escape' && isOpen) {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        return;
+      }
+      const list = items();
+      const at = list.indexOf(document.activeElement as HTMLElement);
+      const next = event.key === 'ArrowDown' ? Math.min(list.length - 1, at + 1) : at <= 0 ? -1 : at - 1;
+      (next < 0 ? triggerRef.current : list[next])?.focus();
+    } else if ((event.key === 'Home' || event.key === 'End') && isOpen) {
+      event.preventDefault();
+      const list = items();
+      (event.key === 'Home' ? list[0] : list[list.length - 1])?.focus();
+    }
+  };
 
   // Close when clicking outside
   useEffect(() => {
@@ -395,17 +431,21 @@ function ModernSelect({
   const handleSelect = (option: string) => {
     onChange(option);
     setIsOpen(false);
+    triggerRef.current?.focus();
   };
 
   return (
     <div
       ref={selectRef}
-      id={id}
       className="relative w-full"
+      onKeyDown={handleKeyDown}
     >
-      {/* Trigger */}
+      {/* Trigger: carries the question's id so its label (and a failed submit's focus) reaches it */}
       <button
+        ref={triggerRef}
+        id={id}
         type="button"
+        aria-labelledby={`${id}-label ${id}`}
         onClick={() => setIsOpen((prev) => !prev)}
         onBlur={onBlur}
         aria-haspopup="listbox"
@@ -471,6 +511,7 @@ function ModernSelect({
             duration-150
           "
           role="listbox"
+          aria-labelledby={`${id}-label`}
         >
           {/* Placeholder */}
           <button
@@ -689,7 +730,7 @@ function SignaturePad({
       <button
         type="button"
         onClick={handleClear}
-        className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] transition active:scale-95"
+        className="min-h-8 px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#FF7A00] transition active:scale-95"
       >
         Clear
       </button>
@@ -742,6 +783,17 @@ export default function FormDetailSubmissionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  // Bot protection: the honeypot stays empty for people; the Turnstile token is single-use, so every attempt asks for a new one.
+  const [honeypot, setHoneypot] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
+  // Seconds left before submitting is allowed again after the server asked us to slow down (HTTP 429).
+  const [cooldown, setCooldown] = useState(0);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((n) => n - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   const [existingResponse, setExistingResponse] = useState<any | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -751,12 +803,114 @@ export default function FormDetailSubmissionPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Multi-page forms: which page is showing, and whether the "already answered?" lookup has finished
+  // (a saved draft is only offered once we know this is not an edit of a submitted response).
+  const [currentPage, setCurrentPage] = useState(0);
+  // Places left on options that have a limit: { questionId: { option: placesLeft } }.
+  const [availability, setAvailability] = useState<Record<string, Record<string, number>>>({});
+  const [submissionChecked, setSubmissionChecked] = useState(false);
+
   // Conditional-logic layout - which fields are visible / required right now,
   // recomputed whenever an answer changes. Mirrors the backend engine.
   const layout = React.useMemo(
     () => computeLayout((form?.fields as any) || [], formData),
     [form?.fields, formData],
   );
+
+  // Pages: a PAGE_BREAK starts a new one and routing can skip pages, so the page shown is
+  // always settled against the current answers.
+  const multiPage = layout.pages.length > 1;
+  const activePage = settlePage(layout, currentPage);
+  const fieldPages = React.useMemo(() => pageIndexByField(layout), [layout]);
+  const pageNumbers = pageProgress(layout, activePage);
+
+  // Calculated questions: worked out from the answers so far (the server works them out again on submit).
+  const calculated = React.useMemo(
+    () => calculatedValues((form?.fields as FormField[]) || [], formData, layout.visible),
+    [form?.fields, formData, layout],
+  );
+  useEffect(() => {
+    if (!calculated.size) return;
+    setFormData((prev) => {
+      let next = prev;
+      calculated.forEach((result, key) => {
+        if (JSON.stringify(prev[key] ?? null) === JSON.stringify(result)) return;
+        if (next === prev) next = { ...prev };
+        if (result === null) delete next[key]; else next[key] = result;
+      });
+      return next;
+    });
+  }, [calculated]);
+
+  // A choice that turned out to be full is dropped from a new response (the server refuses it anyway).
+  useEffect(() => {
+    if (isEditMode || !Object.keys(availability).length) return;
+    setFormData((prev) => {
+      let next = prev;
+      for (const [fieldId, left] of Object.entries(availability)) {
+        const full = new Set(Object.entries(left).filter(([, n]) => n <= 0).map(([option]) => option.trim().toLowerCase()));
+        const current = prev[fieldId];
+        const isFull = (v: unknown) => full.has(String(v ?? '').trim().toLowerCase());
+        if (Array.isArray(current) && current.some(isFull)) {
+          if (next === prev) next = { ...prev };
+          next[fieldId] = current.filter((v) => !isFull(v));
+        } else if (typeof current === 'string' && current && isFull(current)) {
+          if (next === prev) next = { ...prev };
+          next[fieldId] = '';
+        }
+      }
+      return next;
+    });
+  }, [availability, isEditMode]);
+
+  // {{id}} in a title, description or note shows that question's answer.
+  const fieldsById = React.useMemo(
+    () => new Map(((form?.fields as FormField[]) || []).map((f) => [String(f.id), f])),
+    [form?.fields],
+  );
+  const pipe = (text?: string) => pipeText(text, formData, fieldsById, layout.visible);
+  // The form's own words (buttons, progress, prompts) in the language its admin chose.
+  const t = (key: FormStringKey, values?: Record<string, string | number>) => translate(form?.language, key, values);
+
+  const loadAvailability = React.useCallback(async () => {
+    try {
+      setAvailability((await fetchApi<Record<string, Record<string, number>>>(`/forms/${slug}/availability/`)) || {});
+    } catch {
+      /* the server still enforces every limit; this only hides options that are already full */
+    }
+  }, [slug]);
+  useEffect(() => {
+    const limited = ((form?.fields as FormField[]) || []).some((f) => Object.keys(f.validation_rules?.optionLimits || {}).length > 0);
+    if (limited) void loadAvailability();
+    else setAvailability({});
+  }, [form, loadAvailability]);
+
+  // Answers a condition decides: `set_value` fills a question in, and `restrict_options` drops a
+  // choice that is no longer allowed. The server enforces both again on submit.
+  useEffect(() => {
+    if (!layout.setValues.size && !layout.allowedOptions.size) return;
+    setFormData((prev) => {
+      let next = prev;
+      const put = (key: string, value: any) => {
+        if (next === prev) next = { ...prev };
+        if (value === undefined) delete next[key]; else next[key] = value;
+      };
+      layout.setValues.forEach((value, key) => {
+        if (JSON.stringify(prev[key]) !== JSON.stringify(value)) put(key, value);
+      });
+      layout.allowedOptions.forEach((allowed, key) => {
+        const ok = new Set(allowed.map((a) => a.trim().toLowerCase()));
+        const current = prev[key];
+        if (Array.isArray(current)) {
+          const kept = current.filter((c) => ok.has(String(c).trim().toLowerCase()));
+          if (kept.length !== current.length) put(key, kept);
+        } else if (typeof current === 'string' && current && !ok.has(current.trim().toLowerCase())) {
+          put(key, '');
+        }
+      });
+      return next;
+    });
+  }, [layout]);
 
   // "Already submitted, can't edit it" only actually locks the form when this
   // is a single-response form. When the form allows multiple responses, a
@@ -768,6 +922,50 @@ export default function FormDetailSubmissionPage() {
   // (or even just multiple responses with editing off) silently could never
   // accept a second submission - every input was blocked outright.
   const isLockedToSingleExistingResponse = hasSubmitted && !canEditResponse && form?.allow_multiple_responses !== true;
+
+  // Defaults and hidden values start a fresh response off (never an edit of a submitted one).
+  const startedFormRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (!form?.fields || !submissionChecked || isEditMode || startedFormRef.current === String(form.id)) return;
+    startedFormRef.current = String(form.id);
+    const fields = form.fields as FormField[];
+    setFormData((prev) => {
+      const defaults = defaultAnswers(fields, prev);
+      const hidden = hiddenAnswers(fields, window.location.search, prev);
+      return Object.keys(defaults).length || Object.keys(hidden).length ? { ...prev, ...defaults, ...hidden } : prev;
+    });
+  }, [form, submissionChecked, isEditMode]);
+
+  // What an untouched form holds, so the autosave can tell the person's own typing from the form's starting values.
+  const freshAnswers = React.useMemo(() => {
+    const fields = (form?.fields as FormField[]) || [];
+    return { ...defaultAnswers(fields, {}), ...hiddenAnswers(fields, typeof window === 'undefined' ? '' : window.location.search, {}) };
+  }, [form]);
+
+  // Autosave: unfinished answers (and the page) are kept on the server and offered again on return.
+  const draft = useFormDraft({
+    slug,
+    owner: currentUser?.id,
+    freshAnswers: freshAnswers,
+    fields: (form?.fields as FormField[]) || [],
+    enabled: !!currentUser && !!form && submissionChecked && !isEditMode && !isSubmitted && !isLockedToSingleExistingResponse,
+    formData,
+    currentPage: activePage,
+    onRestore: (restored) => {
+      // A fresh link's hidden values win over an older draft's.
+      setFormData((prev) => ({ ...prev, ...restored.answers, ...hiddenAnswers((form?.fields as FormField[]) || [], window.location.search, restored.answers) }));
+      setCurrentPage(restored.current_page);
+      const hasFiles = ((form?.fields as FormField[]) || []).some((f) => ['FILE', 'MULTI_FILE', 'SIGNATURE'].includes(f.type));
+      toast.info(
+        'Welcome back',
+        restored.form_changed
+          ? 'We restored your saved answers. The form was updated since, so please check them.'
+          : hasFiles
+          ? 'We restored your saved answers. Files are not saved, so attach them again.'
+          : 'We restored your saved answers.',
+      );
+    },
+  });
 
   // Check user authentication & fetch fresh profile details
   useEffect(() => {
@@ -814,6 +1012,9 @@ export default function FormDetailSubmissionPage() {
       setHasSubmitted(false);
       setCanEditResponse(true);
       setIsEditMode(false);
+      setCurrentPage(0);
+      setSubmissionChecked(false);
+      startedFormRef.current = null;
       try {
         const fetched = await fetchApi<Form>(`/forms/${slug}/`);
         if (fetched && fetched.title && fetched.fields) {
@@ -884,6 +1085,8 @@ export default function FormDetailSubmissionPage() {
         }
       } catch (err) {
         console.warn('[My Response Check Error]:', err);
+      } finally {
+        setSubmissionChecked(true);
       }
     }
 
@@ -900,7 +1103,7 @@ export default function FormDetailSubmissionPage() {
         let changed = false;
         const next = { ...prev };
         form.fields!.forEach((field) => {
-          if (field.type === 'SECTION') return;
+          if (isNonAnswerType(field.type)) return;
           const fieldKey = String(field.id);
           const currentVal = next[fieldKey];
           // Fill if currentVal is undefined, empty string, or null
@@ -1011,7 +1214,9 @@ export default function FormDetailSubmissionPage() {
   // There is no binary-upload endpoint - files are captured inline as data URLs
   // (bounded by the field's max size, or 5 MB) so the answer stores something
   // that can actually be viewed / downloaded from the responses tab.
-  const MAX_INLINE_FILE_MB = 5;
+  // Must not exceed the server ceiling (FORM_UPLOAD_MAX_FILE_BYTES: 4 MB on Lambda, whose 6 MB
+  // request cap also has to fit the base64-encoded file).
+  const MAX_INLINE_FILE_MB = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB) || 4;
   const handleFileChange = async (field: FormField, fileList: FileList | null) => {
     const picked = Array.from(fileList || []);
     if (!picked.length) return;
@@ -1044,6 +1249,65 @@ export default function FormDetailSubmissionPage() {
     handleInputChange(field, field.type === 'MULTI_FILE' ? out : out[0]);
   };
 
+  // Bring a question into view, switching to its page first when it is on another one.
+  const focusField = (fieldId: number | string) => {
+    const page = fieldPages.get(String(fieldId));
+    if (page !== undefined && page !== activePage) setCurrentPage(page);
+    setTimeout(() => {
+      const target = document.getElementById(`field-${fieldId}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Move the keyboard (and screen reader) to the question: itself if it can take focus, else its first control.
+      const focusable = target.matches('input,select,textarea,button,[tabindex]')
+        ? target
+        : target.querySelector<HTMLElement>('input,select,textarea,button,[tabindex]:not([tabindex="-1"])');
+      focusable?.focus({ preventScroll: true });
+    }, 80);
+  };
+
+  const scrollToFormTop = () => {
+    setTimeout(() => document.getElementById('form-page-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  };
+
+  // Leaving a page checks only the questions on it; the whole form is checked again on submit.
+  const goNext = () => {
+    const target = nextReachable(layout, activePage);
+    if (target === null || !form?.fields) return;
+    const allFields = form.fields as FormField[];
+    const onThisPage = new Set(layout.pages[activePage]);
+    const pageFields = allFields.filter((f) => onThisPage.has(String(f.id)) && layout.visible.has(String(f.id)) && !isNonAnswerType(f.type));
+
+    const pageErrors: Record<string, string> = {};
+    for (const f of pageFields) {
+      const message =
+        validateFieldValue(f, formData[String(f.id)], isFieldRequired(f, layout)) ||
+        getCrossFieldError(f, allFields, formData, layout);
+      if (message) pageErrors[String(f.id)] = message;
+    }
+    setTouched((prev) => ({ ...prev, ...Object.fromEntries(pageFields.map((f) => [String(f.id), true])) }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      for (const f of pageFields) delete next[String(f.id)];
+      return { ...next, ...pageErrors };
+    });
+
+    const firstBad = pageFields.find((f) => pageErrors[String(f.id)]);
+    if (firstBad) {
+      toast.error('Please fix the highlighted fields', pageErrors[String(firstBad.id)]);
+      focusField(firstBad.id);
+      return;
+    }
+    setCurrentPage(target);
+    scrollToFormTop();
+  };
+
+  const goBack = () => {
+    const target = previousReachable(layout, activePage);
+    if (target === null) return;
+    setCurrentPage(target);
+    scrollToFormTop();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
@@ -1059,22 +1323,26 @@ export default function FormDetailSubmissionPage() {
 
     if (!form || !form.fields) return;
 
+    // Pressing Enter (or the form's own submit) on an earlier page just moves on.
+    if (multiPage && nextReachable(layout, activePage) !== null) {
+      goNext();
+      return;
+    }
+
     // From here on, every field's error (not just touched ones) is allowed to display.
     setHasAttemptedSubmit(true);
 
     // Client-side pre-check - mirrors the backend engine (conditional visibility,
     // required, type + rule + cross-field). The backend re-validates everything.
-    const { errors: clientErrors, layout, payload } = validateSubmission(form.fields, formData);
+    const { errors: clientErrors, payload } = validateSubmission(form.fields, formData);
     if (clientErrors.length > 0) {
       const map: Record<string, string> = {};
       for (const e of clientErrors) if (e.field_id != null && !map[String(e.field_id)]) map[String(e.field_id)] = e.message;
       setErrors(map);
       const first = clientErrors[0];
       toast.error('Please fix the highlighted fields', first.message);
-      // scroll to the first field with an error
-      if (first.field_id != null) {
-        document.getElementById(`field-${first.field_id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      // go to the first field with an error, on whichever page it is
+      if (first.field_id != null) focusField(first.field_id);
       return;
     }
 
@@ -1115,6 +1383,8 @@ export default function FormDetailSubmissionPage() {
             user: currentUser.id,
             answers: answersPayload,
             idempotency_key: idempotencyKey,
+            hp_q7z4: honeypot,
+            ...(form.captcha_enabled ? { captcha_token: captchaToken } : {}),
           }),
         });
       }
@@ -1127,6 +1397,7 @@ export default function FormDetailSubmissionPage() {
       } else {
         toast.success('Registration Received!', `Your response for ${form.title} was successfully submitted.`);
       }
+      clearFormBackup(slug, currentUser?.id);
       setIsSubmitted(true);
     } catch (err: any) {
       console.error('[Form Submit Error]:', err);
@@ -1139,8 +1410,13 @@ export default function FormDetailSubmissionPage() {
         const generic = body.errors.filter((e: any) => e.field_id == null).map((e: any) => e.message);
         setSubmissionError(generic[0] || body.detail || 'Some answers need fixing.');
         toast.error('Submission Rejected', body.errors[0].message || body.detail);
+        if (body.errors.some((e: any) => e.code === 'OPTION_FULL')) void loadAvailability();
         const firstId = body.errors.find((e: any) => e.field_id != null)?.field_id;
-        if (firstId != null) document.getElementById(`field-${firstId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (firstId != null) focusField(firstId);
+      } else if (err?.status === 429) {
+        // Rate limited: nothing was lost, the answers stay on screen and Submit comes back after the wait.
+        setCooldown(Math.min(Math.max(Number(err?.retryAfter) || 5, 1), 60));
+        setSubmissionError(t('tooFast'));
       } else {
         const errMsg = err?.message || err?.error || 'Failed to submit form to server.';
         setSubmissionError(errMsg);
@@ -1148,6 +1424,7 @@ export default function FormDetailSubmissionPage() {
       }
     } finally {
       setIsSubmitting(false);
+      if (form?.captcha_enabled) setCaptchaReset((n) => n + 1);
     }
   };
 
@@ -1188,7 +1465,7 @@ export default function FormDetailSubmissionPage() {
   const isFormClosedOrDraft = form.status === 'CLOSED' || form.status === 'DRAFT';
 
   return (
-    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
+    <div lang={normalizeLanguage(form.language)} className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-12 transition-colors duration-300">
 
       {/* Login Required Modal Dialog */}
       {showLoginModal && !currentUser && (
@@ -1251,40 +1528,15 @@ export default function FormDetailSubmissionPage() {
 
         {/* Success Confirmation Card */}
         {isSubmitted ? (
-          <div className="relative glass-panel rounded-xl p-8 sm:p-12 border border-emerald-200 dark:border-emerald-900/50 shadow-md text-center space-y-4">
-            {/* Glow behind the glass panel - without it, a translucent panel
-                over this page's plain background has nothing colorful behind
-                it to actually blur, so it reads as flat/opaque instead of
-                glassy (same fix applied to the admin create-event panels). */}
-            <div
-              className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-70 blur-2xl"
-              style={{ background: 'radial-gradient(circle at 50% 20%, #10b98144, transparent 70%)' }}
-            />
-            <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-500 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-10 h-10" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1A1A2E] dark:text-white">
-              Submission Received!
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
-              Thank you for submitting your response for <strong className="text-[#1A1A2E] dark:text-white">{form.title}</strong>. A confirmation has been recorded under your verified account.
-            </p>
-
-            {form.attendance_enabled && (
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Your attendance QR badge is now on your profile. Go to Profile → Registered Events to view it.
-              </p>
-            )}
-
-            <div className="pt-4">
-              <Link
-                href="/forms"
-                className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg bg-[#FF7A00] text-white font-bold text-sm shadow-sm hover:bg-[#E06B00] transition"
-              >
-                <span>Return to Forms Center</span>
-              </Link>
-            </div>
-          </div>
+          <SubmissionThanks
+            title={form.title}
+            message={pipe(form.confirmation_message)}
+            redirectUrl={form.redirect_url}
+            delaySeconds={form.redirect_delay_seconds}
+            updated={isEditMode}
+            showAttendanceNote={!!form.attendance_enabled}
+            language={form.language}
+          />
         ) : (
           /* Form Content Card - shadow-input styling to match Aceternity's signup-form card */
           <div className="relative glass-panel rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] space-y-8">
@@ -1464,7 +1716,55 @@ export default function FormDetailSubmissionPage() {
 
             {/* Form Fields */}
             <form onSubmit={handleSubmit} className="space-y-6">
-              {form.fields?.map((field) => {
+              {(multiPage || draft.status !== 'idle') && (
+                <div id="form-page-top" className="space-y-2 scroll-mt-24">
+                  <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-500 dark:text-slate-400">
+                    <span>{multiPage ? t('pageOf', { n: pageNumbers.number, total: pageNumbers.total }) : ''}</span>
+                    <span className="font-semibold" role="status" aria-live="polite">
+                      {draft.status === 'saving' && t('savingDraft')}
+                      {draft.status === 'saved' && (draft.savedAt ? t('draftSavedAt', { time: draft.savedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) }) : t('draftSaved'))}
+                      {draft.status === 'error' && t('draftFailed')}
+                    </span>
+                  </div>
+                  {multiPage && (
+                    <div
+                      role="progressbar"
+                      aria-label={t('progress')}
+                      aria-valuemin={1}
+                      aria-valuemax={pageNumbers.total}
+                      aria-valuenow={pageNumbers.number}
+                      className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"
+                    >
+                      <div className="h-full bg-[#FF7A00] transition-all duration-300" style={{ width: `${(pageNumbers.number / pageNumbers.total) * 100}%` }} />
+                    </div>
+                  )}
+                </div>
+              )}
+              {form.fields?.map((sourceField) => {
+                // restrict_options narrows the choices a condition allows; a full option (optionLimits) is not offered
+                // unless this person already holds it. {{id}} in the text shows that question's answer.
+                const allowedOptions = layout.allowedOptions.get(String(sourceField.id));
+                const placesLeft = availability[String(sourceField.id)];
+                // Someone editing a response they already submitted keeps the place they hold.
+                const held = new Set(!isEditMode ? [] : (Array.isArray(formData[String(sourceField.id)]) ? formData[String(sourceField.id)] : [formData[String(sourceField.id)]])
+                  .map((v: any) => String(v ?? '').trim().toLowerCase()));
+                const offered = (sourceField.options || []).filter((o) => {
+                  const key = String(o).trim().toLowerCase();
+                  if (allowedOptions && !allowedOptions.some((a) => a.trim().toLowerCase() === key)) return false;
+                  if (placesLeft && (placesLeft[o] ?? Infinity) <= 0 && !held.has(key)) return false;
+                  return true;
+                });
+                const field: FormField = {
+                  ...sourceField,
+                  label: pipe(sourceField.label) || sourceField.label,
+                  description: pipe(sourceField.description),
+                  ...(sourceField.options ? { options: offered } : {}),
+                };
+                const limitedPlaces = placesLeft
+                  ? Object.entries(placesLeft).filter(([, left]) => left > 0 && left <= 10).map(([option, left]) => `${option} (${left} left)`)
+                  : [];
+                if (multiPage && fieldPages.get(String(field.id)) !== activePage) return null;
+                const conditionMessage = pipe(layout.messages.get(String(field.id)));
                 const hasFieldError = !!(errors[field.id] || errors[String(field.id)]);
                 // Only show an error once the user has left this field, or a
                 // submit attempt has already happened - never pre-emptively.
@@ -1473,18 +1773,54 @@ export default function FormDetailSubmissionPage() {
                 const hint = getConstraintHint(field);
                 const errorId = isErr ? `field-${field.id}-error` : undefined;
 
-                if (field.type === 'SECTION') {
+                // Conditional visibility - a hidden field (or section) is not rendered, not
+                // validated and not submitted (the backend enforces the same).
+                if (!layout.visible.has(String(field.id))) return null;
+
+                if (field.type === 'PAGE_BREAK') {
                   return (
-                    <div key={field.id} className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                      <h3 className="text-lg font-bold text-[#FF7A00]">{field.label}</h3>
-                      {field.description && <p className="text-xs text-slate-400 mt-0.5">{field.description}</p>}
+                    <div key={field.id} className="space-y-1">
+                      {field.label && <h2 className="text-xl font-extrabold text-[#1A1A2E] dark:text-white">{field.label}</h2>}
+                      {field.description && <p className="text-sm text-slate-500 dark:text-slate-400">{field.description}</p>}
                     </div>
                   );
                 }
 
-                // Conditional visibility - a hidden field is not rendered, not
-                // validated and not submitted (the backend enforces the same).
-                if (!layout.visible.has(String(field.id))) return null;
+                if (field.type === 'HIDDEN') return null;
+
+                if (field.type === 'CALCULATED') {
+                  const result = calculated.get(String(field.id));
+                  return (
+                    <div key={field.id} className="flex w-full flex-col space-y-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 px-3.5 py-2.5">
+                      <FieldLabel>{field.label}</FieldLabel>
+                      {field.description && <p className="text-xs text-slate-400 dark:text-slate-500">{field.description}</p>}
+                      <p className="text-lg font-extrabold text-[#1A1A2E] dark:text-white" aria-live="polite">
+                        {result === null || result === undefined
+                          ? '-'
+                          : result.toLocaleString('en-IN', { maximumFractionDigits: 6 })}
+                      </p>
+                    </div>
+                  );
+                }
+
+                const messageNote = conditionMessage ? (
+                  <div role="note" className="flex items-start gap-2 rounded-lg border border-sky-200 dark:border-sky-900/40 bg-sky-50 dark:bg-sky-950/30 px-3 py-2 text-xs text-sky-800 dark:text-sky-300">
+                    <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                    <span>{conditionMessage}</span>
+                  </div>
+                ) : null;
+
+                if (field.type === 'SECTION') {
+                  return (
+                    <div key={field.id} className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                      <div>
+                        <h3 className="text-lg font-bold text-[#FF7A00]">{field.label}</h3>
+                        {field.description && <p className="text-xs text-slate-400 mt-0.5">{field.description}</p>}
+                      </div>
+                      {messageNote}
+                    </div>
+                  );
+                }
 
                 const conditionallyRequired = isFieldRequired(field as any, layout);
 
@@ -1549,6 +1885,13 @@ export default function FormDetailSubmissionPage() {
                     </div>
                     {field.description && (
                       <p className="text-xs text-slate-400 dark:text-slate-500 -mt-1">{field.description}</p>
+                    )}
+                    {messageNote}
+                    {limitedPlaces.length > 0 && (
+                      <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">Places left: {limitedPlaces.join(', ')}</p>
+                    )}
+                    {layout.setValues.has(String(field.id)) && (
+                      <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Filled in automatically from your other answers.</p>
                     )}
 
                     {/* TEXT Field */}
@@ -1648,6 +1991,7 @@ export default function FormDetailSubmissionPage() {
                       <div
                         className="grid gap-2.5 pt-1"
                         role="radiogroup"
+                        aria-labelledby={`field-${field.id}-label`}
                         aria-invalid={isErr}
                         aria-describedby={errorId}
                       >
@@ -1701,7 +2045,7 @@ export default function FormDetailSubmissionPage() {
 
                               <span
                                 className={`
-                                  text-sm leading-5 transition-colors
+                                  text-sm leading-5 transition-colors min-w-0 [overflow-wrap:anywhere]
                                   ${
                                     selected
                                       ? 'font-semibold text-[#D85F00] dark:text-[#FF9A4A]'
@@ -1746,6 +2090,7 @@ export default function FormDetailSubmissionPage() {
                       <div
                         className="grid gap-2.5 pt-1"
                         role="group"
+                        aria-labelledby={`field-${field.id}-label`}
                         aria-invalid={isErr}
                         aria-describedby={errorId}
                       >
@@ -1877,11 +2222,14 @@ export default function FormDetailSubmissionPage() {
                         </p>
                         <input
                           type="file"
+                          id={`field-${field.id}`}
+                          aria-invalid={isErr}
+                          aria-describedby={errorId}
                           multiple={field.type === 'MULTI_FILE'}
                           accept={field.validation_rules?.allowedFileTypes || undefined}
                           onChange={(e) => { void handleFileChange(field, e.target.files); }}
                           onBlur={() => handleFieldBlur(field, formData[field.id])}
-                          className="mt-2 text-xs text-slate-500"
+                          className="mt-2 block w-full min-w-0 max-w-full min-h-9 text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:min-h-8 file:rounded-md file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-800 dark:file:bg-slate-700 dark:file:text-slate-100"
                         />
                         {(() => {
                           const val = formData[field.id];
@@ -1921,6 +2269,7 @@ export default function FormDetailSubmissionPage() {
                         <div
                           className="flex items-center gap-2 pt-1"
                           role="radiogroup"
+                          aria-labelledby={`field-${field.id}-label`}
                           aria-invalid={isErr}
                           aria-describedby={errorId}
                         >
@@ -1958,6 +2307,7 @@ export default function FormDetailSubmissionPage() {
                         <div
                           className="flex flex-wrap items-center gap-2 pt-1"
                           role="radiogroup"
+                          aria-labelledby={`field-${field.id}-label`}
                           aria-invalid={isErr}
                           aria-describedby={errorId}
                         >
@@ -1996,15 +2346,18 @@ export default function FormDetailSubmissionPage() {
                         <div
                           className="overflow-x-auto pt-1"
                           role="group"
+                          aria-labelledby={`field-${field.id}-label`}
+                          aria-label={field.label}
                           aria-invalid={isErr}
                           aria-describedby={errorId}
                         >
+                          {cols.length > 3 && <p className="sm:hidden pb-1 text-[11px] text-slate-600 dark:text-slate-400">{t('swipeHint')}</p>}
                           <table className="w-full text-sm border-collapse">
                             <thead>
                               <tr>
-                                <th className="text-left p-2" />
+                                <th scope="col" className="text-left p-2"><span className="sr-only">Row</span></th>
                                 {cols.map((c) => (
-                                  <th key={c} className="p-2 text-center font-semibold text-slate-600 dark:text-slate-300">
+                                  <th key={c} scope="col" className="p-2 text-center font-semibold text-slate-600 dark:text-slate-300">
                                     {c}
                                   </th>
                                 ))}
@@ -2013,7 +2366,7 @@ export default function FormDetailSubmissionPage() {
                             <tbody>
                               {rows.map((row) => (
                                 <tr key={row} className="border-t border-slate-100 dark:border-slate-800">
-                                  <td className="p-2 font-medium text-slate-700 dark:text-slate-300">{row}</td>
+                                  <th scope="row" className="p-2 text-left font-medium text-slate-700 dark:text-slate-300 min-w-[6.5rem] [overflow-wrap:anywhere]">{row}</th>
                                   {cols.map((c) => {
                                     const selected = matrixVal[row] === c;
                                     return (
@@ -2021,13 +2374,14 @@ export default function FormDetailSubmissionPage() {
                                         <input
                                           type="radio"
                                           name={`field-${field.id}-${row}`}
+                                          aria-label={`${row}: ${c}`}
                                           checked={selected}
                                           onChange={() => {
                                             const next = { ...matrixVal, [row]: c };
                                             handleInputChange(field, next);
                                           }}
                                           onBlur={() => handleFieldBlur(field, matrixVal)}
-                                          className="h-4 w-4 accent-[#FF7A00] cursor-pointer"
+                                          className="h-6 w-6 accent-[#FF7A00] cursor-pointer"
                                         />
                                       </td>
                                     );
@@ -2052,15 +2406,18 @@ export default function FormDetailSubmissionPage() {
                         <div
                           className="overflow-x-auto pt-1"
                           role="group"
+                          aria-labelledby={`field-${field.id}-label`}
+                          aria-label={field.label}
                           aria-invalid={isErr}
                           aria-describedby={errorId}
                         >
+                          {cols.length > 3 && <p className="sm:hidden pb-1 text-[11px] text-slate-600 dark:text-slate-400">{t('swipeHint')}</p>}
                           <table className="w-full text-sm border-collapse">
                             <thead>
                               <tr>
-                                <th className="text-left p-2" />
+                                <th scope="col" className="text-left p-2"><span className="sr-only">Row</span></th>
                                 {cols.map((c) => (
-                                  <th key={c} className="p-2 text-center font-semibold text-slate-600 dark:text-slate-300">
+                                  <th key={c} scope="col" className="p-2 text-center font-semibold text-slate-600 dark:text-slate-300">
                                     {c}
                                   </th>
                                 ))}
@@ -2071,13 +2428,14 @@ export default function FormDetailSubmissionPage() {
                                 const cell: string[] = Array.isArray(matrixVal[row]) ? matrixVal[row] : [];
                                 return (
                                   <tr key={row} className="border-t border-slate-100 dark:border-slate-800">
-                                    <td className="p-2 font-medium text-slate-700 dark:text-slate-300">{row}</td>
+                                    <th scope="row" className="p-2 text-left font-medium text-slate-700 dark:text-slate-300 min-w-[6.5rem] [overflow-wrap:anywhere]">{row}</th>
                                     {cols.map((c) => {
                                       const selected = cell.includes(c);
                                       return (
                                         <td key={c} className="p-2 text-center">
                                           <input
                                             type="checkbox"
+                                            aria-label={`${row}: ${c}`}
                                             checked={selected}
                                             onChange={(e) => {
                                               const nextCell = e.target.checked
@@ -2087,7 +2445,7 @@ export default function FormDetailSubmissionPage() {
                                               handleInputChange(field, next);
                                             }}
                                             onBlur={() => handleFieldBlur(field, matrixVal)}
-                                            className="h-4 w-4 accent-[#FF7A00] cursor-pointer"
+                                            className="h-6 w-6 accent-[#FF7A00] cursor-pointer"
                                           />
                                         </td>
                                       );
@@ -2153,7 +2511,7 @@ export default function FormDetailSubmissionPage() {
                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <p className="text-xs text-amber-500 dark:text-amber-400 font-semibold flex items-center gap-1.5">
                         <Lock className="w-4 h-4" />
-                        <span>You must sign in to submit your response</span>
+                        <span>{t('signInRequired')}</span>
                       </p>
                       <button
                         type="button"
@@ -2161,7 +2519,7 @@ export default function FormDetailSubmissionPage() {
                         className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98]"
                       >
                         <Lock className="w-4 h-4" />
-                        <span>Sign In to Fill Form</span>
+                        <span>{t('signInButton')}</span>
                         <BottomGradient />
                       </button>
                     </div>
@@ -2173,7 +2531,7 @@ export default function FormDetailSubmissionPage() {
                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <p className="text-xs text-amber-400 font-semibold flex items-center gap-1.5">
                         <Lock className="w-4 h-4" />
-                        <span>You have already submitted a response for this form</span>
+                        <span>{t('alreadySubmitted')}</span>
                       </p>
                       <button
                         type="button"
@@ -2181,7 +2539,7 @@ export default function FormDetailSubmissionPage() {
                         className="inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-slate-800 text-slate-400 font-extrabold text-sm shadow-sm opacity-60 cursor-not-allowed"
                       >
                         <Lock className="w-4 h-4" />
-                        <span>Response Already Submitted</span>
+                        <span>{t('alreadySubmittedButton')}</span>
                       </button>
                     </div>
                   );
@@ -2215,28 +2573,70 @@ export default function FormDetailSubmissionPage() {
                   );
                 }
 
+                const hasNextPage = multiPage && nextReachable(layout, activePage) !== null;
+                const hasPreviousPage = multiPage && previousReachable(layout, activePage) !== null;
                 return (
-                  <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
+                  <>
+                  {/* Honeypot: invisible and unreachable for people, tempting for bots. */}
+                  <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+                    <label>
+                      Leave this field empty
+                      <input type="text" name="hp_q7z4" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+                    </label>
+                  </div>
+                  {form.captcha_enabled && !isEditMode && !hasNextPage && (
+                    <div className="pt-4">
+                      <TurnstileWidget onToken={setCaptchaToken} resetSignal={captchaReset} language={form.language} />
+                    </div>
+                  )}
+                  <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                    {hasPreviousPage ? (
+                      <button
+                        type="button"
+                        onClick={goBack}
+                        className="inline-flex items-center gap-2 px-5 py-3 rounded-lg border border-slate-300 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 hover:border-[#FF7A00] transition active:scale-[0.98]"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>{t('back')}</span>
+                      </button>
+                    ) : <span />}
+                    {hasNextPage ? (
+                      <button
+                        key="next-page"
+                        type="button"
+                        onClick={goNext}
+                        disabled={isClosed || isBeforeOpen}
+                        className="inline-flex items-center gap-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <span>{t('next')}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    ) : (
                     <button
+                      key="submit-form"
                       type="submit"
-                      disabled={isSubmitting || isClosed || isBeforeOpen}
+                      disabled={isSubmitting || isClosed || isBeforeOpen || cooldown > 0 || (!!form.captcha_enabled && !isEditMode && !captchaToken)}
                       className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <span>
-                        {isSubmitting
-                          ? (isEditMode ? 'Saving Updates...' : 'Submitting...')
+                        {cooldown > 0
+                          ? t('tryAgainIn', { n: cooldown })
+                          : isSubmitting
+                          ? (isEditMode ? t('savingUpdates') : t('submitting'))
                           : isBeforeOpen
-                          ? 'Submissions Not Yet Open'
+                          ? t('notYetOpen')
                           : isClosed
-                          ? 'Submissions Closed'
+                          ? t('closed')
                           : isEditMode
-                          ? 'Update Response'
-                          : 'Submit Form'}
+                          ? t('update')
+                          : t('submit')}
                       </span>
                       {isEditMode ? <CheckCircle2 className="w-4 h-4" /> : <Send className="w-4 h-4" />}
                       <BottomGradient />
                     </button>
+                    )}
                   </div>
+                  </>
                 );
               })()}
             </form>

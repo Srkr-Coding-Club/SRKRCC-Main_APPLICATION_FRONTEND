@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FormBuilderTab } from '@/components/admin/FormBuilderTab';
 import { TestDataModal } from '@/components/admin/TestDataModal';
+import { FormHistoryModal } from '@/components/admin/FormHistoryModal';
+import { FormAnalyticsModal } from '@/components/admin/FormAnalyticsModal';
+import { ReviewChangesModal } from '@/components/admin/ReviewChangesModal';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 import { Loader2 } from 'lucide-react';
 
@@ -27,6 +30,8 @@ function BuilderContent() {
     handleDuplicateField,
     handleReorderFields,
     handleSaveForm,
+    pendingReview,
+    settleReview,
     handleResetBuilder,
     hasSavedCheckpoint,
     loadFormBySlug,
@@ -39,6 +44,9 @@ function BuilderContent() {
     setShowTestDataModal,
     submittedTestData,
   } = useAdminData();
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
 
   useEffect(() => {
     if (formSlug) {
@@ -86,12 +94,29 @@ function BuilderContent() {
           onRemoveField={handleRemoveField}
           onFieldChange={handleFieldChange}
           onSaveForm={handleSaveForm}
+          onOpenHistory={() => setHistoryOpen(true)}
+          onOpenAnalytics={() => setAnalyticsOpen(true)}
           onResetForm={handleResetBuilder}
           hasSavedCheckpoint={hasSavedCheckpoint}
           previewAnswers={previewAnswers}
           setPreviewAnswers={setPreviewAnswers}
           onTestPreviewSubmit={handleTestPreviewSubmit}
         />
+
+        <ReviewChangesModal review={pendingReview} onConfirm={() => settleReview(true)} onCancel={() => settleReview(false)} />
+
+        {formMeta.id && (
+          <FormHistoryModal
+            slug={formMeta.originalSlug || formMeta.slug}
+            isOpen={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            onRestored={() => loadFormBySlug(formMeta.originalSlug || formMeta.slug)}
+          />
+        )}
+
+        {formMeta.id && (
+          <FormAnalyticsModal slug={formMeta.originalSlug || formMeta.slug} isOpen={analyticsOpen} onClose={() => setAnalyticsOpen(false)} />
+        )}
 
         <TestDataModal
           isOpen={showTestDataModal}

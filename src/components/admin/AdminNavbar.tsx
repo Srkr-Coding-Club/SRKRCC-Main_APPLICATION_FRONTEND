@@ -182,7 +182,7 @@ export default function AdminNavbar() {
               <span className="font-poppins font-extrabold text-[15px] bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
                 SRKR
               </span>
-              <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-[#1A1A2E]/45 dark:text-white/40">
+              <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-[#1A1A2E]/70 dark:text-white/65">
                 Admin Panel
               </span>
             </div>
@@ -342,7 +342,7 @@ export default function AdminNavbar() {
       {activeNavItem && pathname !== '/admin' && (
         <div className="w-full border-b border-black/[0.04] dark:border-white/[0.06] bg-[var(--background)]/60">
           <div className="max-w-[1600px] mx-auto px-5 sm:px-8 py-2">
-            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#1A1A2E]/45 dark:text-white/40">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#1A1A2E]/70 dark:text-white/65">
               <Link href="/admin" className="hover:text-[#FF7A00] transition active:scale-95 inline-block">
                 Admin
               </Link>

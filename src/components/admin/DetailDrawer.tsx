@@ -79,6 +79,7 @@ export function DetailDrawer({ isOpen, onClose, title, children }: DetailDrawerP
         className="fixed right-0 top-0 z-50 h-full w-full max-w-[480px] bg-[#FAFAFC] dark:bg-[#0f0f1a] border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
         role="dialog"
         aria-modal="true"
+        aria-label={title || 'Details'}
         tabIndex={-1}
       >
         {/* Header */}

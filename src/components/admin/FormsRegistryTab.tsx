@@ -11,6 +11,9 @@ import {
   XCircle,
   Copy,
   Plus,
+  Download,
+  Upload,
+  LayoutTemplate,
   Clock,
   Sparkles,
   Undo2,
@@ -29,10 +32,12 @@ import {
 } from 'lucide-react';
 import { Form, FormField } from '@/lib/types';
 import { relativeTime } from '@/lib/dataManagement';
-import { fetchApi } from '@/lib/api-client';
+import { fetchApi, fetchApiBlob } from '@/lib/api-client';
+import { FormTemplatesModal } from '@/components/admin/FormTemplatesModal';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import Portal from '@/components/ui/Portal';
+import { isNonAnswerType } from '@/lib/fieldTypes';
 
 interface FormsRegistryTabProps {
   forms: Form[];
@@ -247,6 +252,86 @@ export function FormsRegistryTab({
     }
   };
 
+  // Copies and files: every route ends in a new DRAFT form (responses never travel).
+  const [copyBusy, setCopyBusy] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const importInput = React.useRef<HTMLInputElement>(null);
+
+  const created = (form: Form, what: string) => {
+    toast.success(what, `"${form.title}" is ready as a draft.`);
+    setSelectedFormId(form.id);
+    if (onRefresh) onRefresh();
+  };
+
+  const makeCopy = async (path: string, title: string, what: string) => {
+    if (!selectedForm) return;
+    setCopyBusy(true);
+    try {
+      created(await fetchApi<Form>(`/forms/${selectedForm.slug}/${path}/`, { method: 'POST', body: JSON.stringify({ title }) }), what);
+    } catch (err: any) {
+      toast.error('Could not copy', err?.message || 'Something went wrong.');
+    } finally {
+      setCopyBusy(false);
+    }
+  };
+
+  const handleDuplicate = () => {
+    if (!selectedForm) return;
+    const title = window.prompt('Name for the copy', `Copy of ${selectedForm.title}`);
+    if (title && title.trim()) void makeCopy('duplicate', title.trim(), 'Form duplicated');
+  };
+
+  const handleSaveAsTemplate = () => {
+    if (!selectedForm) return;
+    const title = window.prompt('Name for the template', `${selectedForm.title} (template)`);
+    if (!title || !title.trim()) return;
+    void makeCopy('save-as-template', title.trim(), 'Template saved').then(() => {
+      toast.info('Where is it?', 'Templates are kept out of this list. Use "From template" to start a form from one.');
+    });
+  };
+
+  const handleExport = async () => {
+    if (!selectedForm) return;
+    setCopyBusy(true);
+    try {
+      const { blob, filename } = await fetchApiBlob(`forms/${selectedForm.slug}/export-definition/`);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename || `${selectedForm.slug}-form.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast.error('Export failed', err?.message || 'Could not export this form.');
+    } finally {
+      setCopyBusy(false);
+    }
+  };
+
+  const handleImportFile = async (file: File | undefined) => {
+    if (importInput.current) importInput.current.value = '';
+    if (!file) return;
+    if (file.size > 1_000_000) {
+      toast.error('File too large', 'A form file is under 1 MB. This one is not a form file.');
+      return;
+    }
+    let doc: unknown;
+    try {
+      doc = JSON.parse(await file.text());
+    } catch {
+      toast.error('Not a form file', 'That file is not valid JSON.');
+      return;
+    }
+    setCopyBusy(true);
+    try {
+      created(await fetchApi<Form>('/forms/import-definition/', { method: 'POST', body: JSON.stringify(doc) }), 'Form imported');
+    } catch (err: any) {
+      toast.error('Import failed', err?.body?.detail || err?.message || 'That file could not be imported.');
+    } finally {
+      setCopyBusy(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!selectedForm) return;
     const responses = selectedForm.response_count ?? 0;
@@ -383,7 +468,7 @@ export function FormsRegistryTab({
                 </h3>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 {onRefresh && (
                   <button
                     onClick={onRefresh}
@@ -394,6 +479,32 @@ export function FormsRegistryTab({
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-orange-500' : ''}`} />
                   </button>
                 )}
+                <input ref={importInput} type="file" accept="application/json,.json" className="hidden" aria-label="Form file to import"
+                  onChange={(e) => void handleImportFile(e.target.files?.[0])} />
+                <FormTemplatesModal
+                  isOpen={templatesOpen}
+                  onClose={() => setTemplatesOpen(false)}
+                  onUse={async (template, title) => {
+                    created(await fetchApi<Form>(`/forms/${template.slug}/duplicate/`, { method: 'POST', body: JSON.stringify({ title }) }), 'Form created');
+                  }}
+                />
+                <button
+                  onClick={() => importInput.current?.click()}
+                  disabled={copyBusy}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-60"
+                  title="Create a form from a file exported from this platform"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Import</span>
+                </button>
+                <button
+                  onClick={() => setTemplatesOpen(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                  title="Start a new form from a saved template"
+                >
+                  <LayoutTemplate className="w-3.5 h-3.5" />
+                  <span>From template</span>
+                </button>
                 <button
                   onClick={() => onSwitchSubtab('builder')}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${BTN_PRIMARY}`}
@@ -419,7 +530,7 @@ export function FormsRegistryTab({
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortBy)}
-                title="Sort forms"
+                title="Sort forms" aria-label="Sort forms"
                 className="py-2 pl-2.5 pr-7 text-xs bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:border-orange-500/60"
               >
                 <option value="newest">Newest</option>
@@ -543,7 +654,7 @@ export function FormsRegistryTab({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500">
+                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-600 dark:text-slate-400">
                       <div className="flex items-center gap-1 font-semibold text-slate-500 dark:text-slate-400">
                         <Inbox className="w-3.5 h-3.5 text-orange-400" />
                         <span>{f.response_count ?? 0} responses</span>
@@ -651,6 +762,34 @@ export function FormsRegistryTab({
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Edit in Builder</span>
+                  </button>
+
+                  <button
+                    onClick={handleDuplicate}
+                    disabled={copyBusy}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-60 ${BTN_SECONDARY_SLATE}`}
+                    title="A new draft with the same questions and settings (no responses)"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Duplicate</span>
+                  </button>
+                  <button
+                    onClick={handleSaveAsTemplate}
+                    disabled={copyBusy}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-60 ${BTN_SECONDARY_SLATE}`}
+                    title="Keep this form as a reusable starting point"
+                  >
+                    <LayoutTemplate className="w-3.5 h-3.5" />
+                    <span>Save as template</span>
+                  </button>
+                  <button
+                    onClick={handleExport}
+                    disabled={copyBusy}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-60 ${BTN_SECONDARY_SLATE}`}
+                    title="Download the questions and settings as a file you can import elsewhere"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export file</span>
                   </button>
 
                   {/* Manual Data Entry (Always enabled for live or closed) */}
@@ -832,7 +971,7 @@ export function FormsRegistryTab({
                     <div className="glass-panel p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Schema Fields</span>
                       <div className="text-xl font-black text-orange-700 dark:text-orange-400 mt-1">
-                        {selectedForm.fields?.filter((f) => f.type !== 'SECTION' && !f.is_deleted).length || 0}
+                        {selectedForm.fields?.filter((f) => !isNonAnswerType(f.type) && !f.is_deleted).length || 0}
                       </div>
                     </div>
                     <div className="glass-panel p-3 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -1083,7 +1222,7 @@ export function FormsRegistryTab({
                       className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 text-xs"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono text-[10px] text-slate-500">#{idx + 1}</span>
+                        <span className="font-mono text-[10px] text-slate-600 dark:text-slate-400">#{idx + 1}</span>
                         <span className="font-semibold text-slate-900 dark:text-white truncate">{field.label}</span>
                         {field.is_required && <span className="text-rose-500 font-bold">*</span>}
                       </div>

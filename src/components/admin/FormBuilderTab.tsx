@@ -1,5 +1,6 @@
 'use client';
 
+import { AfterSubmitSettings } from './AfterSubmitSettings';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Eye,
@@ -25,7 +26,11 @@ import {
   Hash,
   X,
   SeparatorHorizontal,
+  Split,
   Layers,
+  EyeOff,
+  History,
+  Calculator,
   ListChecks,
   Asterisk,
   RotateCcw,
@@ -46,8 +51,12 @@ import { normalizeImageUrl } from '@/lib/utils';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import EmailTemplateEditor from '@/components/admin/EmailTemplateEditor';
-import { GraduationCap, IdCard, Mail as MailIcon, QrCode, Sparkles, Bell, Megaphone, UserCheck } from 'lucide-react';
+import { GraduationCap, IdCard, Mail as MailIcon, QrCode, Sparkles, Bell, Megaphone, UserCheck, BarChart3 } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
+import ConditionBuilder from '@/components/admin/ConditionBuilder';
+import { CalculatedFieldEditor, CrossFieldRulesEditor, FieldControls, HiddenFieldEditor, PipeInsert } from '@/components/admin/FieldControls';
+import { calculatedValues } from '@/lib/formula';
+import { isNonAnswerType, isSavedFieldId } from '@/lib/fieldTypes';
 import { EmailTemplateSummary } from '@/lib/types';
 
 interface TypeMeta {
@@ -83,6 +92,9 @@ const TYPE_META: Partial<Record<FormField['type'], TypeMeta>> = {
   SIGNATURE: { label: 'Signature', icon: PenTool },
   CLUB_ID: { label: 'Club ID', icon: IdCard },
   SECTION: { label: 'Section Header', icon: SeparatorHorizontal },
+  PAGE_BREAK: { label: 'Page Break', icon: Split },
+  HIDDEN: { label: 'Hidden Field', icon: EyeOff },
+  CALCULATED: { label: 'Calculated', icon: Calculator },
 };
 
 const DEFAULT_TYPE_META: TypeMeta = TYPE_META.TEXT!;
@@ -102,7 +114,7 @@ const FIELD_GROUPS: { label: string; icon: React.ElementType; types: FormField['
   { label: 'Text Inputs', icon: Type, types: ['TEXT', 'PARAGRAPH', 'EMAIL', 'PHONE', 'NUMBER', 'URL', 'CLUB_ID'] },
   { label: 'Choice Fields', icon: List, types: ['DROPDOWN', 'RADIO', 'CHECKBOX'] },
   { label: 'Rating & Matrix', icon: Grid3x3, types: ['RATING', 'LINEAR_SCALE', 'MATRIX_RADIO', 'MATRIX_CHECKBOX', 'SIGNATURE'] },
-  { label: 'Advanced', icon: Layers, types: ['DATE', 'TIME', 'FILE', 'MULTI_FILE', 'SECTION'] },
+  { label: 'Advanced', icon: Layers, types: ['DATE', 'TIME', 'FILE', 'MULTI_FILE', 'SECTION', 'PAGE_BREAK', 'HIDDEN', 'CALCULATED'] },
 ];
 
 // Drop-in questions that never ask the user anything - the server fills them
@@ -152,6 +164,11 @@ interface FormBuilderTabProps {
     notify_members_on_publish?: boolean;
     notification_title?: string;
     notification_message?: string;
+    confirmation_message?: string;
+    redirect_url?: string;
+    redirect_delay_seconds?: number;
+    captcha_enabled?: boolean;
+    language?: string;
     attendance_enabled?: boolean;
     attendance_start_date?: string | null;
     attendance_days?: number;
@@ -167,6 +184,9 @@ interface FormBuilderTabProps {
   onRemoveField: (id: number | string) => void;
   onFieldChange: (id: number | string, key: keyof FormField, value: any) => void;
   onSaveForm: (status?: Form['status'], scheduleOptions?: { open_at?: string; close_at?: string }) => void;
+  /** Opens the version history of the saved form (only offered once the form exists). */
+  onOpenHistory?: () => void;
+  onOpenAnalytics?: () => void;
   onResetForm?: () => void;
   hasSavedCheckpoint?: boolean;
   previewAnswers: Record<string, any>;
@@ -187,6 +207,8 @@ export function FormBuilderTab({
   onRemoveField: onRemoveFieldProp,
   onFieldChange: onFieldChangeProp,
   onSaveForm: onSaveFormProp,
+  onOpenHistory,
+  onOpenAnalytics,
   onResetForm: onResetFormProp,
   hasSavedCheckpoint,
   previewAnswers,
@@ -229,7 +251,7 @@ export function FormBuilderTab({
   // saved once and the backend assigns it a permanent numeric id.
   const formIsSaved = typeof formMeta.id === 'number' && formMeta.id > 0;
   const emailFields = builderFields.filter((f) => f.type === 'EMAIL' && typeof f.id === 'number' && f.id > 0);
-  const savedFormFields = builderFields.filter((f) => f.type !== 'SECTION' && typeof f.id === 'number' && f.id > 0);
+  const savedFormFields = builderFields.filter((f) => !isNonAnswerType(f.type) && typeof f.id === 'number' && f.id > 0);
   const [scheduleOpenAt, setScheduleOpenAt] = useState(formMeta.open_at || '');
   const [scheduleCloseAt, setScheduleCloseAt] = useState(formMeta.close_at || '');
   const prevIdsRef = useRef<Set<number | string>>(new Set(builderFields.map((f) => f.id)));
@@ -377,7 +399,7 @@ export function FormBuilderTab({
   // SECTION headers are never answerable (validation always skips them) so a
   // stray is_required=true on one - from data saved before this default was
   // fixed, or a duplicated field - must not count toward this summary either.
-  const totalRequired = builderFields.filter((f) => f.is_required && f.type !== 'SECTION').length;
+  const totalRequired = builderFields.filter((f) => f.is_required && !isNonAnswerType(f.type)).length;
   const totalConditional = builderFields.filter((f) => !!normalizeConditional(f.conditional_logic)).length;
   const isCurrentlyPublished = formMeta.status === 'PUBLISHED';
 
@@ -446,6 +468,28 @@ export function FormBuilderTab({
             <span>{isPreviewMode ? 'Exit Preview' : 'Preview'}</span>
           </button>
 
+          {formMeta.id && onOpenHistory && (
+            <button
+              onClick={onOpenHistory}
+              className="px-3.5 py-2 rounded-md glass-panel hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
+              title="See every saved version, what changed, and go back to one"
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>History</span>
+            </button>
+          )}
+
+          {formMeta.id && onOpenAnalytics && (
+            <button
+              onClick={onOpenAnalytics}
+              className="px-3.5 py-2 rounded-md glass-panel hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
+              title="Responses over time, answers per question and where people stop"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Analytics</span>
+            </button>
+          )}
+
           {/* Reset Button */}
           <button
             onClick={() => {
@@ -481,7 +525,7 @@ export function FormBuilderTab({
           ) : (
             <button
               onClick={() => onSaveForm('PUBLISHED')}
-              className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
+              className="px-4 py-2 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
               title="Save and make this form live on the public Forms page"
             >
               <Globe className="w-3.5 h-3.5" />
@@ -574,8 +618,9 @@ export function FormBuilderTab({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Category</label>
+                  <label htmlFor="form-category" className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Category</label>
                   <select
+                    id="form-category"
                     value={formMeta.category}
                     onChange={(e) => setFormMeta({ ...formMeta, category: e.target.value })}
                     className="w-full px-3 py-2 rounded border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800"
@@ -587,8 +632,9 @@ export function FormBuilderTab({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Banner Cover Image URL</label>
+                  <label htmlFor="form-banner-url" className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Banner Cover Image URL</label>
                   <input
+                    id="form-banner-url"
                     type="text"
                     value={formMeta.image_url}
                     onChange={(e) => setFormMeta({ ...formMeta, image_url: e.target.value })}
@@ -810,7 +856,7 @@ export function FormBuilderTab({
 
               {/* In-app Notification Automations */}
               <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
+                <label className="flex items-center justify-between cursor-pointer">
                   <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
                     <Bell className="w-4 h-4 text-[#FF7A00]" />
                     Send in-app notification on submission
@@ -821,7 +867,7 @@ export function FormBuilderTab({
                     onChange={(e) => setFormMeta({ ...formMeta, confirmation_notification_enabled: e.target.checked })}
                     className="w-4 h-4 accent-[#FF7A00] cursor-pointer"
                   />
-                </div>
+                </label>
 
                 {formMeta.confirmation_notification_enabled && (
                   <div className="pl-6 space-y-3 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
@@ -897,6 +943,8 @@ export function FormBuilderTab({
                   />
                 </label>
               </div>
+
+              <AfterSubmitSettings formMeta={formMeta} setFormMeta={setFormMeta} />
 
               <div className="space-y-3 pt-5 pb-5 border-t border-b border-slate-100 dark:border-slate-800">
                 <label className="flex items-center justify-between cursor-pointer">
@@ -1058,7 +1106,16 @@ export function FormBuilderTab({
                 onScaleRangeChange={(key, v) => updateScaleRange(field, key, v)}
                 onValidationChange={(patch) => updateValidation(field, patch)}
                 onConditionalChange={(logic) => onFieldChange(field.id, 'conditional_logic', logic)}
-                siblingFields={builderFields.filter((f) => f.id !== field.id && f.type !== 'SECTION')}
+                siblingFields={
+                  field.type === 'PAGE_BREAK'
+                    // A route can only react to what was answered on earlier pages.
+                    ? builderFields.slice(0, idx).filter((f) => !isNonAnswerType(f.type))
+                    : builderFields.filter((f) => f.id !== field.id && !isNonAnswerType(f.type))
+                }
+                earlierFields={builderFields.slice(0, idx).filter((f) => !isNonAnswerType(f.type))}
+                pageNumber={builderFields.slice(0, idx + 1).filter((f) => f.type === 'PAGE_BREAK').length + 1}
+                laterPageBreaks={builderFields.slice(idx + 1).filter((f) => f.type === 'PAGE_BREAK' && isSavedFieldId(f.id))}
+                hasUnsavedLaterPageBreaks={builderFields.slice(idx + 1).some((f) => f.type === 'PAGE_BREAK' && !isSavedFieldId(f.id))}
                 onRequiredChange={(v) => onFieldChange(field.id, 'is_required', v)}
                 onDuplicate={() => onDuplicateField(field)}
                 onRemove={() => {
@@ -1163,6 +1220,13 @@ interface QuestionCardProps {
   onValidationChange: (patch: Partial<ValidationRules>) => void;
   onConditionalChange: (logic: any) => void;
   siblingFields: FormField[];
+  /** PAGE_BREAK only: the number of the page this break starts. */
+  /** The answerable questions above this one: what a formula or an {{id}} can refer to. */
+  earlierFields: FormField[];
+  pageNumber?: number;
+  /** PAGE_BREAK only: saved page breaks further down, the targets a route can skip to. */
+  laterPageBreaks?: FormField[];
+  hasUnsavedLaterPageBreaks?: boolean;
   onRequiredChange: (v: boolean) => void;
   onDuplicate: () => void;
   onRemove: () => void;
@@ -1196,6 +1260,10 @@ function QuestionCard({
   onValidationChange,
   onConditionalChange,
   siblingFields,
+  earlierFields,
+  pageNumber,
+  laterPageBreaks,
+  hasUnsavedLaterPageBreaks,
   onRequiredChange,
   onDuplicate,
   onRemove,
@@ -1268,6 +1336,52 @@ function QuestionCard({
     );
   }
 
+  if (field.type === 'PAGE_BREAK') {
+    return (
+      <div
+        onClick={onFocus}
+        className="glass-panel rounded-lg border-2 border-dashed border-[#FF7A00]/60 p-5 space-y-3 cursor-pointer"
+      >
+        <div className="flex items-center gap-3">
+          {reorderControls}
+          {numberBadge}
+          <Split className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
+          <span className="text-[11px] font-extrabold uppercase tracking-wide text-[#FF7A00] flex-shrink-0">Page {pageNumber}</span>
+          <input
+            value={field.label}
+            onChange={(e) => onLabelChange(e.target.value)}
+            placeholder="Page title"
+            className="flex-1 text-lg font-bold bg-transparent border-0 focus:outline-none text-[#1A1A2E] dark:text-white"
+          />
+          <button onClick={(e) => { e.stopPropagation(); onRemove(); }} title="Remove this page break" className="p-2 rounded text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0 transition-transform duration-100 active:scale-90">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+        <input
+          value={field.description || ''}
+          onChange={(e) => onDescriptionChange(e.target.value)}
+          placeholder="Short introduction to this page (optional)"
+          className="w-full text-xs bg-transparent border-0 focus:outline-none text-slate-500 dark:text-slate-400"
+        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <button onClick={onToggleConditional} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
+            <GitFork className="w-3.5 h-3.5" />
+            {normalizeConditional(field.conditional_logic) ? 'Page routing: Active' : 'Add page routing'}
+          </button>
+          {conditionalOpen && (
+            <ConditionBuilder
+              field={field}
+              siblingFields={siblingFields}
+              onChange={onConditionalChange}
+              laterPageBreaks={laterPageBreaks}
+              hasUnsavedLaterPageBreaks={hasUnsavedLaterPageBreaks}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!isActive) {
     return (
       <div
@@ -1312,7 +1426,7 @@ function QuestionCard({
           onChange={(e) => onLabelChange(e.target.value)}
           placeholder="Question"
           autoFocus
-          className="flex-1 text-base font-bold bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:outline-none pb-2 text-[#1A1A2E] dark:text-white"
+          className="min-w-0 flex-1 text-base font-bold bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] focus:outline-none pb-2 text-[#1A1A2E] dark:text-white"
         />
 
         {/* Type selector */}
@@ -1470,19 +1584,23 @@ function QuestionCard({
         </div>
       )}
 
+      {field.type === 'HIDDEN' && <HiddenFieldEditor field={field} onChange={onValidationChange} />}
+      {field.type === 'CALCULATED' && <CalculatedFieldEditor field={field} earlierFields={earlierFields} onChange={onValidationChange} />}
+
       {/* Conditional visibility */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
         <button onClick={onToggleConditional} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
           <GitFork className="w-3.5 h-3.5" />
-          {readConditional(field.conditional_logic) ? 'Conditional: Active' : 'Add conditional rule'}
+          {normalizeConditional(field.conditional_logic) ? 'Conditions: Active' : 'Add conditions'}
         </button>
         {conditionalOpen && (
-          <ConditionalEditor field={field} siblingFields={siblingFields} onChange={onConditionalChange} />
+          <ConditionBuilder field={field} siblingFields={siblingFields} onChange={onConditionalChange} />
         )}
       </div>
 
       {/* Footer toolbar */}
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <PipeInsert earlierFields={earlierFields} onInsert={(token) => onLabelChange(`${field.label}${field.label && !field.label.endsWith(' ') ? ' ' : ''}${token}`)} />
         <button onClick={onDuplicate} title="Duplicate" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-[#FF7A00] transition-transform duration-100 active:scale-90">
           <Copy className="w-4 h-4" />
         </button>
@@ -1500,139 +1618,6 @@ function QuestionCard({
           Required
         </label>
       </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Conditional rule editor - emits the canonical backend shape:        */
-/*   { logic:'AND', rules:[{ field, operator, value }], action }       */
-/* ------------------------------------------------------------------ */
-
-const CONDITION_OPERATORS: { value: string; label: string }[] = [
-  { value: 'equals', label: 'equals' },
-  { value: 'not_equals', label: 'does not equal' },
-  { value: 'contains', label: 'contains' },
-  { value: 'not_contains', label: 'does not contain' },
-  { value: 'starts_with', label: 'starts with' },
-  { value: 'ends_with', label: 'ends with' },
-  { value: 'gt', label: '>' },
-  { value: 'gte', label: '≥' },
-  { value: 'lt', label: '<' },
-  { value: 'lte', label: '≤' },
-  { value: 'is_empty', label: 'is empty' },
-  { value: 'is_not_empty', label: 'is not empty' },
-  { value: 'includes', label: 'includes option' },
-  { value: 'not_includes', label: 'excludes option' },
-  { value: 'before', label: 'is before' },
-  { value: 'after', label: 'is after' },
-];
-
-const CONDITION_ACTIONS: { value: string; label: string }[] = [
-  { value: 'show', label: 'Show this field' },
-  { value: 'hide', label: 'Hide this field' },
-  { value: 'require', label: 'Make this field required' },
-  { value: 'optional', label: 'Make this field optional' },
-];
-
-export function readConditional(raw: any): { field: any; operator: string; value: any; action: string } | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const node = Array.isArray(raw.rules) ? raw.rules[0] : raw;
-  if (!node) return null;
-  const ref = node.field ?? node.if;
-  if (ref === undefined || ref === null || ref === 'parent') return null;
-  const operator =
-    'equals' in node && !('operator' in node) ? 'equals' : String(node.operator || 'equals');
-  return {
-    field: ref,
-    operator,
-    value: 'equals' in node && !('operator' in node) ? node.equals : node.value,
-    action: String(raw.action || 'show'),
-  };
-}
-
-function ConditionalEditor({
-  field,
-  siblingFields,
-  onChange,
-}: {
-  field: FormField;
-  siblingFields: FormField[];
-  onChange: (logic: any) => void;
-}) {
-  const rule = readConditional(field.conditional_logic);
-  const active = !!rule;
-  const targetField = siblingFields.find((f) => String(f.id) === String(rule?.field));
-  const needsValue = !['is_empty', 'is_not_empty'].includes(rule?.operator || 'equals');
-
-  const emit = (patch: Partial<{ field: any; operator: string; value: any; action: string }>) => {
-    const next = {
-      field: patch.field ?? rule?.field ?? siblingFields[0]?.id,
-      operator: patch.operator ?? rule?.operator ?? 'equals',
-      value: patch.value ?? rule?.value ?? '',
-      action: patch.action ?? rule?.action ?? 'show',
-    };
-    if (next.field === undefined || next.field === null) {
-      onChange({});
-      return;
-    }
-    onChange({
-      logic: 'AND',
-      rules: [{ field: Number(next.field) || next.field, operator: next.operator, value: next.value }],
-      action: next.action,
-    });
-  };
-
-  const sel = 'w-full px-2 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]';
-
-  return (
-    <div className="p-3 rounded bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs space-y-2 mt-2">
-      <p className="font-bold text-[#FF7A00]">Conditional Rule</p>
-
-      {siblingFields.length === 0 ? (
-        <p className="text-slate-500">Add another question first. A rule needs a field to depend on.</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <select className={sel} value={rule?.action || 'show'} onChange={(e) => emit({ action: e.target.value })}>
-              {CONDITION_ACTIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
-            </select>
-            <select className={sel} value={String(rule?.field ?? siblingFields[0]?.id ?? '')} onChange={(e) => emit({ field: e.target.value })}>
-              <option value="">Select field</option>
-              {siblingFields.map((f) => <option key={f.id} value={String(f.id)}>{f.label || `Question ${f.order}`}</option>)}
-            </select>
-            <select className={sel} value={rule?.operator || 'equals'} onChange={(e) => emit({ operator: e.target.value })}>
-              {CONDITION_OPERATORS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
-
-          {needsValue && (
-            targetField && (targetField.options?.length ?? 0) > 0 ? (
-              <select className={sel} value={rule?.value ?? ''} onChange={(e) => emit({ value: e.target.value })}>
-                <option value="">Select value</option>
-                {targetField.options!.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
-              </select>
-            ) : (
-              <input
-                type={targetField?.type === 'NUMBER' ? 'number' : targetField?.type === 'DATE' ? 'date' : 'text'}
-                className={sel}
-                placeholder="value to compare"
-                value={rule?.value ?? ''}
-                onChange={(e) => emit({ value: e.target.value })}
-              />
-            )
-          )}
-
-          {active && (
-            <button
-              onClick={() => onChange({})}
-              className="text-[11px] font-bold text-rose-500 hover:underline transition-transform duration-100 active:scale-95 inline-block"
-            >
-              Remove rule
-            </button>
-          )}
-        </>
-      )}
     </div>
   );
 }
@@ -1661,44 +1646,6 @@ function CheckboxRow({ label, checked, onChange }: { label: string; checked?: bo
       <input type="checkbox" checked={!!checked} onChange={(e) => onChange(e.target.checked)} className="accent-[#FF7A00]" />
       {label}
     </label>
-  );
-}
-
-function CrossFieldEditor({ field, siblingFields, onChange }: {
-  field: FormField; siblingFields: FormField[]; onChange: (patch: Partial<ValidationRules>) => void;
-}) {
-  const rules = (field.validation_rules?.crossField as any[]) || [];
-  const rule = rules[0];
-  const sel = 'px-2 py-1.5 rounded border text-xs glass-panel border-slate-200 dark:border-slate-800';
-  const emit = (patch: any) => {
-    const next = { op: patch.op ?? rule?.op ?? 'eq', field: patch.field ?? rule?.field ?? siblingFields[0]?.id, equals: patch.equals ?? rule?.equals };
-    if (!next.field) { onChange({ crossField: undefined }); return; }
-    onChange({ crossField: [{ op: next.op, field: Number(next.field) || next.field, ...(next.op === 'required_if' && next.equals ? { equals: next.equals } : {}) }] });
-  };
-  if (siblingFields.length === 0) return null;
-  return (
-    <div className="pt-2 border-t border-orange-200/60 dark:border-orange-900/40 space-y-1.5">
-      <p className="text-[10px] uppercase font-bold text-slate-500">Compare with another field</p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <select className={sel} value={rule?.op || ''} onChange={(e) => e.target.value ? emit({ op: e.target.value }) : onChange({ crossField: undefined })}>
-          <option value="">no comparison</option>
-          <option value="eq">must equal</option>
-          <option value="ne">must differ from</option>
-          <option value="lte">must be ≤</option>
-          <option value="gte">must be ≥</option>
-          <option value="lt">must be &lt;</option>
-          <option value="gt">must be &gt;</option>
-          <option value="required_if">required if</option>
-        </select>
-        <select className={sel} value={String(rule?.field ?? '')} onChange={(e) => emit({ field: e.target.value })} disabled={!rule?.op}>
-          <option value="">Select field</option>
-          {siblingFields.map((f) => <option key={f.id} value={String(f.id)}>{f.label}</option>)}
-        </select>
-        {rule?.op === 'required_if' && (
-          <input className={sel} placeholder="equals value" value={rule?.equals || ''} onChange={(e) => emit({ equals: e.target.value })} />
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -1898,9 +1845,11 @@ function ValidationPanel({ field, siblingFields, onChange }: {
         </p>
       )}
 
-      <CrossFieldEditor field={field} siblingFields={siblingFields} onChange={onChange} />
+      <CrossFieldRulesEditor field={field} siblingFields={siblingFields} onChange={onChange} />
 
       <LabeledInput label="Custom error message (optional)" type="text" value={r.patternError} onChange={(v) => onChange({ patternError: v })} />
+
+      <FieldControls field={field} onChange={onChange} />
     </div>
   );
 }
@@ -2039,6 +1988,37 @@ function LivePreview({
 
       <form onSubmit={onTestPreviewSubmit} className="space-y-6">
         {builderFields.map((field) => {
+          if (field.type === 'HIDDEN') {
+            return (
+              <p key={field.id} className="text-[11px] italic text-slate-400">
+                Hidden: "{field.label}" {field.validation_rules?.queryParam ? `is filled from ?${field.validation_rules.queryParam}=...` : 'uses its default value'}. Respondents do not see it.
+              </p>
+            );
+          }
+
+          if (field.type === 'CALCULATED') {
+            const result = calculatedValues(builderFields as any, previewValuesById, previewLayout.visible).get(String(field.id));
+            return (
+              <div key={field.id} className="space-y-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 px-3.5 py-2.5">
+                <label className="text-sm font-bold text-[#1A1A2E] dark:text-white">{field.label}</label>
+                <p className="text-lg font-extrabold text-[#1A1A2E] dark:text-white">{result === null || result === undefined ? '-' : result}</p>
+              </div>
+            );
+          }
+
+          if (field.type === 'PAGE_BREAK') {
+            return (
+              <div key={field.id} className="pt-4 border-t-2 border-dashed border-[#FF7A00]/50">
+                <p className="text-[11px] font-extrabold uppercase tracking-wide text-[#FF7A00]">
+                  Page {builderFields.slice(0, builderFields.indexOf(field) + 1).filter((f) => f.type === 'PAGE_BREAK').length + 1}
+                  {previewLayout.skippedPages.has(builderFields.slice(0, builderFields.indexOf(field) + 1).filter((f) => f.type === 'PAGE_BREAK').length) ? ' (skipped by your answers)' : ''}
+                </p>
+                {field.label && <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">{field.label}</h3>}
+                {field.description && <p className="text-xs text-slate-400 mt-0.5">{field.description}</p>}
+              </div>
+            );
+          }
+
           if (field.type !== 'SECTION' && !previewLayout.visible.has(String(field.id))) {
             return null;
           }
