@@ -115,7 +115,7 @@ export default function HeroSection({ nextUp }: { nextUp: AgendaItem | null }) {
       <section
         onMouseMove={handlePointerMove}
         onMouseLeave={handlePointerLeave}
-        className="relative flex min-h-[calc(100svh-4rem)] flex-col items-center justify-center overflow-hidden bg-journey-bg px-5 pb-20 pt-16 text-center">
+        className="relative flex min-h-[calc(100svh-4rem)] flex-col items-center justify-center overflow-hidden bg-journey-bg px-6 sm:px-8 pb-20 pt-4 sm:pt-14 text-center">
         {/* The core's light, carried over from the intro: one warm source above the emblem. */}
         <div
           aria-hidden="true"
@@ -172,7 +172,11 @@ export default function HeroSection({ nextUp }: { nextUp: AgendaItem | null }) {
             The student developer community of SRKR Engineering College, where curiosity becomes code and ideas become real projects.
           </motion.p>
 
-          <motion.div {...settle(0.24)} data-hero-reveal className="mt-9 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+          <motion.div
+            {...settle(0.24)}
+            data-hero-reveal
+            className="mt-9 flex flex-nowrap items-center justify-center gap-x-2 sm:gap-x-6"
+          >
             <ActionLink href="#path" variant="primary">
               Explore the journey
             </ActionLink>

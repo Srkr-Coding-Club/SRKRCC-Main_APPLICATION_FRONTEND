@@ -75,8 +75,15 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionBusy, setActionBusy] = useState<number | null>(null);
+  const [popoverTop, setPopoverTop] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const updatePopoverPosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (trigger) setPopoverTop(trigger.getBoundingClientRect().bottom + 8);
+  }, []);
 
   // Fetch unread count lightweight
   const fetchCount = useCallback(async () => {
@@ -115,6 +122,18 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
       fetchList(tab === 'unread');
     }
   }, [open, tab, fetchList]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    updatePopoverPosition();
+    window.addEventListener('resize', updatePopoverPosition);
+    window.addEventListener('scroll', updatePopoverPosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePopoverPosition);
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+    };
+  }, [open, updatePopoverPosition]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -174,8 +193,12 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
       {/* Bell Button */}
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-black/[0.08] dark:border-white/[0.1] text-[#1A1A2E]/70 dark:text-white/70 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 hover:bg-[#FF7A00]/5 transition duration-150 active:scale-95"
+        ref={triggerRef}
+        onClick={() => {
+          if (!open) updatePopoverPosition();
+          setOpen((prev) => !prev);
+        }}
+        className="relative flex h-11 w-11 items-center justify-center rounded-full border border-black/[0.08] text-[#1A1A2E]/70 transition duration-150 hover:border-[#FF7A00]/40 hover:bg-[#FF7A00]/5 hover:text-[#FF7A00] active:scale-95 dark:border-white/[0.1] dark:text-white/70 sm:h-9 sm:w-9"
         aria-label="Notifications"
         aria-expanded={open}
       >
@@ -191,7 +214,13 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
 
       {/* Dropdown Popover */}
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-[340px] sm:w-[400px] overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0E1017]/95 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div
+          style={{
+            top: popoverTop,
+            maxHeight: `calc(100dvh - ${popoverTop + 8}px)`,
+          }}
+          className="fixed left-2 right-2 z-50 flex w-auto flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 dark:border-slate-800 dark:bg-[#0E1017]/95 sm:absolute sm:left-auto sm:right-0 sm:!top-full sm:mt-2 sm:w-[400px]"
+        >
           {/* Top gradient hairline */}
           <div className="h-[2px] w-full bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500]" />
 
@@ -263,7 +292,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
           </div>
 
           {/* Notification List */}
-          <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+          <div className="min-h-0 max-h-[380px] flex-1 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800/60">
             {loading ? (
               <div className="flex flex-col items-center justify-center p-8 text-xs text-slate-400">
                 <Loader2 className="h-5 w-5 animate-spin text-[#FF7A00] mb-2" />

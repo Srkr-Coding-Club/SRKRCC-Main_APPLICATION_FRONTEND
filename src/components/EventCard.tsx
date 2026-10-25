@@ -8,26 +8,14 @@ import {
   MapPin,
   Users,
   ArrowUpRight,
+  ArrowRight,
   CalendarClock,
 } from "lucide-react";
 
 import { Event } from "@/lib/types";
+import { markdownToPreview } from "@/lib/utils";
 import PublicListingCard from "@/components/PublicListingCard";
 import QuickRegisterButton from "@/components/events/QuickRegisterButton";
-
-/** Flattens the Markdown "about" text into a one-paragraph snippet for the card preview. */
-function markdownToPreview(md: string): string {
-  return md
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/gm, " ") // table separator rows (| --- | --- |)
-    .replace(/^\s*\|(.+)\|\s*$/gm, (_m, row) => row.split("|").join(" ")) // table rows -> plain space-separated text
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1") // images -> just their alt text
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/^\s*(#{1,6}|>|[-*]|\d+\.)\s+/gm, "")
-    .replace(/[*_`]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 interface EventCardProps {
   event: Event;
@@ -145,7 +133,7 @@ export default function EventCard({
           <button
             type="button"
             onClick={onDetailsClick}
-            className="text-left hover:underline focus:outline-none focus-visible:underline"
+            className="block w-full text-left line-clamp-2 hover:underline focus:outline-none focus-visible:underline"
           >
             {event.title}
           </button>
@@ -169,29 +157,30 @@ export default function EventCard({
               type="button"
               aria-label={`View details for ${event.title}`}
               onClick={onDetailsClick}
-              className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-journey-text/10 px-3 py-2.5 text-[13px] font-semibold text-journey-text/80 transition hover:border-journey-text/25 hover:text-journey-text active:scale-95"
+              className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-journey-text/10 px-2 py-2.5 text-[11px] font-semibold text-journey-text/80 transition hover:border-journey-text/25 hover:text-journey-text active:scale-95 sm:px-3 sm:text-[13px]"
             >
               Details
               <ArrowUpRight className="h-3.5 w-3.5" />
             </button>
             {event.status === "CLOSED" ? (
-              <span className="inline-flex min-w-[8.5rem] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-journey-text/10 px-4 py-2.5 text-[13px] font-semibold text-journey-muted">
+              <span className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-text/10 px-2 py-2.5 text-[10px] font-semibold text-journey-muted sm:px-4 sm:text-[13px]">
                 Registration Closed
               </span>
             ) : event.is_quick_registration && event.form_slug ? (
               <QuickRegisterButton
                 event={event}
-                className="inline-flex min-w-[8.5rem] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 bg-journey-accent"
-                registeredClassName="inline-flex min-w-[8.5rem] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-500/10 px-4 py-2.5 text-[13px] font-semibold text-emerald-600 dark:text-emerald-400"
+                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-accent px-2 py-2.5 text-[10px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 sm:gap-1.5 sm:px-4 sm:text-[13px]"
+                registeredClassName="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-emerald-500/10 px-2 py-2.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 sm:gap-1.5 sm:px-4 sm:text-[13px]"
                 label="Register Now"
               />
             ) : (
               <Link
                 href={event.form_slug ? `/forms/${event.form_slug}` : "/forms"}
-                className="inline-flex min-w-[8.5rem] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 bg-journey-accent"
+                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-accent px-2 py-2.5 text-[10px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 sm:px-3 sm:text-[12px]"
               >
-                <Ticket className="h-4 w-4" />
+                <Ticket className="h-4 w-4 hidden sm:block" />
                 Register Now
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             )}
           </>
