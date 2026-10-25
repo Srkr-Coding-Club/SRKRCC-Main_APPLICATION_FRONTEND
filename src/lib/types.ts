@@ -305,7 +305,7 @@ export interface HackathonTeamMember {
   club_id: string | null;
   role: 'LEADER' | 'MEMBER';
   joined_at: string;
-  /** Admin view only */
+  /** Shown to the team's own members only; never in the team finder. */
   phone_number?: string | null;
   branch?: string | null;
   year?: number | null;
@@ -1457,6 +1457,8 @@ export interface FinderSeeker {
   note: string;
   profile: string;
   is_me: boolean;
+  /** Only sent to team leaders, so they can call before inviting. */
+  phone?: string;
 }
 
 export interface FinderTeam {
@@ -1483,6 +1485,8 @@ export interface JoinRequestRow {
   name?: string;
   profile?: string;
   skills?: string;
+  /** Mobile number, sent only to the team's leader on an incoming request. */
+  phone?: string;
   /** Why accepting would fail right now (the team is full, registration closed...), or empty. */
   blocked_reason?: string;
 }

@@ -30,6 +30,8 @@ import {
 import { needsRegistrationDetails } from '@/components/hackathons/RegistrationDetailsFields';
 import { BTN, H2, PANEL } from '@/components/hackathons/dashboardStyles';
 
+const DASHBOARD_REFRESH_MS = 15_000;
+
 export default function HackathonDashboardPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
@@ -80,7 +82,14 @@ export default function HackathonDashboardPage() {
       if (document.visibilityState === 'visible' && !busyKey) load();
     };
     document.addEventListener('visibilitychange', refreshOnFocus);
-    return () => document.removeEventListener('visibilitychange', refreshOnFocus);
+    window.addEventListener('focus', refreshOnFocus);
+    // Other people change the team too (an invite accepted, someone leaves): pick it up while the page is open.
+    const poll = window.setInterval(refreshOnFocus, DASHBOARD_REFRESH_MS);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+      window.removeEventListener('focus', refreshOnFocus);
+      window.clearInterval(poll);
+    };
   }, [load, busyKey]);
 
   const run = async (key: string, fn: () => Promise<unknown>, success?: string) => {
@@ -335,6 +344,11 @@ export default function HackathonDashboardPage() {
                             {m.role === 'LEADER' && <StatusPill tone="orange" icon={Crown}>Leader</StatusPill>}
                           </p>
                           <p className="text-xs text-journey-muted truncate">{m.email}{m.club_id ? ` · ${m.club_id}` : ''}</p>
+                          {m.phone_number && (
+                            <p className="text-xs text-journey-muted">
+                              <a href={`tel:${m.phone_number}`} className="hover:text-journey-accent" aria-label={`Call ${m.name}`}>{m.phone_number}</a>
+                            </p>
+                          )}
                         </div>
                         {isLeader && editable && m.role !== 'LEADER' && (
                           <div className="flex gap-1.5">

@@ -136,6 +136,7 @@ export function FinderLists({ slug, hackathon, listing, hasTeam, iAmLeader, onCh
                   <p className="font-bold text-journey-text">{person.name}{person.is_me && <span className="ml-2 text-[10px] font-bold text-journey-muted">(you)</span>}</p>
                   {person.profile && <p className="text-xs text-journey-muted">{person.profile}</p>}
                   {person.skills && <p className="text-sm text-journey-text/80">Skills: {person.skills}</p>}
+                  {person.phone && <p className="text-xs text-journey-muted">Mobile: <a href={`tel:${person.phone}`} className="font-semibold hover:text-journey-accent">{person.phone}</a></p>}
                   {person.note && <p className="text-sm text-journey-muted">{person.note}</p>}
                   {iAmLeader && !person.is_me && (
                     <button type="button" disabled={busyKey === `invite-${person.id}`} onClick={() => run(`invite-${person.id}`, () => hackathonApi.finder.invite(slug, person.id), `Invite sent to ${person.name}`)} className={`${BTN} mt-1 bg-journey-accent text-white`}>
@@ -154,7 +155,7 @@ export function FinderLists({ slug, hackathon, listing, hasTeam, iAmLeader, onCh
       {asking && (
         <Modal isOpen onClose={() => setAsking(null)} title={`Ask to join ${asking.name}`} icon={Send} busy={busyKey === `join-${asking.id}`}>
           <form onSubmit={sendAsk} className="space-y-4">
-            <p className="text-sm text-journey-muted">{asking.leader || 'The leader'} will see your name, branch and skills (never your email) and can accept or decline.</p>
+            <p className="text-sm text-journey-muted">{asking.leader || 'The leader'} will see your name, branch, skills and mobile number (never your email) and can accept or decline.</p>
             <div className="space-y-1.5">
               <FieldLabel htmlFor="join-message">A short message (optional)</FieldLabel>
               <SpotlightTextarea id="join-message" rows={3} maxLength={300} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Why you would be a good fit" hasError={!!errors.message} />
@@ -204,6 +205,7 @@ export function JoinRequestsToAnswer({ slug, requests, onChanged }: { slug: stri
             <p className="font-bold text-journey-text">{request.name} <span className="text-xs font-normal text-journey-muted">wants to join {request.team_name}</span></p>
             {request.profile && <p className="text-xs text-journey-muted">{request.profile}</p>}
             {request.skills && <p className="text-sm text-journey-text/80">Skills: {request.skills}</p>}
+            {request.phone && <p className="text-xs text-journey-muted">Mobile: <a href={`tel:${request.phone}`} className="font-semibold hover:text-journey-accent">{request.phone}</a></p>}
             {request.message && <p className="text-sm text-journey-text/80">&ldquo;{request.message}&rdquo;</p>}
           </div>
           <div className="flex flex-wrap items-center gap-2">

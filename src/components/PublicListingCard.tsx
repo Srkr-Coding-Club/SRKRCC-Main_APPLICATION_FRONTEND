@@ -95,7 +95,7 @@ export default function PublicListingCard({
         className="h-full w-full border border-journey-text/10 bg-journey-surface/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-journey-accent/40"
       >
         <div
-          className={`flex h-full min-w-0 flex-col overflow-hidden p-5 sm:p-6 ${onCardClick ? 'cursor-pointer' : ''}`}
+          className={`flex h-full min-w-0 flex-col overflow-hidden p-5 sm:p-6 [&>*]:shrink-0 ${onCardClick ? 'cursor-pointer' : ''}`}
           onClick={(event) => {
             if ((event.target as HTMLElement).closest('a, button')) return;
             onCardClick?.(event);

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Calendar, ArrowRight, ArrowUpRight, Trophy, Users } from 'lucide-react';
 import { Hackathon } from '@/lib/types';
-import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import { toPlainPreview } from '@/lib/markdownPreview';
 import PublicListingCard from '@/components/PublicListingCard';
 
 interface HackathonCardProps {
@@ -53,7 +53,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
         </>
       }
       title={hackathon.title}
-      description={<MarkdownRenderer content={hackathon.description} />}
+      description={toPlainPreview(hackathon.description)}
       details={
         <div className="grid gap-2.5">
           <p className="line-clamp-1 font-medium"><span className="font-bold uppercase tracking-wide text-journey-muted">Theme:</span> {hackathon.theme}</p>
@@ -86,7 +86,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
           ) : (
             <Link
               href={detailHref}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 bg-journey-accent"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 bg-journey-accent"
             >
               <Trophy className="h-3 w-3" />
               Register Team
