@@ -148,22 +148,22 @@ export function CollegeSelect({
         aria-controls={isOpen ? listboxId : undefined}
         aria-invalid={ariaInvalid}
         aria-describedby={ariaDescribedBy}
-        className={`flex h-10 w-full items-center justify-between rounded-xl border bg-white px-3 text-left text-xs shadow-[0_1px_2px_rgba(0,0,0,0.03)] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#101117] ${
+        className={`flex h-11 w-full items-center justify-between rounded-md border border-journey-text/10 bg-journey-bg/70 px-3 text-left text-sm text-journey-text outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
           isOpen
-            ? 'border-[#FF7A00] ring-2 ring-[#FF7A00]/10'
-            : 'border-slate-200 dark:border-slate-800 hover:border-[#FF7A00]/50'
+            ? 'border-journey-accent ring-2 ring-journey-accent/15'
+            : 'hover:border-journey-accent/40'
         }`}
       >
-        <span className="truncate font-medium text-slate-800 dark:text-slate-100">
+        <span className="truncate font-medium text-journey-text">
           {isOtherMode ? 'Other (my college is not listed)' : value.college?.name ?? DEFAULT_COLLEGE_NAME}
         </span>
-        <ChevronDown className={`ml-3 h-4 w-4 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-[#FF7A00]' : ''}`} />
+        <ChevronDown className={`ml-3 h-4 w-4 shrink-0 text-journey-muted transition-transform ${isOpen ? 'rotate-180 text-journey-accent' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl glass-panel-solid bg-white shadow-[0_12px_35px_rgba(0,0,0,0.12)] dark:bg-[#151622] dark:shadow-[0_15px_40px_rgba(0,0,0,0.4)]">
-          <div className="relative border-b border-slate-200 p-2 dark:border-slate-800">
-            <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-2xl border border-journey-text/10 bg-journey-surface shadow-[0_16px_40px_-18px_rgba(30,41,59,0.35)] backdrop-blur-xl dark:shadow-[0_16px_40px_-18px_rgba(0,0,0,0.85)]">
+          <div className="relative border-b border-journey-text/10 p-2">
+            <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-journey-muted" />
             <input
               ref={searchRef}
               type="text"
@@ -179,14 +179,14 @@ export function CollegeSelect({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="h-9 w-full rounded-lg border border-slate-200 bg-[#FAFAFC] pl-9 pr-9 text-sm text-slate-800 outline-none focus:border-[#FF7A00] dark:border-slate-800 dark:bg-[#0D0E15] dark:text-slate-100"
+              className="h-10 w-full rounded-md border border-journey-text/10 bg-journey-bg pl-9 pr-9 text-sm text-journey-text outline-none placeholder:text-journey-muted focus:border-journey-accent focus:ring-2 focus:ring-journey-accent/15"
             />
             {isSearching && (
-              <Loader2 className="absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[#FF7A00]" />
+              <Loader2 className="absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-journey-accent" />
             )}
           </div>
 
-          <div ref={listRef} id={listboxId} role="listbox" aria-label="Colleges" className="max-h-64 overflow-y-auto p-1.5">
+          <div ref={listRef} id={listboxId} role="listbox" aria-label="Colleges" className="max-h-[min(55vh,20rem)] overflow-y-auto p-1.5">
             {colleges.map((college, index) => {
               const selected = isSelected(college);
               const location = formatCollegeLocation(college);
@@ -199,16 +199,16 @@ export function CollegeSelect({
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => select(college)}
                   className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
-                    index === activeIndex ? 'bg-[#FF7A00]/[0.08]' : ''
+                    index === activeIndex ? 'bg-journey-accent/10' : ''
                   }`}
                 >
                   <span className="min-w-0">
-                    <span className={`block truncate text-sm ${selected ? 'font-semibold text-[#D85F00] dark:text-[#FF9A4A]' : 'font-medium text-slate-700 dark:text-slate-200'}`}>
+                    <span className={`block truncate text-sm ${selected ? 'font-semibold text-journey-accent' : 'font-medium text-journey-text'}`}>
                       {college.name}
                     </span>
-                    {location && <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">{location}</span>}
+                    {location && <span className="block truncate text-xs text-journey-muted">{location}</span>}
                   </span>
-                  {selected && <Check className="h-4 w-4 shrink-0 text-[#FF7A00]" />}
+                  {selected && <Check className="h-4 w-4 shrink-0 text-journey-accent" />}
                 </div>
               );
             })}
@@ -216,24 +216,24 @@ export function CollegeSelect({
             {hasMore && <div ref={sentinelRef} aria-hidden="true" className="h-1" />}
 
             {(status === 'loading' || status === 'loadingMore') && colleges.length === 0 && (
-              <p role="status" className="px-3 py-4 text-center text-xs text-slate-500">Loading colleges...</p>
+              <p role="status" className="px-3 py-4 text-center text-xs text-journey-muted">Loading colleges...</p>
             )}
             {status === 'loadingMore' && (
-              <p role="status" className="flex items-center justify-center gap-2 px-3 py-2 text-xs text-slate-500">
+              <p role="status" className="flex items-center justify-center gap-2 px-3 py-2 text-xs text-journey-muted">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading more...
               </p>
             )}
             {showEmpty && (
-              <p role="status" className="px-3 py-4 text-center text-xs text-slate-500">
+              <p role="status" className="px-3 py-4 text-center text-xs text-journey-muted">
                 No college matches &ldquo;{debouncedQuery}&rdquo;. Try a shorter name.
               </p>
             )}
             {status === 'error' && (
-              <div role="alert" className="flex items-center justify-between gap-3 px-3 py-3 text-xs text-rose-500">
+              <div role="alert" className="flex flex-wrap items-center justify-between gap-3 px-3 py-3 text-xs text-journey-live">
                 <span className="flex items-center gap-1.5">
                   <AlertCircle className="h-3.5 w-3.5" /> Could not load colleges.
                 </span>
-                <button type="button" onClick={retry} className="font-bold text-[#FF7A00] hover:text-[#E06B00]">
+                <button type="button" onClick={retry} className="min-h-9 rounded-md px-2 font-semibold text-journey-accent hover:bg-journey-accent/10">
                   Retry
                 </button>
               </div>
@@ -243,7 +243,7 @@ export function CollegeSelect({
           <button
             type="button"
             onClick={chooseOther}
-            className="w-full border-t border-slate-200 px-4 py-2.5 text-left text-xs font-bold text-[#D85F00] transition-colors hover:bg-[#FF7A00]/[0.06] dark:border-slate-800 dark:text-[#FF9A4A]"
+            className="min-h-11 w-full border-t border-journey-text/10 px-4 py-3 text-left text-xs font-semibold text-journey-accent transition-colors hover:bg-journey-accent/5"
           >
             My college is not listed - enter it manually
           </button>
@@ -264,7 +264,7 @@ export function CollegeSelect({
           value={value.otherName ?? ''}
           disabled={disabled}
           onChange={(event) => onChange({ college: null, otherName: event.target.value })}
-          className="mt-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/10 disabled:opacity-50 dark:border-slate-800 dark:bg-[#101117] dark:text-slate-100"
+          className="mt-2 h-11 w-full rounded-md border border-journey-text/10 bg-journey-bg/70 px-3 text-sm text-journey-text outline-none placeholder:text-journey-muted focus:border-journey-accent focus:ring-2 focus:ring-journey-accent/15 disabled:opacity-50"
         />
       )}
     </div>

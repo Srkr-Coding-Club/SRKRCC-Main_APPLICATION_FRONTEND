@@ -67,17 +67,18 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
 
   if (!mounted || checkingServer) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFAFC] dark:bg-[#0D0E15]">
-        <div className="flex flex-col items-center space-y-4 text-slate-500">
-          <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+      <main className="journey-type relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden bg-journey-bg px-5 py-12">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-dot-grid opacity-[0.12] [mask-image:radial-gradient(ellipse_at_center,#000,transparent_75%)] dark:opacity-[0.18]" />
+        <div className="relative flex max-w-md flex-col items-center space-y-4 rounded-[24px] border border-journey-text/10 bg-journey-surface p-6 text-center shadow-[0_24px_60px_-30px_rgba(30,41,59,0.35)] dark:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)] sm:p-8">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-journey-accent/20 bg-journey-accent/10">
+            <Loader2 className="h-6 w-6 animate-spin text-journey-accent" />
           </div>
-          <div className="text-center space-y-1">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Verifying Scanner Access</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Checking your role with the security gateway…</p>
+          <div className="space-y-1">
+            <h3 className="font-display text-base font-semibold text-journey-text">Verifying Scanner Access</h3>
+            <p className="text-sm leading-relaxed text-journey-muted">Checking your role with the security gateway…</p>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -86,57 +87,59 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
     const email = currentUser?.email || 'Unknown';
 
     return (
-      <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-20 px-4 flex items-center justify-center transition-colors duration-300">
-        <div className="max-w-md w-full p-8 rounded-3xl glass-panel border border-rose-500/20 dark:border-rose-500/20 shadow-2xl space-y-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-500 shadow-inner">
+      <main className="journey-type relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-journey-bg px-5 py-12 transition-colors duration-300 sm:px-8 sm:py-16">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-dot-grid opacity-[0.12] [mask-image:radial-gradient(ellipse_at_center,#000,transparent_75%)] dark:opacity-[0.18]" />
+        <section className="relative w-full max-w-md space-y-6 overflow-hidden rounded-[28px] border border-journey-text/10 bg-journey-surface p-5 text-center shadow-[0_24px_60px_-30px_rgba(30,41,59,0.35)] sm:p-8 dark:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)]">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgb(var(--journey-accent)/0.16),transparent)]" />
+          <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-journey-live/20 bg-journey-live/10 text-journey-live shadow-inner sm:h-16 sm:w-16">
             <ShieldAlert className="w-8 h-8" />
           </div>
 
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-500 text-xs font-bold font-mono uppercase tracking-wider">
+          <div className="relative space-y-3">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-journey-live/20 bg-journey-live/10 px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-[0.14em] text-journey-live">
               Scanner Access Restricted
             </div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white">Volunteer Clearance Required</h1>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-journey-text sm:text-3xl">Volunteer Clearance Required</h1>
 
             {isAuth ? (
-              <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 space-y-2 text-left bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Current User:</span>
-                  <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[200px]">{email}</span>
+              <div className="mt-3 space-y-3 rounded-2xl border border-journey-text/10 bg-journey-bg/70 p-4 text-left text-sm text-journey-muted">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <span>Current User:</span>
+                  <span className="break-all font-medium text-journey-text sm:max-w-[200px] sm:truncate">{email}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Current Role:</span>
-                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
+                <div className="flex items-center justify-between gap-3">
+                  <span>Current Role:</span>
+                  <span className="rounded-full border border-journey-text/10 bg-journey-surface px-2.5 py-1 font-mono text-[11px] font-semibold text-journey-text">
                     {roleName}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800">
-                  QR check-in scanning is reserved for <strong className="text-orange-500">VOLUNTEER</strong>,{' '}
-                  <strong className="text-orange-500">CLUB_LEAD</strong>, and <strong className="text-orange-500">ADMIN</strong> roles.
+                <p className="border-t border-journey-text/10 pt-3 text-xs leading-relaxed">
+                  QR check-in scanning is reserved for <strong className="text-journey-accent">VOLUNTEER</strong>,{' '}
+                  <strong className="text-journey-accent">CLUB_LEAD</strong>, and <strong className="text-journey-accent">ADMIN</strong> roles.
                   Ask a club lead to grant you the Volunteer role from the admin Users tab.
                 </p>
               </div>
             ) : (
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm leading-relaxed text-journey-muted">
                 You must be signed in to access the attendance scanner.
               </p>
             )}
           </div>
 
-          <div className="pt-2 flex flex-col gap-2.5">
+          <div className="relative flex flex-col gap-3 pt-1">
             {isAuth ? (
               <>
                 <button
                   onClick={() => checkPermissions()}
                   disabled={checkingServer}
-                  className="w-full px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition active:scale-[0.98] disabled:opacity-50"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-journey-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 active:scale-[0.98] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
                 >
                   <RefreshCw className={`w-4 h-4 ${checkingServer ? 'animate-spin' : ''}`} />
                   Re-check My Permissions
                 </button>
                 <button
                   onClick={handleSwitchAccount}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-journey-text/15 bg-journey-bg/70 px-4 py-2.5 text-sm font-semibold text-journey-text transition hover:border-journey-accent/40 hover:bg-journey-accent/5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   Switch Account
@@ -145,15 +148,15 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
             ) : (
               <Link
                 href="/login?next=/attendance/scan"
-                className="w-full px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-journey-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
               >
                 <LogIn className="w-4 h-4" />
                 Sign In
               </Link>
             )}
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     );
   }
 
@@ -161,23 +164,23 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
     <>
       {/* Minimal header - deliberately not AdminNavbar. A volunteer gets scanner
           access only, not links into Users/Data Center/Forms/etc. */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#0D0E15]/80 backdrop-blur-md">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+      <header className="sticky top-0 z-40 border-b border-journey-text/10 bg-journey-bg/85 backdrop-blur-md">
+        <div className="mx-auto flex min-h-16 max-w-4xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2.5">
             <BrainLogo size={28} showRays={false} animated={false} />
-            <span className="flex items-center gap-1.5 text-sm font-extrabold text-[#1A1A2E] dark:text-white">
-              <QrCode className="w-4 h-4 text-[#FF7A00]" />
-              Attendance Scanner
+            <span className="flex min-w-0 items-center gap-1.5 font-display text-sm font-semibold tracking-tight text-journey-text">
+              <QrCode className="h-4 w-4 shrink-0 text-journey-accent" />
+              <span className="truncate">Attendance Scanner</span>
             </span>
           </div>
-          <div className="flex items-center gap-2.5">
-            <span className="hidden sm:inline text-xs font-mono text-slate-400">{currentUser?.email}</span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <span className="hidden max-w-48 truncate font-mono text-xs text-journey-muted md:inline">{currentUser?.email}</span>
+            <span className="rounded-full border border-journey-text/10 bg-journey-surface px-2.5 py-1 font-mono text-[10px] font-semibold text-journey-muted">
               {currentUser?.role}
             </span>
             <Link
               href="/profile"
-              className="text-xs font-bold text-slate-500 hover:text-[#FF7A00] transition"
+              className="inline-flex min-h-9 items-center rounded-md px-2 text-xs font-semibold text-journey-muted transition hover:text-journey-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent"
             >
               Profile
             </Link>
