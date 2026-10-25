@@ -19,6 +19,10 @@ import type {
   HackathonPermissionKey,
   HackathonStaffRole,
   IdeaDraft,
+  JoinRequestRow,
+  JoinRequestsPayload,
+  IdeaFileInfo,
+  IdeaFileKind,
   IdeaStatus,
   MyHackathonPermissions,
   MyIdeaPayload,
@@ -90,6 +94,23 @@ export const hackathonApi = {
     fetchApi<HackathonTeam>(`/hackathons/teams/${teamId}/`, patch(body)),
   myPermissions: (slug: string) => fetchApi<MyHackathonPermissions>(`/hackathons/${enc(slug)}/my-permissions/`),
   myIdea: (slug: string) => fetchApi<MyIdeaPayload>(`/hackathons/${enc(slug)}/my-idea/`),
+  /** Ask for a signed upload form for the idea's slides or payment screenshot. */
+  ideaFileUpload: (slug: string, body: { kind: IdeaFileKind; name: string; size: number; type: string }) =>
+    fetchApi<{ file: IdeaFileInfo; post: { url: string; fields: Record<string, string> }; max_bytes: number }>(`/hackathons/${enc(slug)}/my-idea/files/`, json(body)),
+  ideaFileComplete: (slug: string, fileId: string) =>
+    fetchApi<{ file: IdeaFileInfo }>(`/hackathons/${enc(slug)}/my-idea/files/${fileId}/`, { method: 'POST' }),
+  ideaFileDiscard: (slug: string, fileId: string) =>
+    fetchApi<null>(`/hackathons/${enc(slug)}/my-idea/files/${fileId}/`, { method: 'DELETE' }),
+  /** A 60-second link to a saved idea file. The payment screenshot is for organizers and the team only. */
+  ideaFileLink: (slug: string, ideaId: number, kind: 'deck' | 'payment', inline = false) =>
+    fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/ideas/${ideaId}/files/${kind}/link/${inline ? '?inline=1' : ''}`),
+  /** The payment QR code: organizers upload it (settings permission); registered team members and organizers can see it. */
+  ideaQrUpload: (slug: string, body: { name: string; size: number; type: string }) =>
+    fetchApi<{ file: IdeaFileInfo; post: { url: string; fields: Record<string, string> }; max_bytes: number }>(`/hackathons/${enc(slug)}/idea-qr/`, json(body)),
+  ideaQrComplete: (slug: string, fileId: string) =>
+    fetchApi<{ file: IdeaFileInfo; payment_qr: { id: string; name: string } | null }>(`/hackathons/${enc(slug)}/idea-qr/${fileId}/`, { method: 'POST' }),
+  ideaQrRemove: (slug: string) => fetchApi<null>(`/hackathons/${enc(slug)}/idea-qr/`, { method: 'DELETE' }),
+  ideaQrLink: (slug: string) => fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/idea-qr/link/`),
   saveIdea: (slug: string, body: IdeaDraft) =>
     fetchApi<MyIdeaPayload>(`/hackathons/${enc(slug)}/my-idea/`, { method: 'PUT', body: JSON.stringify(body) }),
   mySubmission: (slug: string) => fetchApi<MySubmissionPayload>(`/hackathons/${enc(slug)}/my-submission/`),
@@ -107,8 +128,13 @@ export const hackathonApi = {
     withdraw: (slug: string) => fetchApi<{ withdrawn: true }>(`/hackathons/${enc(slug)}/finder/me/`, { method: 'DELETE' }),
     invite: (slug: string, seekerId: number) =>
       fetchApi<{ invited: true }>(`/hackathons/${enc(slug)}/finder/seekers/${seekerId}/invite/`, json({})),
-    requestToJoin: (slug: string, teamId: number, message: string) =>
-      fetchApi<{ requested: true }>(`/hackathons/${enc(slug)}/finder/teams/${teamId}/request/`, json({ message })),
+    requestToJoin: (slug: string, teamId: number, message: string, registration?: RegistrationInput) =>
+      fetchApi<{ requested: true; request: JoinRequestRow }>(`/hackathons/${enc(slug)}/finder/teams/${teamId}/request/`, json({ message, ...registration })),
+    /** Requests waiting for you (as a leader) and the ones you sent. */
+    requests: (slug: string) => fetchApi<JoinRequestsPayload>(`/hackathons/${enc(slug)}/finder/requests/`),
+    /** The leader accepts or declines; the sender cancels. */
+    answerRequest: (slug: string, requestId: number, action: 'accept' | 'decline' | 'cancel') =>
+      fetchApi<{ request: JoinRequestRow }>(`/hackathons/${enc(slug)}/finder/requests/${requestId}/${action}/`, json({})),
   },
   judging: {
     ideas: (slug: string) => fetchApi<JudgingIdeasPayload>(`/hackathons/${enc(slug)}/judging/ideas/`),

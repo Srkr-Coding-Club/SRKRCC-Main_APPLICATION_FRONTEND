@@ -78,10 +78,7 @@ export function PageSectionCard({
       id={id}
       className="scroll-mt-36 space-y-5 rounded-2xl border border-journey-text/10 bg-journey-surface/50 p-5 sm:p-7"
     >
-      <h2 className="flex items-center gap-3 text-xl font-semibold text-journey-text sm:text-2xl">
-        <span aria-hidden="true" className="h-px w-6 shrink-0 bg-journey-accent" />
-        {title}
-      </h2>
+      <h2 className="text-xl font-semibold text-journey-text sm:text-2xl">{title}</h2>
       {children}
     </section>
   );

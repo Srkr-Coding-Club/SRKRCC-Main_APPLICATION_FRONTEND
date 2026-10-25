@@ -8,7 +8,7 @@ export interface UploadedFile {
   type: string;
 }
 
-interface Grant {
+export interface Grant {
   upload: { id: string };
   post: { url: string; fields: Record<string, string> };
   max_bytes: number;
@@ -39,7 +39,7 @@ export function checkBeforeUpload(file: File, rules: { maxFileSizeMB?: number | 
   return null;
 }
 
-function asUploadError(error: unknown, fallback: string): UploadError {
+export function asUploadError(error: unknown, fallback: string): UploadError {
   if (error instanceof UploadError) return error;
   const e = error as { message?: string; status?: number; body?: { code?: string } };
   const code = e?.body?.code || 'UPLOAD_FAILED';
@@ -47,7 +47,7 @@ function asUploadError(error: unknown, fallback: string): UploadError {
   return new UploadError(e?.message || fallback, code, retryable);
 }
 
-function sendToStorage(grant: Grant, file: File, onProgress: (fraction: number) => void, signal?: AbortSignal): Promise<void> {
+export function sendToStorage(grant: Grant, file: File, onProgress: (fraction: number) => void, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     const form = new FormData();

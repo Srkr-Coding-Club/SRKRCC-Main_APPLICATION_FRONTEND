@@ -18,7 +18,12 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   reporter: [['list']],
-  use: { baseURL: `http://localhost:${SITE_PORT}`, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
+  // LIVE_SLOWMO=600 pnpm test:e2e:live --headed  slows every step so a person can follow along; LIVE_VIDEO=1 also records each test.
+  use: {
+    baseURL: `http://localhost:${SITE_PORT}`, trace: 'retain-on-failure', screenshot: 'only-on-failure',
+    video: process.env.LIVE_VIDEO ? 'on' : 'off',
+    launchOptions: { slowMo: Number(process.env.LIVE_SLOWMO) || 0 },
+  },
   projects: [{ name: 'live-chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: `pnpm exec next dev -p ${SITE_PORT}`,

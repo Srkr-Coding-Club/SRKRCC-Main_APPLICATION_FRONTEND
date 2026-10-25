@@ -124,9 +124,12 @@ export function validatePhoneNumber(value: string): string | undefined {
 
 // --- Affiliate (Club) ID -----------------------------------------------------
 
-/** `<2-digit year><3-letter prefix><3+ digit sequence>`, e.g. 25SCC277. */
-const AFFILIATE_ID_REGEX = /^(\d{2})([A-Z]{3})(\d{3,})$/;
-const AFFILIATE_PREFIX = 'SCC';
+/**
+ * The Club ID shapes in use: `<2-digit year>SCC<3+ digits>` (25SCC277, 26SCC123) and `<1-2 digit year>CCA<3+ digits>`
+ * (21CCA041, 1CCA041). Mirrors apps/accounts/services/club_id_service.py.
+ */
+const AFFILIATE_ID_REGEX = /^(\d{1,2})(SCC|CCA)(\d{3,})$/;
+export const AFFILIATE_ID_EXAMPLES = '25SCC277 or 21CCA041';
 
 export function sanitizeAffiliateIdInput(value: string): string {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
@@ -137,10 +140,10 @@ export function validateAffiliateId(value: string): string | undefined {
   if (!id) return 'Affiliate ID is required when you mark yourself as an affiliate.';
   const match = AFFILIATE_ID_REGEX.exec(id);
   if (!match) {
-    return 'Affiliate ID must look like 25SCC277: two-digit year, three letters, then the number.';
+    return `Affiliate ID must look like ${AFFILIATE_ID_EXAMPLES}: the year, SCC or CCA, then the number (3 digits or more).`;
   }
-  if (match[2] !== AFFILIATE_PREFIX) {
-    return `Affiliate ID prefix must be ${AFFILIATE_PREFIX}, e.g. 25${AFFILIATE_PREFIX}277.`;
+  if (match[2] === 'SCC' && match[1].length !== 2) {
+    return 'An SCC Affiliate ID needs a two-digit year, like 25SCC277.';
   }
   return undefined;
 }

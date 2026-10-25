@@ -19,8 +19,14 @@ type Entry = {
 };
 
 interface Props {
-  slug: string;
-  fieldId: number;
+  /** Form uploads: the form and question. Leave out when `uploadWith` is given. */
+  slug?: string;
+  fieldId?: number;
+  /** Another place to send files to (e.g. a hackathon idea); returns the reference to keep. */
+  uploadWith?: (file: File, onProgress: (fraction: number) => void, signal: AbortSignal) => Promise<UploadedFile>;
+  discardWith?: (uploadId: string) => Promise<void>;
+  /** The id of the button that opens the file picker (for labels and error focus). */
+  inputId?: string;
   multiple: boolean;
   rules?: { maxFileSizeMB?: number | string; allowedFileTypes?: string; maxFiles?: number | string };
   defaultMb: number;
@@ -39,7 +45,7 @@ interface Props {
 const MAX_PARALLEL = 3;
 const asList = (value: Props['value']): UploadedFile[] => (Array.isArray(value) ? value : value ? [value] : []);
 
-export default function FileUploadField({ slug, fieldId, multiple, rules, defaultMb, value, disabled, invalid, describedBy, onChange, onBusyChange, onBlur, onProblem }: Props) {
+export default function FileUploadField({ slug, fieldId, uploadWith, discardWith, inputId, multiple, rules, defaultMb, value, disabled, invalid, describedBy, onChange, onBusyChange, onBlur, onProblem }: Props) {
   const [entries, setEntries] = useState<Entry[]>(() =>
     asList(value).map((u) => ({ key: u.upload_id, name: u.name, size: u.size, type: u.type, state: 'done' as const, progress: 1, uploaded: u })),
   );
@@ -97,7 +103,10 @@ export default function FileUploadField({ slug, fieldId, multiple, rules, defaul
     aborts.current.set(entry.key, controller);
     patch(entry.key, { state: 'uploading', progress: 0, error: undefined });
     try {
-      const uploaded = await uploadFile(slug, fieldId, entry.file!, (progress) => patch(entry.key, { progress }), controller.signal);
+      const onProgress = (progress: number) => patch(entry.key, { progress });
+      const uploaded = uploadWith
+        ? await uploadWith(entry.file!, onProgress, controller.signal)
+        : await uploadFile(slug!, fieldId!, entry.file!, onProgress, controller.signal);
       patch(entry.key, { state: 'done', progress: 1, uploaded, size: uploaded.size });
     } catch (error) {
       const failure = error as UploadError;
@@ -106,7 +115,7 @@ export default function FileUploadField({ slug, fieldId, multiple, rules, defaul
     } finally {
       aborts.current.delete(entry.key);
     }
-  }, [slug, fieldId, patch]);
+  }, [slug, fieldId, uploadWith, patch]);
 
   const add = useCallback(async (files: File[]) => {
     onProblem?.(null);
@@ -142,7 +151,7 @@ export default function FileUploadField({ slug, fieldId, multiple, rules, defaul
   const remove = (entry: Entry, replacing = false) => {
     aborts.current.get(entry.key)?.abort();
     if (entry.preview) URL.revokeObjectURL(entry.preview);
-    if (entry.uploaded) void discardUpload(slug, entry.uploaded.upload_id).catch(() => undefined);
+    if (entry.uploaded) void (discardWith ? discardWith(entry.uploaded.upload_id) : discardUpload(slug!, entry.uploaded.upload_id)).catch(() => undefined);
     setEntries((prev) => prev.filter((e) => e.key !== entry.key));
     if (!replacing) { onProblem?.(null); onBlur?.(); }
   };
@@ -162,7 +171,7 @@ export default function FileUploadField({ slug, fieldId, multiple, rules, defaul
       <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Drag & drop {multiple ? 'files' : 'a file'} here, or</p>
       <button
         type="button"
-        id={`field-${fieldId}`}
+        id={inputId ?? `field-${fieldId}`}
         disabled={disabled || full}
         aria-invalid={invalid}
         aria-describedby={describedBy}

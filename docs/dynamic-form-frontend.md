@@ -68,3 +68,24 @@ When the server reports `direct_upload` (`GET /forms/upload-config/`, read by `s
 - The form builder's "Max file size (MB)" box shows the default and the platform maximum.
 
 Tests: `src/lib/__tests__/fileUpload.test.ts`, `src/components/forms/__tests__/FileUploadField.test.tsx`, `e2e/file-uploads.spec.ts`.
+
+## Hackathon idea form (slides, payment, editing)
+
+`src/components/hackathons/IdeaPanel.tsx` is the team leader's idea form. Besides the written parts it shows, depending on what the organizers switched on (`config` from `GET /hackathons/{slug}/my-idea/`): a `.ppt/.pptx` picker, the LinkedIn post link, and, when a fee is set, the amount, the "how to pay" note, a payment-screenshot picker and an optional transaction ID. The pickers are the shared `FileUploadField` with `uploadWith` / `discardWith` pointing at `src/lib/ideaUpload.ts` (same direct-to-storage flow as form uploads). Submitting is disabled while a file is still going; the request sends `deck_file_id` / `payment_file_id` (an id, or `null` to remove). When editing is switched off the leader sees the saved idea read-only with the reason (`edit_blocked_reason`) and its files (opened through short-lived links).
+
+Organizers set all of this on the manager's **Ideas** tab (fee, how to pay, presentation and LinkedIn required, "Teams can edit a submitted idea" with an optional "Editing closes at" time) and see each idea's LinkedIn link, presentation, payment screenshot and transaction ID there. The judging page shows judges the slides and LinkedIn link only; payment details never reach them.
+
+Tests: `src/components/hackathons/__tests__/IdeaPanel.test.tsx`; live: `e2e-live/hackathon-ideas.live.spec.ts` (`pnpm test:e2e:live`).
+
+**Payment QR code.** On the manager's Ideas tab organizers upload the QR image under "Payment QR code" (it is saved the moment it uploads, with a Remove button). The idea form shows it in the payment box with "Scan this QR code with any UPI app and pay ₹N" (`src/components/hackathons/PaymentQr.tsx`; its link lasts a minute, so it is fetched when shown and again on "Try again" or when a new QR is uploaded).
+
+## Admin users, club IDs, rounds, finder (this round of fixes)
+
+- **Create New User** (`src/components/admin/CreateUserModal.tsx`, rules and payload in `src/lib/adminUserForm.ts`): asks for name, email, roll number, phone, **college** (`CollegeSelect`; untouched = the club's home college), branch, **year of study**, role, Club ID (affiliates) and password. It checks the same rules as the server, shows each message under its field (and the server's under the right field), focuses the first problem, and resets after a save or close. The edit modal can change the college too.
+- **Club ID formats**: `25SCC123`, `26SCC123`, `21CCA041`, `1CCA041` (`validateAffiliateId`); anything else is refused with the accepted formats.
+- **Headers** no longer change height on scroll (a header that shrinks can shake on pages only slightly taller than the window).
+- **Rounds**: deleting the selected round selects another and no longer asks for the deleted one's teams; the delete button has an accessible name.
+- **Idea submissions** show as a "Your submission" card to every team member; the form opens from "Edit submission" only while editing is allowed.
+- **Team finder**: `FinderLists` (teams that need people, people available, ask to join with a message and the hackathon's rules/questions, cancel a request, invite), `JoinRequestsToAnswer` (accept / decline), the dashboard's "Teams and people" card, and Accept / Decline buttons inside the notification bell for join requests.
+
+Tests: `src/lib/__tests__/adminUserForm.test.ts`, `src/components/admin/__tests__/CreateUserModal.test.tsx`, `src/components/hackathons/__tests__/{IdeaPanel,FinderLists}.test.tsx`, `e2e/{navbar-stable,admin-rounds-delete}.spec.ts`, `e2e-live/admin-and-finder.live.spec.ts`.
