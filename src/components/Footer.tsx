@@ -106,9 +106,9 @@ export default function Footer() {
 
             {/* Quick Links */}
             <div className="lg:col-span-2 space-y-3">
-              <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#1A1A2E]/50 dark:text-white/40">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#1A1A2E]/50 dark:text-white/40">
                 Quick Links
-              </h4>
+              </h2>
               <ul className="space-y-2.5 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {QUICK_LINKS.map((l) => (
                   <li key={l.label}>
@@ -122,9 +122,9 @@ export default function Footer() {
 
             {/* Resources */}
             <div className="lg:col-span-2 space-y-3">
-              <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#1A1A2E]/50 dark:text-white/40">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#1A1A2E]/50 dark:text-white/40">
                 Resources
-              </h4>
+              </h2>
               <ul className="space-y-2.5 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {RESOURCES.map((l) => (
                   <li key={l.label}>
@@ -138,9 +138,9 @@ export default function Footer() {
 
             {/* Contact */}
             <div className="lg:col-span-3 space-y-3">
-              <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#1A1A2E]/50 dark:text-white/40">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#1A1A2E]/50 dark:text-white/40">
                 Contact Us
-              </h4>
+              </h2>
               <ul className="space-y-3 text-xs text-slate-600 dark:text-slate-400">
                 <li className="flex items-center gap-2.5">
                   <Mail className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
@@ -186,7 +186,7 @@ export default function Footer() {
                   resetIntroSeen();
                   window.location.href = '/';
                 }}
-                className="flex items-center gap-1.5 text-left font-mono text-[11px] text-slate-400 dark:text-slate-500 hover:text-[#FF7A00] transition-colors"
+                className="flex min-h-8 items-center gap-1.5 py-1.5 font-mono text-[11px] text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] transition-colors"
               >
                 <RotateCcw className="w-3 h-3 flex-shrink-0" />
                 <span>Experience the intro again</span>

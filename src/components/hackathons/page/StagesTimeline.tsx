@@ -118,12 +118,9 @@ export function StageEntry({
 
           {description && (
             <div className="relative">
-              <div className={`text-sm text-slate-600 dark:text-slate-300 ${isLong && !expanded ? 'max-h-28 overflow-hidden' : ''}`}>
+              <div className={`text-sm text-slate-600 dark:text-slate-300 ${isLong && !expanded ? 'max-h-28 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]' : ''}`}>
                 <MarkdownRenderer content={description} />
               </div>
-              {isLong && !expanded && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[var(--background)] to-transparent" aria-hidden="true" />
-              )}
               {isLong && (
                 <button
                   type="button"

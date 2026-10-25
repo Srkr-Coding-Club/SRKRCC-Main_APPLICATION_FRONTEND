@@ -22,6 +22,7 @@ import { HackathonAnnouncementsFeed, formatDateTime } from '@/components/hackath
 import { AcceptInviteModal } from '@/components/hackathons/AcceptInviteModal';
 import { SubmissionPanel } from '@/components/hackathons/SubmissionPanel';
 import { IdeaPanel } from '@/components/hackathons/IdeaPanel';
+import { TeamFinderCard } from '@/components/hackathons/TeamFinderCard';
 import { StaffShortcuts } from '@/components/hackathons/StaffShortcuts';
 import {
   CalendarShareCard, CertificateCard, CheckInCard, MyRegistrationCard, RecruitingCard, ResultsNotice, WaitlistNotice,
@@ -255,12 +256,7 @@ export default function HackathonDashboardPage() {
                   </section>
                 )}
 
-                {hackathon.features?.team_finder && (
-                  <section className={`${PANEL} flex flex-wrap items-center justify-between gap-3`}>
-                    <p className="text-sm text-journey-text/80">Looking for teammates? Browse people and teams that are looking.</p>
-                    <Link href={`/hackathons/${slug}/finder`} className={`${BTN} bg-journey-accent text-white`}>Open the team finder</Link>
-                  </section>
-                )}
+                {hackathon.features?.team_finder && <TeamFinderCard hackathon={hackathon} hasTeam={false} isLeader={false} />}
 
                 <section className={`${PANEL} text-center space-y-4 py-10`}>
                   <UsersRound className="mx-auto h-12 w-12 text-journey-accent" />
@@ -468,6 +464,7 @@ export default function HackathonDashboardPage() {
             {team && hackathon.features?.check_in && team.status === 'REGISTERED' && !team.is_waitlisted && <CheckInCard slug={slug} />}
             {team && hackathon.features?.certificates && <CertificateCard hackathon={hackathon} />}
             {team && isLeader && editable && hackathon.features?.team_finder && <RecruitingCard hackathon={hackathon} team={team} onSaved={() => load()} />}
+            {team && hackathon.features?.team_finder && <TeamFinderCard hackathon={hackathon} hasTeam isLeader={isLeader} />}
 
             {team && (
               <section className={`${PANEL} space-y-3`}>

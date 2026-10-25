@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Lock, X, CheckCircle2, UserPlus, AlertCircle, Send } from 'lucide-react';
 import { Form, FormField } from '@/lib/types';
 import Portal from '@/components/ui/Portal';
+import { isNonAnswerType } from '@/lib/fieldTypes';
 
 interface ManualEntryModalProps {
   isOpen: boolean;
@@ -43,7 +44,7 @@ export function ManualEntryModal({
     }
   };
 
-  const activeFields = selectedForm.fields?.filter((f) => f.type !== 'SECTION' && !f.is_deleted) || [];
+  const activeFields = selectedForm.fields?.filter((f) => !isNonAnswerType(f.type) && !f.is_deleted) || [];
 
   return (
     <Portal>

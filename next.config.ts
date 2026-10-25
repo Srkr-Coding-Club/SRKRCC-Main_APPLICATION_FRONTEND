@@ -38,13 +38,15 @@ const nextConfig: NextConfig = {
     // Report-only for now: violations show in the browser console without breaking anything. Tighten
     // (drop 'unsafe-inline'/'unsafe-eval' via nonces) and switch to Content-Security-Policy once the
     // console is quiet in production.
+    const uploadOrigins = (process.env.UPLOAD_CONNECT_SRC || '').split(/\s+/).filter(Boolean).map((origin) => ` ${origin}`).join('');
     const cspReportOnly = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self'",
+      // Uploads go from the browser straight to the storage bucket: list its origin(s) in UPLOAD_CONNECT_SRC.
+      `connect-src 'self'${uploadOrigins}`,
       "media-src 'self' blob:",
       "frame-ancestors 'self'",
       "base-uri 'self'",

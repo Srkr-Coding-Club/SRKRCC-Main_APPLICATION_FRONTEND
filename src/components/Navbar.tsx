@@ -168,7 +168,9 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent dark:via-white/20" />
 
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-[76px]'}`}>
+        {/* A fixed height: a bar that shrinks on scroll shortens the page, which can scroll the person back above the
+            threshold and make it grow again, so on a page barely taller than the window the bar shakes. */}
+        <div className="flex h-[72px] items-center justify-between">
           {/* Logo - CODING CLUB leads, in the landing page's own shimmering title
               treatment (.ember-text); SRKR rides above it as a small label, not
               the other way round. */}
@@ -177,7 +179,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               <BrainLogo size={36} showRays animated />
             </motion.div>
             <div className="flex flex-col leading-none">
-              <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.32em] text-[#1A1A2E]/45 dark:text-white/40">
+              <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.32em] text-[#1A1A2E]/70 dark:text-white/60">
                 SRKR
               </span>
               <span className="ember-text font-poppins text-xl sm:text-2xl font-extrabold leading-[1.1] tracking-tight">

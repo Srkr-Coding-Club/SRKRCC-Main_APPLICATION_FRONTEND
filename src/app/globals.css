@@ -118,6 +118,9 @@ h1, h2, h3, h4, h5, h6 {
 html {
   scrollbar-color: #FF7A00 var(--background);
   scrollbar-width: thin;
+  /* Keep a field that is tabbed or scrolled to clear of the sticky top bar and the floating back-to-top button. */
+  scroll-padding-top: 5.5rem;
+  scroll-padding-bottom: 6rem;
 }
 
 ::-webkit-scrollbar {

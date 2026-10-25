@@ -29,6 +29,12 @@ export interface UserNotification {
   type: AnnouncementType;
   category: NotificationCategory;
   link_url?: string;
+  /** What can be done from the notification itself, e.g. JOIN_REQUEST (accept or decline). */
+  action_kind?: string;
+  /** "<hackathon slug>:<request id>" for a JOIN_REQUEST. */
+  action_ref?: string;
+  /** Set once the action was taken (by anyone): ACCEPTED, DECLINED or CANCELLED. */
+  action_outcome?: string;
   is_read: boolean;
   read_at: string | null;
   created_at: string;
@@ -182,6 +188,14 @@ export interface Hackathon {
   idea_deadline?: string | null;
   /** Organizers must approve an idea before it counts. */
   idea_review_required?: boolean;
+  /** Rupees a team pays with its idea (0 = free); the payment screenshot is then required. */
+  idea_fee_amount?: number;
+  idea_payment_note?: string;
+  idea_deck_required?: boolean;
+  idea_linkedin_required?: boolean;
+  /** Teams may edit a submitted idea. */
+  idea_edits_enabled?: boolean;
+  idea_edits_until?: string | null;
   /** Only teams with an accepted idea may submit a project. */
   project_requires_approved_idea?: boolean;
   results_published_at?: string | null;
@@ -713,6 +727,20 @@ export interface ValidationRules {
   // cross-field + custom message
   crossField?: CrossFieldRule[];
   patternError?: string;
+  /** The admin's own wording per failure. Keys: any rule name, plus "required", "type", "options", "unique", "optionLimits". */
+  messages?: Record<string, string>;
+  /** No other response may give the same answer (case-insensitive). */
+  unique?: boolean;
+  /** {option: how many responses may choose it}; a full option stops being offered. */
+  optionLimits?: Record<string, number>;
+  /** Pre-filled on the form: text, a number or date as text, an option, or a list of options. */
+  defaultValue?: string | string[];
+  /** HIDDEN questions: the link parameter (?name=value) that fills the answer. */
+  queryParam?: string;
+  /** CALCULATED questions: arithmetic over {question id} references, e.g. "{12} * {13}". */
+  formula?: string;
+  /** CALCULATED questions: places after the decimal point, 0-6. */
+  decimals?: number;
 }
 
 export type ConditionalOperator =
@@ -770,6 +798,9 @@ export type FieldType =
   | 'DATE'
   | 'TIME'
   | 'SECTION'
+  | 'PAGE_BREAK'
+  | 'HIDDEN'
+  | 'CALCULATED'
   | 'RATING'
   | 'LINEAR_SCALE'
   | 'MATRIX_RADIO'
@@ -842,6 +873,14 @@ export interface Form {
   notify_members_on_publish?: boolean;
   notification_title?: string;
   notification_message?: string;
+  /** After submitting: thank-you text ({{id}} is piped), where to go next and after how many seconds. */
+  confirmation_message?: string;
+  redirect_url?: string;
+  redirect_delay_seconds?: number;
+  /** Ask for a Cloudflare Turnstile check before the response is accepted. */
+  captcha_enabled?: boolean;
+  /** Language of the form's own buttons and prompts: 'en' | 'te' | 'hi' (lib/i18n/formStrings.ts). */
+  language?: string;
   /** QR-code attendance tracking - see apps/forms/models.py's attendance_* fields. */
   attendance_enabled?: boolean;
   attendance_start_date?: string | null;
@@ -1430,10 +1469,34 @@ export interface FinderTeam {
   leader: string;
 }
 
+export type JoinRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+
+/** A request to join a team: what the sender sees, and (with `name` and below) what the leader sees. */
+export interface JoinRequestRow {
+  id: number;
+  team_id: number;
+  team_name: string;
+  status: JoinRequestStatus;
+  message: string;
+  created_at: string;
+  decided_at: string | null;
+  name?: string;
+  profile?: string;
+  skills?: string;
+  /** Why accepting would fail right now (the team is full, registration closed...), or empty. */
+  blocked_reason?: string;
+}
+
+export interface JoinRequestsPayload {
+  incoming: JoinRequestRow[];
+  mine: JoinRequestRow[];
+}
+
 export interface FinderListing {
   seekers: FinderSeeker[];
   teams: FinderTeam[];
   my_profile: { skills: string; note: string } | null;
+  my_requests: JoinRequestRow[];
 }
 
 export interface HackathonAnalytics {
@@ -1463,12 +1526,28 @@ export interface HackathonIdea {
   plan: string;
   tech_stack: string[];
   deck_url: string | null;
+  linkedin_url: string | null;
+  /** The uploaded .ppt / .pptx. */
+  deck_file: IdeaFileInfo | null;
+  /** Only sent to the team and to organizers; never to judges. */
+  payment_proof?: IdeaFileInfo | null;
+  transaction_id?: string;
   status: IdeaStatus;
   feedback: string;
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export interface IdeaFileInfo {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  state: string;
+}
+
+export type IdeaFileKind = 'DECK' | 'PAYMENT';
 
 export interface IdeaDraft {
   title: string;
@@ -1477,6 +1556,24 @@ export interface IdeaDraft {
   plan: string;
   tech_stack: string[];
   deck_url: string;
+  linkedin_url: string;
+  transaction_id: string;
+  /** Left out = keep the saved file, null = remove it, an id = use that upload. */
+  deck_file_id?: string | null;
+  payment_file_id?: string | null;
+}
+
+/** The organizers' choices for the idea form. */
+export interface IdeaConfig {
+  fee_amount: number;
+  payment_note: string;
+  deck_required: boolean;
+  linkedin_required: boolean;
+  files_available: boolean;
+  /** The QR code teams scan to pay, if the organizers uploaded one. */
+  payment_qr: { id: string; name: string } | null;
+  edits_enabled: boolean;
+  edits_until: string | null;
 }
 
 export interface MyIdeaPayload {
@@ -1487,6 +1584,9 @@ export interface MyIdeaPayload {
   project_requires_idea: boolean;
   idea: HackathonIdea | null;
   can_edit: boolean;
+  /** Why a team that already submitted cannot edit now (empty when it can). */
+  edit_blocked_reason: string;
+  config: IdeaConfig;
 }
 
 export interface AdminIdeasPayload {
@@ -1494,6 +1594,7 @@ export interface AdminIdeasPayload {
   rows: (HackathonIdea & { team_status: string })[];
   missing: { id: number; name: string }[];
   counts: Record<IdeaStatus, number>;
+  config: IdeaConfig;
 }
 
 export type RoundRuleKey =

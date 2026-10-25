@@ -100,6 +100,7 @@ const TEXT = 'whitespace-pre-line text-sm text-journey-text/80';
 
 export default function JudgingPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { toast } = useToast();
   const signedIn = useRequireLogin(`/hackathons/${slug}/judging`);
   const [kind, setKind] = useState<Kind>('PROJECT');
   const [projects, setProjects] = useState<JudgingPayload | null>(null);
@@ -201,7 +202,13 @@ export default function JudgingPage() {
                     <div key={label}><p className="text-[11px] font-bold uppercase tracking-wide text-journey-muted">{label}</p><p className={TEXT}>{text}</p></div>
                   ))}
                   {idea.tech_stack.length > 0 && <p className="text-xs text-journey-muted">Planned tech: {idea.tech_stack.join(', ')}</p>}
-                  <Links items={[['Slides', idea.deck_url]]} />
+                  <Links items={[['Slides link', idea.deck_url], ['LinkedIn post', idea.linkedin_url]]} />
+                  {idea.deck_file && (
+                    <button type="button" onClick={() => hackathonApi.ideaFileLink(slug, idea.id, 'deck').then((link) => window.location.assign(link.url)).catch((err) => toast.error('Could not open the slides', apiErrorMessage(err)))}
+                      className="inline-flex min-h-8 items-center gap-1 text-xs font-bold text-journey-accent hover:underline">
+                      Presentation ({idea.deck_file.name})<ExternalLink className="h-3 w-3" />
+                    </button>
+                  )}
                   {idea.is_own_team ? (
                     <p className="text-xs text-journey-muted">This is your own team, so you cannot score it.</p>
                   ) : open ? (

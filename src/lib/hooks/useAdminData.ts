@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { FeatureFlag, Form, FormField, ProfileFieldKey, ValidationRules } from '@/lib/types';
+import { EMPTY_NEW_USER, buildRegisterPayload, type NewUserForm } from '@/lib/adminUserForm';
+import { DEFAULT_COLLEGE_NAME, type College } from '@/lib/colleges';
 import { fetchApi } from '@/lib/api-client';
 import { buildAuthFetchOptions } from '@/lib/dataManagement';
 import { useToast } from '@/context/ToastContext';
+import { isNonAnswerType } from '@/lib/fieldTypes';
+import type { ChangeReview } from '@/lib/formHistory';
 
 /**
  * Sensible out-of-the-box validation for a newly-added field, so an admin
@@ -43,6 +47,8 @@ export interface UserRecord {
   email: string;
   rollNumber: string;
   collegeName?: string | null;
+  college?: College | null;
+  otherCollegeName?: string | null;
   branch: string;
   year: string;
   role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
@@ -149,15 +155,6 @@ export interface UseAdminDataOptions {
   include?: AdminDataType[];
 }
 
-/** 24 random characters with every class the backend's password validators ask for. */
-function randomPassword(): string {
-  const bytes = new Uint8Array(24);
-  crypto.getRandomValues(bytes);
-  const alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const body = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
-  return `${body}Aa1!`;
-}
-
 export function useAdminData(options?: UseAdminDataOptions) {
   const { toast } = useToast();
   const include = options?.include ?? ALL_ADMIN_DATA_TYPES;
@@ -173,17 +170,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
   const [usersList, setUsersList] = useState<UserRecord[]>([]);
   const [userSearch, setUserSearch] = useState('');
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    rollNumber: '',
-    branch: 'CSE',
-    year: '1st Year',
-    phoneNumber: '',
-    role: 'NON_AFFILIATE' as UserRecord['role'],
-    clubId: '',
-    password: '',
-  });
+  const [newUser, setNewUser] = useState<NewUserForm>(EMPTY_NEW_USER);
 
   // Forms State - fetched live from backend
   const [publishedForms, setPublishedForms] = useState<Form[]>([]);
@@ -218,6 +205,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
     notify_members_on_publish?: boolean;
     notification_title?: string;
     notification_message?: string;
+    confirmation_message?: string;
+    redirect_url?: string;
+    redirect_delay_seconds?: number;
+    captcha_enabled?: boolean;
+    language?: string;
     attendance_enabled?: boolean;
     attendance_start_date?: string | null;
     attendance_days?: number;
@@ -250,6 +242,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
     notify_members_on_publish: false,
     notification_title: '',
     notification_message: '',
+    confirmation_message: '',
+    redirect_url: '',
+    redirect_delay_seconds: 5,
+    captcha_enabled: false,
+    language: 'en',
     attendance_enabled: false,
     attendance_start_date: null,
     attendance_days: 1,
@@ -333,6 +330,8 @@ export function useAdminData(options?: UseAdminDataOptions) {
               email: u.email,
               rollNumber: u.roll_number || 'Not set',
               collegeName: u.college?.name || u.other_college_name || null,
+              college: u.college ?? null,
+              otherCollegeName: u.other_college_name || null,
               branch: u.branch || 'CSE',
               year: formatYearOrdinal(u.year),
               role: u.role || 'NON_AFFILIATE',
@@ -431,48 +430,38 @@ export function useAdminData(options?: UseAdminDataOptions) {
   }, []);
 
   // Handlers
+  /** Creates the account. Rejects (the API error attached) so the form can show each message under its own field. */
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const payload = {
-        username: newUser.email.split('@')[0],
-        email: newUser.email,
-        // No shared default: a blank password becomes a random one nobody knows, so the
-        // new user must set their own through the password-reset flow.
-        password: newUser.password || randomPassword(),
-        first_name: newUser.name.split(' ')[0] || newUser.name,
-        last_name: newUser.name.split(' ').slice(1).join(' ') || '',
-        role: newUser.role,
-        roll_number: newUser.rollNumber,
-        branch: newUser.branch,
-        phone_number: newUser.phoneNumber || undefined,
-        club_id: newUser.role === 'AFFILIATE' ? newUser.clubId : undefined,
-      };
-      const created = await fetchApi<any>('/auth/register/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+    const created = await fetchApi<any>('/auth/register/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildRegisterPayload(newUser)),
+    });
 
-      const userToAdd: UserRecord = {
-        id: created?.id || Date.now(),
-        name: newUser.name,
-        email: newUser.email,
-        rollNumber: newUser.rollNumber,
-        branch: newUser.branch,
-        year: newUser.year,
-        phoneNumber: newUser.phoneNumber || null,
-        role: newUser.role,
-        membershipStatus: 'ACTIVE',
-        isActive: true,
-        joinedDate: new Date().toISOString().split('T')[0],
-      };
-      setUsersList((prev) => [userToAdd, ...prev]);
-      setShowCreateUserModal(false);
-      toast.success('Account Created', `Account for ${userToAdd.name} created & saved in backend database!`);
-    } catch (err: any) {
-      toast.error('Account Not Created', err?.message || `Could not create an account for ${newUser.name}. Nothing was saved.`);
-    }
+    const userToAdd: UserRecord = {
+      id: created.id,
+      firstName: created.first_name || null,
+      lastName: created.last_name || null,
+      name: `${created.first_name || ''} ${created.last_name || ''}`.trim() || newUser.name,
+      email: created.email,
+      rollNumber: created.roll_number || 'Not set',
+      collegeName: newUser.college.otherName ?? newUser.college.college?.name ?? DEFAULT_COLLEGE_NAME,
+      college: newUser.college.college,
+      otherCollegeName: newUser.college.otherName,
+      branch: created.branch,
+      year: formatYearOrdinal(created.year),
+      role: created.role,
+      membershipStatus: 'ACTIVE',
+      isActive: true,
+      joinedDate: new Date().toISOString().split('T')[0],
+      clubId: created.club_id || null,
+      phoneNumber: created.phone_number || null,
+    };
+    setUsersList((prev) => [userToAdd, ...prev]);
+    setShowCreateUserModal(false);
+    setNewUser(EMPTY_NEW_USER);
+    toast.success('Account Created', `Account for ${userToAdd.name} was created.`);
   };
 
   const handleRoleChange = async (userId: number, role: UserRecord['role'], clubId?: string) => {
@@ -635,6 +624,13 @@ export function useAdminData(options?: UseAdminDataOptions) {
               role: response.role || u.role,
               membershipStatus: response.membership_status || u.membershipStatus,
               clubId: response.club_id !== undefined ? response.club_id : u.clubId,
+              ...(response.college !== undefined || response.other_college_name !== undefined
+                ? {
+                    college: response.college ?? null,
+                    otherCollegeName: response.other_college_name || null,
+                    collegeName: response.college?.name || response.other_college_name || null,
+                  }
+                : {}),
               phoneNumber: response.phone_number !== undefined ? response.phone_number : u.phoneNumber,
               githubProfile: response.github_profile !== undefined ? response.github_profile : u.githubProfile,
               linkedinProfile: response.linkedin_profile !== undefined ? response.linkedin_profile : u.linkedinProfile,
@@ -663,7 +659,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         // A profile-bound field defaults to required - it's on the form
         // precisely because the registration needs that data one way or
         // another; the admin can still relax it in the field settings.
-        is_required: profileField ? true : type !== 'SECTION',
+        is_required: profileField ? true : !isNonAnswerType(type),
         validation_rules: defaultValidationRulesFor(type),
         profile_field: profileField,
       },
@@ -687,7 +683,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
 
   const handleAddFieldAtIndex = (type: FormField['type'], label: string, index: number) => {
     setBuilderFields((prev) => {
-      const newField: FormField = { id: Date.now().toString(), label, type, is_required: type !== 'SECTION', order: 0, validation_rules: defaultValidationRulesFor(type) };
+      const newField: FormField = { id: Date.now().toString(), label, type, is_required: !isNonAnswerType(type), order: 0, validation_rules: defaultValidationRulesFor(type) };
       const updated = [...prev];
       updated.splice(index, 0, newField);
       return updated.map((f, i) => ({ ...f, order: i + 1 }));
@@ -786,6 +782,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
       notify_members_on_publish: form.notify_members_on_publish ?? false,
       notification_title: form.notification_title || '',
       notification_message: form.notification_message || '',
+      confirmation_message: form.confirmation_message || '',
+      redirect_url: form.redirect_url || '',
+      redirect_delay_seconds: form.redirect_delay_seconds ?? 5,
+      captcha_enabled: form.captcha_enabled ?? false,
+      language: form.language || 'en',
       attendance_enabled: form.attendance_enabled ?? false,
       attendance_start_date: form.attendance_start_date ?? null,
       attendance_days: form.attendance_days ?? 1,
@@ -810,6 +811,17 @@ export function useAdminData(options?: UseAdminDataOptions) {
     // PREVIOUS form's preview.
     setPreviewAnswers({});
     setSubmittedTestData(null);
+  };
+
+  // The change review shown before a live form is saved (resolved by the builder page's modal).
+  const [pendingReview, setPendingReview] = useState<{ review: ChangeReview; resolve: (go: boolean) => void } | null>(null);
+  const askToConfirmChanges = (review: ChangeReview) =>
+    new Promise<boolean>((resolve) => {
+      setPendingReview({ review, resolve });
+    });
+  const settleReview = (go: boolean) => {
+    pendingReview?.resolve(go);
+    setPendingReview(null);
   };
 
   const handleSaveForm = async (
@@ -873,6 +885,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
       notify_members_on_publish: formMeta.notify_members_on_publish ?? false,
       notification_title: formMeta.notification_title || '',
       notification_message: formMeta.notification_message || '',
+      confirmation_message: formMeta.confirmation_message || '',
+      redirect_url: formMeta.redirect_url || '',
+      redirect_delay_seconds: formMeta.redirect_delay_seconds ?? 5,
+      captcha_enabled: formMeta.captcha_enabled ?? false,
+      language: formMeta.language || 'en',
       attendance_enabled: formMeta.attendance_enabled ?? false,
       attendance_start_date: formMeta.attendance_start_date || null,
       attendance_days: formMeta.attendance_days ?? 1,
@@ -896,6 +913,8 @@ export function useAdminData(options?: UseAdminDataOptions) {
           max_value: f.max_value ?? null,
           conditional_logic: f.conditional_logic || {},
           validation_rules: f.validation_rules || {},
+          // A question filled from the member's profile must keep saying so, or it turns back into an ordinary question.
+          profile_field: f.profile_field ?? null,
           order: idx + 1,
         };
       }),
@@ -908,6 +927,25 @@ export function useAdminData(options?: UseAdminDataOptions) {
       publishedForms.some((f) => f.slug === lookupSlug && f.id !== undefined);
 
     try {
+      // A form that is already live changes for everyone the moment it is saved, so show what is about to
+      // change (and what it means for the responses already in) and ask first. Problems the save itself would
+      // report are left for the save to report.
+      const isLive = formMeta.status === 'PUBLISHED' || formMeta.status === 'SCHEDULED';
+      if (isExistingForm && isLive && targetStatus !== 'DRAFT') {
+        const review = await fetchApi<ChangeReview>(`/forms/${lookupSlug}/preview-changes/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(() => null);
+        if (review && !review.diff.is_empty) {
+          const go = await askToConfirmChanges(review);
+          if (!go) {
+            toast.info('Not saved', 'Your changes are still in the editor.');
+            return;
+          }
+        }
+      }
+
       let saved: Form;
       if (isExistingForm) {
         // Form is already registered in backend: perform PUT update directly
@@ -994,6 +1032,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
                   max_value: f.max_value ?? null,
                   conditional_logic: f.conditional_logic || {},
                   validation_rules: f.validation_rules || {},
+                  profile_field: f.profile_field ?? null,
                   order: i + 1,
                 })),
               }),
@@ -1036,6 +1075,11 @@ export function useAdminData(options?: UseAdminDataOptions) {
         notify_members_on_publish: saved.notify_members_on_publish ?? false,
         notification_title: saved.notification_title || '',
         notification_message: saved.notification_message || '',
+        confirmation_message: saved.confirmation_message || '',
+        redirect_url: saved.redirect_url || '',
+        redirect_delay_seconds: saved.redirect_delay_seconds ?? 5,
+        captcha_enabled: saved.captcha_enabled ?? false,
+        language: saved.language || 'en',
         attendance_enabled: saved.attendance_enabled ?? false,
         attendance_start_date: saved.attendance_start_date ?? null,
         attendance_days: saved.attendance_days ?? 1,
@@ -1282,6 +1326,8 @@ export function useAdminData(options?: UseAdminDataOptions) {
     handleDuplicateField,
     handleReorderFields,
     handleSaveForm,
+    pendingReview: pendingReview?.review ?? null,
+    settleReview,
     handleFormStatusTransition,
     handleEditFormInBuilder,
     loadFormBySlug,
