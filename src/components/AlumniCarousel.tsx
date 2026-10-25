@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Quote, GraduationCap, Building2, Sparkles, Pause, Play } from 'lucide-react';
-import SectionHeading from './SectionHeading';
+import { ChevronLeft, ChevronRight, Quote, GraduationCap, Building2 } from 'lucide-react';
 
 export interface Alumni {
   id: string;
@@ -59,28 +58,31 @@ interface AlumniCarouselProps {
 
 export default function AlumniCarousel({ alumniList = INITIAL_ALUMNI }: AlumniCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState(1); // 1 = Next, -1 = Prev
+  const [direction, setDirection] = useState(1);
   const [isAutoplay, setIsAutoplay] = useState(true);
+  const activeIndex = alumniList.length ? currentIndex % alumniList.length : 0;
 
   const nextSlide = useCallback(() => {
+    if (alumniList.length < 2) return;
     setDirection(1);
     setCurrentIndex((prevIndex) => (prevIndex + 1) % alumniList.length);
   }, [alumniList.length]);
 
   const prevSlide = useCallback(() => {
+    if (alumniList.length < 2) return;
     setDirection(-1);
     setCurrentIndex((prevIndex) => (prevIndex - 1 + alumniList.length) % alumniList.length);
   }, [alumniList.length]);
 
   useEffect(() => {
-    if (!isAutoplay) return;
+    if (!isAutoplay || alumniList.length < 2) return;
     const interval = setInterval(() => {
       nextSlide();
     }, 6000);
     return () => clearInterval(interval);
-  }, [isAutoplay, nextSlide]);
+  }, [alumniList.length, isAutoplay, nextSlide]);
 
-  const activeAlumni = alumniList[currentIndex];
+  const activeAlumni = alumniList[activeIndex];
 
   const slideVariants: Variants = {
     enter: (dir: number) => ({
@@ -110,174 +112,160 @@ export default function AlumniCarousel({ alumniList = INITIAL_ALUMNI }: AlumniCa
     }),
   };
 
+  if (!activeAlumni) return null;
+
   return (
     <section className="space-y-8" data-reveal>
-      <SectionHeading
-        icon={GraduationCap}
-        eyebrow="Alumni Voices"
-        title="Stories & Guidance from Our Alumni"
-        description="Hear from SRKR Coding Club graduates who are now creating impact across top tech companies worldwide."
-      />
+      <div className="max-w-2xl space-y-3">
+        <span className="block font-mono text-xs font-medium uppercase tracking-[0.18em] text-journey-accent">
+          Alumni Voices
+        </span>
+        <h2 className="font-display text-[clamp(1.8rem,3.6vw,2.7rem)] font-semibold leading-tight tracking-[-0.025em] text-journey-text [font-stretch:112%]">
+          Stories and guidance from our alumni
+        </h2>
+        <p className="text-base leading-relaxed text-journey-muted">
+          Hear from SRKR Coding Club graduates who are now creating impact across the tech industry.
+        </p>
+      </div>
 
-      {/* Main Glassmorphism Glowing Container */}
-      <div
-        className="relative overflow-hidden rounded-3xl border border-orange-500/20 dark:border-slate-800 glass-panel p-6 sm:p-10 shadow-[0_20px_50px_rgba(255,122,0,0.12)] dark:shadow-[0_20px_50px_rgba(255,122,0,0.22)] transition-all group"
-        onMouseEnter={() => setIsAutoplay(false)}
-        onMouseLeave={() => setIsAutoplay(true)}
-      >
-        {/* Animated Top Progress Bar when Autoplay is Active */}
-        {isAutoplay && (
-          <div className="absolute top-0 left-0 right-0 h-1 bg-slate-200/40 dark:bg-slate-800 overflow-hidden">
-            <motion.div
-              key={currentIndex}
-              initial={{ width: '0%' }}
-              animate={{ width: '100%' }}
-              transition={{ duration: 6, ease: 'linear' }}
-              className="h-full bg-gradient-to-r from-[#FF7A00] via-[#FFA500] to-[#8B2E3B]"
-            />
-          </div>
-        )}
+      <div className="relative">
+        {/* Arrows always on left & right of the card */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Previous arrow */}
+          <button
+            type="button"
+            onClick={prevSlide}
+            aria-label="Previous alumni"
+            disabled={alumniList.length < 2}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-journey-text/10 bg-journey-surface text-journey-text shadow-lg transition hover:border-journey-accent/40 hover:bg-journey-accent hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
 
-        {/* Ambient Soft Background Elements */}
-        <div
-          className="absolute -top-32 -left-32 w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none transition-transform duration-1000 group-hover:scale-110"
-          style={{ background: 'radial-gradient(circle, #FF7A00, transparent 70%)' }}
-        />
-        <div
-          className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full blur-3xl opacity-15 pointer-events-none transition-transform duration-1000 group-hover:scale-110"
-          style={{ background: 'radial-gradient(circle, #8B2E3B, transparent 70%)' }}
-        />
-
-        {/* Giant Watermark Quote Icon */}
-        <Quote className="absolute top-6 right-8 text-orange-500/10 dark:text-orange-500/15 w-28 h-28 pointer-events-none transform rotate-12 transition-transform duration-700 group-hover:rotate-6" />
-
-        {/* AnimatePresence for Smooth Card Content Switching */}
-        <div className="relative z-10 min-h-[300px] flex items-center">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={activeAlumni.id}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center w-full"
-            >
-              {/* Alumni Photo Frame with Gradient Border & Soft Glow */}
-              <div className="md:col-span-4 flex flex-col items-center">
-                <div className="relative group/avatar">
-                  {/* Balanced Soft Glow Ring */}
-                  <div className="absolute -inset-2 rounded-3xl bg-gradient-to-tr from-[#FF7A00] via-[#FFA500] to-[#8B2E3B] opacity-45 blur-md group-hover/avatar:opacity-75 transition-opacity duration-500" />
-
-                  {/* Image Holder with Crisp Gradient Border */}
-                  <div className="relative w-52 h-52 sm:w-60 sm:h-60 rounded-2xl overflow-hidden p-[3px] bg-gradient-to-tr from-[#FF7A00] via-[#FFA500] to-[#8B2E3B] shadow-xl shadow-orange-500/20">
-                    <div className="relative w-full h-full rounded-[13px] overflow-hidden bg-slate-900">
-                      <Image
-                        src={activeAlumni.image}
-                        alt={activeAlumni.name}
-                        fill
-                        sizes="(max-width: 768px) 208px, 240px"
-                        className="object-cover transition-transform duration-700 group-hover/avatar:scale-110"
-                        priority
-                      />
-                    </div>
-                  </div>
-
-                  {/* Floating Sparkle Badge */}
-                  <div className="absolute -bottom-3 -right-3 bg-gradient-to-r from-[#FF7A00] to-[#8B2E3B] text-white p-2 rounded-xl shadow-lg border border-white/20 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 animate-pulse" />
-                  </div>
-                </div>
-
-                {/* Batch Badge */}
-                <div className="mt-5 text-center">
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-orange-500/10 dark:bg-orange-500/20 text-[#FF7A00] dark:text-orange-400 border border-orange-500/30 backdrop-blur-md shadow-sm">
-                    <GraduationCap className="w-3.5 h-3.5" />
-                    {activeAlumni.batch}
-                  </span>
-                </div>
+          {/* Card */}
+          <div
+            className="group relative min-w-0 flex-1 overflow-hidden rounded-[28px] border border-journey-text/10 bg-journey-surface/70 p-5 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_20px_45px_-28px_rgba(30,41,59,0.35)] backdrop-blur-sm dark:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset,0_20px_45px_-28px_rgba(0,0,0,0.8)] sm:p-8"
+            onMouseEnter={() => setIsAutoplay(false)}
+            onMouseLeave={() => setIsAutoplay(true)}
+          >
+            {isAutoplay && (
+              <div className="absolute inset-x-0 top-0 h-1 overflow-hidden bg-journey-text/5">
+                <motion.div
+                  key={activeIndex}
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 6, ease: 'linear' }}
+                  className="h-full bg-journey-accent"
+                />
               </div>
+            )}
 
-              {/* Quote Content & Details */}
-              <div className="md:col-span-8 space-y-6 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Quote className="w-8 h-8 text-[#FF7A00] shrink-0" />
-                    <span className="text-xs font-bold tracking-widest text-[#FF7A00] uppercase">
-                      Alumni Testimonial
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,rgb(var(--journey-accent)/0.14),transparent)] transition-transform duration-700 group-hover:scale-110"
+            />
+            <Quote
+              aria-hidden="true"
+              className="pointer-events-none absolute right-5 top-5 h-16 w-16 rotate-12 text-journey-accent/10 sm:right-8 sm:top-8 sm:h-24 sm:w-24"
+            />
+
+            <div className="relative z-10 flex min-h-[390px] items-center sm:min-h-[300px]">
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={activeAlumni.id}
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  className="grid w-full grid-cols-1 items-center gap-7 md:grid-cols-12 md:gap-8"
+                >
+                  <div className="flex flex-col items-center md:col-span-4">
+                    <div className="relative">
+                      <div className="absolute -inset-2 rounded-[28px] bg-journey-accent/20 blur-xl" />
+                      <div className="relative h-36 w-36 overflow-hidden rounded-[24px] border border-journey-text/10 bg-journey-bg p-1 shadow-xl sm:h-48 sm:w-48">
+                        <div className="relative h-full w-full overflow-hidden rounded-[20px]">
+                          <Image
+                            src={activeAlumni.image}
+                            alt={activeAlumni.name}
+                            fill
+                            sizes="(max-width: 640px) 144px, 192px"
+                            className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-journey-accent/20 bg-journey-accent/10 px-3 py-1.5 text-xs font-medium text-journey-accent">
+                      <GraduationCap className="h-3.5 w-3.5" />
+                      {activeAlumni.batch}
                     </span>
                   </div>
 
-                  <p className="text-slate-800 dark:text-slate-100 font-medium text-base sm:text-lg lg:text-xl leading-relaxed italic">
-                    &ldquo;{activeAlumni.message}&rdquo;
-                  </p>
-                </div>
+                  <div className="flex min-w-0 flex-col justify-between gap-6 md:col-span-8">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.16em] text-journey-accent">
+                        <Quote className="h-5 w-5 shrink-0" />
+                        Alumni Testimonial
+                      </div>
+                      <p className="font-display text-base font-medium leading-relaxed text-journey-text sm:text-lg lg:text-xl">
+                        &ldquo;{activeAlumni.message}&rdquo;
+                      </p>
+                    </div>
 
-                {/* Profile Card Footer */}
-                <div className="pt-4 border-t border-slate-200/70 dark:border-slate-800/90 flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h4 className="font-poppins font-extrabold text-xl sm:text-2xl text-[#1A1A2E] dark:text-white tracking-tight">
-                      {activeAlumni.name}
-                    </h4>
-                    <div className="flex flex-wrap items-center gap-2.5 mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                      <span className="font-bold text-[#FF7A00]">{activeAlumni.role}</span>
-                      <span className="text-slate-400">•</span>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium border border-slate-200/60 dark:border-slate-700/60">
-                        <Building2 className="w-3.5 h-3.5 text-[#FF7A00]" />
-                        {activeAlumni.company}
-                      </span>
+                    <div className="border-t border-journey-text/10 pt-5">
+                      <h3 className="font-display text-xl font-semibold tracking-tight text-journey-text sm:text-2xl">
+                        {activeAlumni.name}
+                      </h3>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                        <span className="font-medium text-journey-accent">{activeAlumni.role}</span>
+                        <span aria-hidden="true" className="text-journey-muted">
+                          /
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-journey-text/10 bg-journey-bg/70 px-2.5 py-1 text-journey-muted">
+                          <Building2 className="h-3.5 w-3.5 text-journey-accent" />
+                          {activeAlumni.company}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-                  {/* Slider Control Buttons */}
-                  <div className="flex items-center gap-2.5">
-                    {/* Pause/Play Toggle Button */}
-                    <button
-                      onClick={() => setIsAutoplay(!isAutoplay)}
-                      aria-label={isAutoplay ? 'Pause Autoplay' : 'Start Autoplay'}
-                      title={isAutoplay ? 'Pause Carousel' : 'Play Carousel'}
-                      className="w-11 h-11 sm:w-9 sm:h-9 rounded-full border border-slate-200 dark:border-slate-800 glass-panel flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-[#FF7A00] transition-colors"
-                    >
-                      {isAutoplay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-                    </button>
-
-                    <button
-                      onClick={prevSlide}
-                      aria-label="Previous Alumni"
-                      className="w-10 h-10 rounded-full border border-slate-300 dark:border-slate-700 glass-panel flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-[#FF7A00] hover:text-white hover:border-[#FF7A00] transition-all shadow-md active:scale-95"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={nextSlide}
-                      aria-label="Next Alumni"
-                      className="w-10 h-10 rounded-full border border-slate-300 dark:border-slate-700 glass-panel flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-[#FF7A00] hover:text-white hover:border-[#FF7A00] transition-all shadow-md active:scale-95"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
+            {/* Dots only */}
+            <div className="relative z-10 mt-5 flex items-center justify-center border-t border-journey-text/10 pt-5">
+              <div className="flex items-center justify-center gap-2">
+                {alumniList.map((alumni, index) => (
+                  <button
+                    key={alumni.id}
+                    type="button"
+                    onClick={() => {
+                      setDirection(index > activeIndex ? 1 : -1);
+                      setCurrentIndex(index);
+                    }}
+                    aria-label={`Go to slide ${index + 1}`}
+                    aria-current={index === activeIndex ? 'true' : undefined}
+                    className={`h-2.5 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface ${
+                      index === activeIndex
+                        ? 'w-8 bg-journey-accent'
+                        : 'w-2.5 bg-journey-text/20 hover:bg-journey-text/40'
+                    }`}
+                  />
+                ))}
               </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+            </div>
+          </div>
 
-        {/* Carousel Indicators / Expandable Bullets */}
-        <div className="mt-8 flex justify-center items-center gap-2">
-          {alumniList.map((alumni, index) => (
-            <button
-              key={alumni.id}
-              onClick={() => {
-                setDirection(index > currentIndex ? 1 : -1);
-                setCurrentIndex(index);
-              }}
-              aria-label={`Go to slide ${index + 1}`}
-              className={`relative h-2.5 rounded-full transition-all duration-500 after:absolute after:-inset-3 after:content-[''] ${index === currentIndex
-                ? 'w-10 bg-gradient-to-r from-[#FF7A00] via-[#FFA500] to-[#8B2E3B] shadow-sm'
-                : 'w-2.5 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600'
-                }`}
-            />
-          ))}
+          {/* Next arrow */}
+          <button
+            type="button"
+            onClick={nextSlide}
+            aria-label="Next alumni"
+            disabled={alumniList.length < 2}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-journey-text/10 bg-journey-surface text-journey-text shadow-lg transition hover:border-journey-accent/40 hover:bg-journey-accent hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
       </div>
     </section>

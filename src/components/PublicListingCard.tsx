@@ -95,7 +95,7 @@ export default function PublicListingCard({
         className="h-full w-full border border-journey-text/10 bg-journey-surface/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-journey-accent/40"
       >
         <div
-          className={`flex h-full min-w-0 flex-col overflow-hidden p-5 sm:p-6 ${onCardClick ? 'cursor-pointer' : ''}`}
+          className={`flex h-full min-w-0 flex-col overflow-hidden p-5 sm:p-6 [&>*]:shrink-0 ${onCardClick ? 'cursor-pointer' : ''}`}
           onClick={(event) => {
             if ((event.target as HTMLElement).closest('a, button')) return;
             onCardClick?.(event);
@@ -114,23 +114,31 @@ export default function PublicListingCard({
             </div>
           )}
 
-          <div className="mt-6 overflow-hidden">
-            <h3 ref={titleRef} className="line-clamp-2 min-h-14 font-display text-lg font-semibold leading-snug tracking-tight text-journey-text">
+          <div className="mt-6 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <h3 ref={titleRef} className="line-clamp-2 font-display text-lg font-semibold leading-snug tracking-tight text-journey-text">
               {title}
             </h3>
-            <div ref={descriptionRef} className={`mt-2 line-clamp-3 min-h-16 text-[13px] leading-relaxed text-journey-muted ${descriptionClassName}`}>
+            <div
+              ref={descriptionRef}
+              className={`mt-2 min-h-0 overflow-hidden text-[13px] leading-relaxed text-journey-muted line-clamp-4 ${descriptionClassName}`}
+              style={{
+                display: '-webkit-box',
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: 4,
+              }}
+            >
               {description}
             </div>
           </div>
 
           {details && (
-            <>
+            <div className="mt-auto pt-3">
               <div className="my-2 h-px w-full bg-journey-text/10" />
               <div ref={detailsRef} className="text-[13px] text-journey-text/80">{details}</div>
-            </>
+            </div>
           )}
 
-          {footer && <div className="mt-auto flex flex-wrap items-center gap-2 pt-6">{footer}</div>}
+          {footer && <div className={`flex flex-nowrap items-center gap-2 ${details ? 'pt-4' : 'mt-auto pt-6'}`}>{footer}</div>}
         </div>
       </SpotlightCard>
     </div>

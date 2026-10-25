@@ -17,7 +17,6 @@ interface CardShowcaseProps {
 const CARD_WIDTH = 300;
 const CARD_GAP = 20;
 const STACK_PAGE_SIZE = 3;
-const STACK_CARD_HEIGHT = 460;
 const STACK_CARD_OVERLAP = 48;
 const STACK_CARD_ROTATION = 7;
 
@@ -105,7 +104,7 @@ const visibleCards = isMeasured
     const offset = direction * (expanded ? expandedStep : stackStep);
     const rotation = expanded ? 0 : -direction * STACK_CARD_ROTATION;
 
-    return `translate(-50%, 0px) translateX(${offset}px) rotate(${rotation}deg)`;
+    return `translateX(${offset}px) rotate(${rotation}deg)`;
   };
 
 useLayoutEffect(() => {
@@ -204,8 +203,7 @@ useLayoutEffect(() => {
           <div ref={containerRef} className="col-span-1 min-w-0">
             <div
               ref={stackRef}
-              className="relative mx-auto w-full touch-pan-y"
-              style={{ height: STACK_CARD_HEIGHT }}
+              className="relative mx-auto grid w-full touch-pan-y"
               onMouseLeave={resetStack}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
@@ -213,7 +211,7 @@ useLayoutEffect(() => {
               {visibleCards.map((card, index) => (
                 <div
                   key={`${page}-${index}`}
-                  className={`bounce-card bounce-card-${index} absolute left-1/2 top-0 h-full`}
+                  className={`bounce-card bounce-card-${index} col-start-1 row-start-1 justify-self-center`}
                   style={{
                     transform: `${getStackTransform(index, false)} translateY(${visibleCards.length === 3 && index !== 1 ? -20 : 0}px)`,
                     width: stackCardWidth,

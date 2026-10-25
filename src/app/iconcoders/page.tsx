@@ -88,7 +88,7 @@ export default async function IconCodersPage() {
           )}
         </div>
 
-        <div className="space-y-6">
+        {/*<div className="space-y-6">
           <SectionHeading icon={Award} title="Hall of Fame" />
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {hallOfFame.map((entry) => (
@@ -96,6 +96,7 @@ export default async function IconCodersPage() {
             ))}
           </div>
         </div>
+        */}
       </div>
     </div>
   );
