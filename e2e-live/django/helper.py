@@ -28,7 +28,7 @@ def emit(value):
 def create_user(args):
     user = User.objects.create_user(
         username=args.email.split('@')[0] + str(User.objects.count()), email=args.email, password=args.password,
-        first_name=args.first_name, role=args.role, branch='CSE', year=2,
+        first_name=args.first_name, role=args.role, branch='CSE', year=2, phone_number=args.phone or None,
     )
     if args.verified:
         user.email_verified_at = timezone.now()
@@ -131,6 +131,19 @@ def make_idea_hackathon(args):
     emit({'id': hack.pk, 'team': team.pk})
 
 
+def make_listing_hackathon(args):
+    """A live hackathon for the public list, with the description given on the command line (how the card shows it)."""
+    from datetime import timedelta
+    from apps.hackathons.models import Hackathon
+    now = timezone.now()
+    Hackathon.objects.update_or_create(slug=args.slug, defaults=dict(
+        title=args.title, theme=args.theme, description=args.description, prize_pool=args.prize,
+        start_date=now + timedelta(days=30), end_date=now + timedelta(days=31),
+        status='LIVE', min_team_size=1, max_team_size=3,
+    ))
+    emit({'ok': True})
+
+
 def idea_state(args):
     from apps.hackathons.models import IdeaSubmission
     idea = IdeaSubmission.objects.filter(team__hackathon__slug=args.slug).select_related('deck_file', 'payment_proof').first()
@@ -222,7 +235,7 @@ parser = argparse.ArgumentParser()
 sub = parser.add_subparsers(dest='command', required=True)
 p = sub.add_parser('create_user'); p.set_defaults(fn=create_user)
 p.add_argument('email'); p.add_argument('--password', default='Live!Pass123'); p.add_argument('--first-name', default='Dee')
-p.add_argument('--role', default='NON_AFFILIATE'); p.add_argument('--verified', action='store_true'); p.add_argument('--staff', action='store_true')
+p.add_argument('--role', default='NON_AFFILIATE'); p.add_argument('--verified', action='store_true'); p.add_argument('--staff', action='store_true'); p.add_argument('--phone', default='')
 p = sub.add_parser('set_deadline'); p.set_defaults(fn=set_deadline); p.add_argument('email'); p.add_argument('--days', type=float, required=True)
 p = sub.add_parser('get_user'); p.set_defaults(fn=get_user); p.add_argument('email')
 p = sub.add_parser('count_users'); p.set_defaults(fn=count_users); p.add_argument('email')
@@ -236,6 +249,8 @@ p = sub.add_parser('make_idea_hackathon'); p.set_defaults(fn=make_idea_hackathon
 p = sub.add_parser('idea_state'); p.set_defaults(fn=idea_state); p.add_argument('slug')
 p = sub.add_parser('user_profile'); p.set_defaults(fn=user_profile); p.add_argument('email')
 p = sub.add_parser('make_finder_hackathon'); p.set_defaults(fn=make_finder_hackathon); p.add_argument('slug'); p.add_argument('--leader', required=True); p.add_argument('--rounds', type=int, default=0)
+p = sub.add_parser('make_listing_hackathon'); p.set_defaults(fn=make_listing_hackathon); p.add_argument('slug'); p.add_argument('--description', required=True)
+p.add_argument('--title', default='Card Check'); p.add_argument('--theme', default='Futuristic'); p.add_argument('--prize', default='₹60,000')
 p = sub.add_parser('team_state'); p.set_defaults(fn=team_state); p.add_argument('slug')
 for name, fn in (('mailbox', mailbox), ('clear_mailbox', clear_mailbox), ('clear_cache', clear_cache)):
     sub.add_parser(name).set_defaults(fn=fn)

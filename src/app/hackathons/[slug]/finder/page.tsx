@@ -67,7 +67,7 @@ export default function TeamFinderPage() {
         <Link href={`/hackathons/${slug}/dashboard`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-journey-muted hover:text-journey-accent"><ArrowLeft className="h-4 w-4" /> Dashboard</Link>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-journey-text sm:text-3xl">Team finder</h1>
-          <p className="text-sm text-journey-muted">Find teammates, or let a team find you. Emails are never shown: leaders invite from here and you accept on your dashboard, or ask a team to take you in and its leader answers.</p>
+          <p className="text-sm text-journey-muted">Find teammates, or let a team find you. Emails are never shown, and your mobile number is shown only to team leaders: they can contact you before they invite you or accept your request. Leaders invite from here and you accept on your dashboard, or ask a team to take you in and its leader answers.</p>
         </div>
 
         {error && <p role="alert" className={`${PANEL} text-sm text-rose-500`}>{error}</p>}

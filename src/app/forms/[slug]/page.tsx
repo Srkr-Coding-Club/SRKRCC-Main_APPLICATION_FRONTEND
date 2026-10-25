@@ -9,6 +9,12 @@ import { getStoredUser, fetchAndSyncCurrentUser, AuthUser } from '@/lib/auth';
 import { displayCollegeName } from '@/lib/colleges';
 import { getConstraintHint, validateSubmission, validateFieldValue, getCrossFieldError } from '@/lib/formValidation';
 import { computeLayout, isFieldRequired } from '@/lib/formConditional';
+import {
+  sanitizeAffiliateIdInput,
+  sanitizeRollNumberInput,
+  validateAffiliateId,
+  validateRollNumber,
+} from '@/lib/validation/auth';
 import { nextReachable, pageIndexByField, pageProgress, previousReachable, settlePage } from '@/lib/formPages';
 import { clearFormBackup, useFormDraft } from '@/lib/hooks/useFormDraft';
 import FileUploadField from '@/components/forms/FileUploadField';
@@ -51,6 +57,7 @@ import {
   BottomGradient,
 } from '@/components/ui/InputField';
 import Portal from '@/components/ui/Portal';
+import { PageLoader } from '@/components/ui/LoadingSpinner';
 
 /**
  * Intelligent matcher that matches FormField definitions to authenticated student profile fields.
@@ -458,7 +465,7 @@ function ModernSelect({
         aria-describedby={ariaDescribedBy}
         className={`
           group flex w-full items-center justify-between
-          rounded-xl
+          rounded-2xl
           border
           bg-white dark:bg-[#101117]
           px-4 py-3.5
@@ -506,7 +513,7 @@ function ModernSelect({
             absolute left-0 right-0 top-[calc(100%+8px)]
             z-50
             overflow-hidden
-            rounded-xl
+            rounded-2xl
             glass-panel-solid
             p-1.5
             shadow-[0_12px_35px_rgba(0,0,0,0.12)]
@@ -523,7 +530,7 @@ function ModernSelect({
             onClick={() => handleSelect("")}
             className={`
               flex w-full items-center justify-between
-              rounded-lg
+              rounded-xl
               px-3 py-2.5
               text-left text-sm
               transition-colors duration-150
@@ -555,7 +562,7 @@ function ModernSelect({
                 onClick={() => handleSelect(option)}
                 className={`
                   flex w-full items-center justify-between
-                  rounded-lg
+                  rounded-xl
                   px-3 py-2.5
                   text-left text-sm
                   transition-all duration-150
@@ -767,6 +774,42 @@ function fieldReferencesTarget(f: FormField, targetId: number | string): boolean
     }
   }
   return false;
+}
+
+type MemberIdentifierKind = 'rollNumber' | 'clubId';
+
+function getMemberIdentifierKind(field: FormField): MemberIdentifierKind | null {
+  if (field.profile_field === 'roll_number') return 'rollNumber';
+  if (field.profile_field === 'club_id' || field.type === 'CLUB_ID') return 'clubId';
+
+  const label = field.label.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (/\b(club|affiliate)\s+(id|identifier)\b|\b(id|identifier)\s+(club|affiliate)\b/.test(label)) {
+    return 'clubId';
+  }
+  if (/\b(registration|reg|roll)\s+(number|no|id)\b|\broll\b/.test(label)) {
+    return 'rollNumber';
+  }
+  return null;
+}
+
+function sanitizeMemberIdentifier(field: FormField, value: any): any {
+  if (typeof value !== 'string') return value;
+  switch (getMemberIdentifierKind(field)) {
+    case 'rollNumber':
+      return sanitizeRollNumberInput(value);
+    case 'clubId':
+      return sanitizeAffiliateIdInput(value);
+    default:
+      return value;
+  }
+}
+
+function validateMemberIdentifier(field: FormField, value: any): string | undefined {
+  const kind = getMemberIdentifierKind(field);
+  if (!kind || value == null || String(value).trim() === '') return undefined;
+  return kind === 'rollNumber'
+    ? validateRollNumber(String(value))
+    : validateAffiliateId(String(value));
 }
 
 export default function FormDetailSubmissionPage() {
@@ -1168,6 +1211,7 @@ export default function FormDetailSubmissionPage() {
     const fieldId = field.id;
     if (isLockedToSingleExistingResponse) return; // Prevent edits when locked
 
+    value = sanitizeMemberIdentifier(field, value);
     const nextFormData = { ...formData, [String(fieldId)]: value };
     setFormData(nextFormData);
 
@@ -1197,7 +1241,10 @@ export default function FormDetailSubmissionPage() {
           const key = String(f.id);
           const val = nextFormData[key] ?? nextFormData[f.id as any];
           const required = isFieldRequired(f, nextLayout);
-          const message = validateFieldValue(f, val, required) || getCrossFieldError(f, allFields, nextFormData, nextLayout);
+          const message =
+            validateFieldValue(f, val, required) ||
+            validateMemberIdentifier(f, val) ||
+            getCrossFieldError(f, allFields, nextFormData, nextLayout);
           delete next[key];
           delete next[f.id as any];
           if (message) next[key] = message;
@@ -1213,11 +1260,17 @@ export default function FormDetailSubmissionPage() {
   // enough to call on every field in a long form, unlike a full re-validation.
   const handleFieldBlur = (field: FormField, value: any) => {
     const fieldId = String(field.id);
+    value = sanitizeMemberIdentifier(field, value);
+    const nextFormData = { ...formData, [fieldId]: value };
+    setFormData((prev) =>
+      prev[fieldId] === value ? prev : { ...prev, [fieldId]: value },
+    );
     setTouched((prev) => (prev[fieldId] ? prev : { ...prev, [fieldId]: true }));
     const required = isFieldRequired(field, layout);
     const message =
       validateFieldValue(field, value, required) ||
-      getCrossFieldError(field, (form?.fields as FormField[]) || [], formData, layout);
+      validateMemberIdentifier(field, value) ||
+      getCrossFieldError(field, (form?.fields as FormField[]) || [], nextFormData, layout);
     setErrors((prev) => {
       const next = { ...prev };
       delete next[field.id];
@@ -1360,15 +1413,38 @@ export default function FormDetailSubmissionPage() {
 
     // Client-side pre-check - mirrors the backend engine (conditional visibility,
     // required, type + rule + cross-field). The backend re-validates everything.
-    const { errors: clientErrors, payload } = validateSubmission(form.fields, formData);
-    if (clientErrors.length > 0) {
+    const normalizedFormData = { ...formData };
+    for (const field of form.fields) {
+      const key = String(field.id);
+      const value = normalizedFormData[key] ?? normalizedFormData[field.id as any];
+      if (value !== undefined) {
+        normalizedFormData[key] = sanitizeMemberIdentifier(field, value);
+      }
+    }
+    setFormData(normalizedFormData);
+
+    const { errors: clientErrors, layout: validationLayout, payload } = validateSubmission(form.fields, normalizedFormData);
+    const identifierErrors = form.fields.flatMap((field) => {
+      if (!validationLayout.visible.has(String(field.id))) return [];
+      const value = normalizedFormData[String(field.id)] ?? normalizedFormData[field.id as any];
+      const message = validateMemberIdentifier(field, value);
+      return message ? [{ fieldId: String(field.id), message }] : [];
+    });
+    if (clientErrors.length > 0 || identifierErrors.length > 0) {
       const map: Record<string, string> = {};
       for (const e of clientErrors) if (e.field_id != null && !map[String(e.field_id)]) map[String(e.field_id)] = e.message;
+      for (const error of identifierErrors) {
+        if (!map[error.fieldId]) map[error.fieldId] = error.message;
+      }
       setErrors(map);
-      const first = clientErrors[0];
-      toast.error('Please fix the highlighted fields', first.message);
-      // go to the first field with an error, on whichever page it is
-      if (first.field_id != null) focusField(first.field_id);
+      const firstClientError = clientErrors[0];
+      const firstIdentifierError = identifierErrors[0];
+      const firstMessage = firstClientError?.message || firstIdentifierError?.message || 'Please check your answers.';
+      const firstFieldId = firstClientError?.field_id != null
+        ? String(firstClientError.field_id)
+        : firstIdentifierError?.fieldId;
+      toast.error('Please fix the highlighted fields', firstMessage);
+      if (firstFieldId) focusField(firstFieldId);
       return;
     }
 
@@ -1456,35 +1532,36 @@ export default function FormDetailSubmissionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-20 text-center">
-        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-slate-500 text-xs font-semibold">Loading form definition...</p>
+      <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15]">
+        <PageLoader label="Loading form definition..." />
       </div>
     );
   }
 
   if (notFound || !form) {
     return (
-      <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-20 px-4 text-center">
-        <div className="max-w-md mx-auto p-8 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
-          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+      <main className="journey-type relative isolate flex min-h-[75vh] items-center justify-center overflow-hidden bg-journey-bg px-5 py-12 text-center sm:px-8 sm:py-16">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-dot-grid opacity-[0.12] [mask-image:radial-gradient(ellipse_at_center,#000,transparent_75%)] dark:opacity-[0.18]" />
+        <section className="relative w-full max-w-md space-y-5 overflow-hidden rounded-[28px] border border-journey-text/10 bg-journey-surface p-6 shadow-[0_24px_60px_-30px_rgba(30,41,59,0.35)] sm:p-8 dark:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)]">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgb(var(--journey-accent)/0.16),transparent)]" />
+          <div className="relative mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-journey-text/10 bg-journey-bg text-journey-muted">
             <FileText className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-black text-slate-900 dark:text-white">Form Not Found</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <h2 className="relative font-display text-2xl font-semibold tracking-tight text-journey-text sm:text-3xl">Form Not Found</h2>
+          <p className="relative mx-auto max-w-sm text-sm leading-relaxed text-journey-muted">
             The registration form you are looking for ({slug}) does not exist or has been removed.
           </p>
-          <div className="pt-2">
+          <div className="relative pt-1">
             <Link
               href="/forms"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow transition"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-journey-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface sm:w-auto"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Forms</span>
             </Link>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     );
   }
 
@@ -1496,32 +1573,41 @@ export default function FormDetailSubmissionPage() {
       {/* Login Required Modal Dialog */}
       {showLoginModal && !currentUser && (
         <Portal>
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
-            <div className="glass-panel rounded-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 text-center relative overflow-hidden">
-              <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-[#FF7A00] flex items-center justify-center mx-auto border border-orange-500/20">
-                <Lock className="w-7 h-7" />
+          <div className="journey-type scrollbar-hide fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-md animate-in fade-in duration-200 sm:p-6">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="login-required-title"
+              className="relative isolate w-full max-w-md rounded-[28px] border border-journey-text/10 bg-journey-surface p-5 text-center shadow-[0_24px_60px_-10px_rgba(0,0,0,0.45)] sm:p-8"
+            >
+              <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgb(var(--journey-accent)/0.18),transparent)]" />
+              <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-journey-accent/20 bg-journey-accent/10 text-journey-accent sm:h-16 sm:w-16">
+                <Lock className="h-7 w-7" />
               </div>
 
-              <div className="space-y-2">
-                <h3 className="text-xl font-black text-slate-900 dark:text-white">Sign In to Fill This Form</h3>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  You must be logged in with your college account to submit responses for <strong className="text-slate-900 dark:text-white">{form.title}</strong>.
+              <div className="relative mt-5 space-y-3">
+                <span className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-journey-accent">Account required</span>
+                <h3 id="login-required-title" className="font-display text-xl font-semibold leading-tight tracking-tight text-journey-text sm:text-2xl">
+                  Sign in to fill this form
+                </h3>
+                <p className="mx-auto max-w-sm text-sm leading-relaxed text-journey-muted">
+                  You must be logged in with your college account to submit responses for{' '}
+                  <strong className="font-semibold text-journey-text">{form.title}</strong>.
                 </p>
               </div>
 
-              <div className="pt-2 space-y-2.5">
+              <div className="relative mt-6 space-y-3">
                 <Link
                   href={`/login?next=/forms/${slug}`}
-                  className="group/btn relative w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-journey-accent px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
                 >
-                  <span>Click Here to Sign In</span>
+                  <span>Sign in to continue</span>
                   <ArrowRight className="w-4 h-4" />
-                  <BottomGradient />
                 </Link>
 
                 <Link
                   href={`/signup?next=/forms/${slug}`}
-                  className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-journey-text/15 bg-journey-bg/70 px-4 py-2.5 text-sm font-semibold text-journey-text transition hover:border-journey-accent/40 hover:bg-journey-accent/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
                 >
                   Create New Account
                 </Link>
@@ -1530,7 +1616,7 @@ export default function FormDetailSubmissionPage() {
               <button
                 type="button"
                 onClick={() => setShowLoginModal(false)}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition active:scale-95"
+                className="relative mt-4 inline-flex min-h-11 items-center justify-center rounded-full px-4 text-sm font-medium text-journey-muted transition hover:bg-journey-bg/70 hover:text-journey-text focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent active:scale-95"
               >
                 Continue in preview mode
               </button>
@@ -1545,7 +1631,7 @@ export default function FormDetailSubmissionPage() {
         <div>
           <Link
             href="/forms"
-            className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#FF7A00] px-4 py-2 rounded-lg glass-panel border border-slate-200 dark:border-slate-800 shadow-sm transition"
+            className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#FF7A00] px-4 py-2 rounded-full glass-panel border border-slate-200 dark:border-slate-800 shadow-sm transition"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Forms Center</span>
@@ -1565,22 +1651,17 @@ export default function FormDetailSubmissionPage() {
           />
         ) : (
           /* Form Content Card - shadow-input styling to match Aceternity's signup-form card */
-          <div className="relative glass-panel rounded-none md:rounded-2xl p-6 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] space-y-8">
+          <div className="relative glass-panel rounded-[28px] p-5 sm:p-10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] space-y-8">
             {/* Glow behind the glass panel - see the matching comment on the
                 success card above for why this is needed at all. */}
             <div
               className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-70 blur-2xl hidden md:block"
               style={{ background: 'radial-gradient(circle at 50% 10%, #FF7A0033, transparent 70%)' }}
             />
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-0.5 rounded-t-2xl"
-              style={{ background: 'linear-gradient(90deg, #8B2E3B66, #FF7A00, #8B2E3B66)' }}
-            />
-
             {/* Header */}
             <div className="border-b border-slate-100 dark:border-slate-800 pb-6 space-y-4">
               <div className="flex items-center space-x-3">
-                <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]">
+                <div className="p-3 rounded-2xl bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]">
                   <FileText className="w-6 h-6" />
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1A1A2E] dark:text-white">
@@ -1596,7 +1677,7 @@ export default function FormDetailSubmissionPage() {
               {/* Authentication Status Banner */}
               {currentUser ? (
                 <div className="space-y-3">
-                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 flex items-center justify-between text-xs">
+                  <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
                       <UserCheck className="w-4 h-4 flex-shrink-0" />
                       <span>Submitting as verified user: <strong className="text-emerald-900 dark:text-white">{currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser.username || currentUser.email}</strong> ({currentUser.email})</span>
@@ -1609,19 +1690,19 @@ export default function FormDetailSubmissionPage() {
                       just a normal, independent new submission. */}
                   {hasSubmitted && form?.allow_multiple_responses !== true && (
                     canEditResponse ? (
-                      <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 flex items-start gap-3">
-                        <Edit3 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div className="p-4 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/40 flex items-start gap-3">
+                        <Edit3 className="w-5 h-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
-                          <p className="font-bold text-blue-800 dark:text-blue-300">
+                          <p className="font-bold text-orange-800 dark:text-orange-300">
                             Response Edit Mode Active
                           </p>
-                          <p className="text-blue-700/80 dark:text-blue-300/80">
+                          <p className="text-orange-800/80 dark:text-orange-200/80">
                             You previously submitted this form on {existingResponse?.submitted_at ? new Date(existingResponse.submitted_at).toLocaleString('en-IN') : 'earlier'}. You can update your answers below and click <strong>Update Response</strong> to save your changes.
                           </p>
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
+                      <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
                         <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
                           <p className="font-bold text-amber-800 dark:text-amber-300">
@@ -1642,7 +1723,7 @@ export default function FormDetailSubmissionPage() {
                   )}
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <Lock className="w-5 h-5 text-[#FF7A00] flex-shrink-0" />
                     <div className="text-xs">
@@ -1652,7 +1733,7 @@ export default function FormDetailSubmissionPage() {
                   </div>
                   <Link
                     href={`/login?next=/forms/${slug}`}
-                    className="px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs whitespace-nowrap shadow transition text-center"
+                    className="px-4 py-2 rounded-full bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs whitespace-nowrap shadow transition text-center"
                   >
                     Click Here to Log In
                   </Link>
@@ -1660,7 +1741,7 @@ export default function FormDetailSubmissionPage() {
               )}
 
               {submissionError && (
-                <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-start gap-3">
+                <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-500 flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-rose-800 dark:text-rose-300">
                     <p className="font-bold text-rose-700 dark:text-rose-400">Submission Notice</p>
@@ -1680,7 +1761,7 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'DRAFT') {
                   return (
-                    <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
+                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
                       <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
                       <div className="text-xs text-amber-800 dark:text-amber-300">
                         <p className="font-bold">Draft Preview Mode</p>
@@ -1692,7 +1773,7 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'CLOSED' || isAfterClose) {
                   return (
-                    <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-start gap-3">
+                    <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-start gap-3">
                       <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-500 flex-shrink-0 mt-0.5" />
                       <div className="text-xs text-rose-800 dark:text-rose-300">
                         <p className="font-bold">Submissions Closed</p>
@@ -1708,7 +1789,7 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'SCHEDULED' && isBeforeOpen) {
                   return (
-                    <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 flex items-start gap-3">
+                    <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 flex items-start gap-3">
                       <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                       <div className="text-xs text-blue-800 dark:text-blue-300">
                         <p className="font-bold">Scheduled Launch Window</p>
@@ -1723,7 +1804,7 @@ export default function FormDetailSubmissionPage() {
 
                 if (form.status === 'SCHEDULED' && !isBeforeOpen && !isAfterClose) {
                   return (
-                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 flex items-start gap-3">
+                    <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                       <div className="text-xs text-emerald-800 dark:text-emerald-300">
                         <p className="font-bold">Scheduled Window Live</p>
@@ -1741,7 +1822,7 @@ export default function FormDetailSubmissionPage() {
             </div>
 
             {/* Form Fields */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 [&_input]:!rounded-2xl [&_textarea]:!rounded-2xl [&_select]:!rounded-2xl">
               {(multiPage || draft.status !== 'idle') && (
                 <div id="form-page-top" className="space-y-2 scroll-mt-24">
                   <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-500 dark:text-slate-400">
@@ -1868,7 +1949,7 @@ export default function FormDetailSubmissionPage() {
                   return (
                     <div
                       key={field.id}
-                      className={`flex w-full flex-col space-y-1.5 rounded-lg border px-3.5 py-2.5 ${
+                      className={`flex w-full flex-col space-y-1.5 rounded-2xl border px-3.5 py-2.5 ${
                         isMissing
                           ? 'border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/30'
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40'
@@ -2274,7 +2355,7 @@ export default function FormDetailSubmissionPage() {
                       />
                     )}
                     {(field.type === 'FILE' || field.type === 'MULTI_FILE') && !uploadConfig.direct_upload && (
-                      <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-center bg-[#FAFAFC] dark:bg-[#0D0E15] hover:border-[#FF7A00]/50 transition">
+                      <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center bg-[#FAFAFC] dark:bg-[#0D0E15] hover:border-[#FF7A00]/50 transition">
                         <Upload className="w-8 h-8 text-[#FF7A00] mx-auto mb-2" />
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                           Drag & drop {field.type === 'MULTI_FILE' ? 'files' : 'a file'} or click to select
@@ -2576,7 +2657,7 @@ export default function FormDetailSubmissionPage() {
                       <button
                         type="button"
                         onClick={() => setShowLoginModal(true)}
-                        className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98]"
+                        className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98]"
                       >
                         <Lock className="w-4 h-4" />
                         <span>{t('signInButton')}</span>
@@ -2596,7 +2677,7 @@ export default function FormDetailSubmissionPage() {
                       <button
                         type="button"
                         disabled={true}
-                        className="inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-slate-800 text-slate-400 font-extrabold text-sm shadow-sm opacity-60 cursor-not-allowed"
+                        className="inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-slate-800 text-slate-400 font-extrabold text-sm shadow-sm opacity-60 cursor-not-allowed"
                       >
                         <Lock className="w-4 h-4" />
                         <span>{t('alreadySubmittedButton')}</span>
@@ -2625,7 +2706,7 @@ export default function FormDetailSubmissionPage() {
                       </p>
                       <Link
                         href="/profile"
-                        className="inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-sm transition active:scale-[0.98]"
+                        className="inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-sm transition active:scale-[0.98]"
                       >
                         <span>Update Your Profile</span>
                       </Link>
@@ -2676,7 +2757,7 @@ export default function FormDetailSubmissionPage() {
                       key="submit-form"
                       type="submit"
                       disabled={isSubmitting || anyUploading || isClosed || isBeforeOpen || cooldown > 0 || verifyLocked || (!!form.captcha_enabled && !isEditMode && !captchaToken)}
-                      className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <span>
                         {cooldown > 0

@@ -221,7 +221,7 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
               {fieldError('linkedin_url')}
             </div>
             <div className="space-y-1.5">
-              <FieldLabel htmlFor="idea-deck">Slides link (optional)</FieldLabel>
+              <FieldLabel htmlFor="idea-deck">Slides link </FieldLabel>
               <SpotlightInput id="idea-deck" type="url" value={draft.deck_url} onChange={(e) => set('deck_url', e.target.value)} placeholder="https://…" hasError={!!errors.deck_url} />
               {fieldError('deck_url')}
             </div>
