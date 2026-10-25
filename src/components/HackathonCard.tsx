@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Calendar, ArrowRight, ArrowUpRight, Trophy, Users } from 'lucide-react';
 import { Hackathon } from '@/lib/types';
-import { toPlainPreview } from '@/lib/markdownPreview';
+import { markdownToPreview } from '@/lib/utils';
 import PublicListingCard from '@/components/PublicListingCard';
 
 interface HackathonCardProps {
@@ -53,7 +53,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
         </>
       }
       title={hackathon.title}
-      description={toPlainPreview(hackathon.description)}
+      description={markdownToPreview(hackathon.description)}
       details={
         <div className="grid gap-2.5">
           <p className="line-clamp-1 font-medium"><span className="font-bold uppercase tracking-wide text-journey-muted">Theme:</span> {hackathon.theme}</p>
@@ -74,21 +74,21 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
           <Link
             href={detailHref}
             aria-label={`View details for ${hackathon.title}`}
-            className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-journey-text/10 px-3 py-2.5 text-[12px] font-semibold text-journey-text/80 transition hover:text-journey-text"
+            className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-journey-text/10 px-2 py-2.5 text-[11px] font-semibold text-journey-text/80 transition hover:text-journey-text sm:px-3 sm:text-[12px]"
           >
             Details
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
           {!registrationOpen ? (
-            <span className="inline-flex flex-1 items-center justify-center rounded-lg bg-journey-text/10 px-3 py-2.5 text-[12px] font-semibold text-journey-muted">
+            <span className="inline-flex min-w-0 flex-1 items-center justify-center rounded-lg bg-journey-text/10 px-2 py-2.5 text-center text-[10px] font-semibold leading-tight text-journey-muted sm:px-3 sm:text-[12px]">
               {notYetOpen ? 'Registration opens soon' : 'Registration Closed'}
             </span>
           ) : (
             <Link
               href={detailHref}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 bg-journey-accent"
+              className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-accent px-2 py-2.5 text-[10px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 sm:px-3 sm:text-[12px]"
             >
-              <Trophy className="h-3 w-3" />
+              <Trophy className="h-3 w-3 hidden sm:block" />
               Register Team
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>

@@ -5,6 +5,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function markdownToPreview(markdown: string): string {
+  return markdown
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/gm, " ")
+    .replace(/^\s*\|(.+)\|\s*$/gm, (_match, row: string) => row.split("|").join(" "))
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^\s*(#{1,6}|>|[-*]|\d+\.)\s+/gm, "")
+    .replace(/[*_`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /**
  * Some legacy form image_url records have an erroneous "https://" prefix
  * concatenated onto what is actually a data: URI (e.g. from an older upload

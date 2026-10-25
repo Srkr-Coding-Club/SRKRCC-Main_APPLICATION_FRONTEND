@@ -183,14 +183,13 @@ export default function Footer() {
               <button
                 type="button"
                 onClick={() => {
-                  // Clears the "seen it this week" flag so the home page plays the intro again.
                   resetIntroSeen();
                   window.location.href = '/';
                 }}
                 className="flex min-h-8 items-center gap-1.5 py-1.5 font-mono text-[11px] text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] transition-colors"
               >
-                <RotateCcw className="w-3 h-3" />
-                Experience the intro again
+                <RotateCcw className="w-3 h-3 flex-shrink-0" />
+                <span>Experience the intro again</span>
               </button>
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

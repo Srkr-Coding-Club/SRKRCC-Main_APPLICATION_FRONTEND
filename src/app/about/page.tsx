@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
@@ -18,7 +17,6 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import PageHero from '@/components/PageHero';
-import SectionHeading from '@/components/SectionHeading';
 import ScrollReveal from '@/components/ScrollReveal';
 import AlumniCarousel from '@/components/AlumniCarousel';
 
@@ -32,25 +30,21 @@ const VALUES = [
   {
     icon: Code2,
     title: 'Learn',
-    accent: '#8B2E3B',
     desc: 'Curiosity becomes capability. We run hands-on sessions on fundamentals, development, and emerging tech, open to every branch and every skill level.',
   },
   {
     icon: Rocket,
     title: 'Build',
-    accent: '#FF7A00',
     desc: 'Ideas become something real. From small experiments to ambitious products, members turn concepts into working software they can show and ship.',
   },
   {
     icon: Handshake,
     title: 'Collaborate',
-    accent: '#FFA500',
     desc: 'Better things are built together. We connect students, developers, and creators to share knowledge, review each other’s work, and solve problems as a team.',
   },
   {
     icon: Lightbulb,
     title: 'Innovate',
-    accent: '#C2410C',
     desc: 'Think beyond what already exists. We encourage experimentation, creative thinking, and bold ideas that can grow into meaningful solutions.',
   },
 ];
@@ -102,31 +96,31 @@ const FACTS = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+    <div className="journey-type min-h-screen bg-journey-bg py-8 transition-colors duration-300 sm:py-12">
+      <div className="mx-auto max-w-6xl space-y-16 px-5 sm:px-8">
         <PageHero
-          icon={<Users className="h-4 w-4 text-[#FF7A00]" />}
+          icon={<Users className="h-4 w-4" />}
           eyebrow="SRKR CODING CLUB · ABOUT"
           title="Built by students, for students"
           description="We are a student developer community at SRKR Engineering College. Our goal is simple: give every student a place to learn to code, build things that matter, and grow alongside people chasing the same thing."
         />
 
-        <ScrollReveal className="space-y-16">
+        <ScrollReveal className="space-y-20 sm:space-y-28">
           {/* Our story */}
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center" data-reveal>
+          <section className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-16" data-reveal>
             <div className="space-y-5">
-              <span className="block text-xs font-bold tracking-[0.3em] text-[#FF7A00] uppercase">
+              <span className="block font-mono text-xs font-medium uppercase tracking-[0.18em] text-journey-accent">
                 Our Story
               </span>
-              <h2 className="font-poppins font-extrabold leading-tight tracking-tight text-3xl sm:text-4xl text-[#1A1A2E] dark:text-white">
+              <h2 className="max-w-[18ch] font-display text-[clamp(2rem,4.2vw,3.3rem)] font-semibold leading-[1.02] tracking-[-0.025em] text-journey-text [font-stretch:112%]">
                 From a small group of curious coders to a{' '}
-                <span className="ember-text">campus-wide community</span>
+                <span className="text-journey-accent">campus-wide community</span>
               </h2>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+              <p className="max-w-[52ch] text-base leading-relaxed text-journey-muted sm:text-lg">
                 The SRKR Coding Club started with a handful of students who wanted a space to build
                 together outside the classroom. That idea hasn&apos;t changed. It has just grown.
               </p>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+              <p className="max-w-[52ch] text-base leading-relaxed text-journey-muted sm:text-lg">
                 Today the club runs workshops, hackathons, a daily problem challenge, a technical blog,
                 and a career hub, all on one platform that members and organisers use every week. We
                 stay deliberately open: no entry test, no fees to participate, and every branch is
@@ -136,9 +130,9 @@ export default function AboutPage() {
                 {FACTS.map((f) => (
                   <span
                     key={f.label}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-800 glass-panel px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300"
+                    className="inline-flex items-center gap-2 rounded-full border border-journey-text/10 bg-journey-surface/70 px-3.5 py-2 text-xs font-medium text-journey-text"
                   >
-                    <f.icon className="w-3.5 h-3.5 text-[#FF7A00]" />
+                    <f.icon className="h-3.5 w-3.5 shrink-0 text-journey-accent" />
                     {f.label}
                   </span>
                 ))}
@@ -146,15 +140,9 @@ export default function AboutPage() {
             </div>
 
             <div className="relative">
-              <div
-                className="absolute -inset-4 sm:-inset-6 rounded-[10px] blur-2xl opacity-70 pointer-events-none"
-                style={{ background: 'radial-gradient(closest-side, var(--glow-mid), transparent)' }}
-              />
-              <div
-                className="relative z-10 p-[2px] rounded-[10px]"
-                style={{ background: 'linear-gradient(135deg, #FFA500, #FF7A00 45%, #8B2E3B 85%)' }}
-              >
-                <div className="relative h-[320px] sm:h-[400px] overflow-hidden rounded-[10px] glass-panel">
+              <div className="absolute -inset-4 rounded-[32px] bg-[radial-gradient(closest-side,rgb(var(--journey-accent)/0.2),transparent)] blur-2xl sm:-inset-6" />
+              <div className="relative overflow-hidden rounded-[28px] border border-journey-text/10 bg-journey-surface p-2 shadow-[0_20px_45px_-28px_rgba(30,41,59,0.35)] dark:shadow-[0_20px_45px_-28px_rgba(0,0,0,0.8)]">
+                <div className="relative h-64 overflow-hidden rounded-[20px] bg-journey-bg sm:h-[400px]">
                   <Image
                     src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1000&q=80"
                     alt="Students working together at laptops"
@@ -162,10 +150,7 @@ export default function AboutPage() {
                     sizes="(min-width: 1024px) 50vw, 100vw"
                     className="object-cover"
                   />
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-0 bg-gradient-to-tr from-[#1A1A2E]/40 via-transparent to-transparent"
-                  />
+                  <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-tr from-slate-950/40 via-transparent to-transparent" />
                 </div>
               </div>
             </div>
@@ -173,28 +158,30 @@ export default function AboutPage() {
 
           {/* What we believe */}
           <section className="space-y-8" data-reveal>
-            <SectionHeading
-              icon={Sparkles}
-              eyebrow="What We Believe"
-              title="Four things we optimise for"
-              description="Every event, challenge, and project the club runs comes back to one of these."
-            />
-            <div className="grid grid-cols-2 gap-3 sm:gap-5">
+            <div className="max-w-2xl space-y-3">
+              <span className="block font-mono text-xs font-medium uppercase tracking-[0.18em] text-journey-accent">What We Believe</span>
+              <h2 className="font-display text-[clamp(1.8rem,3.6vw,2.7rem)] font-semibold leading-tight tracking-[-0.025em] text-journey-text [font-stretch:112%]">
+                Four things we optimise for
+              </h2>
+              <p className="text-base leading-relaxed text-journey-muted">
+                Every event, challenge, and project the club runs comes back to one of these.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
               {VALUES.map((v) => (
                 <div
                   key={v.title}
-                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 glass-panel p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow"
+                  className="group relative overflow-hidden rounded-[24px] border border-journey-text/10 bg-journey-surface/60 p-5 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_20px_45px_-28px_rgba(30,41,59,0.35)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-journey-accent/30 hover:shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_26px_55px_-26px_rgba(255,122,0,0.22)] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset,0_20px_45px_-28px_rgba(0,0,0,0.8)] sm:p-6"
                 >
                   <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                    style={{ backgroundColor: `${v.accent}1A`, color: v.accent }}
+                    className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-journey-accent/20 bg-journey-accent/10 text-journey-accent"
                   >
                     <v.icon className="w-5 h-5" />
                   </div>
-                  <h3 className="font-poppins font-bold text-lg text-[#1A1A2E] dark:text-white">
+                  <h3 className="font-display text-xl font-semibold tracking-tight text-journey-text">
                     {v.title}
                   </h3>
-                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <p className="mt-2 text-sm leading-relaxed text-journey-muted sm:text-base">
                     {v.desc}
                   </p>
                 </div>
@@ -204,29 +191,32 @@ export default function AboutPage() {
 
           {/* What we run */}
           <section className="space-y-8" data-reveal>
-            <SectionHeading
-              icon={Rocket}
-              eyebrow="What We Run"
-              title="One club, six ways to get involved"
-              description="Pick whichever fits how you like to learn, or do all of them."
-            />
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+            <div className="max-w-2xl space-y-3">
+              <span className="block font-mono text-xs font-medium uppercase tracking-[0.18em] text-journey-accent">What We Run</span>
+              <h2 className="font-display text-[clamp(1.8rem,3.6vw,2.7rem)] font-semibold leading-tight tracking-[-0.025em] text-journey-text [font-stretch:112%]">
+                One club, six ways to get involved
+              </h2>
+              <p className="text-base leading-relaxed text-journey-muted">
+                Pick whichever fits how you like to learn, or do all of them.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
               {MODULES.map((m) => (
                 <Link
                   key={m.title}
                   href={m.href}
-                  className="group rounded-2xl border border-slate-200 dark:border-slate-800 glass-panel p-4 sm:p-6 shadow-sm hover:shadow-md hover:border-[#FF7A00]/40 transition-all flex flex-col"
+                  className="group flex flex-col rounded-[24px] border border-journey-text/10 bg-journey-surface/60 p-5 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_20px_45px_-28px_rgba(30,41,59,0.35)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-journey-accent/30 hover:shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_26px_55px_-26px_rgba(255,122,0,0.22)] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset,0_20px_45px_-28px_rgba(0,0,0,0.8)] sm:p-6"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00] flex items-center justify-center mb-4">
+                  <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl border border-journey-accent/20 bg-journey-accent/10 text-journey-accent">
                     <m.icon className="w-5 h-5" />
                   </div>
-                  <h3 className="font-poppins font-bold text-base text-[#1A1A2E] dark:text-white group-hover:text-[#FF7A00] transition-colors">
+                  <h3 className="font-display text-lg font-semibold tracking-tight text-journey-text transition-colors group-hover:text-journey-accent">
                     {m.title}
                   </h3>
-                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed flex-1">
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-journey-muted sm:text-base">
                     {m.desc}
                   </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#FF7A00]">
+                  <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-journey-accent">
                     Explore
                     <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                   </span>
@@ -240,29 +230,31 @@ export default function AboutPage() {
 
           {/* CTA */}
           <section
-            className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#1A1A2E] via-[#8B2E3B] to-[#FF7A00] p-8 sm:p-12 text-white"
+            className="relative isolate overflow-hidden rounded-[28px] border border-journey-text/10 bg-journey-surface px-6 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12"
             data-reveal
           >
-            <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-36 h-[28rem] w-[34rem] rounded-full bg-[radial-gradient(closest-side,rgb(var(--journey-accent)/0.18),transparent)]" />
+            <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-px w-2/3 bg-gradient-to-r from-journey-accent/60 to-transparent" />
             <div className="relative z-10 max-w-2xl space-y-4">
-              <h2 className="font-poppins font-extrabold text-2xl sm:text-3xl tracking-tight">
+              <span className="block font-mono text-xs font-medium uppercase tracking-[0.18em] text-journey-accent">Your Turn</span>
+              <h2 className="font-display text-[clamp(2rem,4.2vw,3.3rem)] font-semibold leading-[1.02] tracking-[-0.025em] text-journey-text [font-stretch:112%]">
                 Want in?
               </h2>
-              <p className="text-sm sm:text-base text-slate-200 leading-relaxed">
+              <p className="text-base leading-relaxed text-journey-muted sm:text-lg">
                 Membership is open to every SRKR student. Join the club, come to an event, and start
                 building with people who are into the same things you are.
               </p>
-              <div className="flex flex-wrap gap-3 pt-2">
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:flex-wrap">
                 <Link
                   href="/signup"
-                  className="inline-flex items-center gap-2 rounded-full bg-white text-[#1A1A2E] font-bold text-sm px-5 py-2.5 hover:bg-slate-100 transition"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-journey-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
                 >
                   Join the Club
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
                   href="/events"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/40 text-white font-bold text-sm px-5 py-2.5 hover:bg-white/10 transition"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-journey-text/20 px-5 py-2.5 text-sm font-semibold text-journey-text transition hover:border-journey-accent/40 hover:bg-journey-accent/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
                 >
                   See Upcoming Events
                 </Link>

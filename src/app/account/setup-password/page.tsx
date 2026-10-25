@@ -195,6 +195,8 @@ function SetupPasswordContent() {
       eyebrow="Account Activation"
       title="Establish Your Password"
       subtitle="Activate your SRKR Coding Club account and get access to workshops, hackathons, and Codequest."
+      illustrationSrc="/Loginn.svg"
+      illustrationAlt="Secure password setup illustration"
       features={[
         { icon: ShieldCheck, text: 'Cryptographically secured single-use setup link' },
         { icon: KeyRound, text: 'Your password is never stored or transmitted in plain text' },

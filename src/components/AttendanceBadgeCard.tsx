@@ -60,9 +60,9 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 glass-panel p-6 text-center">
-        <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-xs text-slate-400">Loading your attendance pass…</p>
+      <div className="rounded-[24px] border border-journey-text/10 bg-journey-surface/70 p-6 text-center">
+        <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-journey-accent border-t-transparent" />
+        <p className="text-sm text-journey-muted">Loading your attendance pass…</p>
       </div>
     );
   }
@@ -72,8 +72,8 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
   // empty modal would look broken rather than "no badge available."
   if (error) {
     return (
-      <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 p-6 text-center">
-        <p className="text-xs font-semibold text-rose-600 dark:text-rose-300">{error}</p>
+      <div className="rounded-[24px] border border-journey-live/20 bg-journey-live/5 p-5 text-center sm:p-6">
+        <p className="text-sm font-medium text-journey-live">{error}</p>
       </div>
     );
   }
@@ -82,30 +82,31 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-orange-200 dark:border-orange-900/50 bg-gradient-to-b from-orange-50/60 to-white dark:from-orange-950/20 dark:to-[#151722] p-6 sm:p-8 text-center space-y-4">
-        <div className="flex items-center justify-center gap-2 text-[#FF7A00]">
-          <QrCode className="w-5 h-5" />
-          <h3 className="text-sm font-black uppercase tracking-widest">Your Attendance Pass</h3>
+      <div className="relative isolate space-y-4 overflow-hidden rounded-[24px] border border-journey-text/10 bg-journey-surface px-4 py-6 text-center shadow-[0_20px_45px_-30px_rgba(30,41,59,0.35)] sm:p-8 dark:shadow-[0_20px_45px_-30px_rgba(0,0,0,0.8)]">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 -z-10 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgb(var(--journey-accent)/0.16),transparent)]" />
+        <div className="flex flex-wrap items-center justify-center gap-2 text-journey-accent">
+          <QrCode className="h-5 w-5 shrink-0" />
+          <h3 className="font-display text-sm font-semibold uppercase tracking-[0.14em] sm:text-base">Your Attendance Pass</h3>
         </div>
-        <div className="inline-block p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-          <QRCodeSVG value={badge.token} size={192} level="M" includeMargin={false} />
+        <div className="inline-block max-w-full rounded-2xl border border-journey-text/10 bg-white p-3 shadow-sm sm:p-4">
+          <QRCodeSVG value={badge.token} size={192} level="M" includeMargin={false} className="h-auto max-w-full" />
         </div>
         {registrantName && (
-          <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{registrantName}</p>
+          <p className="break-words font-display text-base font-semibold text-journey-text sm:text-lg">{registrantName}</p>
         )}
-        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+        <p className="mx-auto max-w-sm text-sm leading-relaxed text-journey-muted">
           Show this QR code at check-in for each session. It stays the same for every day, so there is no need to reload or
           re-download it.
         </p>
       </div>
 
       {record && record.total_sessions > 0 && (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 glass-panel p-5 text-left space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+        <div className="space-y-3 rounded-[24px] border border-journey-text/10 bg-journey-surface/70 p-4 text-left sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h4 className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-journey-muted">
               Your Attendance
             </h4>
-            <span className="text-xs font-bold text-[#1A1A2E] dark:text-white">
+            <span className="text-sm font-semibold text-journey-text">
               {record.attended_count}/{record.total_sessions} sessions · {record.percentage}%
             </span>
           </div>
@@ -113,21 +114,21 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
             {record.sessions.map((s) => (
               <div
                 key={s.id}
-                className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+                className={`flex flex-col gap-2 rounded-xl border border-journey-text/5 px-3 py-3 text-xs font-medium sm:flex-row sm:items-center sm:justify-between ${
                   s.attended
-                    ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-slate-50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400'
+                    ? 'bg-journey-live/5 text-journey-live'
+                    : 'bg-journey-bg/70 text-journey-muted'
                 }`}
               >
-                <span className="flex items-center gap-2">
+                <span className="flex min-w-0 items-start gap-2">
                   {s.attended ? (
                     <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   ) : (
                     <Circle className="w-4 h-4 flex-shrink-0 opacity-50" />
                   )}
-                  Day {s.day_index + 1} · {s.session_label_display}
+                  <span className="min-w-0 break-words">Day {s.day_index + 1} · {s.session_label_display}</span>
                 </span>
-                <span className="text-[11px] opacity-80">
+                <span className="pl-6 text-[11px] opacity-80 sm:pl-0 sm:text-right">
                   {new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
               </div>
