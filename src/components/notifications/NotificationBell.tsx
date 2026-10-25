@@ -247,7 +247,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
 
       {/* Dropdown Popover */}
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-[340px] sm:w-[400px] overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0E1017]/95 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-x-3 top-full z-50 mt-2 sm:absolute sm:inset-x-auto sm:right-0 sm:w-[400px] overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0E1017]/95 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
           {/* Top gradient hairline */}
           <div className="h-[2px] w-full bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500]" />
 

@@ -120,6 +120,7 @@ def make_idea_hackathon(args):
     hack, _ = Hackathon.objects.get_or_create(slug=args.slug, defaults=dict(
         title='Idea Storm', theme='t', description='d', start_date=now + timedelta(days=20), end_date=now + timedelta(days=21),
         status='LIVE', min_team_size=1, max_team_size=3, features={'ideas': True, 'judging': True},
+        mode='HYBRID', venue='SRKR Engineering College', tags=['AI', 'App development', 'IOT'],
         idea_deadline=now + timedelta(days=10), idea_review_required=True,
     ))
     leader = User.objects.get(email__iexact=args.leader)
