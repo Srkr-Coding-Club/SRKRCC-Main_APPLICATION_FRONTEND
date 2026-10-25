@@ -2,6 +2,7 @@
 
 import { UsersTab } from '@/components/admin/UsersTab';
 import { CreateUserModal } from '@/components/admin/CreateUserModal';
+import { EMPTY_NEW_USER } from '@/lib/adminUserForm';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +43,7 @@ export default function AdminUsersPage() {
 
         <CreateUserModal
           isOpen={showCreateUserModal}
-          onClose={() => setShowCreateUserModal(false)}
+          onClose={() => { setShowCreateUserModal(false); setNewUser(EMPTY_NEW_USER); }}
           onSubmit={handleCreateUser}
           newUser={newUser}
           setNewUser={setNewUser}

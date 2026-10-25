@@ -143,17 +143,21 @@ test('with editing switched off the leader is locked out and told why; switching
   await signIn(page, leader);
   await page.goto(`/hackathons/${SLUG}/dashboard`);
   await expect(page.getByText(/switched off editing/)).toBeVisible();
-  await expect(page.getByRole('button', { name: /Save changes|Submit idea/ })).toHaveCount(0);
+  await expect(page.getByRole('article', { name: 'Your submission' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Edit submission|Save changes|Submit idea/ })).toHaveCount(0);
   await expect(page.getByText('Transaction ID: UPI-884213')).toBeVisible();
   await expect(page.getByRole('button', { name: /payment\.png/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /bins\.pptx/ })).toBeVisible();
 
   await setEditing(true);
   await page.reload();
+  await expect(page.getByRole('article', { name: 'Your submission' })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit submission' }).click();
   await expect(page.getByRole('button', { name: 'Save changes' })).toBeVisible();
   await page.getByLabel(/The plan/).fill('Week 1: sensors. Week 2: app.');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Idea sent for review')).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Your submission' })).toContainText('Week 2: app.');
   await organizer.close();
 });
 

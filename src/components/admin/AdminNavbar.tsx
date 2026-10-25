@@ -177,7 +177,8 @@ export default function AdminNavbar() {
       <div className="h-[2px] w-full bg-gradient-to-r from-[#8B2E3B] via-[#FF7A00] to-[#FFA500]" />
 
       <div className="max-w-[1600px] mx-auto px-5 sm:px-8">
-        <div className={`flex items-center justify-between gap-4 transition-all duration-300 ${scrolled ? 'h-16' : 'h-[72px]'}`}>
+        {/* A fixed height, so scrolling never changes the page height (see Navbar.tsx). */}
+        <div className="flex h-[72px] items-center justify-between gap-4">
           {/* Logo - sits directly on the bar, no card wrapper */}
           <Link href="/admin" className="group flex items-center gap-2.5 flex-shrink-0" aria-label="Admin Control Room Home">
             <motion.div whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>

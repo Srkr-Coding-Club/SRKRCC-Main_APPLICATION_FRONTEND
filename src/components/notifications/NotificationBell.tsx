@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { notificationsApi } from '@/lib/api/notifications';
+import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import type { UserNotification, AnnouncementType } from '@/lib/types';
 import { useToast } from '@/context/ToastContext';
 
@@ -61,6 +62,55 @@ function getTypeBadgeColor(type: AnnouncementType) {
     default:
       return 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400';
   }
+}
+
+const OUTCOME_LABEL: Record<string, string> = { ACCEPTED: 'Accepted', DECLINED: 'Declined', CANCELLED: 'Cancelled by the sender' };
+
+/** Accept or decline a request to join a team without leaving the notification. */
+export function JoinRequestActions({ notif, onOutcome }: { notif: UserNotification; onOutcome: (id: number, outcome: string) => void }) {
+  const { toast } = useToast();
+  const [busy, setBusy] = useState<'accept' | 'decline' | null>(null);
+  const [problem, setProblem] = useState('');
+  const ref = notif.action_ref ?? '';
+  const cut = ref.lastIndexOf(':');
+  const slug = ref.slice(0, cut);
+  const requestId = Number(ref.slice(cut + 1));
+
+  if (notif.action_outcome) {
+    const accepted = notif.action_outcome === 'ACCEPTED';
+    return <p className={`pt-1 text-[11px] font-bold ${accepted ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>{OUTCOME_LABEL[notif.action_outcome] ?? notif.action_outcome}</p>;
+  }
+  if (cut < 1 || !Number.isInteger(requestId)) return null;
+
+  const answer = async (action: 'accept' | 'decline') => {
+    setBusy(action);
+    setProblem('');
+    try {
+      await hackathonApi.finder.answerRequest(slug, requestId, action);
+      onOutcome(notif.id, action === 'accept' ? 'ACCEPTED' : 'DECLINED');
+      toast.success(action === 'accept' ? 'Added to your team' : 'Request declined');
+    } catch (err: any) {
+      const already = err?.body?.code === 'REQUEST_NOT_PENDING' ? err?.body?.outcome : '';
+      if (already) onOutcome(notif.id, already);
+      else setProblem(apiErrorMessage(err, 'Could not answer this request.'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="space-y-1 pt-1.5">
+      <div className="flex gap-2">
+        <button type="button" disabled={!!busy} onClick={() => answer('accept')} aria-label={`Accept: ${notif.title}`} className="rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:opacity-90 disabled:opacity-50">
+          {busy === 'accept' ? 'Adding…' : 'Accept'}
+        </button>
+        <button type="button" disabled={!!busy} onClick={() => answer('decline')} aria-label={`Decline: ${notif.title}`} className="rounded-md border border-slate-300 px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+          {busy === 'decline' ? 'Declining…' : 'Decline'}
+        </button>
+      </div>
+      {problem && <p role="alert" className="text-[11px] text-rose-600 dark:text-rose-400">{problem}</p>}
+    </div>
+  );
 }
 
 interface NotificationBellProps {
@@ -151,6 +201,12 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
     } catch {
       toast.error('Failed', 'Could not mark all notifications as read');
     }
+  };
+
+  /** A request was answered (here or elsewhere): show the outcome instead of the buttons. */
+  const handleOutcome = (id: number, outcome: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, action_outcome: outcome, is_read: true } : n)));
+    void fetchCount();
   };
 
   const handleDelete = async (id: number) => {
@@ -324,6 +380,8 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                       {notif.message}
                     </p>
+
+                    {notif.action_kind === 'JOIN_REQUEST' && <JoinRequestActions notif={notif} onOutcome={handleOutcome} />}
 
                     {/* Action Link if provided */}
                     {notif.link_url && (

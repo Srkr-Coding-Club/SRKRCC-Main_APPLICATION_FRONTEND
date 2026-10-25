@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { FeatureFlag, Form, FormField, ProfileFieldKey, ValidationRules } from '@/lib/types';
+import { EMPTY_NEW_USER, buildRegisterPayload, type NewUserForm } from '@/lib/adminUserForm';
+import { DEFAULT_COLLEGE_NAME, type College } from '@/lib/colleges';
 import { fetchApi } from '@/lib/api-client';
 import { buildAuthFetchOptions } from '@/lib/dataManagement';
 import { useToast } from '@/context/ToastContext';
@@ -45,6 +47,8 @@ export interface UserRecord {
   email: string;
   rollNumber: string;
   collegeName?: string | null;
+  college?: College | null;
+  otherCollegeName?: string | null;
   branch: string;
   year: string;
   role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
@@ -151,15 +155,6 @@ export interface UseAdminDataOptions {
   include?: AdminDataType[];
 }
 
-/** 24 random characters with every class the backend's password validators ask for. */
-function randomPassword(): string {
-  const bytes = new Uint8Array(24);
-  crypto.getRandomValues(bytes);
-  const alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const body = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
-  return `${body}Aa1!`;
-}
-
 export function useAdminData(options?: UseAdminDataOptions) {
   const { toast } = useToast();
   const include = options?.include ?? ALL_ADMIN_DATA_TYPES;
@@ -175,17 +170,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
   const [usersList, setUsersList] = useState<UserRecord[]>([]);
   const [userSearch, setUserSearch] = useState('');
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    rollNumber: '',
-    branch: 'CSE',
-    year: '1st Year',
-    phoneNumber: '',
-    role: 'NON_AFFILIATE' as UserRecord['role'],
-    clubId: '',
-    password: '',
-  });
+  const [newUser, setNewUser] = useState<NewUserForm>(EMPTY_NEW_USER);
 
   // Forms State - fetched live from backend
   const [publishedForms, setPublishedForms] = useState<Form[]>([]);
@@ -345,6 +330,8 @@ export function useAdminData(options?: UseAdminDataOptions) {
               email: u.email,
               rollNumber: u.roll_number || 'Not set',
               collegeName: u.college?.name || u.other_college_name || null,
+              college: u.college ?? null,
+              otherCollegeName: u.other_college_name || null,
               branch: u.branch || 'CSE',
               year: formatYearOrdinal(u.year),
               role: u.role || 'NON_AFFILIATE',
@@ -443,48 +430,38 @@ export function useAdminData(options?: UseAdminDataOptions) {
   }, []);
 
   // Handlers
+  /** Creates the account. Rejects (the API error attached) so the form can show each message under its own field. */
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const payload = {
-        username: newUser.email.split('@')[0],
-        email: newUser.email,
-        // No shared default: a blank password becomes a random one nobody knows, so the
-        // new user must set their own through the password-reset flow.
-        password: newUser.password || randomPassword(),
-        first_name: newUser.name.split(' ')[0] || newUser.name,
-        last_name: newUser.name.split(' ').slice(1).join(' ') || '',
-        role: newUser.role,
-        roll_number: newUser.rollNumber,
-        branch: newUser.branch,
-        phone_number: newUser.phoneNumber || undefined,
-        club_id: newUser.role === 'AFFILIATE' ? newUser.clubId : undefined,
-      };
-      const created = await fetchApi<any>('/auth/register/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+    const created = await fetchApi<any>('/auth/register/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildRegisterPayload(newUser)),
+    });
 
-      const userToAdd: UserRecord = {
-        id: created?.id || Date.now(),
-        name: newUser.name,
-        email: newUser.email,
-        rollNumber: newUser.rollNumber,
-        branch: newUser.branch,
-        year: newUser.year,
-        phoneNumber: newUser.phoneNumber || null,
-        role: newUser.role,
-        membershipStatus: 'ACTIVE',
-        isActive: true,
-        joinedDate: new Date().toISOString().split('T')[0],
-      };
-      setUsersList((prev) => [userToAdd, ...prev]);
-      setShowCreateUserModal(false);
-      toast.success('Account Created', `Account for ${userToAdd.name} created & saved in backend database!`);
-    } catch (err: any) {
-      toast.error('Account Not Created', err?.message || `Could not create an account for ${newUser.name}. Nothing was saved.`);
-    }
+    const userToAdd: UserRecord = {
+      id: created.id,
+      firstName: created.first_name || null,
+      lastName: created.last_name || null,
+      name: `${created.first_name || ''} ${created.last_name || ''}`.trim() || newUser.name,
+      email: created.email,
+      rollNumber: created.roll_number || 'Not set',
+      collegeName: newUser.college.otherName ?? newUser.college.college?.name ?? DEFAULT_COLLEGE_NAME,
+      college: newUser.college.college,
+      otherCollegeName: newUser.college.otherName,
+      branch: created.branch,
+      year: formatYearOrdinal(created.year),
+      role: created.role,
+      membershipStatus: 'ACTIVE',
+      isActive: true,
+      joinedDate: new Date().toISOString().split('T')[0],
+      clubId: created.club_id || null,
+      phoneNumber: created.phone_number || null,
+    };
+    setUsersList((prev) => [userToAdd, ...prev]);
+    setShowCreateUserModal(false);
+    setNewUser(EMPTY_NEW_USER);
+    toast.success('Account Created', `Account for ${userToAdd.name} was created.`);
   };
 
   const handleRoleChange = async (userId: number, role: UserRecord['role'], clubId?: string) => {
@@ -647,6 +624,13 @@ export function useAdminData(options?: UseAdminDataOptions) {
               role: response.role || u.role,
               membershipStatus: response.membership_status || u.membershipStatus,
               clubId: response.club_id !== undefined ? response.club_id : u.clubId,
+              ...(response.college !== undefined || response.other_college_name !== undefined
+                ? {
+                    college: response.college ?? null,
+                    otherCollegeName: response.other_college_name || null,
+                    collegeName: response.college?.name || response.other_college_name || null,
+                  }
+                : {}),
               phoneNumber: response.phone_number !== undefined ? response.phone_number : u.phoneNumber,
               githubProfile: response.github_profile !== undefined ? response.github_profile : u.githubProfile,
               linkedinProfile: response.linkedin_profile !== undefined ? response.linkedin_profile : u.linkedinProfile,

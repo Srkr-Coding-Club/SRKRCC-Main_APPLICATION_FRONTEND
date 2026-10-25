@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowDown,
@@ -62,6 +62,8 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
   const [forms, setForms] = useState<Form[]>([]);
   const [allTeams, setAllTeams] = useState<HackathonTeam[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selectedRef = useRef<number | null>(null);
+  selectedRef.current = selectedId;
   const [entries, setEntries] = useState<AdminRoundEntry[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [checked, setChecked] = useState<Set<number>>(new Set());
@@ -89,14 +91,19 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
   const [wildcardOpen, setWildcardOpen] = useState(false);
   const [wildcardSearch, setWildcardSearch] = useState('');
 
-  const loadRounds = useCallback(async () => {
+  /** Reloads the rounds and returns the one that is selected afterwards (the last one when the selected round is gone). */
+  const loadRounds = useCallback(async (): Promise<number | null> => {
     try {
       const r = await hackathonApi.admin.rounds(slug);
       setLoadError('');
       setRounds(r);
-      setSelectedId((cur) => (cur && r.some((x) => x.id === cur) ? cur : r[r.length - 1]?.id ?? null));
+      const current = selectedRef.current;
+      const next = current && r.some((x) => x.id === current) ? current : r[r.length - 1]?.id ?? null;
+      setSelectedId(next);
+      return next;
     } catch (err) {
       setLoadError(apiErrorMessage(err, 'Could not load rounds.'));
+      return selectedRef.current;
     }
   }, [slug]);
 
@@ -104,6 +111,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
     setEntriesLoading(true);
     try {
       setEntries(await hackathonApi.admin.roundEntries(slug, id));
+      setLoadError('');
     } catch (err) {
       setEntries([]);
       setLoadError(apiErrorMessage(err, 'Could not load this round\'s teams.'));
@@ -152,8 +160,9 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
   }, [allTeams, entries, wildcardSearch]);
 
   const refresh = async () => {
-    await loadRounds();
-    if (selectedId) await loadEntries(selectedId);
+    const next = await loadRounds();
+    // A different selection loads its own teams (through the effect above); only the unchanged one needs a reload here.
+    if (next && next === selectedRef.current && next === selectedId) await loadEntries(next);
   };
 
   const run = async (fn: () => Promise<unknown>, success: string) => {
@@ -225,10 +234,20 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
       danger: true,
     });
     if (!ok) return;
-    run(async () => {
+    setBusy(true);
+    try {
       await hackathonApi.admin.deleteRound(slug, round.id);
-      setSelectedId(null);
-    }, 'Round deleted');
+      toast.success('Round deleted');
+      // Leave the deleted round at once: its teams cannot be loaded any more, and the rest of the list is reloaded.
+      setEntries([]);
+      setChecked(new Set());
+      setLoadError('');
+      await loadRounds();
+    } catch (err) {
+      toast.error('Could not delete the round', apiErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
   };
 
   // ---- decisions ----
@@ -511,7 +530,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                   <Eye className="h-3.5 w-3.5" /> Publish results
                 </button>
               )}
-              <button onClick={deleteRound} disabled={busy} className={BTN_DANGER}><Trash2 className="h-3.5 w-3.5" /></button>
+              <button onClick={deleteRound} disabled={busy} aria-label="Delete round" title="Delete round" className={BTN_DANGER}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /></button>
             </div>
           </div>
 

@@ -78,3 +78,14 @@ Organizers set all of this on the manager's **Ideas** tab (fee, how to pay, pres
 Tests: `src/components/hackathons/__tests__/IdeaPanel.test.tsx`; live: `e2e-live/hackathon-ideas.live.spec.ts` (`pnpm test:e2e:live`).
 
 **Payment QR code.** On the manager's Ideas tab organizers upload the QR image under "Payment QR code" (it is saved the moment it uploads, with a Remove button). The idea form shows it in the payment box with "Scan this QR code with any UPI app and pay ₹N" (`src/components/hackathons/PaymentQr.tsx`; its link lasts a minute, so it is fetched when shown and again on "Try again" or when a new QR is uploaded).
+
+## Admin users, club IDs, rounds, finder (this round of fixes)
+
+- **Create New User** (`src/components/admin/CreateUserModal.tsx`, rules and payload in `src/lib/adminUserForm.ts`): asks for name, email, roll number, phone, **college** (`CollegeSelect`; untouched = the club's home college), branch, **year of study**, role, Club ID (affiliates) and password. It checks the same rules as the server, shows each message under its field (and the server's under the right field), focuses the first problem, and resets after a save or close. The edit modal can change the college too.
+- **Club ID formats**: `25SCC123`, `26SCC123`, `21CCA041`, `1CCA041` (`validateAffiliateId`); anything else is refused with the accepted formats.
+- **Headers** no longer change height on scroll (a header that shrinks can shake on pages only slightly taller than the window).
+- **Rounds**: deleting the selected round selects another and no longer asks for the deleted one's teams; the delete button has an accessible name.
+- **Idea submissions** show as a "Your submission" card to every team member; the form opens from "Edit submission" only while editing is allowed.
+- **Team finder**: `FinderLists` (teams that need people, people available, ask to join with a message and the hackathon's rules/questions, cancel a request, invite), `JoinRequestsToAnswer` (accept / decline), the dashboard's "Teams and people" card, and Accept / Decline buttons inside the notification bell for join requests.
+
+Tests: `src/lib/__tests__/adminUserForm.test.ts`, `src/components/admin/__tests__/CreateUserModal.test.tsx`, `src/components/hackathons/__tests__/{IdeaPanel,FinderLists}.test.tsx`, `e2e/{navbar-stable,admin-rounds-delete}.spec.ts`, `e2e-live/admin-and-finder.live.spec.ts`.

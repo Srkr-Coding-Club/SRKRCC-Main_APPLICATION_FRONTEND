@@ -13,9 +13,14 @@ export default async function globalSetup() {
   });
   execFileSync(python, ['manage.py', 'migrate', '--noinput'], { cwd: backendDir, env: liveEnv(), stdio: ['ignore', 'ignore', 'inherit'] });
 
-  execFileSync(python, [join(__dirname, 'django', 'prepare_bucket.py'), STORAGE_URL, BUCKET, SITE_URL], {
-    cwd: backendDir, env: liveEnv(), stdio: 'inherit',
-  });
+  // The upload scenarios need the S3 stand-in (LocalStack); everything else runs without it.
+  try {
+    execFileSync(python, [join(__dirname, 'django', 'prepare_bucket.py'), STORAGE_URL, BUCKET, SITE_URL], {
+      cwd: backendDir, env: liveEnv(), stdio: ['ignore', 'inherit', 'ignore'],
+    });
+  } catch {
+    console.warn(`LocalStack is not reachable at ${STORAGE_URL}: file-upload scenarios will fail, the others do not need it.`);
+  }
 
   const log = join(stateDir, 'backend.log');
   writeFileSync(log, '');

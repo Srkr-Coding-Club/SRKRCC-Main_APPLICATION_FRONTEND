@@ -19,6 +19,8 @@ import type {
   HackathonPermissionKey,
   HackathonStaffRole,
   IdeaDraft,
+  JoinRequestRow,
+  JoinRequestsPayload,
   IdeaFileInfo,
   IdeaFileKind,
   IdeaStatus,
@@ -126,8 +128,13 @@ export const hackathonApi = {
     withdraw: (slug: string) => fetchApi<{ withdrawn: true }>(`/hackathons/${enc(slug)}/finder/me/`, { method: 'DELETE' }),
     invite: (slug: string, seekerId: number) =>
       fetchApi<{ invited: true }>(`/hackathons/${enc(slug)}/finder/seekers/${seekerId}/invite/`, json({})),
-    requestToJoin: (slug: string, teamId: number, message: string) =>
-      fetchApi<{ requested: true }>(`/hackathons/${enc(slug)}/finder/teams/${teamId}/request/`, json({ message })),
+    requestToJoin: (slug: string, teamId: number, message: string, registration?: RegistrationInput) =>
+      fetchApi<{ requested: true; request: JoinRequestRow }>(`/hackathons/${enc(slug)}/finder/teams/${teamId}/request/`, json({ message, ...registration })),
+    /** Requests waiting for you (as a leader) and the ones you sent. */
+    requests: (slug: string) => fetchApi<JoinRequestsPayload>(`/hackathons/${enc(slug)}/finder/requests/`),
+    /** The leader accepts or declines; the sender cancels. */
+    answerRequest: (slug: string, requestId: number, action: 'accept' | 'decline' | 'cancel') =>
+      fetchApi<{ request: JoinRequestRow }>(`/hackathons/${enc(slug)}/finder/requests/${requestId}/${action}/`, json({})),
   },
   judging: {
     ideas: (slug: string) => fetchApi<JudgingIdeasPayload>(`/hackathons/${enc(slug)}/judging/ideas/`),

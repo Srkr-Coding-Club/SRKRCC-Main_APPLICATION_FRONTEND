@@ -72,6 +72,8 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState('');
+  // Once an idea is submitted the team sees it as a card; the form only opens on request, and only when editing is allowed.
+  const [editing, setEditing] = useState(false);
 
   const load = useCallback(() => {
     hackathonApi.myIdea(slug).then((data) => {
@@ -105,6 +107,7 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
       setDraft(toDraft(saved));
       setDeck(asUploaded(saved.idea?.deck_file));
       setPayment(asUploaded(saved.idea?.payment_proof));
+      setEditing(false);
       toast.success(saved.review_required ? 'Idea sent for review' : 'Idea saved');
     } catch (err: any) {
       const field = err?.body?.field as string | undefined;
@@ -165,7 +168,7 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
         <p role="status" className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300"><strong>Note from the organizers:</strong> {idea.feedback}</p>
       )}
 
-      {payload.can_edit ? (
+      {payload.can_edit && (!idea || editing) ? (
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1.5">
             <FieldLabel htmlFor="idea-title" required>Idea title</FieldLabel>
@@ -266,14 +269,34 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
           <button type="submit" disabled={busy || anyUploading || filesMissing} className={BTN_ACCENT}>
             {busy ? 'Saving…' : anyUploading ? 'Uploading…' : idea ? (idea.status === 'CHANGES_REQUESTED' ? 'Resubmit idea' : 'Save changes') : 'Submit idea'}
           </button>
+          {idea && (
+            <button type="button" disabled={busy} onClick={() => { setEditing(false); setErrors({}); load(); }} className="ml-2 inline-flex min-h-10 items-center rounded-lg px-4 text-sm font-semibold text-journey-muted hover:text-journey-text">
+              Cancel
+            </button>
+          )}
         </form>
       ) : idea ? (
-        <div className="space-y-3 text-sm">
-          <h3 className="text-base font-bold text-journey-text">{idea.title}</h3>
+        <article aria-label="Your submission" className="space-y-3 rounded-xl border border-journey-text/10 p-4 text-sm">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-journey-muted">Your submission</p>
+              <h3 className="text-base font-bold text-journey-text">{idea.title}</h3>
+              <p className="text-xs text-journey-muted">
+                {idea.created_at === idea.updated_at ? 'Submitted' : 'Last updated'} {formatDateTime(idea.updated_at)} · {idea.team_name}
+              </p>
+            </div>
+            {payload.can_edit && (
+              <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-10 items-center rounded-lg border border-journey-text/15 px-4 text-xs font-bold text-journey-text hover:bg-journey-text/5">
+                Edit submission
+              </button>
+            )}
+          </div>
           {[['The problem', idea.problem], ['Your approach', idea.solution], ['The plan', idea.plan]].map(([label, text]) => text && (
             <div key={label}><p className="text-[11px] font-bold uppercase tracking-wide text-journey-muted">{label}</p><p className="whitespace-pre-line text-journey-text/80">{text}</p></div>
           ))}
+          {idea.tech_stack.length > 0 && <p className="text-xs text-journey-muted">Tech: {idea.tech_stack.join(', ')}</p>}
           {idea.deck_file && <div><p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-journey-muted">Presentation</p><SavedFile slug={slug} ideaId={idea.id} kind="deck" file={idea.deck_file} /></div>}
+          {idea.deck_url && <div><p className="text-[11px] font-bold uppercase tracking-wide text-journey-muted">Slides link</p><a href={idea.deck_url} target="_blank" rel="noopener noreferrer" className="break-all text-journey-accent hover:underline">{idea.deck_url}</a></div>}
           {idea.linkedin_url && <div><p className="text-[11px] font-bold uppercase tracking-wide text-journey-muted">LinkedIn post</p><a href={idea.linkedin_url} target="_blank" rel="noopener noreferrer" className="break-all text-journey-accent hover:underline">{idea.linkedin_url}</a></div>}
           {idea.payment_proof && (
             <div>
@@ -282,7 +305,8 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
               {idea.transaction_id && <p className="mt-1 text-xs text-journey-muted">Transaction ID: {idea.transaction_id}</p>}
             </div>
           )}
-        </div>
+          {!payload.can_edit && !payload.edit_blocked_reason && <p className="text-xs text-journey-muted">Only your team leader can change the submission.</p>}
+        </article>
       ) : (
         <p className="text-sm text-journey-muted">
           {payload.state === 'CLOSED' ? 'The idea deadline passed without a submission.' : payload.state === 'NOT_OPEN' ? `Idea submission opens ${formatDateTime(payload.opens_at)}.` : 'Only your team leader can submit the idea.'}

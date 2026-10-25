@@ -29,6 +29,12 @@ export interface UserNotification {
   type: AnnouncementType;
   category: NotificationCategory;
   link_url?: string;
+  /** What can be done from the notification itself, e.g. JOIN_REQUEST (accept or decline). */
+  action_kind?: string;
+  /** "<hackathon slug>:<request id>" for a JOIN_REQUEST. */
+  action_ref?: string;
+  /** Set once the action was taken (by anyone): ACCEPTED, DECLINED or CANCELLED. */
+  action_outcome?: string;
   is_read: boolean;
   read_at: string | null;
   created_at: string;
@@ -1463,10 +1469,34 @@ export interface FinderTeam {
   leader: string;
 }
 
+export type JoinRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+
+/** A request to join a team: what the sender sees, and (with `name` and below) what the leader sees. */
+export interface JoinRequestRow {
+  id: number;
+  team_id: number;
+  team_name: string;
+  status: JoinRequestStatus;
+  message: string;
+  created_at: string;
+  decided_at: string | null;
+  name?: string;
+  profile?: string;
+  skills?: string;
+  /** Why accepting would fail right now (the team is full, registration closed...), or empty. */
+  blocked_reason?: string;
+}
+
+export interface JoinRequestsPayload {
+  incoming: JoinRequestRow[];
+  mine: JoinRequestRow[];
+}
+
 export interface FinderListing {
   seekers: FinderSeeker[];
   teams: FinderTeam[];
   my_profile: { skills: string; note: string } | null;
+  my_requests: JoinRequestRow[];
 }
 
 export interface HackathonAnalytics {

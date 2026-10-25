@@ -154,12 +154,77 @@ describe('IdeaPanel: saving', () => {
 
   it('shows a saved file already attached when the idea is edited, without uploading again', async () => {
     api.saveIdea.mockResolvedValue(payload({ idea: idea() }));
-    await show(payload({ idea: idea({ payment_proof: { id: 'pay-9', name: 'old.png', size: 2048, type: 'image/png', state: 'ATTACHED' } }), config: config({ fee_amount: 200 }) }));
-    expect(screen.getByText('old.png')).toBeTruthy();
+    api.myIdea.mockResolvedValue(payload({ idea: idea({ payment_proof: { id: 'pay-9', name: 'old.png', size: 2048, type: 'image/png', state: 'ATTACHED' } }), config: config({ fee_amount: 200 }) }));
+    render(<IdeaPanel hackathon={hackathon} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit submission' }));
+    expect(await screen.findByText('old.png')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(api.saveIdea).toHaveBeenCalled());
     expect(api.saveIdea.mock.calls[0][1]).toMatchObject({ payment_file_id: 'pay-9' });
     expect(uploadIdeaFile).not.toHaveBeenCalled();
+  });
+});
+
+describe('IdeaPanel: the submission card', () => {
+  const submitted = (over: Record<string, unknown> = {}) => payload({
+    idea: idea({ linkedin_url: 'https://www.linkedin.com/posts/x', transaction_id: 'UPI9', created_at: '2026-10-20T10:00:00Z', updated_at: '2026-10-20T10:00:00Z', tech_stack: ['React'], deck_file: { id: 'd', name: 'deck.pptx', size: 5000, type: 'application/x', state: 'ATTACHED' }, payment_proof: { id: 'p', name: 'pay.png', size: 900, type: 'image/png', state: 'ATTACHED' } }),
+    ...over,
+  });
+
+  it('shows the submission as a card, not the form, once an idea exists', async () => {
+    api.myIdea.mockResolvedValue(submitted());
+    render(<IdeaPanel hackathon={hackathon} />);
+    const card = await screen.findByRole('article', { name: 'Your submission' });
+    expect(card.textContent).toContain('Smart bins');
+    expect(card.textContent).toContain('deck.pptx');
+    expect(card.textContent).toContain('Transaction ID: UPI9');
+    expect(card.textContent).toContain('Tech: React');
+    expect(screen.queryByLabelText(/Idea title/)).toBeNull();
+  });
+
+  it('offers Edit when editing is allowed; it opens the form, and Cancel brings the card back', async () => {
+    api.myIdea.mockResolvedValue(submitted());
+    render(<IdeaPanel hackathon={hackathon} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit submission' }));
+    const title = await screen.findByLabelText(/Idea title/);
+    fireEvent.change(title, { target: { value: 'Changed my mind' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(await screen.findByRole('article', { name: 'Your submission' })).toBeTruthy();
+    expect(screen.queryByLabelText(/Idea title/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit submission' }));
+    expect((await screen.findByLabelText(/Idea title/) as HTMLInputElement).value).toBe('Smart bins');   // the abandoned change is gone
+  });
+
+  it('goes back to the card after saving', async () => {
+    api.myIdea.mockResolvedValue(submitted());
+    api.saveIdea.mockResolvedValue(submitted({ idea: idea({ title: 'Smarter bins' }) }));
+    render(<IdeaPanel hackathon={hackathon} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit submission' }));
+    await screen.findByLabelText(/Idea title/);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect((await screen.findByRole('article', { name: 'Your submission' })).textContent).toContain('Smarter bins');
+  });
+
+  it('with editing switched off there is no Edit button, only the card and the reason', async () => {
+    api.myIdea.mockResolvedValue(submitted({ can_edit: false, edit_blocked_reason: 'The organizers have switched off editing, so a submitted idea cannot be changed.' }));
+    render(<IdeaPanel hackathon={hackathon} />);
+    await screen.findByRole('article', { name: 'Your submission' });
+    expect(screen.queryByRole('button', { name: 'Edit submission' })).toBeNull();
+    expect(screen.getByText(/switched off editing/)).toBeTruthy();
+  });
+
+  it('every team member sees the card; a member who cannot edit is told who can', async () => {
+    api.myIdea.mockResolvedValue(submitted({ can_edit: false, edit_blocked_reason: '' }));
+    render(<IdeaPanel hackathon={hackathon} />);
+    await screen.findByRole('article', { name: 'Your submission' });
+    expect(screen.queryByRole('button', { name: 'Edit submission' })).toBeNull();
+    expect(screen.getByText('Only your team leader can change the submission.')).toBeTruthy();
+  });
+
+  it('shows the form straight away when nothing has been submitted', async () => {
+    await show(payload());
+    expect(screen.queryByRole('article', { name: 'Your submission' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
   });
 });
 
@@ -192,8 +257,9 @@ describe('IdeaPanel: editing control', () => {
   });
 
   it('says until when editing is open', async () => {
-    await show(payload({ idea: idea(), config: config({ edits_until: '2026-12-01T10:00:00Z' }) }));
-    expect(screen.getByText(/You can edit your idea until/)).toBeTruthy();
+    api.myIdea.mockResolvedValue(payload({ idea: idea(), config: config({ edits_until: '2026-12-01T10:00:00Z' }) }));
+    render(<IdeaPanel hackathon={hackathon} />);
+    expect(await screen.findByText(/You can edit your idea until/)).toBeTruthy();
   });
 
   it('has no accessibility violations with payment shown', async () => {
