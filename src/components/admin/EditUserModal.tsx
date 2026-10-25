@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { UserCog, Sparkles, Loader2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { fetchApi } from '@/lib/api-client';
+import { BRANCHES } from '@/lib/adminUserForm';
+import { CollegeSelect } from '@/components/CollegeSelect';
+import { collegeChoiceFromProfile, type College, type CollegeChoice, UNTOUCHED_COLLEGE_CHOICE } from '@/lib/colleges';
 import {
   sanitizeRollNumberInput,
   validateRollNumber,
@@ -11,6 +14,7 @@ import {
   validatePhoneNumber,
   sanitizeAffiliateIdInput,
   validateAffiliateId,
+  validateOtherCollegeName,
 } from '@/lib/validation/auth';
 
 interface UserRecord {
@@ -20,6 +24,8 @@ interface UserRecord {
   name: string;
   email: string;
   rollNumber: string;
+  college?: College | null;
+  otherCollegeName?: string | null;
   branch: string;
   year: string;
   role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
@@ -55,19 +61,16 @@ const ALL_MEMBERSHIP_STATUSES: UserRecord['membershipStatus'][] = [
   'PENDING',
 ];
 
-const COMMON_BRANCHES = [
-  'CSE',
-  'IT',
-  'AIML',
-  'AIDS',
-  'CSBS',
-  'CSD',
-  'ECE',
-  'EEE',
-  'MECH',
-  'CIVIL',
-  'OTHER',
-];
+const COMMON_BRANCHES = BRANCHES;
+
+/** Only what changed: sending the unchanged college back would be refused for a member with a typed-in name. */
+function collegeChange(user: UserRecord, choice: CollegeChoice): Record<string, unknown> {
+  if (choice.otherName !== null) {
+    return choice.otherName.trim() === (user.otherCollegeName ?? '') && !user.college ? {} : { other_college_name: choice.otherName.trim() };
+  }
+  if (choice.college && choice.college.id !== user.college?.id) return { college_id: choice.college.id };
+  return {};
+}
 
 export function EditUserModal({
   isOpen,
@@ -79,6 +82,7 @@ export function EditUserModal({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [rollNumber, setRollNumber] = useState('');
+  const [college, setCollege] = useState<CollegeChoice>(UNTOUCHED_COLLEGE_CHOICE);
   const [branch, setBranch] = useState('CSE');
   const [year, setYear] = useState('1');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -99,6 +103,7 @@ export function EditUserModal({
       setLastName(user.lastName ?? (parts.length > 1 ? parts.slice(1).join(' ') : ''));
       setRollNumber(user.rollNumber !== 'Not set' ? user.rollNumber : '');
       setBranch(user.branch || 'CSE');
+      setCollege(collegeChoiceFromProfile({ college: user.college ?? null, other_college_name: user.otherCollegeName ?? null }));
 
       const yearMatch = (user.year || '').match(/\d+/);
       setYear(yearMatch ? yearMatch[0] : '1');
@@ -178,6 +183,11 @@ export function EditUserModal({
       if (clubErr) newErrors.clubId = clubErr;
     }
 
+    if (college.otherName !== null) {
+      const collegeErr = validateOtherCollegeName(college.otherName);
+      if (collegeErr) newErrors.college = collegeErr;
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -196,6 +206,7 @@ export function EditUserModal({
         role,
         membership_status: membershipStatus,
         club_id: clubId.trim() ? sanitizeAffiliateIdInput(clubId) : null,
+        ...collegeChange(user, college),
         github_profile: normalizeSocialUrl(githubProfile),
         linkedin_profile: normalizeSocialUrl(linkedinProfile),
       };
@@ -212,6 +223,7 @@ export function EditUserModal({
             : k === 'roll_number' ? 'rollNumber'
             : k === 'phone_number' ? 'phoneNumber'
             : k === 'club_id' ? 'clubId'
+            : k === 'college_id' || k === 'other_college_name' ? 'college'
             : k === 'github_profile' ? 'githubProfile'
             : k === 'linkedin_profile' ? 'linkedinProfile'
             : k;
@@ -283,6 +295,14 @@ export function EditUserModal({
               className="w-full px-3 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
             />
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="edit-user-college" className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1">
+            College
+          </label>
+          <CollegeSelect id="edit-user-college" value={college} onChange={setCollege} aria-invalid={!!errors.college} aria-describedby={errors.college ? 'edit-user-college-error' : undefined} />
+          {errors.college && <p id="edit-user-college-error" role="alert" className="text-[10px] text-rose-500 mt-1">{errors.college}</p>}
         </div>
 
         {/* Academic Details */}

@@ -152,7 +152,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
             {/* Header card */}
             <header className="space-y-5 rounded-3xl border border-journey-text/10 bg-journey-surface/60 p-5 sm:p-7">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-journey-text/80">
                   <ModeIcon className="h-4 w-4 text-journey-accent" aria-hidden="true" />
                   {HACKATHON_MODE_LABEL[mode]}
@@ -166,24 +166,26 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                     {registrationOpen ? 'Registrations live' : 'Registrations closed'}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => downloadHackathonCalendar(hackathon)}
-                  aria-label="Add key dates to your calendar"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-journey-text/10 px-3 py-1.5 text-xs font-bold text-journey-text/80 transition hover:border-journey-accent/50 hover:text-journey-accent active:scale-95"
-                >
-                  <CalendarPlus className="h-3.5 w-3.5" />
-                  Add to calendar
-                </button>
-                <button
-                  type="button"
-                  onClick={shareLink}
-                  aria-label="Share this hackathon"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-journey-text/10 px-3 py-1.5 text-xs font-bold text-journey-text/80 transition hover:border-journey-accent/50 hover:text-journey-accent active:scale-95"
-                >
-                  {shareState === 'copied' ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 className="h-3.5 w-3.5" />}
-                  {shareState === 'copied' ? 'Link copied' : shareState === 'failed' ? 'Copy failed' : 'Share'}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => downloadHackathonCalendar(hackathon)}
+                    aria-label="Add key dates to your calendar"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-journey-text/10 px-3 py-1.5 text-xs font-bold text-journey-text/80 transition hover:border-journey-accent/50 hover:text-journey-accent active:scale-95"
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5" />
+                    Add to calendar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={shareLink}
+                    aria-label="Share this hackathon"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-journey-text/10 px-3 py-1.5 text-xs font-bold text-journey-text/80 transition hover:border-journey-accent/50 hover:text-journey-accent active:scale-95"
+                  >
+                    {shareState === 'copied' ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 className="h-3.5 w-3.5" />}
+                    {shareState === 'copied' ? 'Link copied' : shareState === 'failed' ? 'Copy failed' : 'Share'}
+                  </button>
+                </div>
               </div>
 
               <StaffShortcuts slug={hackathon.slug} />

@@ -3,13 +3,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Search, Send, UserPlus, Users } from 'lucide-react';
-import type { FinderListing, MyTeamPayload } from '@/lib/types';
+import { ArrowLeft, Inbox, Search, UserPlus } from 'lucide-react';
+import type { FinderListing, Hackathon, JoinRequestRow, MyTeamPayload } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useRequireLogin } from '@/lib/hooks/useRequireLogin';
 import { useToast } from '@/context/ToastContext';
 import { FieldLabel, SpotlightInput } from '@/components/ui/InputField';
-import { BTN, BTN_ACCENT, BTN_QUIET, H2, PANEL } from '@/components/hackathons/dashboardStyles';
+import { BTN_ACCENT, BTN_QUIET, H2, PANEL } from '@/components/hackathons/dashboardStyles';
+import { FinderLists, JoinRequestsToAnswer } from '@/components/hackathons/FinderLists';
 
 export default function TeamFinderPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -17,6 +18,8 @@ export default function TeamFinderPage() {
   const { toast } = useToast();
   const [listing, setListing] = useState<FinderListing | null>(null);
   const [mine, setMine] = useState<MyTeamPayload | null>(null);
+  const [hackathon, setHackathon] = useState<Hackathon | null>(null);
+  const [incoming, setIncoming] = useState<JoinRequestRow[]>([]);
   const [error, setError] = useState('');
   const [skills, setSkills] = useState('');
   const [note, setNote] = useState('');
@@ -25,9 +28,11 @@ export default function TeamFinderPage() {
 
   const load = useCallback(async () => {
     try {
-      const [list, team] = await Promise.all([hackathonApi.finder.list(slug), hackathonApi.myTeam(slug)]);
+      const [list, team, loaded] = await Promise.all([hackathonApi.finder.list(slug), hackathonApi.myTeam(slug), hackathonApi.get(slug)]);
       setListing(list);
       setMine(team);
+      setHackathon(loaded);
+      setIncoming(team.is_leader ? (await hackathonApi.finder.requests(slug)).incoming : []);
       setSkills(list.my_profile?.skills ?? '');
       setNote(list.my_profile?.note ?? '');
       setError('');
@@ -53,9 +58,6 @@ export default function TeamFinderPage() {
     }
   };
 
-  const needle = query.trim().toLowerCase();
-  const seekers = useMemo(() => (listing?.seekers ?? []).filter((person) => !needle || `${person.name} ${person.skills} ${person.note} ${person.profile}`.toLowerCase().includes(needle)), [listing, needle]);
-  const teams = useMemo(() => (listing?.teams ?? []).filter((team) => !needle || `${team.name} ${team.looking_for} ${team.problem ?? ''}`.toLowerCase().includes(needle)), [listing, needle]);
   const hasTeam = Boolean(mine?.team);
   const iAmLeader = Boolean(mine?.is_leader);
 
@@ -65,7 +67,7 @@ export default function TeamFinderPage() {
         <Link href={`/hackathons/${slug}/dashboard`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-journey-muted hover:text-journey-accent"><ArrowLeft className="h-4 w-4" /> Dashboard</Link>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-journey-text sm:text-3xl">Team finder</h1>
-          <p className="text-sm text-journey-muted">Find teammates, or let a team find you. Emails are never shown: leaders invite from here and you accept on your dashboard.</p>
+          <p className="text-sm text-journey-muted">Find teammates, or let a team find you. Emails are never shown: leaders invite from here and you accept on your dashboard, or ask a team to take you in and its leader answers.</p>
         </div>
 
         {error && <p role="alert" className={`${PANEL} text-sm text-rose-500`}>{error}</p>}
@@ -97,49 +99,18 @@ export default function TeamFinderPage() {
               <SpotlightInput type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search skills, names or teams…" aria-label="Search the team finder" className="pl-9" />
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {iAmLeader && incoming.length > 0 && (
               <section className={`${PANEL} space-y-3`}>
-                <h2 className={H2}><Users className="h-4 w-4" /> Teams that are recruiting ({teams.length})</h2>
-                {teams.length === 0 ? <p className="text-sm text-journey-muted">No team is recruiting right now.</p> : (
-                  <ul className="space-y-3">
-                    {teams.map((team) => (
-                      <li key={team.id} className="space-y-1 rounded-xl border border-journey-text/10 p-3">
-                        <p className="font-bold text-journey-text">{team.name} <span className="text-xs font-normal text-journey-muted">· {team.members}/{team.max_members} members</span></p>
-                        {team.looking_for && <p className="text-sm text-journey-text/80">Looking for: {team.looking_for}</p>}
-                        {team.problem && <p className="text-xs text-journey-muted">{team.problem}</p>}
-                        {!hasTeam && (
-                          <button type="button" disabled={busyKey === `join-${team.id}`} onClick={() => run(`join-${team.id}`, () => hackathonApi.finder.requestToJoin(slug, team.id, note), `Asked ${team.leader || 'the leader'} to add you`)} className={`${BTN} mt-1 bg-journey-accent text-white`}>
-                            <Send className="h-3.5 w-3.5" /> Ask to join
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <h2 className={H2}><Inbox className="h-4 w-4" /> Waiting for your answer ({incoming.length})</h2>
+                <JoinRequestsToAnswer slug={slug} requests={incoming} onChanged={load} />
               </section>
+            )}
 
-              <section className={`${PANEL} space-y-3`}>
-                <h2 className={H2}><UserPlus className="h-4 w-4" /> People looking for a team ({seekers.length})</h2>
-                {seekers.length === 0 ? <p className="text-sm text-journey-muted">Nobody is listed yet.</p> : (
-                  <ul className="space-y-3">
-                    {seekers.map((person) => (
-                      <li key={person.id} className="space-y-1 rounded-xl border border-journey-text/10 p-3">
-                        <p className="font-bold text-journey-text">{person.name}{person.is_me && <span className="ml-2 text-[10px] font-bold text-journey-muted">(you)</span>}</p>
-                        {person.profile && <p className="text-xs text-journey-muted">{person.profile}</p>}
-                        {person.skills && <p className="text-sm text-journey-text/80">Skills: {person.skills}</p>}
-                        {person.note && <p className="text-sm text-journey-muted">{person.note}</p>}
-                        {iAmLeader && !person.is_me && (
-                          <button type="button" disabled={busyKey === `invite-${person.id}`} onClick={() => run(`invite-${person.id}`, () => hackathonApi.finder.invite(slug, person.id), `Invite sent to ${person.name}`)} className={`${BTN} mt-1 bg-journey-accent text-white`}>
-                            <UserPlus className="h-3.5 w-3.5" /> Invite to my team
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {hasTeam && !iAmLeader && <p className="text-xs text-journey-muted">Only your team leader can send invites.</p>}
-              </section>
-            </div>
+            {hackathon && (
+              <div className={PANEL}>
+                <FinderLists slug={slug} hackathon={hackathon} listing={listing} hasTeam={hasTeam} iAmLeader={iAmLeader} onChanged={load} search={query} />
+              </div>
+            )}
           </>
         )}
       </div>

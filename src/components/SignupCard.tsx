@@ -697,7 +697,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
                     <FieldError id="signup-affiliate-error" message={visibleError('affiliateId')} />
                     {!visibleError('affiliateId') && (
                       <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                        Format: two-digit year, then SCC, then your number, e.g. 25SCC277.
+                        Format: the year, then SCC or CCA, then your number, e.g. 25SCC277 or 21CCA041.
                       </p>
                     )}
                   </div>
