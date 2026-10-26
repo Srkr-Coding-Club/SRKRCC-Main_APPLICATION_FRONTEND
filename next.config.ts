@@ -1,11 +1,24 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-// Hosts next/image may load remote pictures from, comma separated (no scheme).
-const imageHosts = (process.env.NEXT_IMAGE_REMOTE_HOSTS || 'images.unsplash.com')
+// Default hosts and custom environment hosts for Next.js remote images
+const defaultImageHosts = [
+  'images.unsplash.com',
+  'plus.unsplash.com',
+  'lh3.googleusercontent.com',
+  'drive.google.com',
+  'res.cloudinary.com',
+  'avatars.githubusercontent.com',
+  'raw.githubusercontent.com',
+  'dl.dropboxusercontent.com',
+];
+
+const envImageHosts = (process.env.NEXT_IMAGE_REMOTE_HOSTS || '')
   .split(',')
   .map((host) => host.trim())
   .filter(Boolean);
+
+const allImageHosts = Array.from(new Set([...defaultImageHosts, ...envImageHosts]));
 
 // HSTS makes browsers refuse plain HTTP for this site for HSTS_MAX_AGE_SECONDS, and they cannot be
 // told to forget it early: use a short value (e.g. 3600) until the deployment is settled. 0 turns
@@ -32,7 +45,11 @@ const nextConfig: NextConfig = {
   output: process.env.DOCKER_BUILD === '1' || process.env.OUTPUT_STANDALONE === 'true' ? 'standalone' : undefined,
   outputFileTracingRoot: path.join(__dirname),
   images: {
-    remotePatterns: imageHosts.map((hostname) => ({ protocol: 'https' as const, hostname })),
+    remotePatterns: [
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: '**' },
+      ...allImageHosts.map((hostname) => ({ protocol: 'https' as const, hostname })),
+    ],
   },
   async headers() {
     // Report-only for now: violations show in the browser console without breaking anything. Tighten
@@ -81,6 +98,16 @@ const nextConfig: NextConfig = {
             value: 'camera=(self), microphone=(), geolocation=()',
           },
         ],
+      },
+    ];
+  },
+  async rewrites() {
+    const backendUrl = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+    const backendOrigin = backendUrl.replace(/\/api\/?$/, '');
+    return [
+      {
+        source: '/media/:path*',
+        destination: `${backendOrigin}/media/:path*`,
       },
     ];
   },

@@ -10,7 +10,9 @@ import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { Switch } from '@/components/ui/Switch';
 import { FEATURE_OPTIONS } from '@/components/admin/hackathon/featureOptions';
 import { apiErrorMessage } from '@/lib/api/hackathons';
+import { isGoogleDriveUrl, normalizeImageUrl } from '@/lib/imageUrl';
 import { firstFieldErrors } from '@/components/admin/hackathon/shared';
+import { ImageUploadField } from '@/components/admin/hackathon/ImageUploadField';
 
 interface HackathonFormPanelProps {
   isOpen: boolean;
@@ -127,7 +129,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
         prize_pool: prizePool.trim(),
         start_date: new Date(startDate).toISOString(),
         end_date: new Date(endDate).toISOString(),
-        banner_image: bannerImage.trim() || null,
+        banner_image: normalizeImageUrl(bannerImage) || null,
         registration_form: registrationForm ? Number(registrationForm) : null,
         ...(isEditMode ? {} : { features, max_teams: maxTeams.trim() ? Number(maxTeams) : null }),
       };
@@ -260,13 +262,12 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
           </div>
 
           <div>
-            <label className={labelClasses}>Banner Image URL</label>
-            <input
-              type="url"
+            <ImageUploadField
+              label="Banner Image"
               value={bannerImage}
-              onChange={(e) => setBannerImage(e.target.value)}
-              placeholder="https://images.unsplash.com/..."
-              className={inputClasses}
+              onChange={setBannerImage}
+              slug={hackathon?.slug || slug || null}
+              aspectHint="Recommended 16:6 aspect ratio. Max 10 MB."
             />
           </div>
 

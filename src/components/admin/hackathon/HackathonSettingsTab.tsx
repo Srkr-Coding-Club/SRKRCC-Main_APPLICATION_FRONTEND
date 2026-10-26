@@ -8,7 +8,9 @@ import type { Form, Hackathon, ProfileFieldKey } from '@/lib/types';
 import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
 import { fetchApi } from '@/lib/api-client';
 import { DEFAULT_BANNER_CROP, isDefaultBannerCrop, normalizeBannerCrop, type BannerCrop } from '@/lib/bannerCrop';
+import { isGoogleDriveUrl, isUnsplashPageUrl, normalizeImageUrl } from '@/lib/imageUrl';
 import { BannerCropEditor } from './BannerCropEditor';
+import { ImageUploadField } from './ImageUploadField';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -139,7 +141,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         theme: theme.trim(),
         prize_pool: prizePool.trim(),
         registration_form: registrationForm ? Number(registrationForm) : null,
-        banner_image: bannerImage.trim() || null,
+        banner_image: normalizeImageUrl(bannerImage) || null,
         banner_crop: bannerImage.trim() && !isDefaultBannerCrop(bannerCrop) ? bannerCrop : {},
         description: description,
 
@@ -159,7 +161,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         mode,
         venue: venue.trim(),
         organizer_name: organizer.trim(),
-        logo_image: logoImage.trim() || null,
+        logo_image: normalizeImageUrl(logoImage) || null,
         tags: tagsText.split(',').map((tag) => tag.trim()).filter(Boolean),
         prizes: prizes.map((prize) => ({ title: prize.title.trim(), amount: prize.amount.trim(), description: prize.description.trim() })),
       };
@@ -272,21 +274,21 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
               {errors.prize_pool && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.prize_pool}</p>}
             </div>
 
-            <div>
-              <label className={LABEL} htmlFor={`${fieldId}-banner-image-url`}>Banner Image URL</label>
-              <input id={`${fieldId}-banner-image-url`}
-                type="url"
+            <div className="sm:col-span-2">
+              <ImageUploadField
+                id={`${fieldId}-banner-image`}
+                label="Banner Image"
                 value={bannerImage}
-                onChange={(e) => setBannerImage(e.target.value)}
-                placeholder="https://..."
-                className={INPUT}
+                onChange={setBannerImage}
+                slug={hackathon.slug}
+                aspectHint="Recommended 16:6 aspect ratio (e.g. 1920×720 or 1200×450). Max 10 MB."
+                error={errors.banner_image}
               />
-              {errors.banner_image && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.banner_image}</p>}
             </div>
 
             {bannerImage.trim() && (
               <div className="sm:col-span-2">
-                <BannerCropEditor imageUrl={bannerImage.trim()} value={bannerCrop} onChange={setBannerCrop} />
+                <BannerCropEditor imageUrl={normalizeImageUrl(bannerImage.trim())} value={bannerCrop} onChange={setBannerCrop} />
                 {errors.banner_crop && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.banner_crop}</p>}
               </div>
             )}
@@ -423,9 +425,16 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
               <input id={`${fieldId}-organizer`} value={organizer} onChange={(e) => setOrganizer(e.target.value)} maxLength={150} placeholder="Blank = SRKR Coding Club, SRKR Engineering College" className={INPUT} />
             </div>
             <div>
-              <label className={LABEL} htmlFor={`${fieldId}-logo-image-url`}>Logo image URL</label>
-              <input id={`${fieldId}-logo-image-url`} type="url" value={logoImage} onChange={(e) => setLogoImage(e.target.value)} placeholder="https://..." className={INPUT} />
-              {errors.logo_image && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.logo_image}</p>}
+              <ImageUploadField
+                id={`${fieldId}-logo-image`}
+                label="Logo image"
+                value={logoImage}
+                onChange={setLogoImage}
+                slug={hackathon.slug}
+                isSquare
+                aspectHint="Recommended 1:1 square icon (e.g. 400×400). Max 10 MB."
+                error={errors.logo_image}
+              />
             </div>
           </div>
           <div>

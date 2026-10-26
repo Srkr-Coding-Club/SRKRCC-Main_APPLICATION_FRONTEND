@@ -8,6 +8,7 @@ import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
 import { slugify } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { isGoogleDriveUrl, normalizeImageUrl } from '@/lib/imageUrl';
 
 type RegistrationMode = 'quick' | 'form';
 
@@ -159,7 +160,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
         capacity: Number(capacity),
         start_time: startTime ? new Date(startTime).toISOString() : null,
         end_time: endTime ? new Date(endTime).toISOString() : null,
-        poster_image: posterImage.trim() || null,
+        poster_image: normalizeImageUrl(posterImage) || null,
         // One-click: the server builds the registration form from the ticked details.
         ...(registrationMode === 'quick'
           ? { quick_registration_fields: quickFields }
@@ -305,9 +306,20 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
               type="url"
               value={posterImage}
               onChange={(e) => setPosterImage(e.target.value)}
+              onBlur={() => {
+                const normalized = normalizeImageUrl(posterImage);
+                if (normalized && normalized !== posterImage.trim()) {
+                  setPosterImage(normalized);
+                }
+              }}
               placeholder="https://images.unsplash.com/..."
               className={inputClasses}
             />
+            {isGoogleDriveUrl(posterImage) && (
+              <p className="mt-1 text-[11px] text-sky-600 dark:text-sky-400">
+                ℹ️ Google Drive link detected. Converted to direct image format. Ensure sharing is set to &ldquo;Anyone with the link&rdquo; (Viewer).
+              </p>
+            )}
           </div>
 
           <div>

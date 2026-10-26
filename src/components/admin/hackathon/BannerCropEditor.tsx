@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { ImageOff, Move, RotateCcw } from 'lucide-react';
+import {
+  AlignCenter,
+  AlignEndHorizontal,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignEndVertical,
+  Eye,
+  Image as ImageIcon,
+  ImageOff,
+  Maximize2,
+  Move,
+  RotateCcw,
+} from 'lucide-react';
 import BannerImage from '@/components/ui/BannerImage';
 import {
   BANNER_ZOOM_MAX,
@@ -11,12 +23,14 @@ import {
   normalizeBannerCrop,
   type BannerCrop,
 } from '@/lib/bannerCrop';
+import { isGoogleDriveUrl, isUnsplashPageUrl, normalizeImageUrl } from '@/lib/imageUrl';
 import { BTN_GHOST, LABEL } from './shared';
 
 interface BannerCropEditorProps {
   imageUrl: string;
   value: BannerCrop;
   onChange: (crop: BannerCrop) => void;
+  fileInfo?: { name?: string; size?: number } | null;
 }
 
 const KEYBOARD_STEP = 2;
@@ -30,14 +44,23 @@ interface DragState {
   origin: BannerCrop;
 }
 
-/** Drag-to-reposition and zoom, shown in the same 16:6 frame the public hackathon page uses. */
-export function BannerCropEditor({ imageUrl, value, onChange }: BannerCropEditorProps) {
+/**
+ * Enhanced Banner Crop & Framing Editor:
+ * - Detects natural width & height and aspect ratio
+ * - Toggles between '16:6 Framing Preview' (public header view) and 'Full Image View' (complete uncropped image)
+ * - Quick alignment presets (Center, Top, Bottom, Left, Right)
+ * - Drag-to-reposition and zoom controls with precision sliders
+ */
+export function BannerCropEditor({ imageUrl, value, onChange, fileInfo }: BannerCropEditorProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [viewMode, setViewMode] = useState<'framing' | 'full'>('framing');
+
   const crop = normalizeBannerCrop(value);
+  const normalized = normalizeImageUrl(imageUrl);
   const failed = failedUrl === imageUrl;
 
   const update = (patch: Partial<BannerCrop>) => onChange(normalizeBannerCrop({ ...crop, ...patch }));
@@ -47,7 +70,7 @@ export function BannerCropEditor({ imageUrl, value, onChange }: BannerCropEditor
     Math.max(imageExtent - frame, frame * (crop.zoom - 1), frame * MIN_PAN_SPAN);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (failed) return;
+    if (failed || viewMode === 'full') return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: crop };
     setDragging(true);
@@ -77,6 +100,7 @@ export function BannerCropEditor({ imageUrl, value, onChange }: BannerCropEditor
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (viewMode === 'full') return;
     const moves: Record<string, Partial<BannerCrop>> = {
       ArrowLeft: { x: crop.x + KEYBOARD_STEP },
       ArrowRight: { x: crop.x - KEYBOARD_STEP },
@@ -89,56 +113,235 @@ export function BannerCropEditor({ imageUrl, value, onChange }: BannerCropEditor
     update(move);
   };
 
+  // Calculate aspect ratio string
+  const getAspectRatioStr = () => {
+    if (!naturalSize) return '';
+    const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+    const divisor = gcd(naturalSize.width, naturalSize.height);
+    const rW = Math.round(naturalSize.width / divisor);
+    const rH = Math.round(naturalSize.height / divisor);
+    // If standard ratio
+    if ((rW === 16 && rH === 9) || (rW === 4 && rH === 3) || (rW === 1 && rH === 1) || (rW === 16 && rH === 6)) {
+      return `${rW}:${rH}`;
+    }
+    const ratio = (naturalSize.width / naturalSize.height).toFixed(2);
+    return `${ratio}:1`;
+  };
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className={`${LABEL} mb-0`}>Banner framing</p>
-        <button type="button" onClick={() => onChange(DEFAULT_BANNER_CROP)} disabled={isDefaultBannerCrop(crop)} className={BTN_GHOST}>
-          <RotateCcw className="h-3.5 w-3.5" /> Reset
-        </button>
-      </div>
-
-      <div
-        ref={frameRef}
-        role="group"
-        tabIndex={failed ? -1 : 0}
-        aria-label="Banner preview. Drag, or use the arrow keys, to choose what stays visible."
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onKeyDown={handleKeyDown}
-        className={`relative aspect-[16/6] w-full touch-none overflow-hidden rounded-xl border border-slate-200 bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] dark:border-slate-800 dark:bg-white/5 ${
-          failed ? '' : dragging ? 'cursor-grabbing' : 'cursor-grab'
-        }`}
-      >
-        {failed ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
-            <ImageOff className="h-6 w-6" aria-hidden="true" />
-            Could not load this image. Check the URL is public and points straight to an image.
-          </div>
-        ) : (
-          <>
-            <BannerImage
-              key={imageUrl}
-              src={imageUrl}
-              alt="Banner preview"
-              crop={crop}
-              onLoad={setNaturalSize}
-              onError={() => setFailedUrl(imageUrl)}
-            />
-            <span className="pointer-events-none absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white">
-              <Move className="h-3 w-3" aria-hidden="true" /> Drag to reposition
+    <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-white/[0.02]">
+      {/* Top Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <p className={`${LABEL} mb-0`}>Banner Framing & Crop Editor</p>
+          {naturalSize && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-slate-200/80 px-2 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              <ImageIcon className="h-3 w-3 text-journey-accent" />
+              {naturalSize.width} × {naturalSize.height} px
+              <span className="text-slate-400 dark:text-slate-500">({getAspectRatioStr()})</span>
             </span>
-          </>
-        )}
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {/* Mode Switcher: 16:6 Framing vs Full Image */}
+          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs dark:border-slate-800 dark:bg-slate-900">
+            <button
+              type="button"
+              onClick={() => setViewMode('framing')}
+              className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
+                viewMode === 'framing'
+                  ? 'bg-journey-accent text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+              title="Preview banner in the exact 16:6 header frame"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              16:6 Preview
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('full')}
+              className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
+                viewMode === 'full'
+                  ? 'bg-journey-accent text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+              title="View the entire uncropped image to inspect full dimensions"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              Full Image
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onChange(DEFAULT_BANNER_CROP)}
+            disabled={isDefaultBannerCrop(crop)}
+            className={BTN_GHOST}
+            title="Reset crop to center (50% / 50% / 1x)"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Reset
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <CropSlider label="Horizontal" value={crop.x} min={0} max={100} step={1} unit="%" disabled={failed} onChange={(x) => update({ x })} />
-        <CropSlider label="Vertical" value={crop.y} min={0} max={100} step={1} unit="%" disabled={failed} onChange={(y) => update({ y })} />
+      {/* Main Preview Container */}
+      {viewMode === 'framing' ? (
+        <div
+          ref={frameRef}
+          role="group"
+          tabIndex={failed ? -1 : 0}
+          aria-label="Banner preview. Drag, or use the arrow keys, to choose what stays visible."
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onKeyDown={handleKeyDown}
+          className={`relative aspect-[16/6] w-full touch-none overflow-hidden rounded-xl border border-slate-200 bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] dark:border-slate-800 dark:bg-white/5 ${
+            failed ? '' : dragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+        >
+          {failed ? (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-6 py-4 text-center text-xs text-slate-500 dark:text-slate-400">
+              <ImageOff className="h-6 w-6 text-rose-500/80" aria-hidden="true" />
+              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                Could not load image{isGoogleDriveUrl(imageUrl) ? ' from Google Drive' : isUnsplashPageUrl(imageUrl) ? ' from Unsplash' : ''}.
+              </span>
+              {isGoogleDriveUrl(imageUrl) ? (
+                <span className="max-w-md text-[11px] leading-relaxed text-amber-600 dark:text-amber-400">
+                  In Google Drive, click <strong>Share</strong> and set General Access to <strong>&ldquo;Anyone with the link&rdquo;</strong> (Viewer). If set to &ldquo;Restricted&rdquo;, Google blocks external access.
+                </span>
+              ) : isUnsplashPageUrl(imageUrl) ? (
+                <span className="max-w-md text-[11px] leading-relaxed text-amber-600 dark:text-amber-400">
+                  You entered an Unsplash page link instead of the direct image. Right-click the photo on Unsplash and choose <strong>&ldquo;Copy Image Address&rdquo;</strong> (starts with <code>https://images.unsplash.com/...</code>).
+                </span>
+              ) : (
+                <span>Check that the URL is public, points straight to an image file, and allows embedding.</span>
+              )}
+              <button
+                type="button"
+                onClick={() => setFailedUrl(null)}
+                className="mt-2 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                <RotateCcw className="h-3 w-3" /> Retry Loading
+              </button>
+            </div>
+          ) : (
+            <>
+              <BannerImage
+                key={normalized}
+                src={normalized}
+                alt="Banner preview"
+                crop={crop}
+                onLoad={(size) => {
+                  setNaturalSize(size);
+                  setFailedUrl(null);
+                }}
+                onError={() => setFailedUrl(imageUrl)}
+              />
+              <span className="pointer-events-none absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white shadow backdrop-blur-sm">
+                <Move className="h-3 w-3" aria-hidden="true" /> Drag to reposition
+              </span>
+              <span className="pointer-events-none absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-medium text-slate-200 backdrop-blur-sm">
+                16:6 Header Aspect Ratio
+              </span>
+            </>
+          )}
+        </div>
+      ) : (
+        /* Full Image View: Shows the full image fitted inside a dark canvas */
+        <div className="relative flex max-h-80 min-h-[220px] w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-900 p-2 dark:border-slate-800">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={normalized}
+            alt="Full original banner"
+            className="max-h-72 w-auto max-w-full rounded-lg object-contain shadow-lg"
+            referrerPolicy="no-referrer"
+            onLoad={(e) => {
+              setNaturalSize({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight });
+              setFailedUrl(null);
+            }}
+            onError={() => setFailedUrl(imageUrl)}
+          />
+          <div className="absolute bottom-2 left-2 inline-flex items-center gap-1.5 rounded-full bg-black/75 px-3 py-1 text-[11px] font-medium text-white shadow backdrop-blur-sm">
+            <span>Full Image Display</span>
+            {naturalSize && <span>• {naturalSize.width} × {naturalSize.height} px</span>}
+          </div>
+        </div>
+      )}
+
+      {/* Alignment Presets Row */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+        <span className="font-semibold text-slate-500 dark:text-slate-400">Quick Alignment:</span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => update({ x: 50, y: 50 })}
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            title="Center focal point"
+          >
+            <AlignCenter className="h-3 w-3 text-journey-accent" /> Center
+          </button>
+          <button
+            type="button"
+            onClick={() => update({ y: 0 })}
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            title="Align to top edge"
+          >
+            <AlignStartVertical className="h-3 w-3" /> Top
+          </button>
+          <button
+            type="button"
+            onClick={() => update({ y: 100 })}
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            title="Align to bottom edge"
+          >
+            <AlignEndVertical className="h-3 w-3" /> Bottom
+          </button>
+          <button
+            type="button"
+            onClick={() => update({ x: 0 })}
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            title="Align to left edge"
+          >
+            <AlignStartHorizontal className="h-3 w-3" /> Left
+          </button>
+          <button
+            type="button"
+            onClick={() => update({ x: 100 })}
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            title="Align to right edge"
+          >
+            <AlignEndHorizontal className="h-3 w-3" /> Right
+          </button>
+        </div>
+      </div>
+
+      {/* Precision Sliders */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
         <CropSlider
-          label="Zoom"
+          label="Horizontal (X)"
+          value={crop.x}
+          min={0}
+          max={100}
+          step={1}
+          unit="%"
+          disabled={failed}
+          onChange={(x) => update({ x })}
+        />
+        <CropSlider
+          label="Vertical (Y)"
+          value={crop.y}
+          min={0}
+          max={100}
+          step={1}
+          unit="%"
+          disabled={failed}
+          onChange={(y) => update({ y })}
+        />
+        <CropSlider
+          label="Zoom Level"
           value={crop.zoom}
           min={BANNER_ZOOM_MIN}
           max={BANNER_ZOOM_MAX}
@@ -165,14 +368,14 @@ interface CropSliderProps {
 
 function CropSlider({ label, value, min, max, step, unit, disabled, onChange }: CropSliderProps) {
   return (
-    <label className="block text-xs font-bold text-[#1A1A2E] dark:text-white">
-      <span className="flex items-center justify-between">
-        {label}
-        <span className="font-mono font-medium text-slate-500 dark:text-slate-400">
-          {Number.isInteger(value) ? value : value.toFixed(2)}
+    <div className="rounded-lg border border-slate-200 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900/60">
+      <div className="flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300">
+        <span>{label}</span>
+        <span className="font-mono text-slate-900 dark:text-white">
+          {Math.round(value * 100) / 100}
           {unit}
         </span>
-      </span>
+      </div>
       <input
         type="range"
         min={min}
@@ -180,9 +383,9 @@ function CropSlider({ label, value, min, max, step, unit, disabled, onChange }: 
         step={step}
         value={value}
         disabled={disabled}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-1 h-6 w-full accent-[#FF7A00] disabled:opacity-40"
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-journey-accent disabled:cursor-not-allowed disabled:opacity-40 dark:bg-slate-700"
       />
-    </label>
+    </div>
   );
 }
