@@ -2,38 +2,41 @@ import type { ProblemStatement } from '@/lib/types';
 
 export const ALL_TRACKS = 'ALL';
 
-/** Fewer tracks than this and section headers add noise, so the list stays flat. */
+/** Fewer tracks than this and section headings add noise, so the list stays flat. */
 export const MIN_TRACKS_TO_GROUP = 3;
 
-/** A track with at most this many open slots is flagged as filling up. */
-export const LOW_SLOTS_THRESHOLD = 3;
+/** Cards shown at first, and added by each "Show more". */
+export const PROBLEM_PAGE_SIZE = 25;
 
-export type ProblemSort = 'track' | 'code' | 'slots';
+export type ProblemSort = 'track' | 'code' | 'title';
+export type SortDirection = 'asc' | 'desc';
 
 export const PROBLEM_SORT_LABELS: Record<ProblemSort, string> = {
   track: 'Track',
   code: 'Code',
-  slots: 'Most slots left',
+  title: 'Title',
+};
+
+/** Every order starts A to Z (or lowest first). */
+export const DEFAULT_SORT_DIRECTION: Record<ProblemSort, SortDirection> = {
+  track: 'asc',
+  code: 'asc',
+  title: 'asc',
 };
 
 export interface ProblemFilters {
   query: string;
   domain: string;
-  onlyAvailable: boolean;
   sort: ProblemSort;
+  dir: SortDirection;
 }
 
 export const DEFAULT_PROBLEM_FILTERS: ProblemFilters = {
   query: '',
   domain: ALL_TRACKS,
-  onlyAvailable: false,
   sort: 'track',
+  dir: DEFAULT_SORT_DIRECTION.track,
 };
-
-export interface ProblemGroup {
-  domain: string;
-  items: ProblemStatement[];
-}
 
 const sameDomain = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
@@ -57,7 +60,7 @@ const MARKDOWN_PATTERNS: Array<[RegExp, string]> = [
   [/(\*\*|__|\*|_|~~|`)/g, ''],
 ];
 
-/** Markdown as one plain line of text, for card previews that must not render block elements. */
+/** Markdown as one plain line of text, for previews that must not render block elements. */
 export function plainSummary(markdown: string): string {
   const text = MARKDOWN_PATTERNS.reduce((acc, [pattern, replacement]) => acc.replace(pattern, replacement), markdown ?? '');
   const sentences = text
@@ -83,28 +86,40 @@ function matchesQuery(problem: ProblemStatement, rawQuery: string): boolean {
 export function filterProblems(problems: ProblemStatement[], filters: ProblemFilters): ProblemStatement[] {
   return problems.filter((problem) => {
     if (filters.domain !== ALL_TRACKS && !sameDomain(problem.domain, filters.domain)) return false;
-    if (filters.onlyAvailable && isProblemFull(problem)) return false;
     return matchesQuery(problem, filters.query);
   });
 }
 
-const slotsRank = (problem: ProblemStatement) => (problem.slots_left === null ? Number.POSITIVE_INFINITY : problem.slots_left);
+const byCode = (a: ProblemStatement, b: ProblemStatement) => a.code.localeCompare(b.code, undefined, { numeric: true });
 
 export function sortProblems(
   problems: ProblemStatement[],
   sort: ProblemSort,
+  dir: SortDirection,
   domainOrder: string[] = [],
 ): ProblemStatement[] {
-  const byCode = (a: ProblemStatement, b: ProblemStatement) => a.code.localeCompare(b.code, undefined, { numeric: true });
-  if (sort === 'code') return [...problems].sort(byCode);
-  if (sort === 'slots') return [...problems].sort((a, b) => slotsRank(b) - slotsRank(a) || byCode(a, b));
   const order = orderDomains(problems, domainOrder);
-  const rank = (problem: ProblemStatement) => order.findIndex((domain) => sameDomain(domain, problem.domain));
-  return [...problems].sort((a, b) => rank(a) - rank(b) || a.order - b.order || byCode(a, b));
+  const trackRank = (problem: ProblemStatement) => order.findIndex((domain) => sameDomain(domain, problem.domain));
+  const primary = (a: ProblemStatement, b: ProblemStatement) => {
+    if (sort === 'code') return byCode(a, b);
+    if (sort === 'title') return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+    return trackRank(a) - trackRank(b) || a.order - b.order;
+  };
+  // Only the chosen column flips with the direction; ties always fall back to code order.
+  const sign = dir === 'asc' ? 1 : -1;
+  return [...problems].sort((a, b) => {
+    const diff = primary(a, b);
+    return diff !== 0 ? sign * diff : byCode(a, b);
+  });
 }
 
-export function groupByTrack(problems: ProblemStatement[], domainOrder: string[] = []): ProblemGroup[] {
-  const sorted = sortProblems(problems, 'track', domainOrder);
+export interface ProblemGroup {
+  domain: string;
+  items: ProblemStatement[];
+}
+
+/** Splits a list already sorted by track into one group per run of the same track; it never reorders. */
+export function groupByTrack(sorted: ProblemStatement[]): ProblemGroup[] {
   const groups: ProblemGroup[] = [];
   for (const problem of sorted) {
     const last = groups[groups.length - 1];
@@ -114,27 +129,27 @@ export function groupByTrack(problems: ProblemStatement[], domainOrder: string[]
   return groups;
 }
 
-/** Number of non-default choices made in the filter sheet (the search box shows its own state). */
-export function activeFilterCount(filters: ProblemFilters): number {
-  return (
-    (filters.domain !== ALL_TRACKS ? 1 : 0) +
-    (filters.onlyAvailable ? 1 : 0) +
-    (filters.sort !== DEFAULT_PROBLEM_FILTERS.sort ? 1 : 0)
-  );
+/** Finds the problem a shared link points at: by code (PS-014, any case) or by id. */
+export function findProblem(problems: ProblemStatement[], ref: string | null): ProblemStatement | null {
+  const wanted = ref?.trim().toLowerCase();
+  if (!wanted) return null;
+  return problems.find((problem) => problem.code.toLowerCase() === wanted || String(problem.id) === wanted) ?? null;
 }
 
-const isSort = (value: string | null): value is ProblemSort => value === 'track' || value === 'code' || value === 'slots';
+const isSort = (value: string | null): value is ProblemSort => value !== null && value in PROBLEM_SORT_LABELS;
 
 /** Reads filters from a query string; unknown tracks fall back to all so a stale link never shows an empty list. */
 export function parseProblemFilters(params: URLSearchParams, knownDomains: string[]): ProblemFilters {
   const track = params.get('track');
-  const sort = params.get('sort');
+  const sortParam = params.get('sort');
+  const sort = isSort(sortParam) ? sortParam : DEFAULT_PROBLEM_FILTERS.sort;
+  const dirParam = params.get('dir');
   const domain = track && knownDomains.find((name) => sameDomain(name, track));
   return {
     query: params.get('q')?.slice(0, 100) ?? '',
     domain: domain || ALL_TRACKS,
-    onlyAvailable: params.get('open') === '1',
-    sort: isSort(sort) ? sort : DEFAULT_PROBLEM_FILTERS.sort,
+    sort,
+    dir: dirParam === 'asc' || dirParam === 'desc' ? dirParam : DEFAULT_SORT_DIRECTION[sort],
   };
 }
 
@@ -144,7 +159,7 @@ export function applyProblemFilters(base: URLSearchParams, filters: ProblemFilte
   const set = (key: string, value: string | null) => (value ? params.set(key, value) : params.delete(key));
   set('q', filters.query.trim() || null);
   set('track', filters.domain !== ALL_TRACKS ? filters.domain : null);
-  set('open', filters.onlyAvailable ? '1' : null);
   set('sort', filters.sort !== DEFAULT_PROBLEM_FILTERS.sort ? filters.sort : null);
+  set('dir', filters.dir !== DEFAULT_SORT_DIRECTION[filters.sort] ? filters.dir : null);
   return params;
 }

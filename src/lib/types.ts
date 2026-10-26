@@ -141,7 +141,7 @@ export interface Hackathon {
   is_manually_hidden?: boolean;
   banner_image?: string | null;
   /** Admin-chosen framing of the banner; empty object = centred, no zoom. */
-  banner_crop?: { x?: number; y?: number; zoom?: number };
+  banner_crop?: { x?: number; y?: number; zoom?: number; mode?: 'crop' | 'full' };
   registration_form?: number | null;
   form_slug?: string;
   form_title?: string;

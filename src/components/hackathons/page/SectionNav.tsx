@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useScrollEntrance } from '@/lib/hooks/useScrollEntrance';
+import { riseIn } from '@/lib/entranceMotion';
 
 export interface PageSection {
   id: string;
@@ -84,8 +86,12 @@ export function PageSectionCard({
   title: string;
   children: React.ReactNode;
 }) {
+  const ref = useRef<HTMLElement>(null);
+  useScrollEntrance(ref, (tl) => riseIn(tl, ref.current), { start: 'top 90%' });
+
   return (
     <section
+      ref={ref}
       id={id}
       className="scroll-mt-36 space-y-5 rounded-2xl border border-journey-text/10 bg-journey-surface/50 p-5 sm:p-7"
     >

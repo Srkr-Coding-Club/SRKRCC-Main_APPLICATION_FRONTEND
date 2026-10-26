@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { setSessionCookies } from '@/lib/server/authCookies';
+import { resolveCookieDomain, setSessionCookies } from '@/lib/server/authCookies';
 
 const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
       role,
     });
 
-    setSessionCookies(response, { access, refresh }, secure, role);
+    const domain = resolveCookieDomain(request.headers.get('host'));
+    setSessionCookies(response, { access, refresh }, secure, role, domain);
 
     return response;
   } catch (error: any) {

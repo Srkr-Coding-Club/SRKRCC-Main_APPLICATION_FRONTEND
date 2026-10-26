@@ -7,7 +7,7 @@ import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import HackathonCard from '@/components/HackathonCard';
-import BounceCards from '@/components/ui/BounceCards';
+import CardGrid from '@/components/ui/CardGrid';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
@@ -59,12 +59,7 @@ export default async function HackathonsPage() {
           />
 
           {hackathons.length > 0 ? (
-            <BounceCards
-              layout="bounce-stack"
-              cards={hackathons.map((hackathon, index) => (
-                <HackathonCard key={hackathon.id} hackathon={hackathon} index={index} />
-              ))}
-            />
+            <CardGrid cards={hackathons.map((hackathon) => <HackathonCard key={hackathon.id} hackathon={hackathon} />)} />
           ) : (
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-journey-text/10 py-16 text-center">
               <Trophy className="h-8 w-8 text-journey-muted" />

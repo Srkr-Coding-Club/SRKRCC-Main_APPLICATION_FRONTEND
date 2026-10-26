@@ -36,6 +36,8 @@ export default function BannerImage({ src, alt, crop, className = '', onError, o
     onError?.();
   };
 
+  const isFull = crop?.mode === 'full';
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -45,7 +47,7 @@ export default function BannerImage({ src, alt, crop, className = '', onError, o
       referrerPolicy="no-referrer"
       onError={handleError}
       onLoad={(event) => onLoad?.({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
-      className={`h-full w-full select-none object-cover ${className}`}
+      className={`select-none ${isFull ? 'h-auto max-h-[700px] w-auto max-w-full object-contain' : 'h-full w-full object-cover'} ${className}`}
       style={bannerCropStyle(crop)}
     />
   );

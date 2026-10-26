@@ -57,9 +57,8 @@ export function BannerCropEditor({ imageUrl, value, onChange, fileInfo }: Banner
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [viewMode, setViewMode] = useState<'framing' | 'full'>('framing');
-
   const crop = normalizeBannerCrop(value);
+  const currentMode = crop.mode ?? 'crop';
   const normalized = normalizeImageUrl(imageUrl);
   const failed = failedUrl === imageUrl;
 
@@ -70,7 +69,7 @@ export function BannerCropEditor({ imageUrl, value, onChange, fileInfo }: Banner
     Math.max(imageExtent - frame, frame * (crop.zoom - 1), frame * MIN_PAN_SPAN);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (failed || viewMode === 'full') return;
+    if (failed || currentMode === 'full') return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: crop };
     setDragging(true);
@@ -100,7 +99,7 @@ export function BannerCropEditor({ imageUrl, value, onChange, fileInfo }: Banner
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (viewMode === 'full') return;
+    if (currentMode === 'full') return;
     const moves: Record<string, Partial<BannerCrop>> = {
       ArrowLeft: { x: crop.x + KEYBOARD_STEP },
       ArrowRight: { x: crop.x - KEYBOARD_STEP },
@@ -148,26 +147,26 @@ export function BannerCropEditor({ imageUrl, value, onChange, fileInfo }: Banner
           <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs dark:border-slate-800 dark:bg-slate-900">
             <button
               type="button"
-              onClick={() => setViewMode('framing')}
+              onClick={() => update({ mode: 'crop' })}
               className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
-                viewMode === 'framing'
+                currentMode === 'crop'
                   ? 'bg-journey-accent text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
-              title="Preview banner in the exact 16:6 header frame"
+              title="Crop banner into a 16:6 header strip"
             >
               <Eye className="h-3.5 w-3.5" />
               16:6 Preview
             </button>
             <button
               type="button"
-              onClick={() => setViewMode('full')}
+              onClick={() => update({ mode: 'full' })}
               className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
-                viewMode === 'full'
+                currentMode === 'full'
                   ? 'bg-journey-accent text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
-              title="View the entire uncropped image to inspect full dimensions"
+              title="Display complete uncropped poster on the hackathon page"
             >
               <Maximize2 className="h-3.5 w-3.5" />
               Full Image
@@ -187,7 +186,7 @@ export function BannerCropEditor({ imageUrl, value, onChange, fileInfo }: Banner
       </div>
 
       {/* Main Preview Container */}
-      {viewMode === 'framing' ? (
+      {currentMode === 'crop' ? (
         <div
           ref={frameRef}
           role="group"
@@ -271,86 +270,97 @@ export function BannerCropEditor({ imageUrl, value, onChange, fileInfo }: Banner
         </div>
       )}
 
-      {/* Alignment Presets Row */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
-        <span className="font-semibold text-slate-500 dark:text-slate-400">Quick Alignment:</span>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => update({ x: 50, y: 50 })}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-            title="Center focal point"
-          >
-            <AlignCenter className="h-3 w-3 text-journey-accent" /> Center
-          </button>
-          <button
-            type="button"
-            onClick={() => update({ y: 0 })}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-            title="Align to top edge"
-          >
-            <AlignStartVertical className="h-3 w-3" /> Top
-          </button>
-          <button
-            type="button"
-            onClick={() => update({ y: 100 })}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-            title="Align to bottom edge"
-          >
-            <AlignEndVertical className="h-3 w-3" /> Bottom
-          </button>
-          <button
-            type="button"
-            onClick={() => update({ x: 0 })}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-            title="Align to left edge"
-          >
-            <AlignStartHorizontal className="h-3 w-3" /> Left
-          </button>
-          <button
-            type="button"
-            onClick={() => update({ x: 100 })}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-            title="Align to right edge"
-          >
-            <AlignEndHorizontal className="h-3 w-3" /> Right
-          </button>
+      {currentMode === 'full' ? (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-300">
+          <p className="font-semibold">Full Image Mode Active</p>
+          <p className="mt-0.5 text-[11px] text-emerald-700/90 dark:text-emerald-400">
+            The complete original poster will be displayed on the public hackathon page without cropping.
+          </p>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Alignment Presets Row */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+            <span className="font-semibold text-slate-500 dark:text-slate-400">Quick Alignment:</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => update({ x: 50, y: 50 })}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                title="Center focal point"
+              >
+                <AlignCenter className="h-3 w-3 text-journey-accent" /> Center
+              </button>
+              <button
+                type="button"
+                onClick={() => update({ y: 0 })}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                title="Align to top edge"
+              >
+                <AlignStartVertical className="h-3 w-3" /> Top
+              </button>
+              <button
+                type="button"
+                onClick={() => update({ y: 100 })}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                title="Align to bottom edge"
+              >
+                <AlignEndVertical className="h-3 w-3" /> Bottom
+              </button>
+              <button
+                type="button"
+                onClick={() => update({ x: 0 })}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                title="Align to left edge"
+              >
+                <AlignStartHorizontal className="h-3 w-3" /> Left
+              </button>
+              <button
+                type="button"
+                onClick={() => update({ x: 100 })}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                title="Align to right edge"
+              >
+                <AlignEndHorizontal className="h-3 w-3" /> Right
+              </button>
+            </div>
+          </div>
 
-      {/* Precision Sliders */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
-        <CropSlider
-          label="Horizontal (X)"
-          value={crop.x}
-          min={0}
-          max={100}
-          step={1}
-          unit="%"
-          disabled={failed}
-          onChange={(x) => update({ x })}
-        />
-        <CropSlider
-          label="Vertical (Y)"
-          value={crop.y}
-          min={0}
-          max={100}
-          step={1}
-          unit="%"
-          disabled={failed}
-          onChange={(y) => update({ y })}
-        />
-        <CropSlider
-          label="Zoom Level"
-          value={crop.zoom}
-          min={BANNER_ZOOM_MIN}
-          max={BANNER_ZOOM_MAX}
-          step={0.05}
-          unit="×"
-          disabled={failed}
-          onChange={(zoom) => update({ zoom })}
-        />
-      </div>
+          {/* Precision Sliders */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
+            <CropSlider
+              label="Horizontal (X)"
+              value={crop.x}
+              min={0}
+              max={100}
+              step={1}
+              unit="%"
+              disabled={failed}
+              onChange={(x) => update({ x })}
+            />
+            <CropSlider
+              label="Vertical (Y)"
+              value={crop.y}
+              min={0}
+              max={100}
+              step={1}
+              unit="%"
+              disabled={failed}
+              onChange={(y) => update({ y })}
+            />
+            <CropSlider
+              label="Zoom Level"
+              value={crop.zoom}
+              min={BANNER_ZOOM_MIN}
+              max={BANNER_ZOOM_MAX}
+              step={0.05}
+              unit="×"
+              disabled={failed}
+              onChange={(zoom) => update({ zoom })}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

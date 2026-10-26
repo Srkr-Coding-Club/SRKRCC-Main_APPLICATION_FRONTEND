@@ -18,6 +18,7 @@ export function FormSelect({
   placeholder,
   onChange,
   className = '',
+  triggerClassName = '',
   allowClear = true,
   disabled = false,
   'aria-label': ariaLabel,
@@ -28,6 +29,8 @@ export function FormSelect({
   placeholder: string;
   onChange: (value: string) => void;
   className?: string;
+  /** Extra classes for the button that opens the list (height, weight, ...). */
+  triggerClassName?: string;
   /** Show the placeholder as a selectable "none" row at the top. */
   allowClear?: boolean;
   disabled?: boolean;
@@ -103,7 +106,7 @@ export function FormSelect({
         aria-labelledby={ariaLabelledBy ? `${ariaLabelledBy} ${triggerId}` : undefined}
         className={`flex w-full items-center justify-between gap-2 px-3 py-2 glass-panel border rounded-xl text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
           isOpen ? 'border-orange-500/60' : 'border-slate-300 dark:border-slate-700'
-        }`}
+        } ${triggerClassName}`}
       >
         <span className={`truncate ${selected ? 'text-[#1A1A2E] dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
           {selected?.label || placeholder}

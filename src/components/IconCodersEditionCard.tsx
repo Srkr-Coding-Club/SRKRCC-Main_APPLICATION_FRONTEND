@@ -23,6 +23,7 @@ export default function IconCodersEditionCard({
   return (
     <PublicListingCard
       accent={accent}
+      entryAnimation="none"
       category={
         <>
           <User className="h-3 w-3" />

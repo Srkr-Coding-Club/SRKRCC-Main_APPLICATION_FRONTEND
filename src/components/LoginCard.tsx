@@ -318,9 +318,8 @@ export default function LoginCard({
 
             <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
               {nextUrl && !loggedInUser && (
-                <div className="rounded-lg border border-orange-200 bg-orange-50 p-2 text-xs text-orange-600 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300">
-                  <span className="font-semibold">Sign in required</span> for{' '}
-                  <code className="font-mono">{nextUrl}</code>
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-2.5 text-xs text-orange-700 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300">
+                  <span className="font-semibold">Sign in required</span> to access this page.
                 </div>
               )}
 
