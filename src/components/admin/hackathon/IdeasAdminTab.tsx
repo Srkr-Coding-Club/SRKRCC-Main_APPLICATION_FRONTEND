@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BellRing, Check, Download, ExternalLink, FileText, IndianRupee, Lightbulb, MessageSquareWarning, Save, X } from 'lucide-react';
+import { BellRing, Check, Download, ExternalLink, IndianRupee, Lightbulb, MessageSquareWarning, Save, X } from 'lucide-react';
 import type { AdminIdeasPayload, Hackathon, IdeaStatus } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { downloadCSV } from '@/lib/dataManagement';
@@ -16,6 +16,7 @@ import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInp
 import { useHackathonPatch } from './useHackathonPatch';
 import FileUploadField from '@/components/forms/FileUploadField';
 import { PaymentQr } from '@/components/hackathons/PaymentQr';
+import { IdeaFileActions } from '@/components/hackathons/IdeaFileActions';
 import { IDEA_FILE_RULES, uploadIdeaQr } from '@/lib/ideaUpload';
 
 const STATUS_PILL: Record<IdeaStatus, { tone: PillTone; label: string }> = {
@@ -28,26 +29,6 @@ const FILTERS: { value: IdeaStatus | ''; label: string }[] = [
   { value: '', label: 'All' }, { value: 'SUBMITTED', label: 'To review' }, { value: 'CHANGES_REQUESTED', label: 'Changes requested' },
   { value: 'APPROVED', label: 'Approved' }, { value: 'REJECTED', label: 'Rejected' },
 ];
-
-/** One saved file of an idea; the link is fetched when it is opened (the payment screenshot is for organizers only). */
-function IdeaFileButton({ slug, ideaId, kind, label, file }: { slug: string; ideaId: number; kind: 'deck' | 'payment'; label: string; file: { name: string; type: string } }) {
-  const { toast } = useToast();
-  const open = async () => {
-    try {
-      const viewable = file.type.startsWith('image/');
-      const link = await hackathonApi.ideaFileLink(slug, ideaId, kind, viewable);
-      if (link.inline) window.open(link.url, '_blank', 'noopener,noreferrer');
-      else window.location.assign(link.url);
-    } catch (err) {
-      toast.error(`Could not open the ${label.toLowerCase()}`, apiErrorMessage(err));
-    }
-  };
-  return (
-    <button type="button" onClick={open} className={BTN_GHOST} aria-label={`${label}: ${file.name}`}>
-      <FileText className="h-3.5 w-3.5" /> {label} <span className="max-w-[10rem] truncate font-normal text-slate-500 dark:text-slate-400">{file.name}</span>
-    </button>
-  );
-}
 
 interface IdeasAdminTabProps {
   hackathon: Hackathon;
@@ -169,7 +150,7 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
         </div>
         <div className="space-y-4 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
           <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400"><IndianRupee className="h-3.5 w-3.5" /> What teams must provide</h4>
-          <Switch label="Presentation file required" description="The team uploads a .ppt or .pptx with its idea." checked={deckRequired} onChange={setDeckRequired} />
+          <Switch label="Presentation file required" description="The team uploads a .ppt, .pptx or .pdf with its idea." checked={deckRequired} onChange={setDeckRequired} />
           {errors.idea_deck_required && <p className="text-[11px] text-rose-600 dark:text-rose-400">{errors.idea_deck_required}</p>}
           <Switch label="LinkedIn post link required" description="The link of the team's LinkedIn post about the hackathon." checked={linkedinRequired} onChange={setLinkedinRequired} />
           <div className="space-y-2">
@@ -287,8 +268,8 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
                         {row.tech_stack.length > 0 && <p className="text-xs text-slate-500 dark:text-slate-400">Tech: {row.tech_stack.join(', ')}</p>}
                         {row.linkedin_url && <a href={row.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-journey-accent hover:underline">LinkedIn post <ExternalLink className="h-3 w-3" /></a>}
                         <div className="flex flex-wrap gap-2">
-                          {row.deck_file && <IdeaFileButton slug={slug} ideaId={row.id} kind="deck" label="Presentation" file={row.deck_file} />}
-                          {row.payment_proof && <IdeaFileButton slug={slug} ideaId={row.id} kind="payment" label="Payment screenshot" file={row.payment_proof} />}
+                          {row.deck_file && <IdeaFileActions slug={slug} ideaId={row.id} kind="deck" label="Presentation" file={row.deck_file} />}
+                          {row.payment_proof && <IdeaFileActions slug={slug} ideaId={row.id} kind="payment" label="Payment screenshot" file={row.payment_proof} />}
                         </div>
                         {(row.transaction_id || (hackathon.idea_fee_amount ?? 0) > 0) && (
                           <p className="text-xs text-slate-500 dark:text-slate-400">

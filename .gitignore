@@ -40,3 +40,4 @@ Thumbs.db
 # UI/UX audit scripts (e2e-audit/) write raw measurements and captures here
 /docs/ui-ux-audit/data/
 /docs/ui-ux-audit/screenshots/
+__pycache__/

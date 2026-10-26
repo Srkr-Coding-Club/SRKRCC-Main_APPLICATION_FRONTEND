@@ -407,3 +407,12 @@ Full audit: `docs/ui-ux-audit/`. The rules that came out of it, so new screens d
 - **Admin navigation** switches to the hamburger below `xl` (1280px); the desktop bar needs about 1211px.
 - **Touch targets:** at least 24px (WCAG 2.2 AA), 44px for primary controls on phones.
 - **Audit tooling** lives in `e2e-audit/` (stand-in API, 8-viewport crawler with axe, contrast and tab probes, before/after flow checks). See its header comments for usage; none of it runs in the normal test suites.
+
+## Idea and project submissions: PDF decks, previews, link rules (October 2026)
+
+- **Decks** accept `.ppt`, `.pptx` and `.pdf` (`DECK` in `src/lib/ideaUpload.ts`, `idea_files.py` on the backend). The server still checks the file's first bytes, so a renamed file is refused.
+- **Preview.** `FilePreviewDialog` shows a PDF in the browser's own viewer (iframe) or an image; PowerPoint cannot be shown by a browser and is download-only. A file just picked is previewed from a blob URL (nothing leaves the browser); a saved file is fetched through a 60-second signed link requested when the button is pressed (`IdeaFileActions`, used by the team page and the admin Ideas tab). The CSP (report-only) allows `frame-src 'self' blob:` plus the upload origins.
+- **Link rules** live in `apps/hackathons/link_rules.py` (authority) and are mirrored for instant feedback in `src/lib/validation/submissionLinks.ts`: https only, no credentials, no localhost/private/`.local` hosts, at most 200 characters; repo links need a code host and `owner/repo`; video and LinkedIn links are host-allowlisted. Demo and slides links may be any public site. Reachability is not checked on purpose: the server fetching a team-supplied address would be a request-forgery door.
+- **Detail rules:** project title ≥ 3 characters, description ≥ 30; idea title ≥ 3, problem and approach ≥ 20. The forms check links before sending (no round trip) and keep what was typed when the server refuses a save.
+- **Admin sees projects** in Projects (phase 2): the table plus a "Read project" dialog with the whole description, tech and links.
+- **Live tests** (`e2e-live/`, real Django + moto S3): `hackathon-submissions`, `hackathon-idea-pdf`, `hackathon-ideas`. Delete `.next` first if a production build exists. Moto ignores the download filename override that real S3 honours.

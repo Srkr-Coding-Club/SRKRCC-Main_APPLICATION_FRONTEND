@@ -131,6 +131,39 @@ def make_idea_hackathon(args):
     emit({'id': hack.pk, 'team': team.pk})
 
 
+def make_project_hackathon(args):
+    """A live hackathon with the project phase on (no idea gate), a registered team led by args.leader, and a judge."""
+    from datetime import timedelta
+    from apps.hackathons.models import Hackathon, HackathonStaff, Submission, Team, TeamMember
+    now = timezone.now()
+    hack, _ = Hackathon.objects.get_or_create(slug=args.slug, defaults=dict(
+        title='Build Week', theme='t', description='d', start_date=now + timedelta(days=2), end_date=now + timedelta(days=3),
+        status='LIVE', min_team_size=1, max_team_size=3, features={'submissions': True, 'judging': True},
+        mode='HYBRID', venue='SRKR Engineering College', submission_deadline=now + timedelta(days=10),
+    ))
+    leader = User.objects.get(email__iexact=args.leader)
+    team, _ = Team.objects.get_or_create(hackathon=hack, name='Code Owls', defaults=dict(leader=leader, status='REGISTERED'))
+    if team.leader_id != leader.pk:   # the database outlives a run: this run's leader leads the team, from a clean slate
+        team.leader = leader
+        team.save(update_fields=['leader'])
+        team.memberships.exclude(user=leader).delete()
+        Submission.objects.filter(team=team).delete()
+    TeamMember.objects.get_or_create(team=team, user=leader, defaults=dict(role='LEADER'))
+    if args.judge:
+        HackathonStaff.objects.get_or_create(hackathon=hack, user=User.objects.get(email__iexact=args.judge), defaults=dict(role='JUDGE', permissions=[]))
+    emit({'id': hack.pk, 'team': team.pk})
+
+
+def project_state(args):
+    from apps.hackathons.models import Submission
+    sub = Submission.objects.filter(team__hackathon__slug=args.slug).first()
+    if sub is None:
+        emit(None)
+        return
+    emit({'id': sub.pk, 'title': sub.project_title, 'repo': sub.repo_url, 'demo': sub.demo_url, 'video': sub.video_url, 'slides': sub.slides_url,
+          'tech': sub.tech_stack, 'description': sub.description})
+
+
 def make_listing_hackathon(args):
     """A live hackathon for the public list, with the description given on the command line (how the card shows it)."""
     from datetime import timedelta
@@ -246,6 +279,8 @@ p = sub.add_parser('uploads'); p.set_defaults(fn=uploads); p.add_argument('slug'
 p = sub.add_parser('object_exists'); p.set_defaults(fn=object_exists); p.add_argument('key')
 p = sub.add_parser('stale_drafts'); p.set_defaults(fn=stale_drafts); p.add_argument('slug'); p.add_argument('--count', type=int, default=3)
 p = sub.add_parser('make_idea_hackathon'); p.set_defaults(fn=make_idea_hackathon); p.add_argument('slug'); p.add_argument('--leader', required=True); p.add_argument('--judge')
+p = sub.add_parser('make_project_hackathon'); p.set_defaults(fn=make_project_hackathon); p.add_argument('slug'); p.add_argument('--leader', required=True); p.add_argument('--judge')
+p = sub.add_parser('project_state'); p.set_defaults(fn=project_state); p.add_argument('slug')
 p = sub.add_parser('idea_state'); p.set_defaults(fn=idea_state); p.add_argument('slug')
 p = sub.add_parser('user_profile'); p.set_defaults(fn=user_profile); p.add_argument('email')
 p = sub.add_parser('make_finder_hackathon'); p.set_defaults(fn=make_finder_hackathon); p.add_argument('slug'); p.add_argument('--leader', required=True); p.add_argument('--rounds', type=int, default=0)

@@ -463,6 +463,18 @@ export default function HackathonDashboardPage() {
               </section>
             )}
 
+            {team && (hackathon.features?.ideas || hackathon.features?.submissions) && (team.status !== 'REGISTERED' || team.is_waitlisted) && (
+              <section className={`${PANEL} space-y-2`} aria-label="Idea and project submission">
+                <h2 className={H2}><Lock className="h-4 w-4" /> {hackathon.features?.ideas ? 'Idea and project submission' : 'Project submission'}</h2>
+                <p role="status" className="text-sm text-journey-text/80">
+                  {team.is_waitlisted
+                    ? 'Your team is on the waitlist. Submissions open for your team if a place is released.'
+                    : team.status === 'FORMING'
+                      ? `Submissions open once your team is registered: it needs at least ${minSize} members (${Math.max(minSize - team.member_count, 0)} more to go).`
+                      : `Your team is ${team.status.toLowerCase()}, so it cannot submit.`}
+                </p>
+              </section>
+            )}
             {team && hackathon.features?.ideas && team.status === 'REGISTERED' && !team.is_waitlisted && <IdeaPanel hackathon={hackathon} />}
             {team && hackathon.features?.submissions && team.status === 'REGISTERED' && !team.is_waitlisted && <SubmissionPanel hackathon={hackathon} />}
 

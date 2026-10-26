@@ -1,17 +1,21 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock, ExternalLink, FileText, IndianRupee, Lightbulb, Lock, MessageSquareWarning, XCircle } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, Clock, Eye, IndianRupee, Lightbulb, Lock, MessageSquareWarning, XCircle } from 'lucide-react';
 import type { Hackathon, IdeaDraft, IdeaFileKind, IdeaStatus, MyIdeaPayload } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { IDEA_FILE_RULES, asUploaded, uploadIdeaFile } from '@/lib/ideaUpload';
-import { formatSize, type UploadedFile } from '@/lib/fileUpload';
+import type { UploadedFile } from '@/lib/fileUpload';
 import { useToast } from '@/context/ToastContext';
 import FileUploadField from '@/components/forms/FileUploadField';
 import { FieldLabel, SpotlightInput, SpotlightTextarea } from '@/components/ui/InputField';
 import { StatusPill, type PillTone } from '@/components/ui/StatusPill';
 import { TagInput } from '@/components/ui/TagInput';
 import { PaymentQr } from './PaymentQr';
+import { IdeaFileActions } from './IdeaFileActions';
+import { FilePreviewDialog } from './FilePreviewDialog';
+import { previewKindOf } from '@/lib/filePreview';
+import { linkProblem, type LinkKind } from '@/lib/validation/submissionLinks';
 import { BTN_ACCENT, H2, PANEL } from './dashboardStyles';
 import { formatDateTime } from './HackathonAnnouncementsFeed';
 
@@ -32,33 +36,6 @@ const toDraft = (payload: MyIdeaPayload): IdeaDraft => {
     : EMPTY;
 };
 
-/** Opens a saved idea file through a fresh 60-second link: images in a new tab, everything else as a download. */
-async function openIdeaFile(slug: string, ideaId: number, kind: 'deck' | 'payment', type: string) {
-  const viewable = type.startsWith('image/');
-  const link = await hackathonApi.ideaFileLink(slug, ideaId, kind, viewable);
-  if (link.inline) window.open(link.url, '_blank', 'noopener,noreferrer');
-  else window.location.assign(link.url);
-}
-
-function SavedFile({ slug, ideaId, kind, file }: { slug: string; ideaId: number; kind: 'deck' | 'payment'; file: { name: string; size: number; type: string } }) {
-  const [error, setError] = useState('');
-  return (
-    <div className="space-y-1">
-      <button
-        type="button"
-        onClick={() => { setError(''); openIdeaFile(slug, ideaId, kind, file.type).catch((err) => setError(apiErrorMessage(err, 'Could not open the file.'))); }}
-        className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-journey-text/15 px-3 text-xs font-semibold text-journey-text hover:bg-journey-text/5"
-      >
-        <FileText className="h-4 w-4 text-journey-accent" aria-hidden="true" />
-        <span className="max-w-[16rem] truncate">{file.name}</span>
-        <span className="font-normal text-journey-muted">{formatSize(file.size)}</span>
-        <ExternalLink className="h-3 w-3" aria-hidden="true" />
-      </button>
-      {error && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
-    </div>
-  );
-}
-
 /** Phase 1 of the hackathon: describe the plan before building it. */
 export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
   const { toast } = useToast();
@@ -74,6 +51,11 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
   const [loadError, setLoadError] = useState('');
   // Once an idea is submitted the team sees it as a card; the form only opens on request, and only when editing is allowed.
   const [editing, setEditing] = useState(false);
+  const [notice, setNotice] = useState('');
+  // The files picked in this visit, kept so the person can look at the deck before sending it (nothing leaves the browser for that).
+  const [pickedFiles, setPickedFiles] = useState<Record<string, File>>({});
+  const [previewingDeck, setPreviewingDeck] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
 
   const load = useCallback(() => {
     hackathonApi.myIdea(slug).then((data) => {
@@ -86,8 +68,17 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
 
   useEffect(load, [load]);
 
+  /** Re-read the server state but keep what the person has typed (a failed save must not wipe the form). */
+  const refreshKeepingDraft = useCallback(() => {
+    hackathonApi.myIdea(slug).then(setPayload).catch(() => undefined);
+  }, [slug]);
+
   const set = <K extends keyof IdeaDraft>(key: K, value: IdeaDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
-  const uploadDeck = useMemo(() => (file: File, progress: (f: number) => void, signal: AbortSignal) => uploadIdeaFile(slug, 'DECK', file, progress, signal), [slug]);
+  const uploadDeck = useMemo(() => async (file: File, progress: (f: number) => void, signal: AbortSignal) => {
+    const uploaded = await uploadIdeaFile(slug, 'DECK', file, progress, signal);
+    setPickedFiles((prev) => ({ ...prev, [uploaded.upload_id]: file }));
+    return uploaded;
+  }, [slug]);
   const uploadPayment = useMemo(() => (file: File, progress: (f: number) => void, signal: AbortSignal) => uploadIdeaFile(slug, 'PAYMENT', file, progress, signal), [slug]);
   const discard = useCallback((id: string) => hackathonApi.ideaFileDiscard(slug, id).then(() => undefined), [slug]);
   const setUploadingKind = useCallback((kind: IdeaFileKind, value: boolean) => setUploading((prev) => (prev[kind] === value ? prev : { ...prev, [kind]: value })), []);
@@ -95,9 +86,36 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
   const onPaymentBusy = useCallback((value: boolean) => setUploadingKind('PAYMENT', value), [setUploadingKind]);
   const anyUploading = uploading.DECK || uploading.PAYMENT;
 
+  const FIELD_IDS: Record<string, string> = {
+    title: 'idea-title', problem: 'idea-problem', solution: 'idea-solution', plan: 'idea-plan', tech_stack: 'idea-tech', linkedin_url: 'idea-linkedin',
+    deck_url: 'idea-deck', deck_file_id: 'idea-deck-file', payment_file_id: 'idea-payment-file', transaction_id: 'idea-txn',
+  };
+  /** Shows the message at the field AND beside the button (the button is where the eyes are), and moves focus to the field. */
+  const showErrors = (byField: Record<string, string>, summary: string) => {
+    // The field says what is wrong; the line beside the button only points back at it, so the same sentence is not read twice.
+    const hasField = Object.keys(byField).length > 0;
+    setErrors({ ...byField, form: hasField ? 'Not saved yet. Check the highlighted field above.' : summary });
+    const first = Object.keys(byField)[0];
+    const target = first ? document.getElementById(FIELD_IDS[first] ?? '') : null;
+    if (target) { target.scrollIntoView?.({ behavior: 'smooth', block: 'center' }); target.focus({ preventScroll: true }); }
+  };
+
+  /** Link problems found before asking the server (it stays the authority). */
+  const linkProblems = () => {
+    const found: Record<string, string> = {};
+    for (const [key, label, kind] of [['deck_url', 'Slides link', 'any'], ['linkedin_url', 'LinkedIn link', 'linkedin']] as [string, string, LinkKind][]) {
+      const problem = linkProblem(String((draft as any)[key] ?? ''), label, kind);
+      if (problem) found[key] = problem;
+    }
+    return found;
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (anyUploading || !payload) return;
+    const bad = linkProblems();
+    if (Object.keys(bad).length) { showErrors(bad, ''); return; }
+    setNotice('');
     setBusy(true);
     setErrors({});
     try {
@@ -108,11 +126,15 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
       setDeck(asUploaded(saved.idea?.deck_file));
       setPayment(asUploaded(saved.idea?.payment_proof));
       setEditing(false);
+      const message = saved.review_required ? 'Submitted. The organizers will review it and answer on this page.' : 'Submitted and accepted. You can still edit it until the deadline.';
+      setNotice(message);
       toast.success(saved.review_required ? 'Idea sent for review' : 'Idea saved');
+      requestAnimationFrame(() => sectionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }));
     } catch (err: any) {
       const field = err?.body?.field as string | undefined;
-      setErrors({ [field ?? 'form']: apiErrorMessage(err) });
-      load();
+      const message = apiErrorMessage(err);
+      showErrors(field ? { [field]: message } : {}, message);
+      refreshKeepingDraft();
     } finally {
       setBusy(false);
     }
@@ -124,12 +146,12 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
   const { config } = payload;
   const idea = payload.idea;
   const status = idea ? STATUS[idea.status] : null;
-  const fieldError = (key: string) => (errors[key] || problems[key]) && <p className="text-xs text-rose-600 dark:text-rose-400">{errors[key] || problems[key]}</p>;
+  const fieldError = (key: string) => (errors[key] || problems[key]) && <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400">{errors[key] || problems[key]}</p>;
   const needsFiles = config.fee_amount > 0 || config.deck_required;
   const filesMissing = needsFiles && !config.files_available;
 
   return (
-    <section className={`${PANEL} space-y-4`}>
+    <section ref={sectionRef} className={`${PANEL} scroll-mt-24 space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className={H2}><Lightbulb className="h-4 w-4" /> Phase 1: your idea</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -145,6 +167,8 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
         {payload.review_required ? ' The organizers review it' : ' It is accepted as soon as you submit it'}
         {payload.project_requires_idea ? ', and your project can only be submitted once your idea is accepted.' : '.'}
       </p>
+
+      {notice && <p role="status" className="flex items-start gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-800 dark:text-emerald-300"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{notice}</p>}
 
       {idea && payload.can_edit && config.edits_until && (
         <p className="text-xs text-journey-muted">You can edit your idea until {formatDateTime(config.edits_until)}.</p>
@@ -187,16 +211,18 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
           </div>
           <div className="space-y-1.5">
             <FieldLabel htmlFor="idea-plan">The plan</FieldLabel>
-            <SpotlightTextarea id="idea-plan" rows={4} value={draft.plan} maxLength={TEXT_LIMIT} onChange={(e) => set('plan', e.target.value)} placeholder="Milestones, who does what, what you will have working by the end." />
+            <SpotlightTextarea id="idea-plan" rows={4} value={draft.plan} maxLength={TEXT_LIMIT} onChange={(e) => set('plan', e.target.value)} hasError={!!errors.plan} placeholder="Milestones, who does what, what you will have working by the end." />
+            {fieldError('plan')}
           </div>
           <div className="space-y-1.5">
             <FieldLabel htmlFor="idea-tech">Tech you plan to use</FieldLabel>
             <TagInput id="idea-tech" value={draft.tech_stack} onChange={(tags) => set('tech_stack', tags)} placeholder="Press Enter to add" maxTags={10} maxLength={40} />
+            {fieldError('tech_stack')}
           </div>
 
           {config.files_available && (
             <div className="space-y-1.5">
-              <FieldLabel htmlFor="idea-deck-file" required={config.deck_required}>Presentation (.ppt or .pptx)</FieldLabel>
+              <FieldLabel htmlFor="idea-deck-file" required={config.deck_required}>Presentation (.ppt, .pptx or .pdf)</FieldLabel>
               <FileUploadField
                 inputId="idea-deck-file"
                 uploadWith={uploadDeck}
@@ -211,6 +237,32 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
                 onProblem={(message) => setProblems((prev) => ({ ...prev, deck_file_id: message }))}
               />
               {fieldError('deck_file_id')}
+              {deck && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {previewKindOf(deck.type, deck.name) ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewingDeck(true)}
+                      aria-label={`Preview ${deck.name}`}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-journey-text/15 px-3 text-xs font-semibold text-journey-text hover:bg-journey-text/5"
+                    >
+                      <Eye className="h-3.5 w-3.5" aria-hidden="true" /> Preview
+                    </button>
+                  ) : (
+                    <p className="text-[11px] text-journey-muted">PowerPoint files cannot be previewed in the browser. The organizers download them to open.</p>
+                  )}
+                </div>
+              )}
+              {previewingDeck && deck && (
+                <FilePreviewDialog
+                  name={deck.name}
+                  type={deck.type}
+                  source={pickedFiles[deck.upload_id]
+                    ? { kind: 'local', file: pickedFiles[deck.upload_id] }
+                    : { kind: 'saved', loadUrl: async () => (await hackathonApi.ideaFileLink(slug, idea!.id, 'deck', true)).url }}
+                  onClose={() => setPreviewingDeck(false)}
+                />
+              )}
             </div>
           )}
 
@@ -295,13 +347,13 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
             <div key={label}><p className="text-[11px] font-bold uppercase tracking-wide text-journey-muted">{label}</p><p className="whitespace-pre-line text-journey-text/80">{text}</p></div>
           ))}
           {idea.tech_stack.length > 0 && <p className="text-xs text-journey-muted">Tech: {idea.tech_stack.join(', ')}</p>}
-          {idea.deck_file && <div><p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-journey-muted">Presentation</p><SavedFile slug={slug} ideaId={idea.id} kind="deck" file={idea.deck_file} /></div>}
+          {idea.deck_file && <div><p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-journey-muted">Presentation</p><IdeaFileActions slug={slug} ideaId={idea.id} kind="deck" file={idea.deck_file} /></div>}
           {idea.deck_url && <div><p className="text-[11px] font-bold uppercase tracking-wide text-journey-muted">Slides link</p><a href={idea.deck_url} target="_blank" rel="noopener noreferrer" className="break-all text-journey-accent hover:underline">{idea.deck_url}</a></div>}
           {idea.linkedin_url && <div><p className="text-[11px] font-bold uppercase tracking-wide text-journey-muted">LinkedIn post</p><a href={idea.linkedin_url} target="_blank" rel="noopener noreferrer" className="break-all text-journey-accent hover:underline">{idea.linkedin_url}</a></div>}
           {idea.payment_proof && (
             <div>
               <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-journey-muted">Payment screenshot</p>
-              <SavedFile slug={slug} ideaId={idea.id} kind="payment" file={idea.payment_proof} />
+              <IdeaFileActions slug={slug} ideaId={idea.id} kind="payment" file={idea.payment_proof} />
               {idea.transaction_id && <p className="mt-1 text-xs text-journey-muted">Transaction ID: {idea.transaction_id}</p>}
             </div>
           )}

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Clock, ExternalLink, FileUp, Lock } from 'lucide-react';
 import type { Hackathon, MySubmissionPayload, SubmissionDraft } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
 import { FieldLabel, SpotlightInput, SpotlightTextarea } from '@/components/ui/InputField';
+import { linkProblem, type LinkKind } from '@/lib/validation/submissionLinks';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { TagInput } from '@/components/ui/TagInput';
 import { BTN_ACCENT, H2, PANEL } from './dashboardStyles';
@@ -50,6 +51,8 @@ export function SubmissionPanel({ hackathon }: SubmissionPanelProps) {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [loadError, setLoadError] = useState('');
+  const [notice, setNotice] = useState('');
+  const sectionRef = useRef<HTMLElement>(null);
 
   const load = useCallback(() => {
     hackathonApi.mySubmission(slug).then((data) => { setPayload(data); setDraft(toDraft(data)); }).catch((err) => setLoadError(apiErrorMessage(err)));
@@ -61,21 +64,55 @@ export function SubmissionPanel({ hackathon }: SubmissionPanelProps) {
     return () => window.clearInterval(timer);
   }, []);
 
+  /** Re-read the server state but keep what the person has typed (a failed save must not wipe the form). */
+  const refreshKeepingDraft = useCallback(() => {
+    hackathonApi.mySubmission(slug).then(setPayload).catch(() => undefined);
+  }, [slug]);
+
+  const FIELD_IDS: Record<string, string> = {
+    project_title: 'sub-title', tagline: 'sub-tagline', description: 'sub-description', repo_url: 'sub-repo', demo_url: 'sub-demo',
+    video_url: 'sub-video', slides_url: 'sub-slides', tech_stack: 'sub-tech',
+  };
+  /** Shows the message at the field and beside the button, and moves focus to the field. */
+  const showErrors = (byField: Record<string, string>, summary: string) => {
+    // The field says what is wrong; the line beside the button only points back at it, so the same sentence is not read twice.
+    const hasField = Object.keys(byField).length > 0;
+    setErrors({ ...byField, form: hasField ? 'Not saved yet. Check the highlighted field above.' : summary });
+    const first = Object.keys(byField)[0];
+    const target = first ? document.getElementById(FIELD_IDS[first] ?? '') : null;
+    if (target) { target.scrollIntoView?.({ behavior: 'smooth', block: 'center' }); target.focus({ preventScroll: true }); }
+  };
+
   const set = <K extends keyof SubmissionDraft>(key: K, value: SubmissionDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
+
+  /** Link problems found before asking the server (it stays the authority). */
+  const linkProblems = () => {
+    const found: Record<string, string> = {};
+    for (const [key, label, kind] of [['repo_url', 'Repository link', 'repo'], ['demo_url', 'Demo link', 'any'], ['video_url', 'Video link', 'video'], ['slides_url', 'Slides link', 'any']] as [string, string, LinkKind][]) {
+      const problem = linkProblem(String((draft as any)[key] ?? ''), label, kind);
+      if (problem) found[key] = problem;
+    }
+    return found;
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setNotice('');
+    const bad = linkProblems();
+    if (Object.keys(bad).length) { showErrors(bad, ''); return; }
     setBusy(true);
     setErrors({});
     try {
       const saved = await hackathonApi.saveSubmission(slug, draft);
       setPayload(saved);
       setDraft(toDraft(saved));
+      setNotice(`Project saved at ${new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST. You can keep editing until the deadline.`);
       toast.success('Project saved', 'You can keep editing until the deadline.');
     } catch (err: any) {
       const field = err?.body?.field as string | undefined;
-      setErrors({ [field ?? 'form']: apiErrorMessage(err) });
-      load();
+      const message = apiErrorMessage(err);
+      showErrors(field ? { [field]: message } : {}, message);
+      refreshKeepingDraft();
     } finally {
       setBusy(false);
     }
@@ -87,10 +124,10 @@ export function SubmissionPanel({ hackathon }: SubmissionPanelProps) {
   const left = timeLeft(payload.deadline, now);
   const submitted = payload.submission;
   const editable = payload.can_edit;
-  const field = (key: keyof SubmissionDraft) => errors[key] && <p className="text-xs text-rose-600 dark:text-rose-400">{errors[key]}</p>;
+  const field = (key: keyof SubmissionDraft) => errors[key] && <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400">{errors[key]}</p>;
 
   return (
-    <section className={`${PANEL} space-y-4`}>
+    <section ref={sectionRef} className={`${PANEL} scroll-mt-24 space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className={H2}><FileUp className="h-4 w-4" /> {hackathon.features?.ideas ? 'Phase 2: your project' : 'Project submission'}</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -116,7 +153,8 @@ export function SubmissionPanel({ hackathon }: SubmissionPanelProps) {
           </div>
           <div className="space-y-1.5">
             <FieldLabel htmlFor="sub-tagline">One-line pitch</FieldLabel>
-            <SpotlightInput id="sub-tagline" value={draft.tagline} maxLength={200} onChange={(e) => set('tagline', e.target.value)} placeholder="What it does in one sentence" />
+            <SpotlightInput id="sub-tagline" value={draft.tagline} maxLength={200} onChange={(e) => set('tagline', e.target.value)} hasError={!!errors.tagline} placeholder="What it does in one sentence" />
+            {field('tagline')}
           </div>
           <div className="space-y-1.5">
             <FieldLabel htmlFor="sub-description" required>What did you build?</FieldLabel>
@@ -156,6 +194,7 @@ export function SubmissionPanel({ hackathon }: SubmissionPanelProps) {
               <span>Feature my project in the public showcase after results are out.</span>
             </label>
           )}
+          {notice && <p role="status" className="flex items-start gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-800 dark:text-emerald-300"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{notice}</p>}
           {errors.form && <p role="alert" className="rounded-lg bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400">{errors.form}</p>}
           <button type="submit" disabled={busy} className={BTN_ACCENT}>{busy ? 'Saving…' : submitted ? 'Save changes' : 'Submit project'}</button>
         </form>
