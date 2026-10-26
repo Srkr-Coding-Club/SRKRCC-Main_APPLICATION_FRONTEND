@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import CardShowcase from '@/components/ui/BounceCards';
+import CardGrid from '@/components/ui/CardGrid';
 import EventCard from '@/components/EventCard';
 import EventDetailsStack from '@/components/events/EventDetailsStack';
 import StackDetailsDialog from '@/components/ui/StackDetailsDialog';
@@ -27,7 +27,7 @@ export default function EventsBrowser({ events }: { events: Event[] }) {
 
   return (
     <>
-      <CardShowcase layout="bounce-stack" cards={eventCards} />
+      <CardGrid cards={eventCards} />
       <AnimatePresence>
         {selectedEvent && (
           <StackDetailsDialog

@@ -28,6 +28,8 @@ import { DatesList, PrizeCards } from '@/components/hackathons/page/DatesAndPriz
 import { HACKATHON_MODE_LABEL, buildDateRows } from '@/lib/hackathonPage';
 import { profileFieldLabel } from '@/lib/profileFields';
 import BannerImage from '@/components/ui/BannerImage';
+import { useScrollEntrance } from '@/lib/hooks/useScrollEntrance';
+import { coverWipe, fadeIn, riseIn, staggerIn } from '@/lib/entranceMotion';
 import { downloadHackathonCalendar } from '@/lib/calendar';
 import { StaffShortcuts } from '@/components/hackathons/StaffShortcuts';
 import { ContactBlock, PeopleGrid, SponsorsGrid } from '@/components/hackathons/page/PeopleSections';
@@ -46,7 +48,7 @@ const DEFAULT_ORGANIZER = 'SRKR Coding Club, SRKR Engineering College';
 
 function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="hd-fact flex items-start gap-3">
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-journey-text/10 bg-journey-surface text-journey-accent shadow-sm">
         <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
@@ -61,6 +63,20 @@ function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: st
 export function HackathonDetailClient({ hackathon, problems, announcements, stages, results = null, showcase = [] }: HackathonDetailClientProps) {
   const [shareState, setShareState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const headerCtaRef = useRef<HTMLDivElement>(null);
+  const introRef = useRef<HTMLDivElement>(null);
+  useScrollEntrance(
+    introRef,
+    (tl) => {
+      const has = (selector: string) => !!introRef.current?.querySelector(selector);
+      coverWipe(tl, '.hd-banner', '.hd-banner-img', 24);
+      riseIn(tl, '.hd-header', { y: 28, position: '-=0.5' });
+      fadeIn(tl, '.hd-top', '-=0.35');
+      riseIn(tl, '.hd-title', { y: 14, duration: 0.5, position: '-=0.3' });
+      if (has('.hd-fact')) staggerIn(tl, '.hd-fact', { y: 14, stagger: 0.08, position: '-=0.3' });
+      if (has('.hd-tags')) fadeIn(tl, '.hd-tags', '-=0.3');
+    },
+    { start: 'top 95%' },
+  );
   const [showStickyCta, setShowStickyCta] = useState(false);
 
   // On a phone this page is thousands of pixels tall: once the header's register button scrolls away, keep one in reach.
@@ -160,20 +176,39 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-5">
+            <div ref={introRef} className="space-y-5">
             {/* Banner */}
-            <div className="relative aspect-[16/6] w-full overflow-hidden rounded-3xl border border-journey-text/10 bg-journey-surface">
-              {hackathon.banner_image ? (
-                <BannerImage src={hackathon.banner_image} alt={hackathon.title} crop={hackathon.banner_crop} />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-journey-surface">
-                  <Trophy className="h-20 w-20 text-journey-accent/30" aria-hidden="true" />
+            {(() => {
+              const isFullBanner = hackathon.banner_crop?.mode === 'full';
+              return (
+                <div
+                  className={`hd-banner relative w-full overflow-hidden rounded-3xl border border-journey-text/10 bg-journey-surface ${
+                    isFullBanner
+                      ? 'flex items-center justify-center p-2 sm:p-4 bg-slate-950/80'
+                      : 'aspect-[16/6]'
+                  }`}
+                >
+                  <div className={`hd-banner-img w-full ${isFullBanner ? 'flex items-center justify-center' : 'h-full'}`}>
+                    {hackathon.banner_image ? (
+                      <BannerImage
+                        src={hackathon.banner_image}
+                        alt={hackathon.title}
+                        crop={hackathon.banner_crop}
+                        className={isFullBanner ? 'max-h-[640px] w-auto max-w-full rounded-2xl object-contain shadow-2xl' : undefined}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-journey-surface py-12">
+                        <Trophy className="h-20 w-20 text-journey-accent/30" aria-hidden="true" />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* Header card */}
-            <header className="space-y-5 rounded-3xl border border-journey-text/10 bg-journey-surface/60 p-5 sm:p-7">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <header className="hd-header space-y-5 rounded-3xl border border-journey-text/10 bg-journey-surface/60 p-5 sm:p-7">
+              <div className="hd-top flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-journey-text/80">
                   <ModeIcon className="h-4 w-4 text-journey-accent" aria-hidden="true" />
                   {HACKATHON_MODE_LABEL[mode]}
@@ -212,7 +247,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
               <StaffShortcuts slug={hackathon.slug} />
 
               <div className="flex items-start justify-between gap-5">
-                <div className="min-w-0 space-y-2">
+                <div className="hd-title min-w-0 space-y-2">
                   <h1 className="text-3xl font-semibold tracking-tight text-journey-text sm:text-4xl">{hackathon.title}</h1>
                   <p className="text-base font-medium text-journey-text/80">{hackathon.organizer_name || DEFAULT_ORGANIZER}</p>
                   {hackathon.theme && <p className="text-sm text-journey-muted">{hackathon.theme}</p>}
@@ -242,7 +277,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
               </div>
 
               {(tags.length > 0 || hackathon.allow_open_innovation) && (
-                <ul className="flex flex-wrap gap-x-2 gap-y-1 rounded-xl bg-journey-text/10 px-4 py-3 text-sm text-journey-text/80">
+                <ul className="hd-tags flex flex-wrap gap-x-2 gap-y-1 rounded-xl bg-journey-text/10 px-4 py-3 text-sm text-journey-text/80">
                   {tags.map((tag, index) => (
                     <li key={tag} className="flex items-center gap-2">
                       {index > 0 && <span className="text-journey-muted" aria-hidden="true">&bull;</span>}
@@ -262,6 +297,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                 <HackathonCTA hackathon={hackathon} />
               </div>
             </header>
+            </div>
 
             <SectionNav sections={sections} />
 

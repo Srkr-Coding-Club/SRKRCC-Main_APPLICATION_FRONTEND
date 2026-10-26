@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { clearSessionCookies } from '@/lib/server/authCookies';
+import { clearSessionCookies, resolveCookieDomain } from '@/lib/server/authCookies';
 
 const DJANGO_API_URL = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
 export async function POST(request: NextRequest) {
   const accessToken = request.cookies.get('srkrcc_access_token')?.value;
   const refreshToken = request.cookies.get('srkrcc_refresh_token')?.value;
+  const host = request.headers.get('host');
+  const domain = resolveCookieDomain(host);
 
   // Best-effort: revoke the refresh token server-side so it can't be replayed
   // after logout. Cookies are cleared below regardless of whether this succeeds.
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ success: true, message: 'Logged out successfully' });
 
-  clearSessionCookies(response);
+  clearSessionCookies(response, domain);
 
   return response;
 }

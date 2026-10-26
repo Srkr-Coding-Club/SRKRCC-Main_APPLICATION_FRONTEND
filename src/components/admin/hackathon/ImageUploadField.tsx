@@ -94,7 +94,7 @@ export function ImageUploadField({
             max_bytes: presigned.max_bytes || 10 * 1024 * 1024,
           },
           file,
-          () => {},
+          () => { },
         );
         onChange(presigned.public_url);
         setUploadedDetails({
@@ -148,11 +148,10 @@ export function ImageUploadField({
           <button
             type="button"
             onClick={() => setMode('upload')}
-            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
-              mode === 'upload'
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${mode === 'upload'
                 ? 'bg-journey-accent text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-            }`}
+              }`}
           >
             <UploadCloud className="h-3 w-3" />
             Upload File
@@ -160,11 +159,10 @@ export function ImageUploadField({
           <button
             type="button"
             onClick={() => setMode('url')}
-            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
-              mode === 'url'
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${mode === 'url'
                 ? 'bg-journey-accent text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-            }`}
+              }`}
           >
             <LinkIcon className="h-3 w-3" />
             Paste URL
@@ -196,11 +194,10 @@ export function ImageUploadField({
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => !uploading && fileInputRef.current?.click()}
-            className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition ${
-              dragOver
+            className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition ${dragOver
                 ? 'border-journey-accent bg-journey-accent/5'
                 : 'border-slate-300 hover:border-slate-400 bg-slate-50/50 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-white/[0.02] dark:hover:border-slate-700'
-            } ${uploading ? 'pointer-events-none opacity-60' : ''}`}
+              } ${uploading ? 'pointer-events-none opacity-60' : ''}`}
           >
             {uploading ? (
               <div className="flex flex-col items-center gap-2 py-2">

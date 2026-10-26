@@ -1,17 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { CalendarClock, Trophy } from 'lucide-react';
 import type { Hackathon } from '@/lib/types';
 import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
 import type { DateRow } from '@/lib/hackathonPage';
+import { useScrollEntrance } from '@/lib/hooks/useScrollEntrance';
+import { riseIn, staggerIn } from '@/lib/entranceMotion';
 
 /** Chronological list of every date and deadline, with what is done, next and still to come. */
 export function DatesList({ rows }: { rows: DateRow[] }) {
+  const listRef = useRef<HTMLUListElement>(null);
+  useScrollEntrance(listRef, (tl) => staggerIn(tl, 'li', { x: -14, y: 0, stagger: 0.07, duration: 0.45 }), { start: 'top 88%' });
   const now = Date.now();
   const nextKey = rows.find((row) => new Date(row.at).getTime() > now)?.key;
   return (
-    <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 dark:divide-white/10 dark:border-white/10">
+    <ul ref={listRef} className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 dark:divide-white/10 dark:border-white/10">
       {rows.map((row) => {
         const past = new Date(row.at).getTime() <= now;
         const isNext = row.key === nextKey;
@@ -40,22 +44,33 @@ export function DatesList({ rows }: { rows: DateRow[] }) {
 
 /** Prize cards from the admin's prize list, or a single card for the plain prize pool. */
 export function PrizeCards({ hackathon }: { hackathon: Hackathon }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useScrollEntrance(
+    rootRef,
+    (tl) => {
+      if (rootRef.current?.querySelector('.prize-total')) riseIn(tl, '.prize-total', { y: 12, duration: 0.45 });
+      staggerIn(tl, '.prize-card', { y: 22, scale: 0.96, stagger: 0.1, duration: 0.55, position: '<0.1' });
+    },
+    { start: 'top 88%' },
+  );
   const prizes = hackathon.prizes ?? [];
   if (prizes.length === 0) {
     return (
-      <div className="flex items-center gap-4 rounded-2xl border border-[#FF7A00]/30 bg-gradient-to-br from-[#FF7A00]/10 to-transparent p-6">
-        <Trophy className="h-10 w-10 shrink-0 text-journey-accent" aria-hidden="true" />
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Total prize pool</p>
-          <p className="text-3xl font-extrabold text-[#1A1A2E] dark:text-white">{hackathon.prize_pool}</p>
+      <div ref={rootRef}>
+        <div className="prize-card flex items-center gap-4 rounded-2xl border border-[#FF7A00]/30 bg-gradient-to-br from-[#FF7A00]/10 to-transparent p-6">
+          <Trophy className="h-10 w-10 shrink-0 text-journey-accent" aria-hidden="true" />
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Total prize pool</p>
+            <p className="text-3xl font-extrabold text-[#1A1A2E] dark:text-white">{hackathon.prize_pool}</p>
+          </div>
         </div>
       </div>
     );
   }
   return (
-    <div className="space-y-4">
+    <div ref={rootRef} className="space-y-4">
       {hackathon.prize_pool && (
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <p className="prize-total text-sm text-slate-600 dark:text-slate-300">
           Total prize pool: <strong className="text-[#1A1A2E] dark:text-white">{hackathon.prize_pool}</strong>
         </p>
       )}
@@ -63,7 +78,7 @@ export function PrizeCards({ hackathon }: { hackathon: Hackathon }) {
         {prizes.map((prize, index) => (
           <li
             key={`${prize.title}-${index}`}
-            className="space-y-2 rounded-2xl border border-slate-200 bg-white/70 p-5 dark:border-white/10 dark:bg-white/[0.03]"
+            className="prize-card space-y-2 rounded-2xl border border-slate-200 bg-white/70 p-5 dark:border-white/10 dark:bg-white/[0.03]"
           >
             <div className="flex items-center gap-2">
               <Trophy className={`h-5 w-5 ${index === 0 ? 'text-amber-500' : 'text-journey-accent'}`} aria-hidden="true" />
