@@ -46,6 +46,7 @@ export function SectionNav({ sections }: { sections: PageSection[] }) {
   return (
     <nav
       aria-label="Hackathon sections"
+      data-sticky-bar
       className="sticky top-[72px] z-30 -mx-4 border-b border-journey-text/10 bg-[var(--background)]/90 px-4 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:border sm:px-2"
     >
       <ul ref={barRef} className="relative flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
