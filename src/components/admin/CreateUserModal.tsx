@@ -98,7 +98,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
 
   const describe = (field: NewUserField) => (errors[field] ? `${FIELD_ID[field]}-error` : undefined);
   const FieldError = ({ field }: { field: NewUserField }) => errors[field]
-    ? <p id={`${FIELD_ID[field]}-error`} role="alert" className="mt-1 text-[11px] font-semibold text-rose-500">{errors[field]}</p>
+    ? <p id={`${FIELD_ID[field]}-error`} role="alert" className="mt-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400">{errors[field]}</p>
     : null;
 
   return (
@@ -114,7 +114,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
         >
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
             <div className="flex items-center space-x-2">
-              <UserPlus className="w-5 h-5 text-[#FF7A00]" />
+              <UserPlus className="w-5 h-5 text-journey-accent" />
               <h3 id="create-user-title" className="text-lg font-bold text-[#1A1A2E] dark:text-white">Create New User Account</h3>
             </div>
             <button type="button" onClick={onClose} aria-label="Close" className="flex items-center justify-center min-h-9 min-w-9 p-2 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white transition-transform duration-100 active:scale-90">
@@ -245,7 +245,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
               </button>
               <button
                 type="submit" disabled={isSubmitting}
-                className="px-5 py-2 rounded-lg text-xs font-bold bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-transform duration-100 active:scale-95"
+                className="px-5 py-2 rounded-lg text-xs font-bold bg-journey-accent hover:opacity-90 text-journey-on-accent shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-transform duration-100 active:scale-95"
               >
                 {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {isSubmitting ? 'Saving...' : 'Save User Account'}

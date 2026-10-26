@@ -31,9 +31,9 @@ export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[
             <span className={`absolute -left-[33px] top-1 h-4 w-4 rounded-full border-4 border-[var(--background)] ${dot}`} />
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-journey-muted">Round {r.order}</span>
-                <h4 className="font-bold text-journey-text">{r.name}</h4>
-                {r.kind !== 'GENERAL' && <span className="rounded-full border border-journey-text/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-journey-muted">{ROUND_KIND_LABEL[r.kind]}</span>}
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-journey-muted">Round {r.order}</span>
+                <h3 className="font-bold text-journey-text">{r.name}</h3>
+                {r.kind !== 'GENERAL' && <span className="rounded-full border border-journey-text/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-journey-muted">{ROUND_KIND_LABEL[r.kind]}</span>}
                 <StatusPill tone={ROUND_STATUS_PILL[r.effective_status].tone}>{ROUND_STATUS_PILL[r.effective_status].label}</StatusPill>
                 {entry && (outcome
                   ? <StatusPill tone={outcome.tone}>{outcome.label}</StatusPill>
@@ -50,7 +50,7 @@ export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[
               )}
               {entry && r.results_published && entry.feedback?.trim() && (
                 <div className="rounded-lg border border-journey-text/10 bg-journey-text/[0.03] px-3 py-2 text-xs">
-                  <p className="font-bold uppercase tracking-wide text-[10px] text-journey-muted mb-1">Feedback from organizers</p>
+                  <p className="font-bold uppercase tracking-wide text-[11px] text-journey-muted mb-1">Feedback from organizers</p>
                   <p className="whitespace-pre-line text-journey-text/80">{entry.feedback}</p>
                 </div>
               )}
@@ -70,7 +70,7 @@ export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[
                   {isLeader && form.can_submit && formOpen ? (
                     <Link
                       href={`/forms/${form.slug}`}
-                      className="inline-flex items-center gap-1 rounded-lg bg-journey-accent px-3 py-1.5 text-xs font-bold text-white hover:opacity-90 transition active:scale-95"
+                      className="inline-flex items-center gap-1 rounded-lg bg-journey-accent px-3 py-1.5 text-xs font-bold text-journey-on-accent hover:opacity-90 transition active:scale-95"
                     >
                       <Flag className="h-3.5 w-3.5" />
                       {entry?.details_submitted ? 'Update details' : 'Submit details'}

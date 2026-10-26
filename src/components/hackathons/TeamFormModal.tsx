@@ -5,7 +5,7 @@ import { Lightbulb, ListChecks, Pencil, UsersRound } from 'lucide-react';
 import type { HackathonTeam, ProblemStatement } from '@/lib/types';
 import { Modal } from '@/components/ui/Modal';
 import { FormSelect } from '@/components/ui/FormSelect';
-import { FieldLabel, SpotlightInput, SpotlightTextarea } from '@/components/ui/InputField';
+import { FieldError, FieldLabel, SpotlightInput, SpotlightTextarea, fieldErrorId } from '@/components/ui/InputField';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { apiErrorMessage, hackathonApi, type TeamProblemBody } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
@@ -54,7 +54,7 @@ function ModeButton({ active, icon: Icon, children, onClick }: { active: boolean
       aria-pressed={active}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition ${
         active
-          ? 'border-journey-accent bg-journey-accent/10 text-[#C25A00] dark:text-[#FF9A4A]'
+          ? 'border-journey-accent bg-journey-accent/10 text-orange-800 dark:text-[#FF9A4A]'
           : 'border-journey-text/10 text-journey-muted hover:border-journey-accent/50'
       }`}
     >
@@ -186,9 +186,10 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Bug Slayers"
             hasError={!!errors.name}
+            aria-describedby={errors.name ? fieldErrorId('team-name') : undefined}
             autoFocus
           />
-          {errors.name && <p className="text-xs text-rose-500">{errors.name}</p>}
+          <FieldError id={fieldErrorId('team-name')}>{errors.name}</FieldError>
         </div>
 
         {lockedProblem && (
@@ -213,8 +214,8 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
 
             {mode === 'statement' && hasStatements && (
               <div className="space-y-2">
-                <FormSelect value={psId} onChange={setPsId} options={options} placeholder="Select a problem statement" allowClear={false} />
-                {errors.problem_statement && <p className="text-xs text-rose-500">{errors.problem_statement}</p>}
+                <FormSelect aria-label="Problem statement" value={psId} onChange={setPsId} options={options} placeholder="Select a problem statement" allowClear={false} />
+                <FieldError>{errors.problem_statement}</FieldError>
                 {selected && (
                   <div className="max-h-40 overflow-y-auto rounded-lg border border-journey-text/10 bg-journey-text/[0.03] p-3 text-xs space-y-1">
                     <p className="font-bold text-journey-accent">{selected.code} · {selected.domain}</p>
@@ -238,8 +239,9 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Smart waste bins for the campus"
                     hasError={!!errors.custom_problem_title}
+                    aria-describedby={errors.custom_problem_title ? fieldErrorId('oi-title') : undefined}
                   />
-                  {errors.custom_problem_title && <p className="text-xs text-rose-500">{errors.custom_problem_title}</p>}
+                  <FieldError id={fieldErrorId('oi-title')}>{errors.custom_problem_title}</FieldError>
                 </div>
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="oi-domain" required>Domain</FieldLabel>
@@ -251,11 +253,12 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
                     onChange={(e) => setDomain(e.target.value)}
                     placeholder="e.g. IoT, HealthTech, EdTech"
                     hasError={!!errors.custom_problem_domain}
+                    aria-describedby={errors.custom_problem_domain ? fieldErrorId('oi-domain') : undefined}
                   />
                   <datalist id="open-innovation-domains">
                     {domains.map((d) => <option key={d} value={d} />)}
                   </datalist>
-                  {errors.custom_problem_domain && <p className="text-xs text-rose-500">{errors.custom_problem_domain}</p>}
+                  <FieldError id={fieldErrorId('oi-domain')}>{errors.custom_problem_domain}</FieldError>
                 </div>
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="oi-description" required>Description</FieldLabel>
@@ -267,13 +270,14 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="What is the problem, who faces it, and how will your team approach it?"
                     hasError={!!errors.custom_problem_description}
+                    aria-describedby={errors.custom_problem_description ? fieldErrorId('oi-description') : undefined}
                   />
-                  <div className="flex justify-between text-xs">
-                    <span className="text-rose-500">{errors.custom_problem_description}</span>
+                  <div className="flex justify-between gap-3 text-xs">
+                    <FieldError id={fieldErrorId('oi-description')}>{errors.custom_problem_description}</FieldError>
                     <span className="text-journey-muted">{description.length}/{DESCRIPTION_LIMIT}</span>
                   </div>
                 </div>
-                {errors.open_innovation && <p className="text-xs text-rose-500">{errors.open_innovation}</p>}
+                <FieldError>{errors.open_innovation}</FieldError>
               </div>
             )}
           </div>
@@ -288,7 +292,7 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
             You&apos;ll be the team leader, so only you can edit the team and invite members.
           </p>
         )}
-        {errors.form && <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400">{errors.form}</p>}
+        {errors.form && <p role="alert" className="rounded-lg bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400">{errors.form}</p>}
 
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onClose} disabled={busy} className="px-4 py-2 rounded-lg text-sm font-bold text-journey-muted hover:text-journey-text">
@@ -297,7 +301,7 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
           <button
             type="submit"
             disabled={busy}
-            className="px-5 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-white text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-60"
+            className="px-5 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-60"
           >
             {busy ? 'Saving…' : editing ? 'Save changes' : 'Create team'}
           </button>

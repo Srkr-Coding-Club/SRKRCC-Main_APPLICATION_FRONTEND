@@ -47,7 +47,7 @@ export function FormAnalyticsModal({ slug, isOpen, onClose }: { slug: string; is
       <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 outline-none" role="dialog" aria-modal="true" aria-label="Form analytics">
         <div className="glass-panel rounded-xl max-w-3xl w-full h-[85vh] flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 p-4">
-            <div className="flex items-center gap-2 text-[#FF7A00]">
+            <div className="flex items-center gap-2 text-journey-accent">
               <BarChart3 className="w-5 h-5" />
               <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Analytics</h3>
             </div>
@@ -55,19 +55,19 @@ export function FormAnalyticsModal({ slug, isOpen, onClose }: { slug: string; is
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-5">
-            {error && <p role="alert" className="text-xs font-semibold text-rose-500">{error}</p>}
+            {error && <p role="alert" className="text-xs font-semibold text-rose-600 dark:text-rose-400">{error}</p>}
             {!data && !error && <p className="text-xs text-slate-400">Loading...</p>}
             {data && (
               <>
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <p className="text-3xl font-black text-[#1A1A2E] dark:text-white" data-testid="total-responses">{data.total_responses}</p>
-                    <p className="text-xs text-slate-500">{plural(data.total_responses, 'response')}{data.unfinished.count > 0 && ` · ${data.unfinished.count} started but not finished`}</p>
-                    {data.truncated && <p className="text-[11px] text-amber-600">Only the newest {data.responses_analysed} responses are analysed below.</p>}
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{plural(data.total_responses, 'response')}{data.unfinished.count > 0 && ` · ${data.unfinished.count} started but not finished`}</p>
+                    {data.truncated && <p className="text-[11px] text-amber-700 dark:text-amber-400">Only the newest {data.responses_analysed} responses are analysed below.</p>}
                   </div>
                   <div className="inline-flex rounded border border-slate-300 dark:border-slate-700 text-[11px] font-bold overflow-hidden" role="group" aria-label="Period">
                     {RANGES.map((r) => (
-                      <button key={r} onClick={() => setDays(r)} aria-pressed={days === r} className={`px-3 py-1.5 ${days === r ? 'bg-[#FF7A00] text-white' : 'text-slate-600 dark:text-slate-300'}`}>{r} days</button>
+                      <button key={r} onClick={() => setDays(r)} aria-pressed={days === r} className={`px-3 py-1.5 ${days === r ? 'bg-journey-accent text-journey-on-accent' : 'text-slate-600 dark:text-slate-300'}`}>{r} days</button>
                     ))}
                   </div>
                 </div>
@@ -80,7 +80,7 @@ export function FormAnalyticsModal({ slug, isOpen, onClose }: { slug: string; is
 
                 {data.unfinished.count > 0 && (
                   <section aria-label="Where people stop">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Where unfinished responses stopped</h4>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Where unfinished responses stopped</h4>
                     <ul className="space-y-1.5">
                       {data.unfinished.stopped_after.map((s) => <Bar key={s.field_id ?? 'none'} label={s.field_id === null ? s.label : `After "${s.label}"`} count={s.count} total={data.unfinished.count} />)}
                     </ul>
@@ -88,12 +88,12 @@ export function FormAnalyticsModal({ slug, isOpen, onClose }: { slug: string; is
                 )}
 
                 <section aria-label="Questions" className="space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Questions</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Questions</h4>
                   {data.fields.map((f) => (
                     <div key={f.field_id} className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 space-y-2">
                       <div className="flex justify-between gap-3">
                         <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{f.label}</p>
-                        <p className="text-[11px] text-slate-500 shrink-0">{f.answered} answered ({percent(f.answer_rate)})</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 shrink-0">{f.answered} answered ({percent(f.answer_rate)})</p>
                       </div>
                       {f.options && (
                         <ul className="space-y-1.5">
@@ -101,7 +101,7 @@ export function FormAnalyticsModal({ slug, isOpen, onClose }: { slug: string; is
                           {!!f.other_count && <Bar label="Other / older options" count={f.other_count} total={f.answered} />}
                         </ul>
                       )}
-                      {f.numeric && <p className="text-[11px] text-slate-500">Lowest {f.numeric.min} · average {f.numeric.average} · highest {f.numeric.max}</p>}
+                      {f.numeric && <p className="text-[11px] text-slate-500 dark:text-slate-400">Lowest {f.numeric.min} · average {f.numeric.average} · highest {f.numeric.max}</p>}
                       {f.most_common && f.most_common.length > 0 && (
                         <ul className="space-y-1.5">{f.most_common.map((m) => <Bar key={m.value} label={m.value} count={m.count} total={f.answered} />)}</ul>
                       )}

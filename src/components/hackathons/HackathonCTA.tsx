@@ -7,9 +7,9 @@ import type { Hackathon } from '@/lib/types';
 import { useMyHackathonStatus } from '@/lib/hooks/useMyHackathonStatus';
 
 const PRIMARY =
-  'flex w-full items-center justify-center gap-1.5 rounded-lg bg-journey-accent px-4 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 active:scale-95';
+  'flex w-full items-center justify-center gap-1.5 rounded-lg bg-journey-accent px-4 py-3 text-sm font-bold text-journey-on-accent shadow-md transition hover:-translate-y-0.5 active:scale-95';
 const MUTED =
-  'flex w-full items-center justify-center gap-1.5 rounded-lg bg-journey-text/10 px-4 py-3 text-sm font-semibold text-journey-muted';
+  'flex w-full items-center justify-center gap-1.5 rounded-lg bg-journey-text/10 px-4 py-3 text-sm font-semibold text-journey-text/70';
 
 /** Register / go-to-team call to action on the public hackathon page. */
 export function HackathonCTA({ hackathon }: { hackathon: Hackathon }) {

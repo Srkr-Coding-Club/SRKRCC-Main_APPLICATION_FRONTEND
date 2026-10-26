@@ -28,7 +28,7 @@ export function StageMarker({ stage, status }: { stage: PublicStage; status: Sta
     return (
       <div className={`w-11 overflow-hidden rounded-lg border ${tone.border} text-center shadow-sm ${ring}`}>
         <div className={`${tone.solid} py-1 text-base font-extrabold leading-none`}>{day}</div>
-        <div className={`${tone.soft} py-0.5 text-[10px] font-bold uppercase`}>{month}</div>
+        <div className={`${tone.soft} py-0.5 text-[11px] font-bold uppercase`}>{month}</div>
       </div>
     );
   }
@@ -43,12 +43,12 @@ export function StageMarker({ stage, status }: { stage: PublicStage; status: Sta
 function StatusPill({ status }: { status: StageStatus }) {
   if (status === 'live') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 dark:text-emerald-400">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Live now
       </span>
     );
   }
-  if (status === 'next') return <span className="rounded-full bg-[#FF7A00]/15 px-2.5 py-0.5 text-[11px] font-bold text-[#C25A00] dark:text-[#FFB066]">Up next</span>;
+  if (status === 'next') return <span className="rounded-full bg-[#FF7A00]/15 px-2.5 py-0.5 text-[11px] font-bold text-journey-accent dark:text-[#FFB066]">Up next</span>;
   if (status === 'done') return <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 dark:bg-white/5 dark:text-slate-400">Completed</span>;
   return null;
 }
@@ -93,9 +93,9 @@ export function StageEntry({
       </div>
 
       <div className="min-w-0 flex-1 space-y-2 pb-1">
-        <p className="flex flex-wrap items-center gap-x-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className="flex flex-wrap items-center gap-x-2 text-xs font-medium text-slate-600 dark:text-slate-400">
           <span>{schedule}</span>
-          {hint && <span className="font-semibold text-[#C25A00] dark:text-[#FFB066]">· {hint}</span>}
+          {hint && <span className="font-semibold text-journey-accent dark:text-[#FFB066]">· {hint}</span>}
         </p>
         <div
           className={`space-y-3 rounded-2xl border bg-white/70 p-5 dark:bg-white/[0.03] ${
@@ -112,7 +112,7 @@ export function StageEntry({
 
           {stage.location && (
             <p className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
-              <MapPin className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" /> {stage.location}
+              <MapPin className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" /> {stage.location}
             </p>
           )}
 
@@ -126,7 +126,7 @@ export function StageEntry({
                   type="button"
                   onClick={() => setExpanded((open) => !open)}
                   aria-expanded={expanded}
-                  className="mt-1 text-xs font-bold text-[#FF7A00] hover:underline"
+                  className="mt-1 text-xs font-bold text-journey-accent hover:underline"
                 >
                   {expanded ? 'Show less' : 'Read more'}
                 </button>

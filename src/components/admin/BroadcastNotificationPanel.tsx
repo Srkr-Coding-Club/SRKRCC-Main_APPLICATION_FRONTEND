@@ -170,7 +170,7 @@ export function BroadcastNotificationPanel() {
       <div className={`${PANEL} p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-[#FF7A00]" />
+            <Bell className="h-5 w-5 text-journey-accent" />
             <h3 className="text-base font-extrabold text-[#1A1A2E] dark:text-white">
               Broadcast Notifications & Emails
             </h3>
@@ -186,7 +186,7 @@ export function BroadcastNotificationPanel() {
             resetForm();
             setComposerOpen(true);
           }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E06B00] text-white text-xs font-bold shadow-md shadow-[#FF7A00]/20 transition active:scale-95"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-journey-accent hover:opacity-90 text-journey-on-accent text-xs font-bold shadow-md shadow-[#FF7A00]/20 transition active:scale-95"
         >
           <Send className="h-3.5 w-3.5" />
           <span>New Broadcast</span>
@@ -196,7 +196,7 @@ export function BroadcastNotificationPanel() {
       {/* Broadcast History */}
       <div className={`${PANEL} p-6 space-y-4`}>
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-          <History className="h-4 w-4 text-[#FF7A00]" />
+          <History className="h-4 w-4 text-journey-accent" />
           <h4 className="text-sm font-bold text-[#1A1A2E] dark:text-white">
             Recent Broadcast Dispatches
           </h4>
@@ -204,7 +204,7 @@ export function BroadcastNotificationPanel() {
 
         {historyLoading ? (
           <div className="flex items-center justify-center p-8 text-xs text-slate-400 gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-[#FF7A00]" />
+            <Loader2 className="h-4 w-4 animate-spin text-journey-accent" />
             <span>Loading history…</span>
           </div>
         ) : history.length === 0 ? (
@@ -228,7 +228,7 @@ export function BroadcastNotificationPanel() {
                     <td className="py-2.5 font-semibold text-[#1A1A2E] dark:text-white">
                       {j.campaign_name}
                     </td>
-                    <td className="py-2.5 text-slate-500 font-mono">
+                    <td className="py-2.5 text-slate-500 dark:text-slate-400 font-mono">
                       {j.total_recipients} user(s)
                     </td>
                     <td className="py-2.5">
@@ -266,7 +266,7 @@ export function BroadcastNotificationPanel() {
             {/* Title */}
             <div className="sm:col-span-2">
               <label className={LABEL}>Subject / Title *</label>
-              <input
+              <input aria-label="Subject / Title"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -279,7 +279,7 @@ export function BroadcastNotificationPanel() {
             {/* Type */}
             <div>
               <label className={LABEL}>Notification Type</label>
-              <FormSelect
+              <FormSelect aria-label="Notification Type"
                 value={type}
                 onChange={(v) => setType(v as AnnouncementType)}
                 options={NOTIF_TYPES}
@@ -291,7 +291,7 @@ export function BroadcastNotificationPanel() {
             {/* Category */}
             <div>
               <label className={LABEL}>Category</label>
-              <FormSelect
+              <FormSelect aria-label="Category"
                 value={category}
                 onChange={(v) => setCategory(v as NotificationCategory)}
                 options={NOTIF_CATEGORIES}
@@ -303,7 +303,7 @@ export function BroadcastNotificationPanel() {
             {/* Action Link URL */}
             <div className="sm:col-span-2">
               <label className={LABEL}>Action Link URL (optional)</label>
-              <input
+              <input aria-label="Action Link URL (optional)"
                 type="text"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
@@ -329,7 +329,7 @@ export function BroadcastNotificationPanel() {
                 />
                 <div>
                   <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A1A2E] dark:text-white">
-                    <Bell className="h-3.5 w-3.5 text-[#FF7A00]" />
+                    <Bell className="h-3.5 w-3.5 text-journey-accent" />
                     <span>In-App Notification</span>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">
@@ -347,7 +347,7 @@ export function BroadcastNotificationPanel() {
                 />
                 <div>
                   <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A1A2E] dark:text-white">
-                    <Mail className="h-3.5 w-3.5 text-[#FF7A00]" />
+                    <Mail className="h-3.5 w-3.5 text-journey-accent" />
                     <span>Email Notification</span>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">
@@ -361,7 +361,7 @@ export function BroadcastNotificationPanel() {
           {/* Target Audience */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-white/[0.02] space-y-3">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-[#FF7A00]" />
+              <Users className="h-4 w-4 text-journey-accent" />
               <label className={LABEL}>Target Audience</label>
             </div>
 
@@ -416,7 +416,7 @@ export function BroadcastNotificationPanel() {
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/60 px-4 py-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">
-                <Eye className="h-3.5 w-3.5 text-[#FF7A00]" />
+                <Eye className="h-3.5 w-3.5 text-journey-accent" />
                 <span>Live Preview</span>
               </div>
               <div className="flex gap-1">
@@ -425,8 +425,8 @@ export function BroadcastNotificationPanel() {
                   onClick={() => setPreviewTab('in_app')}
                   className={`px-2.5 py-1 rounded text-[11px] font-semibold transition ${
                     previewTab === 'in_app'
-                      ? 'bg-white dark:bg-slate-800 text-[#FF7A00] shadow-sm'
-                      : 'text-slate-500'
+                      ? 'bg-white dark:bg-slate-800 text-journey-accent shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
                   In-App Notification
@@ -436,8 +436,8 @@ export function BroadcastNotificationPanel() {
                   onClick={() => setPreviewTab('email')}
                   className={`px-2.5 py-1 rounded text-[11px] font-semibold transition ${
                     previewTab === 'email'
-                      ? 'bg-white dark:bg-slate-800 text-[#FF7A00] shadow-sm'
-                      : 'text-slate-500'
+                      ? 'bg-white dark:bg-slate-800 text-journey-accent shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
                   Email Layout
@@ -451,7 +451,7 @@ export function BroadcastNotificationPanel() {
                   <div className="mt-0.5">
                     {type === 'SUCCESS' && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                     {type === 'WARNING' && <AlertTriangle className="h-4 w-4 text-amber-500" />}
-                    {type === 'URGENT' && <AlertOctagon className="h-4 w-4 text-rose-500" />}
+                    {type === 'URGENT' && <AlertOctagon className="h-4 w-4 text-rose-600 dark:text-rose-400" />}
                     {type === 'INFO' && <Info className="h-4 w-4 text-blue-500" />}
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
@@ -468,7 +468,7 @@ export function BroadcastNotificationPanel() {
                       {message || 'Your announcement message preview will appear here.'}
                     </p>
                     {linkUrl && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FF7A00] pt-1">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-journey-accent pt-1">
                         Open action <ExternalLink className="h-3 w-3" />
                       </span>
                     )}
@@ -489,7 +489,7 @@ export function BroadcastNotificationPanel() {
                     </p>
                     {linkUrl && (
                       <div className="pt-2">
-                        <span className="inline-block px-4 py-2 rounded bg-[#FF7A00] text-white font-bold text-xs">
+                        <span className="inline-block px-4 py-2 rounded bg-journey-accent text-journey-on-accent font-bold text-xs">
                           Open In Club Portal
                         </span>
                       </div>

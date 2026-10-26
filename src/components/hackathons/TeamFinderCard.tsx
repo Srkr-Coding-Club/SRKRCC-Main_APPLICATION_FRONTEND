@@ -40,7 +40,7 @@ export function TeamFinderCard({ hackathon, hasTeam, isLeader }: { hackathon: Ha
         </Link>
       </div>
 
-      {error && <p role="alert" className="text-sm text-rose-500">{error}</p>}
+      {error && <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
       {!listing && !error && <div className="h-24 animate-pulse rounded-xl bg-journey-text/5" aria-busy="true" />}
 
       {isLeader && incoming.length > 0 && (

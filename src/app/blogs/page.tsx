@@ -151,7 +151,7 @@ export default function BlogsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
 
         <PageHero
-          icon={<Sparkles className="h-4 w-4 text-[#FF7A00]" />}
+          icon={<Sparkles className="h-4 w-4 text-journey-accent" />}
           eyebrow="SRKRCC TECH PUBLICATION"
           title="Engineering Insights & Student Stories"
           description="Explore deep dives into web development, systems architecture, competitive algorithms, and real campus placement success stories."
@@ -177,7 +177,7 @@ export default function BlogsPage() {
 
             <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between space-y-6">
               <div className="space-y-3">
-                <div className="flex items-center space-x-2 text-xs font-bold text-[#FF7A00]">
+                <div className="flex items-center space-x-2 text-xs font-bold text-journey-accent">
                   <span>{featuredPost.category || 'Tech Guide'}</span>
                   <span>•</span>
                   <span>{featuredPost.read_time || '5 min read'}</span>
@@ -232,7 +232,7 @@ export default function BlogsPage() {
           <SectionHeading
             icon={Sparkles}
             title={`Latest Published Articles (${remainingBlogs.length})`}
-            action={<span className="text-xs font-medium text-slate-500">Updated weekly by club mentors</span>}
+            action={<span className="text-xs font-medium text-slate-500 dark:text-slate-400">Updated weekly by club mentors</span>}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -265,7 +265,7 @@ export default function BlogsPage() {
                       <span>{post.read_time || '5 min read'}</span>
                     </div>
 
-                    <h4 className="text-lg font-bold text-[#1A1A2E] dark:text-white group-hover:text-[#FF7A00] transition line-clamp-2 leading-snug">
+                    <h4 className="text-lg font-bold text-[#1A1A2E] dark:text-white group-hover:text-journey-accent transition line-clamp-2 leading-snug">
                       {post.title}
                     </h4>
 
@@ -297,7 +297,7 @@ export default function BlogsPage() {
                     disabled
                     aria-disabled="true"
                     title="Full articles aren't published yet"
-                    className="text-xs font-bold text-[#FF7A00]/50 flex items-center space-x-1 cursor-not-allowed"
+                    className="text-xs font-bold text-journey-accent/50 flex items-center space-x-1 cursor-not-allowed"
                   >
                     <span>Coming Soon</span>
                     <ArrowRight className="w-3.5 h-3.5" />

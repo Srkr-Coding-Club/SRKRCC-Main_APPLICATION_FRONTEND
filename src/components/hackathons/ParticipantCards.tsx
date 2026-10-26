@@ -49,7 +49,7 @@ export function MyRegistrationCard({ hackathon, registration, onSaved }: { hacka
       <h2 className={H2}><ClipboardList className="h-4 w-4" /> The organizers need a few details from you</h2>
       <form onSubmit={save} className="space-y-4">
         <RegistrationDetailsFields config={hackathon} value={value} onChange={setValue} errors={errors} />
-        {errors.form && <p role="alert" className="text-xs text-rose-500">{errors.form}</p>}
+        {errors.form && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{errors.form}</p>}
         <button type="submit" disabled={busy} className={BTN_ACCENT}>{busy ? 'Saving…' : 'Save details'}</button>
       </form>
     </section>
@@ -79,7 +79,7 @@ export function CheckInCard({ slug }: { slug: string }) {
           </div>
         ) : (
           <>
-            <div className="mx-auto w-fit rounded-xl bg-white p-3"><QRCodeSVG value={state.token} size={192} level="M" /></div>
+            <div className="mx-auto w-fit rounded-xl bg-white p-3"><QRCodeSVG value={state.token} size={192} level="M" role="img" title="Your check-in QR code" aria-label="Your check-in QR code. Show it at the desk." /></div>
             <p className="text-xs text-journey-muted">Show this code at the entrance. It is personal, so do not share it.</p>
           </>
         )
@@ -151,7 +151,7 @@ export function RecruitingCard({ hackathon, team, onSaved }: { hackathon: Hackat
           <button type="button" onClick={() => save(true)} disabled={busy} className={BTN_QUIET}>Update note</button>
         </div>
       )}
-      <Link href={`/hackathons/${hackathon.slug}/finder`} className="inline-block text-xs font-bold text-journey-accent hover:underline">Browse people looking for a team</Link>
+      <Link href={`/hackathons/${hackathon.slug}/finder`} className="inline-flex min-h-8 items-center text-xs font-bold text-journey-accent hover:underline">Browse people looking for a team</Link>
     </section>
   );
 }

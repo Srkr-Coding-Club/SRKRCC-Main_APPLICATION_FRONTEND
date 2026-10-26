@@ -28,12 +28,12 @@ export function PaymentQr({ slug, version, size = 224, className = '' }: { slug:
           <img src={url} alt="Payment QR code" onError={() => setFailed(true)} className="h-full w-full object-contain" />
         ) : failed ? (
           <div className="space-y-2 p-2 text-center text-xs text-slate-600">
-            <QrCode className="mx-auto h-6 w-6 text-slate-400" aria-hidden="true" />
+            <QrCode className="mx-auto h-6 w-6 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <p>The QR code could not be loaded.</p>
-            <button type="button" onClick={load} className="font-bold text-[#C25A00] underline">Try again</button>
+            <button type="button" onClick={load} className="font-bold text-orange-800 underline">Try again</button>
           </div>
         ) : (
-          <Loader2 className="h-6 w-6 animate-spin text-slate-400" aria-label="Loading the QR code" />
+          <Loader2 className="h-6 w-6 animate-spin text-slate-500 dark:text-slate-400" aria-label="Loading the QR code" />
         )}
       </div>
     </div>

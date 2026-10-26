@@ -127,8 +127,8 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
     <section className={`${PANEL} space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="flex items-center gap-2 font-bold text-[#1A1A2E] dark:text-white"><Megaphone className="h-4 w-4 text-[#FF7A00]" /> Announcements ({items.length})</h3>
-          <p className="text-xs text-slate-500">Public notices appear on the hackathon page; targeted ones only on the matching teams’ dashboards.</p>
+          <h3 className="flex items-center gap-2 font-bold text-[#1A1A2E] dark:text-white"><Megaphone className="h-4 w-4 text-journey-accent" /> Announcements ({items.length})</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Public notices appear on the hackathon page; targeted ones only on the matching teams’ dashboards.</p>
         </div>
         <button onClick={() => open('new')} className={BTN_PRIMARY}><Plus className="h-3.5 w-3.5" /> New announcement</button>
       </div>
@@ -136,7 +136,7 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
       {confirmDialog}
       {loadError && <LoadError message={loadError} onRetry={load} />}
       {items.length === 0 && !loadError ? (
-        <p className="py-8 text-center text-sm text-slate-500">Nothing announced yet.</p>
+        <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">Nothing announced yet.</p>
       ) : (
         <ul className="space-y-2">
           {items.map((a) => {
@@ -156,11 +156,11 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
                     {a.emailed_at && <StatusPill tone="green">Emailed {formatDateTime(a.emailed_at)}</StatusPill>}
                     {a.send_email && !a.emailed_at && a.is_active && <StatusPill tone="amber">Email goes out when published</StatusPill>}
                   </div>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {formatDateTime(a.publish_at)}{a.expires_at ? ` → ${formatDateTime(a.expires_at)}` : ''}{a.created_by_name ? ` · by ${a.created_by_name}` : ''}
                   </p>
                   {a.audience === 'TEAMS' && a.target_team_names && (
-                    <p className="text-[11px] text-slate-400 truncate">{a.target_team_names.join(', ')}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{a.target_team_names.join(', ')}</p>
                   )}
                 </div>
                 <div className="flex gap-1.5">
@@ -208,36 +208,36 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
         <form onSubmit={save} className="space-y-4">
           <div>
             <label className={LABEL}>Title *</label>
-            <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} className={INPUT} />
-            {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
+            <input aria-label="Title" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} className={INPUT} />
+            {errors.title && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.title}</p>}
           </div>
           <MarkdownEditor label="Message *" value={draft.message} onChange={(v) => setDraft((d) => ({ ...d, message: v }))} placeholder="Schedule changes, venue, next steps…" />
-          {errors.message && <p className="-mt-2 text-[11px] text-rose-500">{errors.message}</p>}
+          {errors.message && <p className="-mt-2 text-[11px] text-rose-600 dark:text-rose-400">{errors.message}</p>}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Audience</label>
-              <FormSelect value={draft.audience} onChange={(v) => setDraft((d) => ({ ...d, audience: v as HackathonAnnouncementAudience }))} options={AUDIENCES} placeholder="Audience" allowClear={false} />
-              {audienceHint && <p className="mt-1 text-[11px] text-slate-400">{audienceHint}</p>}
+              <FormSelect aria-label="Audience" value={draft.audience} onChange={(v) => setDraft((d) => ({ ...d, audience: v as HackathonAnnouncementAudience }))} options={AUDIENCES} placeholder="Audience" allowClear={false} />
+              {audienceHint && <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{audienceHint}</p>}
             </div>
             <div>
               <label className={LABEL}>Type</label>
-              <FormSelect value={draft.type} onChange={(v) => setDraft((d) => ({ ...d, type: v as AnnouncementType }))} options={TYPES} placeholder="Type" allowClear={false} />
+              <FormSelect aria-label="Type" value={draft.type} onChange={(v) => setDraft((d) => ({ ...d, type: v as AnnouncementType }))} options={TYPES} placeholder="Type" allowClear={false} />
             </div>
           </div>
 
           {ROUND_AUDIENCES.includes(draft.audience) && (
             <div>
               <label className={LABEL}>Round *</label>
-              <FormSelect value={draft.round} onChange={(v) => setDraft((d) => ({ ...d, round: v }))} options={rounds.map((r) => ({ value: String(r.id), label: `R${r.order} · ${r.name}` }))} placeholder="Select round" allowClear={false} />
-              {errors.round && <p className="mt-1 text-[11px] text-rose-500">{errors.round}</p>}
+              <FormSelect aria-label="Round" value={draft.round} onChange={(v) => setDraft((d) => ({ ...d, round: v }))} options={rounds.map((r) => ({ value: String(r.id), label: `R${r.order} · ${r.name}` }))} placeholder="Select round" allowClear={false} />
+              {errors.round && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.round}</p>}
             </div>
           )}
 
           {draft.audience === 'TEAMS' && (
             <div className="space-y-2">
               <label className={LABEL}>Teams * ({draft.target_teams.length} selected)</label>
-              <input value={teamSearch} onChange={(e) => setTeamSearch(e.target.value)} placeholder="Filter teams…" className={INPUT} />
+              <input aria-label="Teams  ( selected)" value={teamSearch} onChange={(e) => setTeamSearch(e.target.value)} placeholder="Filter teams…" className={INPUT} />
               <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800 p-2 space-y-1">
                 {shownTeams.map((t) => (
                   <label key={t.id} className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer">
@@ -250,25 +250,25 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
                         target_teams: d.target_teams.includes(t.id) ? d.target_teams.filter((x) => x !== t.id) : [...d.target_teams, t.id],
                       }))}
                     />
-                    {t.name} <span className="text-[11px] text-slate-400">{t.status.toLowerCase()}</span>
+                    {t.name} <span className="text-[11px] text-slate-500 dark:text-slate-400">{t.status.toLowerCase()}</span>
                   </label>
                 ))}
-                {shownTeams.length === 0 && <p className="px-2 py-1 text-xs text-slate-400">No teams.</p>}
+                {shownTeams.length === 0 && <p className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">No teams.</p>}
               </div>
-              {errors.target_teams && <p className="text-[11px] text-rose-500">{errors.target_teams}</p>}
+              {errors.target_teams && <p className="text-[11px] text-rose-600 dark:text-rose-400">{errors.target_teams}</p>}
             </div>
           )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Publish at</label>
-              <input type="datetime-local" value={draft.publish_at} onChange={(e) => setDraft((d) => ({ ...d, publish_at: e.target.value }))} className={INPUT} />
-              <p className="mt-1 text-[11px] text-slate-400">Blank = now.</p>
+              <input aria-label="Publish at" type="datetime-local" value={draft.publish_at} onChange={(e) => setDraft((d) => ({ ...d, publish_at: e.target.value }))} className={INPUT} />
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Blank = now.</p>
             </div>
             <div>
               <label className={LABEL}>Expires at</label>
-              <input type="datetime-local" value={draft.expires_at} onChange={(e) => setDraft((d) => ({ ...d, expires_at: e.target.value }))} className={INPUT} />
-              {errors.expires_at && <p className="mt-1 text-[11px] text-rose-500">{errors.expires_at}</p>}
+              <input aria-label="Expires at" type="datetime-local" value={draft.expires_at} onChange={(e) => setDraft((d) => ({ ...d, expires_at: e.target.value }))} className={INPUT} />
+              {errors.expires_at && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.expires_at}</p>}
             </div>
           </div>
 

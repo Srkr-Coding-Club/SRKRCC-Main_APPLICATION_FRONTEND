@@ -78,11 +78,11 @@ export default function CodeQuestDaily({ problems, today }: CodeQuestDailyProps)
               className="absolute inset-y-0 left-0 w-1 bg-[#FF7A00]"
             />
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              <p className="inline-flex items-center gap-1.5 rounded-full bg-[#FF7A00] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-journey-accent px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-journey-on-accent">
                 <Star className="h-3 w-3 fill-white" /> Problem of the Day
               </p>
               <p className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                <Calendar className="h-3.5 w-3.5 text-[#FF7A00]" />
+                <Calendar className="h-3.5 w-3.5 text-journey-accent" />
                 {new Date(`${problemOfTheDay.scheduled_date}T00:00:00`).toLocaleDateString('en-US', {
                   month: 'long',
                   day: 'numeric',
@@ -124,7 +124,7 @@ export default function CodeQuestDaily({ problems, today }: CodeQuestDailyProps)
                   href={problemOfTheDay.external_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-w-0 max-w-full items-center justify-center gap-2 rounded-lg bg-[#FF7A00] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#E06B00]"
+                  className="inline-flex min-w-0 max-w-full items-center justify-center gap-2 rounded-lg bg-journey-accent px-4 py-2.5 text-xs font-bold text-journey-on-accent shadow-sm transition hover:opacity-90"
                 >
                   <span className="min-w-0 truncate">
                     Solve on {problemOfTheDay.external_platform || 'External Judge'}
@@ -203,7 +203,7 @@ export default function CodeQuestDaily({ problems, today }: CodeQuestDailyProps)
                           href={problem.external_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-[#FF7A00]/40 hover:bg-orange-500/5 hover:text-[#FF7A00] dark:border-slate-700 dark:text-slate-300"
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-[#FF7A00]/40 hover:bg-orange-500/5 hover:text-journey-accent dark:border-slate-700 dark:text-slate-300"
                         >
                           Solve
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -224,7 +224,7 @@ export default function CodeQuestDaily({ problems, today }: CodeQuestDailyProps)
                   type="button"
                   onClick={() => setShowAllPrevious((visible) => !visible)}
                   aria-expanded={showAllPrevious}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-[#FF7A00]/40 hover:text-[#FF7A00] dark:border-slate-700 dark:text-slate-300"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-[#FF7A00]/40 hover:text-journey-accent dark:border-slate-700 dark:text-slate-300"
                 >
                   {showAllPrevious
                     ? 'Show fewer'

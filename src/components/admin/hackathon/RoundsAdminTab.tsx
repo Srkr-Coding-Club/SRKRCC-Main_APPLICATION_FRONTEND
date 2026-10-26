@@ -430,17 +430,17 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
       <aside className={`${PANEL} space-y-3 self-start`}>
         <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-            <Flag className="h-4 w-4 text-[#FF7A00]" /> Rounds
+            <Flag className="h-4 w-4 text-journey-accent" /> Rounds
           </h3>
           <button onClick={() => openRound('new')} className={BTN_PRIMARY}><Plus className="h-3.5 w-3.5" /> New</button>
         </div>
         {rounds.length === 0 ? (
           <div className="space-y-2">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               No rounds yet. The first round includes every registered team; each later round includes the teams shortlisted in the previous round.
             </p>
             <button type="button" onClick={addSuggestedRounds} disabled={busy} className={BTN_GHOST}><Sparkles className="h-3.5 w-3.5" /> Add suggested rounds</button>
-            <p className="text-[11px] text-slate-400">Idea review, project review and final pitch. Edit or delete any of them.</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Idea review, project review and final pitch. Edit or delete any of them.</p>
           </div>
         ) : (
           <ul className="space-y-1.5">
@@ -455,15 +455,15 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                   }`}
                 >
                   <p className="truncate text-sm font-bold text-[#1A1A2E] dark:text-white">R{r.order} · {r.name}</p>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {ROUND_KIND_LABEL[r.kind]} · {r.entry_counts.total} teams · {r.entry_counts.SHORTLISTED}{r.shortlist_limit ? `/${r.shortlist_limit}` : ''} shortlisted
                     {r.results_published ? ' · published' : ''}
                   </p>
                 </button>
                 {rounds.length > 1 && (
                   <div className="flex flex-col justify-center">
-                    <button type="button" onClick={() => moveRound(r.id, -1)} disabled={busy || index === 0} aria-label={`Move ${r.name} earlier`} className="rounded p-1 text-slate-400 hover:text-[#FF7A00] disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
-                    <button type="button" onClick={() => moveRound(r.id, 1)} disabled={busy || index === rounds.length - 1} aria-label={`Move ${r.name} later`} className="rounded p-1 text-slate-400 hover:text-[#FF7A00] disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => moveRound(r.id, -1)} disabled={busy || index === 0} aria-label={`Move ${r.name} earlier`} className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-slate-400 hover:text-journey-accent disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => moveRound(r.id, 1)} disabled={busy || index === rounds.length - 1} aria-label={`Move ${r.name} later`} className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-slate-400 hover:text-journey-accent disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
                   </div>
                 )}
               </li>
@@ -489,13 +489,13 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                 )}
               </div>
               {round.details_form_slug ? (
-                <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-                  <FileText className="h-3.5 w-3.5 text-[#FF7A00]" /> Details form: <strong>{round.details_form_title}</strong>
+                <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <FileText className="h-3.5 w-3.5 text-journey-accent" /> Details form: <strong>{round.details_form_title}</strong>
                   · {round.entry_counts.details_submitted} submitted ·
-                  <Link href={`/admin/responses?form=${round.details_form_slug}`} className="font-bold text-[#FF7A00] hover:underline">View responses</Link>
+                  <Link href={`/admin/responses?form=${round.details_form_slug}`} className="font-bold text-journey-accent hover:underline">View responses</Link>
                 </p>
               ) : (
-                <p className="text-xs text-slate-400">No details form attached. Edit round to re-collect details from shortlisted teams.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">No details form attached. Edit round to re-collect details from shortlisted teams.</p>
               )}
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -507,7 +507,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                 className={BTN_GHOST}
                 title="Manually promote a team to this round"
               >
-                <UserPlus className="h-3.5 w-3.5 text-[#FF7A00]" /> Add Team
+                <UserPlus className="h-3.5 w-3.5 text-journey-accent" /> Add Team
               </button>
               <button
                 onClick={() => run(() => hackathonApi.admin.populateRound(slug, round.id), 'Eligible teams synced')}
@@ -538,7 +538,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/[0.02] p-4 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Rocket className="h-4 w-4 text-[#FF7A00]" />
+                <Rocket className="h-4 w-4 text-journey-accent" />
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
                   Round Promotion Pipeline
                 </span>
@@ -568,7 +568,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
             {/* Metrics Grid */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-lg bg-white dark:bg-white/5 p-3 border border-slate-100 dark:border-slate-800">
-                <p className="text-[11px] text-slate-400 font-semibold uppercase">Total Entries</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase">Total Entries</p>
                 <p className="text-lg font-bold text-[#1A1A2E] dark:text-white">{round.entry_counts.total}</p>
               </div>
               <div className="rounded-lg bg-emerald-500/10 p-3 border border-emerald-500/20">
@@ -583,14 +583,14 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                 <p className="text-lg font-bold text-rose-600 dark:text-rose-400">{round.entry_counts.REJECTED}</p>
               </div>
               <div className="rounded-lg bg-amber-500/10 p-3 border border-amber-500/20">
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold uppercase">Under Review</p>
-                <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{round.entry_counts.PENDING}</p>
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold uppercase">Under Review</p>
+                <p className="text-lg font-bold text-amber-700 dark:text-amber-400">{round.entry_counts.PENDING}</p>
               </div>
             </div>
 
             {/* Next round status info */}
             {round.entry_counts.next_round_id && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 <strong>Promotion Status:</strong> {round.entry_counts.promoted_to_next ?? 0} of {round.entry_counts.SHORTLISTED} shortlisted team(s) promoted to {round.entry_counts.next_round_name}.
               </p>
             )}
@@ -601,7 +601,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           {/* Search & Filter Bar */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -613,7 +613,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
               <button
                 key={s || 'all'}
                 onClick={() => setFilter(s)}
-                className={`${BTN} ${filter === s ? 'bg-[#FF7A00] text-white' : 'border border-slate-200 dark:border-slate-700 text-slate-500'}`}
+                className={`${BTN} ${filter === s ? 'bg-journey-accent text-journey-on-accent' : 'border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
               >
                 {s ? ENTRY_STATUS_PILL[s].label : 'All'} ({s ? round.entry_counts[s] : round.entry_counts.total})
               </button>
@@ -624,7 +624,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           {checked.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#FF7A00]/30 bg-[#FF7A00]/5 px-3 py-2">
               <span className="text-xs font-bold text-[#1A1A2E] dark:text-white">{checked.size} selected</span>
-              <button onClick={() => setDecision('SHORTLISTED')} className={`${BTN} bg-emerald-600 text-white`}>
+              <button onClick={() => setDecision('SHORTLISTED')} className={`${BTN} bg-emerald-700 text-white`}>
                 <CheckCircle2 className="h-3.5 w-3.5" /> Shortlist
               </button>
               <button onClick={() => setDecision('REJECTED')} className={`${BTN} bg-rose-600 text-white`}>
@@ -638,11 +638,11 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           {entriesLoading ? (
             <div className="h-40 rounded-lg bg-slate-200 dark:bg-white/5 animate-pulse" />
           ) : visible.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-500">No teams match this filter.</p>
+            <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">No teams match this filter.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="py-2 pr-2 w-8">
                       <input type="checkbox" checked={allChecked} onChange={toggleAll} className="accent-[#FF7A00]" aria-label="Select all" />
@@ -677,10 +677,10 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                       </td>
                       <td className="py-2.5 pr-3">
                         <p className="font-semibold text-[#1A1A2E] dark:text-white">{e.team_name}</p>
-                        <p className="text-[11px] text-slate-500">{e.leader_email} · {e.member_count} members</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">{e.leader_email} · {e.member_count} members</p>
                       </td>
                       <td className="py-2.5 pr-3 text-xs font-mono">{e.problem_code ?? '-'}</td>
-                      <td className="py-2.5 pr-3 text-[11px] text-slate-500">
+                      <td className="py-2.5 pr-3 text-[11px] text-slate-500 dark:text-slate-400">
                         <p>Idea: {e.idea_status ? `${e.idea_status.replace('_', ' ').toLowerCase()}${e.idea_score !== null ? ` · ${e.idea_score.toFixed(1)}` : ''}` : '–'}</p>
                         <p>Project: {e.has_project ? (e.project_score !== null ? e.project_score.toFixed(1) : 'submitted') : '–'}</p>
                         {features.check_in && <p>Checked in: {e.checked_in}</p>}
@@ -691,34 +691,34 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                       <td className="py-2.5 pr-3 text-xs">
                         {e.status === 'SHORTLISTED' ? (
                           e.is_promoted_to_next ? (
-                            <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600">
+                            <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-bold text-emerald-600">
                               <CheckCircle2 className="h-3 w-3" /> Promoted
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                            <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-400">
                               <Clock className="h-3 w-3" /> Pending Advance
                             </span>
                           )
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-slate-500 dark:text-slate-400">-</span>
                         )}
                       </td>
                       <td className="py-2.5 pr-3 text-xs">
                         {e.details_response_id ? (
                           <span className="text-emerald-600 font-semibold">Submitted</span>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-slate-500 dark:text-slate-400">-</span>
                         )}
                       </td>
-                      <td className="py-2.5 pr-3 text-[11px] text-slate-500 max-w-[220px]">
+                      <td className="py-2.5 pr-3 text-[11px] text-slate-500 dark:text-slate-400 max-w-[220px]">
                         {e.feedback && <p className="truncate" title={e.feedback}><span className="font-semibold">Feedback:</span> {e.feedback}</p>}
-                        {e.admin_notes && <p className="truncate text-slate-400" title={e.admin_notes}><span className="font-semibold">Note:</span> {e.admin_notes}</p>}
+                        {e.admin_notes && <p className="truncate text-slate-500 dark:text-slate-400" title={e.admin_notes}><span className="font-semibold">Note:</span> {e.admin_notes}</p>}
                       </td>
                       <td className="py-2.5 text-right whitespace-nowrap">
                         <button
                           onClick={() => quickDecide(e.team_id, e.team_name, 'SHORTLISTED')}
                           disabled={busy || e.status === 'SHORTLISTED'}
-                          className="rounded p-1 text-slate-400 transition hover:text-emerald-600 disabled:opacity-30"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-slate-400 transition hover:text-emerald-600 disabled:opacity-30"
                           title="Shortlist this team"
                           aria-label={`Shortlist ${e.team_name}`}
                         >
@@ -727,7 +727,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                         <button
                           onClick={() => quickDecide(e.team_id, e.team_name, 'REJECTED')}
                           disabled={busy || e.status === 'REJECTED'}
-                          className="rounded p-1 text-slate-400 transition hover:text-rose-600 disabled:opacity-30"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-slate-400 transition hover:text-rose-600 disabled:opacity-30"
                           title="Mark as not shortlisted"
                           aria-label={`Mark ${e.team_name} as not shortlisted`}
                         >
@@ -736,7 +736,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                         <button
                           onClick={() => handleRemoveEntry(e.team_id, e.team_name)}
                           disabled={busy}
-                          className="rounded p-1 text-slate-400 hover:text-rose-600 transition"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-slate-400 hover:text-rose-600 transition"
                           title="Remove team from this round"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -750,7 +750,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           )}
         </section>
       ) : (
-        <section className={`${PANEL} py-16 text-center text-sm text-slate-500`}>
+        <section className={`${PANEL} py-16 text-center text-sm text-slate-500 dark:text-slate-400`}>
           Create a round to start evaluating teams and promoting shortlists.
         </section>
       )}
@@ -760,45 +760,45 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
         <form onSubmit={saveRound} className="space-y-4">
           <div>
             <label className={LABEL}>Name *</label>
-            <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className={INPUT} />
-            {draftErrors.name && <p className="mt-1 text-[11px] text-rose-500">{draftErrors.name}</p>}
+            <input aria-label="Name" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className={INPUT} />
+            {draftErrors.name && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{draftErrors.name}</p>}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Kind of round</label>
-              <FormSelect value={draft.kind} onChange={(v) => setDraft((d) => ({ ...d, kind: v as RoundKind }))} options={ROUND_KIND_OPTIONS} placeholder="Kind" allowClear={false} />
+              <FormSelect aria-label="Kind of round" value={draft.kind} onChange={(v) => setDraft((d) => ({ ...d, kind: v as RoundKind }))} options={ROUND_KIND_OPTIONS} placeholder="Kind" allowClear={false} />
             </div>
             <div>
               <label htmlFor="round-limit" className={LABEL}>Teams going through (target)</label>
               <input id="round-limit" type="number" min={1} value={draft.shortlist_limit} onChange={(e) => setDraft((d) => ({ ...d, shortlist_limit: e.target.value }))} placeholder="No target" className={INPUT} />
-              {draftErrors.shortlist_limit && <p className="mt-1 text-[11px] text-rose-500">{draftErrors.shortlist_limit}</p>}
+              {draftErrors.shortlist_limit && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{draftErrors.shortlist_limit}</p>}
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className={LABEL}>Starts</label>
-              <input type="datetime-local" value={draft.starts_at} onChange={(e) => setDraft((d) => ({ ...d, starts_at: e.target.value }))} className={INPUT} />
+              <input aria-label="Starts" type="datetime-local" value={draft.starts_at} onChange={(e) => setDraft((d) => ({ ...d, starts_at: e.target.value }))} className={INPUT} />
             </div>
             <div>
               <label className={LABEL}>Ends</label>
-              <input type="datetime-local" value={draft.ends_at} onChange={(e) => setDraft((d) => ({ ...d, ends_at: e.target.value }))} className={INPUT} />
-              {draftErrors.ends_at && <p className="mt-1 text-[11px] text-rose-500">{draftErrors.ends_at}</p>}
+              <input aria-label="Ends" type="datetime-local" value={draft.ends_at} onChange={(e) => setDraft((d) => ({ ...d, ends_at: e.target.value }))} className={INPUT} />
+              {draftErrors.ends_at && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{draftErrors.ends_at}</p>}
             </div>
             <div>
               <label className={LABEL}>Status (used when no dates are set)</label>
-              <FormSelect value={draft.status} onChange={(v) => setDraft((d) => ({ ...d, status: v }))} options={STATUS_OPTIONS} placeholder="Status" allowClear={false} />
+              <FormSelect aria-label="Status (used when no dates are set)" value={draft.status} onChange={(v) => setDraft((d) => ({ ...d, status: v }))} options={STATUS_OPTIONS} placeholder="Status" allowClear={false} />
             </div>
           </div>
           <div>
             <label className={LABEL}>Details form (re-collect from shortlisted teams)</label>
-            <FormSelect value={draft.details_form} onChange={(v) => setDraft((d) => ({ ...d, details_form: v }))} options={formOptions} placeholder="No form" />
-            <p className="mt-1 text-[11px] text-slate-400">
+            <FormSelect aria-label="Details form (re-collect from shortlisted teams)" value={draft.details_form} onChange={(v) => setDraft((d) => ({ ...d, details_form: v }))} options={formOptions} placeholder="No form" />
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
               Build it in the Form Builder (Profile Auto-fill fields work here). Only leaders of teams shortlisted in this round can submit it, once results are published. One response per team.
             </p>
           </div>
           <MarkdownEditor label="Description (shown to teams)" value={draft.description} onChange={(v) => setDraft((d) => ({ ...d, description: v }))} placeholder="What happens in this round, what to submit…" />
           {roundModal === 'new' && (
-            <p className="rounded-lg bg-slate-100 dark:bg-white/5 px-3 py-2 text-[11px] text-slate-500">
+            <p className="rounded-lg bg-slate-100 dark:bg-white/5 px-3 py-2 text-[11px] text-slate-500 dark:text-slate-400">
               {rounds.length === 0 ? 'All registered teams will be added to this round.' : `Teams shortlisted in ${rounds[rounds.length - 1].name} will be added to this round.`}
             </p>
           )}
@@ -819,11 +819,11 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
         maxWidth="max-w-lg"
       >
         <div className="space-y-4">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Select any registered team to add them as a wildcard promotion or manual entry in this round.
           </p>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
             <input
               value={wildcardSearch}
               onChange={(e) => setWildcardSearch(e.target.value)}
@@ -834,13 +834,13 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
 
           <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800">
             {eligibleForWildcard.length === 0 ? (
-              <p className="py-6 text-center text-xs text-slate-400">No available teams found.</p>
+              <p className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">No available teams found.</p>
             ) : (
               eligibleForWildcard.map((t) => (
                 <div key={t.id} className="p-3 flex items-center justify-between gap-3 text-xs hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                   <div>
                     <p className="font-bold text-[#1A1A2E] dark:text-white">{t.name}</p>
-                    <p className="text-slate-400">Leader: {t.leader_email ?? '-'} · {t.member_count} member(s)</p>
+                    <p className="text-slate-500 dark:text-slate-400">Leader: {t.leader_email ?? '-'} · {t.member_count} member(s)</p>
                   </div>
                   <button
                     onClick={() => handleAddWildcardTeam(t.id)}
@@ -865,7 +865,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
         <form onSubmit={applyDecision} className="space-y-4">
           <div>
             <label className={LABEL}>Feedback to teams (optional)</label>
-            <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={3} disabled={clearFeedback} className={`${INPUT} disabled:opacity-50`} placeholder="Shown on their dashboard once results are published." />
+            <textarea aria-label="Feedback to teams (optional)" value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={3} disabled={clearFeedback} className={`${INPUT} disabled:opacity-50`} placeholder="Shown on their dashboard once results are published." />
             <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
               <input type="checkbox" checked={clearFeedback} onChange={(e) => setClearFeedback(e.target.checked)} className="accent-[#FF7A00]" />
               Remove any feedback these teams already have
@@ -873,9 +873,9 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           </div>
           <div>
             <label className={LABEL}>Internal note (optional)</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={INPUT} placeholder="Admins only." />
+            <textarea aria-label="Internal note (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={INPUT} placeholder="Admins only." />
           </div>
-          <p className="text-[11px] text-slate-400">Leaving a box empty keeps each team&apos;s existing text.</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Leaving a box empty keeps each team&apos;s existing text.</p>
           {round?.results_published && (
             <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
               Results are already published. This change is visible to these teams immediately, and any team whose result changes is notified.
@@ -894,11 +894,11 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           <p className="text-sm text-slate-600 dark:text-slate-300">
             Teams will see whether they were shortlisted, plus any feedback. Shortlisted leaders can then submit the details form.
             {round && round.entry_counts.PENDING > 0 && (
-              <span className="mt-2 block font-semibold text-amber-600">{round.entry_counts.PENDING} team(s) are still pending, so they&apos;ll see &quot;Under review&quot;.</span>
+              <span className="mt-2 block font-semibold text-amber-700 dark:text-amber-400">{round.entry_counts.PENDING} team(s) are still pending, so they&apos;ll see &quot;Under review&quot;.</span>
             )}
           </p>
           {round && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {round.entry_counts.SHORTLISTED} shortlisted · {round.entry_counts.REJECTED} not shortlisted · {round.entry_counts.PENDING} pending
             </p>
           )}

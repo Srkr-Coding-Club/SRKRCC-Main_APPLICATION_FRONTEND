@@ -18,7 +18,7 @@ export function Switch({ checked, onChange, label, description, disabled = false
     <div className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
       <div className="min-w-0">
         <p id={labelId} className="text-sm font-bold text-[#1A1A2E] dark:text-white">{label}</p>
-        {description && <p id={descriptionId} className="mt-0.5 text-xs text-slate-500">{description}</p>}
+        {description && <p id={descriptionId} className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{description}</p>}
       </div>
       <button
         type="button"

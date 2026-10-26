@@ -16,7 +16,7 @@ export default function IconCodersHallOfFameCard({ entry }: IconCodersHallOfFame
       >
         <div className="flex h-full flex-col overflow-hidden p-6">
           <div className="flex min-h-7 items-center justify-between gap-2">
-            <span className="inline-flex items-center rounded-full bg-[#FF7A00] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+            <span className="inline-flex items-center rounded-full bg-journey-accent px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-journey-on-accent">
               Edition {entry.year}
             </span>
             <Trophy className="h-5 w-5 shrink-0 text-amber-400" />

@@ -238,7 +238,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
         >
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
             <div className="flex items-center space-x-2">
-              <Mail className="w-5 h-5 text-[#FF7A00]" />
+              <Mail className="w-5 h-5 text-journey-accent" />
               <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
                 {mode === 'select' ? 'Confirmation Email Template' : 'Email Selected Members'}
               </h3>
@@ -265,7 +265,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
             <button
               onClick={() => setTab('existing')}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 -mb-px transition active:scale-95 ${
-                tab === 'existing' ? 'border-[#FF7A00] text-[#FF7A00]' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                tab === 'existing' ? 'border-[#FF7A00] text-journey-accent' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
               <ListChecks className="w-3.5 h-3.5" /> Use Existing
@@ -273,7 +273,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
             <button
               onClick={() => setTab('new')}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 -mb-px transition active:scale-95 ${
-                tab === 'new' ? 'border-[#FF7A00] text-[#FF7A00]' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                tab === 'new' ? 'border-[#FF7A00] text-journey-accent' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
               <PlusCircle className="w-3.5 h-3.5" /> Draft New
@@ -319,7 +319,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
               <button
                 onClick={handleUseExisting}
                 disabled={submitting || !selectedTemplateId}
-                className="w-full py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-2.5 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : mode === 'send' ? <Send className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                 {mode === 'send' ? 'Send to Selected' : 'Use This Template'}
@@ -329,7 +329,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
             <div className="space-y-3">
               {mode === 'select' && (
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Internal Title</label>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Internal Title</label>
                   <input
                     value={displayTitle}
                     onChange={(e) => setDisplayTitle(e.target.value)}
@@ -340,7 +340,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
               )}
               {mode === 'send' && (
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Campaign Name</label>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Campaign Name</label>
                   <input
                     value={campaignName}
                     onChange={(e) => setCampaignName(e.target.value)}
@@ -353,7 +353,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
                 <button
                   type="button"
                   onClick={() => setShowPreview((p) => !p)}
-                  className="flex items-center gap-1 text-[10px] font-bold uppercase text-slate-500 hover:text-[#FF7A00] transition active:scale-95"
+                  className="flex items-center gap-1 text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 hover:text-journey-accent transition active:scale-95"
                 >
                   {showPreview ? <Pencil className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                   {showPreview ? 'Edit' : 'Preview'}
@@ -372,7 +372,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
               ) : (
                 <>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Subject Line *</label>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Subject Line *</label>
                     <input
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
@@ -382,7 +382,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-[10px] font-bold uppercase text-slate-500">Message Body *</label>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Message Body *</label>
                     </div>
                     <textarea
                       value={body}
@@ -397,7 +397,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
                           key={chip}
                           type="button"
                           onClick={() => insertChip(chip)}
-                          className="text-[10px] font-mono px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:text-[#FF7A00] transition active:scale-95"
+                          className="text-[10px] font-mono px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:text-journey-accent transition active:scale-95"
                         >
                           {`{{${chip}}}`}
                         </button>
@@ -423,7 +423,7 @@ export default function EmailTemplateEditor({ open, onClose, mode, recipients = 
               <button
                 onClick={handleUseNew}
                 disabled={submitting}
-                className="w-full py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-2.5 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : mode === 'send' ? <Send className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                 {mode === 'send' ? 'Send to Selected' : 'Save & Use This Template'}

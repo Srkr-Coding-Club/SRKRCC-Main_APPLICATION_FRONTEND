@@ -38,7 +38,7 @@ export function TeamEmailsAdminTab({ slug }: { slug: string }) {
   useEffect(() => { load(); }, [load]);
 
   if (error) return <LoadError message={error} onRetry={load} />;
-  if (!payload) return <p className="text-sm text-slate-500">Loading…</p>;
+  if (!payload) return <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>;
 
   const dirty = JSON.stringify(drafts) !== saved;
   const update = (key: string, patch: Partial<TeamEmailSetting>) =>
@@ -88,10 +88,10 @@ export function TeamEmailsAdminTab({ slug }: { slug: string }) {
     <div className="space-y-4">
       <div className={`${PANEL} flex flex-wrap items-center justify-between gap-3`}>
         <div className="flex items-start gap-3">
-          <Mail className="mt-0.5 h-5 w-5 text-[#FF7A00]" />
+          <Mail className="mt-0.5 h-5 w-5 text-journey-accent" />
           <div>
             <h2 className="text-base font-extrabold text-[#1A1A2E] dark:text-white">Team emails</h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Emails sent to participants as their team forms. Leave a subject or message blank to use the default wording.
             </p>
           </div>
@@ -108,7 +108,7 @@ export function TeamEmailsAdminTab({ slug }: { slug: string }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="text-sm font-extrabold text-[#1A1A2E] dark:text-white">{d.label}</h3>
-                <p className="text-xs text-slate-500">{d.when}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{d.when}</p>
                 <div className="mt-1.5">
                   <StatusPill tone="slate">To: {d.recipients}</StatusPill>
                 </div>
@@ -148,7 +148,7 @@ export function TeamEmailsAdminTab({ slug }: { slug: string }) {
                 maxLength={5000}
                 className={`${INPUT} font-mono`}
               />
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                 Blank lines start a new paragraph. Insert details about the team with these placeholders:
               </p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -158,7 +158,7 @@ export function TeamEmailsAdminTab({ slug }: { slug: string }) {
                     type="button"
                     title={p.description}
                     onClick={() => insertPlaceholder(key, p.key)}
-                    className="rounded-md border border-slate-200 px-2 py-0.5 font-mono text-[11px] text-slate-600 transition hover:border-[#FF7A00] hover:text-[#FF7A00] dark:border-slate-700 dark:text-slate-300"
+                    className="rounded-md border border-slate-200 px-2 py-0.5 font-mono text-[11px] text-slate-600 transition hover:border-[#FF7A00] hover:text-journey-accent dark:border-slate-700 dark:text-slate-300"
                   >
                     {`{{${p.key}}}`}
                   </button>

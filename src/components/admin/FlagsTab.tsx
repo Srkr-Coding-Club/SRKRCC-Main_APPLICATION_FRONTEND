@@ -34,9 +34,9 @@ export function FlagsTab({ flags, onToggleFlag, isLoading = false }: FlagsTabPro
             <div key={f.id} className="p-4 rounded-lg bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
                 <p className="font-bold text-sm text-[#1A1A2E] dark:text-white">{f.name}</p>
-                <p className="text-xs text-slate-500">{f.description}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{f.description}</p>
               </div>
-              <button onClick={() => onToggleFlag(f.id)} className="transition-transform duration-100 active:scale-90">
+              <button onClick={() => onToggleFlag(f.id)} role="switch" aria-checked={f.is_enabled} aria-label={f.name || f.key} className="transition-transform duration-100 active:scale-90">
                 {f.is_enabled ? <ToggleRight className="w-8 h-8 text-emerald-500" /> : <ToggleLeft className="w-8 h-8 text-slate-400" />}
               </button>
             </div>

@@ -64,13 +64,13 @@ export default function TeamFinderPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] py-10">
       <div className="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
-        <Link href={`/hackathons/${slug}/dashboard`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-journey-muted hover:text-journey-accent"><ArrowLeft className="h-4 w-4" /> Dashboard</Link>
+        <Link href={`/hackathons/${slug}/dashboard`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-journey-muted sm:min-h-8 hover:text-journey-accent"><ArrowLeft className="h-4 w-4" /> Dashboard</Link>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-journey-text sm:text-3xl">Team finder</h1>
           <p className="text-sm text-journey-muted">Find teammates, or let a team find you. Emails are never shown, and your mobile number is shown only to team leaders: they can contact you before they invite you or accept your request. Leaders invite from here and you accept on your dashboard, or ask a team to take you in and its leader answers.</p>
         </div>
 
-        {error && <p role="alert" className={`${PANEL} text-sm text-rose-500`}>{error}</p>}
+        {error && <p role="alert" className={`${PANEL} text-sm text-rose-600 dark:text-rose-400`}>{error}</p>}
 
         {listing && (
           <>

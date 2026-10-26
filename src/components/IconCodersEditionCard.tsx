@@ -54,7 +54,7 @@ export default function IconCodersEditionCard({
       footer={
         <Link
           href={challenge.form_slug ? `/forms/${challenge.form_slug}` : '/forms'}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 bg-journey-accent"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[12px] font-semibold text-journey-on-accent transition-transform duration-200 hover:-translate-y-0.5 bg-journey-accent"
         >
           Register Now
           <ArrowRight className="h-3.5 w-3.5" />

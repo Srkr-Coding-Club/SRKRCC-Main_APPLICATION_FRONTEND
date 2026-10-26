@@ -62,7 +62,7 @@ export function AttendanceBadgeModal({ isOpen, onClose, formId, eventTitle, regi
       >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center space-x-2 min-w-0">
-            <QrCode className="w-5 h-5 text-[#FF7A00] flex-shrink-0" />
+            <QrCode className="w-5 h-5 text-journey-accent flex-shrink-0" />
             <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white truncate">{eventTitle || 'Attendance QR Badge'}</h3>
           </div>
           <button

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -89,12 +89,34 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
   const requested = searchParams.get('tab');
   const active = visibleTabs.find((tab) => tab.key === requested) ?? visibleTabs[0];
   const setTab = (key: string) => router.replace(`${basePath}?tab=${key}`, { scroll: false });
+  const tabListRef = useRef<HTMLDivElement>(null);
+
+  // Sixteen tabs scroll sideways on a phone: keep the open one in view.
+  useEffect(() => {
+    const list = tabListRef.current;
+    const tab = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!list || !tab) return;
+    list.scrollTo({ left: tab.offsetLeft - (list.clientWidth - tab.offsetWidth) / 2, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }, [active?.key]);
+
+  /** Arrow keys, Home and End move between tabs, as the tab pattern expects. */
+  const onTabKeyDown = (event: React.KeyboardEvent) => {
+    const keys = visibleTabs.map((tab) => tab.key);
+    const at = keys.indexOf(active?.key ?? '');
+    const next = event.key === 'ArrowRight' ? (at + 1) % keys.length
+      : event.key === 'ArrowLeft' ? (at - 1 + keys.length) % keys.length
+        : event.key === 'Home' ? 0 : event.key === 'End' ? keys.length - 1 : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    setTab(keys[next]);
+    requestAnimationFrame(() => document.getElementById(`hackathon-tab-${keys[next]}`)?.focus());
+  };
   const goToRegistration = () => (me?.permissions.includes('settings') ? setTab('registration') : undefined);
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">
       <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-        <Link href={backHref} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-[#FF7A00]">
+        <Link href={backHref} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-slate-600 transition hover:text-journey-accent dark:text-slate-400 sm:min-h-8">
           <ArrowLeft className="h-4 w-4" /> {backLabel}
         </Link>
 
@@ -105,7 +127,7 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-extrabold text-[#1A1A2E] dark:text-white">{hackathon.title}</h1>
-                <p className="text-sm text-slate-500">{hackathon.theme}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{hackathon.theme}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {me.roles.map((role) => <StatusPill key={role} tone="purple">{role.charAt(0) + role.slice(1).toLowerCase()}</StatusPill>)}
@@ -117,11 +139,11 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
                 {hackathon.is_hidden && <StatusPill tone="slate">{hackathon.is_manually_hidden ? 'Hidden from public' : 'Outside visibility window'}</StatusPill>}
                 {hackathon.team_edits_locked && <StatusPill tone="amber">Team edits locked</StatusPill>}
                 {me.is_site_organizer && (
-                  <button type="button" onClick={() => setCloning(true)} className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-[#FF7A00]">
+                  <button type="button" onClick={() => setCloning(true)} className="inline-flex min-h-8 items-center gap-1 text-xs font-bold text-slate-600 hover:text-journey-accent dark:text-slate-400">
                     <Copy className="h-3 w-3" /> Clone
                   </button>
                 )}
-                <a href={`/hackathons/${hackathon.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#FF7A00] hover:underline">
+                <a href={`/hackathons/${hackathon.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-8 items-center gap-1 text-xs font-bold text-journey-accent hover:underline">
                   Public page <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
@@ -133,22 +155,25 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
               <div className="glass-panel space-y-3 rounded-xl border border-slate-200 p-8 text-center dark:border-slate-800">
                 <p className="text-sm text-slate-600 dark:text-slate-300">Your role here has no management tabs. Use these instead:</p>
                 <div className="flex flex-wrap justify-center gap-2">
-                  {me.permissions.includes('judge') && <Link href={`/hackathons/${slug}/judging`} className="rounded-lg bg-[#FF7A00] px-4 py-2 text-sm font-bold text-white">Score projects</Link>}
-                  {me.permissions.includes('check_in') && <Link href={`/hackathons/${slug}/check-in`} className="rounded-lg bg-[#FF7A00] px-4 py-2 text-sm font-bold text-white">Check people in</Link>}
+                  {me.permissions.includes('judge') && <Link href={`/hackathons/${slug}/judging`} className="rounded-lg bg-journey-accent px-4 py-2 text-sm font-bold text-journey-on-accent">Score projects</Link>}
+                  {me.permissions.includes('check_in') && <Link href={`/hackathons/${slug}/check-in`} className="rounded-lg bg-journey-accent px-4 py-2 text-sm font-bold text-journey-on-accent">Check people in</Link>}
                 </div>
               </div>
             ) : (
               <>
-                <div role="tablist" aria-label="Hackathon management" className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 p-1 glass-panel dark:border-slate-800">
+                <div ref={tabListRef} role="tablist" aria-label="Hackathon management" onKeyDown={onTabKeyDown} className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 p-1 glass-panel dark:border-slate-800">
                   {visibleTabs.map(({ key, label, icon: Icon }) => (
                     <button
                       key={key}
+                      id={`hackathon-tab-${key}`}
                       type="button"
                       role="tab"
                       aria-selected={active.key === key}
+                      aria-controls="hackathon-tabpanel"
+                      tabIndex={active.key === key ? 0 : -1}
                       onClick={() => setTab(key)}
-                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition ${
-                        active.key === key ? 'bg-[#FF7A00] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-[#1A1A2E] dark:hover:bg-white/5 dark:hover:text-white'
+                      className={`relative inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition sm:min-h-9 ${
+                        active.key === key ? 'bg-journey-accent text-journey-on-accent shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 hover:text-[#1A1A2E] dark:hover:bg-white/5 dark:hover:text-white'
                       }`}
                     >
                       <Icon className="h-3.5 w-3.5" /> {label}
@@ -156,6 +181,8 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
                   ))}
                 </div>
 
+                <div id="hackathon-tabpanel" role="tabpanel" aria-labelledby={`hackathon-tab-${active.key}`} className="space-y-6">
+                <h2 className="sr-only">{active.label}</h2>
                 {active.key === 'overview' && <HackathonOverviewTab slug={slug} onNavigate={setTab} />}
                 {active.key === 'settings' && <HackathonSettingsTab hackathon={hackathon} onSaved={setHackathon} />}
                 {active.key === 'registration' && <RegistrationControlsTab hackathon={hackathon} onSaved={setHackathon} />}
@@ -172,6 +199,7 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
                 {active.key === 'results' && <ResultsAdminTab hackathon={hackathon} onSaved={setHackathon} onEnable={goToRegistration} />}
                 {active.key === 'publicpage' && <PublicPageAdminTab hackathon={hackathon} onSaved={setHackathon} />}
                 {active.key === 'announcements' && <HackathonAnnouncementsAdminTab slug={slug} />}
+                </div>
               </>
             )}
           </>

@@ -186,7 +186,7 @@ export function AuditLogsTab() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Mutation Audit Logs</h3>
         <div className="relative flex-1 min-w-[240px] max-w-sm">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400" />
           <input
             type="text"
             placeholder="Search by actor, action, or target…"
@@ -204,7 +204,7 @@ export function AuditLogsTab() {
           aria-pressed={selectedMonth === null}
           className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
             selectedMonth === null
-              ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
+              ? 'border-[#FF7A00] bg-journey-accent text-journey-on-accent'
               : 'border-slate-300 text-slate-600 hover:border-[#FF7A00] dark:border-slate-700 dark:text-slate-300'
           }`}
         >
@@ -224,7 +224,7 @@ export function AuditLogsTab() {
                 onClick={() => selectMonth(item.month)}
                 aria-pressed={active}
                 className={`px-3 py-1.5 transition active:scale-95 ${
-                  active ? 'text-[#FF7A00]' : 'text-slate-600 hover:text-[#FF7A00] dark:text-slate-300'
+                  active ? 'text-journey-accent' : 'text-slate-600 hover:text-journey-accent dark:text-slate-300'
                 }`}
               >
                 {monthLabel(item.month)} <span className="ml-1 font-mono font-medium text-slate-400">{item.count}</span>
@@ -247,12 +247,12 @@ export function AuditLogsTab() {
       </div>
 
       {loadError && (
-        <p className="text-xs text-rose-500">{loadError}</p>
+        <p className="text-xs text-rose-600 dark:text-rose-400">{loadError}</p>
       )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-          <thead className="bg-[#FAFAFC] dark:bg-[#0D0E15] text-xs uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
+          <thead className="bg-[#FAFAFC] dark:bg-[#0D0E15] text-xs uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
             <tr>
               <th className="px-6 py-4 font-bold">Timestamp</th>
               <th className="px-6 py-4 font-bold">Actor</th>
@@ -284,8 +284,8 @@ export function AuditLogsTab() {
                   <tr key={l.id}>
                     <td className="px-6 py-4 text-xs font-mono">{l.timestamp}</td>
                     <td className="px-6 py-4 text-xs font-bold text-[#1A1A2E] dark:text-white">{l.actor}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-[#FF7A00]">{l.action}</td>
-                    <td className="px-6 py-4 text-xs font-mono text-slate-500 max-w-md">
+                    <td className="px-6 py-4 text-xs font-bold text-journey-accent">{l.action}</td>
+                    <td className="px-6 py-4 text-xs font-mono text-slate-500 dark:text-slate-400 max-w-md">
                       <span className="break-words">
                         {isExpanded || !isLong ? l.details : `${l.details.slice(0, DETAILS_TRUNCATE_LENGTH)}…`}
                       </span>
@@ -307,7 +307,7 @@ export function AuditLogsTab() {
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
         <span>
           {count} {count === 1 ? 'entry' : 'entries'} · page {page} of {totalPages}
         </span>

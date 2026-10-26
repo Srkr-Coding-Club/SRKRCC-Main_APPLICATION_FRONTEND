@@ -409,7 +409,7 @@ export function FormBuilderTab({
       {/* Top Controls Bar */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between glass-panel p-4 rounded-lg border border-slate-200 dark:border-slate-800 gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[#FF7A00] flex-shrink-0">
+          <div className="p-2.5 rounded-md bg-slate-100 dark:bg-slate-800 text-journey-accent flex-shrink-0">
             <Layers className="w-5 h-5" />
           </div>
           <div>
@@ -444,13 +444,13 @@ export function FormBuilderTab({
             <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-md">
               <button
                 onClick={() => setViewportMode('desktop')}
-                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'desktop' ? 'glass-panel text-[#FF7A00] shadow' : 'text-slate-400'}`}
+                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'desktop' ? 'glass-panel text-journey-accent shadow' : 'text-slate-400'}`}
               >
                 <Monitor className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewportMode('mobile')}
-                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'mobile' ? 'glass-panel text-[#FF7A00] shadow' : 'text-slate-400'}`}
+                className={`p-2 rounded transition-transform duration-100 active:scale-90 ${viewportMode === 'mobile' ? 'glass-panel text-journey-accent shadow' : 'text-slate-400'}`}
               >
                 <Smartphone className="w-4 h-4" />
               </button>
@@ -508,7 +508,7 @@ export function FormBuilderTab({
           {/* Save - keeps the form's current status */}
           <button
             onClick={() => onSaveForm(formMeta.status || 'DRAFT')}
-            className="px-4 py-2 rounded-md border border-[#FF7A00] text-[#FF7A00] hover:bg-orange-50 dark:hover:bg-orange-950/30 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
+            className="px-4 py-2 rounded-md border border-[#FF7A00] text-journey-accent hover:bg-orange-50 dark:hover:bg-orange-950/30 font-bold text-xs flex items-center gap-1.5 transition-transform duration-100 active:scale-95"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{formMeta.id ? 'Save Changes' : 'Save Draft'}</span>
@@ -553,14 +553,14 @@ export function FormBuilderTab({
             <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="p-4 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-[#1A1A2E] dark:text-white">Add Fields</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">Click a field to add it to the form.</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Click a field to add it to the form.</p>
               </div>
 
               <div className="p-3 space-y-4 max-h-[65dvh] overflow-y-auto">
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 px-2 pb-1">
-                    <Sparkles className="w-3 h-3 text-[#FF7A00]" />
-                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#FF7A00]">Profile Auto-fill</p>
+                    <Sparkles className="w-3 h-3 text-journey-accent" />
+                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-journey-accent">Profile Auto-fill</p>
                   </div>
                   <p className="px-2 pb-1 text-[10px] text-slate-400">
                     Never shown as a question, filled in from the submitter's own profile at submission time.
@@ -619,7 +619,7 @@ export function FormBuilderTab({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <div>
-                  <label htmlFor="form-category" className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Category</label>
+                  <label htmlFor="form-category" className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Category</label>
                   <select
                     id="form-category"
                     value={formMeta.category}
@@ -633,7 +633,7 @@ export function FormBuilderTab({
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="form-banner-url" className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Banner Cover Image URL</label>
+                  <label htmlFor="form-banner-url" className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Banner Cover Image URL</label>
                   <input
                     id="form-banner-url"
                     type="text"
@@ -655,7 +655,7 @@ export function FormBuilderTab({
               <div className="space-y-3 pb-5 border-b border-slate-100 dark:border-slate-800">
                 <label className="flex items-center justify-between cursor-pointer">
                   <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                    <IdCard className="w-4 h-4 text-[#FF7A00]" />
+                    <IdCard className="w-4 h-4 text-journey-accent" />
                     Generate Club Member ID on submission
                   </span>
                   <input
@@ -669,19 +669,19 @@ export function FormBuilderTab({
                 {formMeta.club_id_enabled && (
                   <div className="pl-6 space-y-3">
                     {!formIsSaved ? (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
                         Save this form once first, then come back here to pick which field supplies the member&apos;s
                         email. Field mapping needs each field&apos;s permanent saved ID.
                       </p>
                     ) : emailFields.length === 0 ? (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
                         Add an &quot;Email Address&quot; field to this form before enabling Club ID generation.
                       </p>
                     ) : (
                       <>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Club ID Prefix</label>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Club ID Prefix</label>
                             <input
                               value={formMeta.club_id_prefix || 'SCC'}
                               onChange={(e) => setFormMeta({ ...formMeta, club_id_prefix: e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6) })}
@@ -690,7 +690,7 @@ export function FormBuilderTab({
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Email Field *</label>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Email Field *</label>
                             <select
                               value={formMeta.club_id_field_mapping?.email ?? ''}
                               onChange={(e) =>
@@ -715,7 +715,7 @@ export function FormBuilderTab({
                             ['branch', 'Branch Field'],
                           ] as const).map(([key, labelText]) => (
                             <div key={key}>
-                              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">{labelText}</label>
+                              <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">{labelText}</label>
                               <select
                                 value={formMeta.club_id_field_mapping?.[key] ?? ''}
                                 onChange={(e) =>
@@ -748,7 +748,7 @@ export function FormBuilderTab({
               <div className="space-y-3 pb-5 border-b border-slate-100 dark:border-slate-800">
                 <label className="flex items-center justify-between cursor-pointer">
                   <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                    <ShieldCheck className="w-4 h-4 text-[#FF7A00]" />
+                    <ShieldCheck className="w-4 h-4 text-journey-accent" />
                     Verify Club ID on submission
                   </span>
                   <input
@@ -762,18 +762,18 @@ export function FormBuilderTab({
                 {formMeta.club_id_verification_enabled && (
                   <div className="pl-6 space-y-3">
                     {!formIsSaved ? (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
                         Save this form once first, then come back here to map the fields used for Club ID verification.
                       </p>
                     ) : savedFormFields.length === 0 ? (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
                         Add fields to this form before enabling Club ID verification.
                       </p>
                     ) : (
                       <>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Club ID Field *</label>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Club ID Field *</label>
                             <select
                               value={formMeta.club_id_field_mapping?.club_id ?? ''}
                               onChange={(e) => setFormMeta({ ...formMeta, club_id_field_mapping: { ...formMeta.club_id_field_mapping, club_id: e.target.value || undefined } })}
@@ -784,7 +784,7 @@ export function FormBuilderTab({
                             </select>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Name Field</label>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Name Field</label>
                             <select
                               value={formMeta.club_id_field_mapping?.full_name ?? ''}
                               onChange={(e) => setFormMeta({ ...formMeta, club_id_field_mapping: { ...formMeta.club_id_field_mapping, full_name: e.target.value || undefined } })}
@@ -803,7 +803,7 @@ export function FormBuilderTab({
                             ['roll_number', 'Roll Number Field'],
                           ] as const).map(([key, labelText]) => (
                             <div key={key}>
-                              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">{labelText}</label>
+                              <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">{labelText}</label>
                               <select
                                 value={formMeta.club_id_field_mapping?.[key] ?? ''}
                                 onChange={(e) => setFormMeta({ ...formMeta, club_id_field_mapping: { ...formMeta.club_id_field_mapping, [key]: e.target.value || undefined } })}
@@ -827,7 +827,7 @@ export function FormBuilderTab({
               <div className="space-y-3">
                 <label className="flex items-center justify-between cursor-pointer">
                   <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                    <MailIcon className="w-4 h-4 text-[#FF7A00]" />
+                    <MailIcon className="w-4 h-4 text-journey-accent" />
                     Send confirmation email on submission
                   </span>
                   <input
@@ -859,7 +859,7 @@ export function FormBuilderTab({
               <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <label className="flex items-center justify-between cursor-pointer">
                   <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                    <Bell className="w-4 h-4 text-[#FF7A00]" />
+                    <Bell className="w-4 h-4 text-journey-accent" />
                     Send in-app notification on submission
                   </span>
                   <input
@@ -873,7 +873,7 @@ export function FormBuilderTab({
                 {formMeta.confirmation_notification_enabled && (
                   <div className="pl-6 space-y-3 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                         Notification Title (optional)
                       </label>
                       <input
@@ -885,7 +885,7 @@ export function FormBuilderTab({
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                         Notification Message (optional)
                       </label>
                       <textarea
@@ -919,7 +919,7 @@ export function FormBuilderTab({
                 {/* Form Creator / Admin Alert */}
                 <label className="flex items-center justify-between cursor-pointer pt-2">
                   <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                    <UserCheck className="w-4 h-4 text-[#FF7A00]" />
+                    <UserCheck className="w-4 h-4 text-journey-accent" />
                     Notify form creator on new responses
                   </span>
                   <input
@@ -933,7 +933,7 @@ export function FormBuilderTab({
                 {/* Member Broadcast on Publish */}
                 <label className="flex items-center justify-between cursor-pointer pt-2">
                   <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                    <Megaphone className="w-4 h-4 text-[#FF7A00]" />
+                    <Megaphone className="w-4 h-4 text-journey-accent" />
                     Notify all members when published
                   </span>
                   <input
@@ -950,7 +950,7 @@ export function FormBuilderTab({
               <div className="space-y-3 pt-5 pb-5 border-t border-b border-slate-100 dark:border-slate-800">
                 <label className="flex items-center justify-between cursor-pointer">
                   <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                    <QrCode className="w-4 h-4 text-[#FF7A00]" />
+                    <QrCode className="w-4 h-4 text-journey-accent" />
                     Enable QR-code attendance tracking
                   </span>
                   <input
@@ -965,7 +965,7 @@ export function FormBuilderTab({
                   <div className="pl-6 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Start Date *</label>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Start Date *</label>
                         <input
                           type="date"
                           value={formMeta.attendance_start_date || ''}
@@ -974,7 +974,7 @@ export function FormBuilderTab({
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Number of Days</label>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Number of Days</label>
                         <input
                           type="number"
                           min={1}
@@ -991,7 +991,7 @@ export function FormBuilderTab({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Sessions Per Day</label>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Sessions Per Day</label>
                         <select
                           value={formMeta.attendance_sessions_per_day ?? 1}
                           onChange={(e) =>
@@ -1005,7 +1005,7 @@ export function FormBuilderTab({
                         </select>
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Scan Window (minutes)</label>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Scan Window (minutes)</label>
                         <input
                           type="number"
                           min={1}
@@ -1033,7 +1033,7 @@ export function FormBuilderTab({
 
               <div className="space-y-3 pt-5 border-t border-slate-100 dark:border-slate-800">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Max Total Responses (optional)</label>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Max Total Responses (optional)</label>
                   <input
                     type="number"
                     min={1}
@@ -1052,7 +1052,7 @@ export function FormBuilderTab({
 
                 <label className="flex items-center justify-between cursor-pointer pt-2">
                   <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                    <ShieldCheck className="w-4 h-4 text-[#FF7A00]" />
+                    <ShieldCheck className="w-4 h-4 text-journey-accent" />
                     Prevent Duplicate Email Answers
                   </span>
                   <input
@@ -1152,7 +1152,7 @@ function StatPill({
 }) {
   const toneClasses: Record<string, string> = {
     slate: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300',
-    orange: 'bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]',
+    orange: 'bg-orange-50 dark:bg-orange-950/40 text-journey-accent',
     purple: 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400',
     sky: 'bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400',
   };
@@ -1186,7 +1186,7 @@ function PaletteItem({
       className="w-full flex items-center gap-3 p-2.5 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#FF7A00] hover:bg-slate-50 dark:hover:bg-slate-800/50 text-left transition-transform duration-100 active:scale-[0.98]"
       title={`Add ${label}`}
     >
-      <span className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 flex-shrink-0">
+      <span className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex-shrink-0">
         <Icon className="w-4 h-4" />
       </span>
       <span className="flex-1 text-xs font-semibold text-[#1A1A2E] dark:text-white">{label}</span>
@@ -1282,7 +1282,7 @@ function QuestionCard({
         onClick={onMoveUp}
         disabled={index === 0}
         title="Move up"
-        className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded text-slate-400 hover:text-[#FF7A00] hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-25 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition-transform duration-100 active:scale-90"
+        className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded text-slate-400 hover:text-journey-accent hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-25 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition-transform duration-100 active:scale-90"
       >
         <ChevronUp className="w-4 h-4" />
       </button>
@@ -1290,7 +1290,7 @@ function QuestionCard({
         onClick={onMoveDown}
         disabled={index === total - 1}
         title="Move down"
-        className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded text-slate-400 hover:text-[#FF7A00] hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-25 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition-transform duration-100 active:scale-90"
+        className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded text-slate-400 hover:text-journey-accent hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-25 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition-transform duration-100 active:scale-90"
       >
         <ChevronDown className="w-4 h-4" />
       </button>
@@ -1300,7 +1300,7 @@ function QuestionCard({
   const numberBadge = (
     <span
       className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
-        isActive ? 'bg-[#FF7A00] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+        isActive ? 'bg-journey-accent text-journey-on-accent' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
       }`}
     >
       {index + 1}
@@ -1316,7 +1316,7 @@ function QuestionCard({
         <div className="flex items-center gap-3 border-b border-[#FF7A00] pb-3">
           {reorderControls}
           {numberBadge}
-          <SeparatorHorizontal className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
+          <SeparatorHorizontal className="w-4 h-4 text-journey-accent flex-shrink-0" />
           <input
             value={field.label}
             onChange={(e) => onLabelChange(e.target.value)}
@@ -1346,8 +1346,8 @@ function QuestionCard({
         <div className="flex items-center gap-3">
           {reorderControls}
           {numberBadge}
-          <Split className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
-          <span className="text-[11px] font-extrabold uppercase tracking-wide text-[#FF7A00] flex-shrink-0">Page {pageNumber}</span>
+          <Split className="w-4 h-4 text-journey-accent flex-shrink-0" />
+          <span className="text-[11px] font-extrabold uppercase tracking-wide text-journey-accent flex-shrink-0">Page {pageNumber}</span>
           <input
             value={field.label}
             onChange={(e) => onLabelChange(e.target.value)}
@@ -1365,7 +1365,7 @@ function QuestionCard({
           className="w-full text-xs bg-transparent border-0 focus:outline-none text-slate-500 dark:text-slate-400"
         />
         <div onClick={(e) => e.stopPropagation()}>
-          <button onClick={onToggleConditional} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
+          <button onClick={onToggleConditional} className="text-xs font-bold text-journey-accent hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
             <GitFork className="w-3.5 h-3.5" />
             {normalizeConditional(field.conditional_logic) ? 'Page routing: Active' : 'Add page routing'}
           </button>
@@ -1391,20 +1391,20 @@ function QuestionCard({
       >
         {reorderControls}
         {numberBadge}
-        <div className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 flex-shrink-0">
+        <div className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex-shrink-0">
           <Icon className="w-3.5 h-3.5" />
         </div>
         <span className="flex-1 text-sm font-semibold text-[#1A1A2E] dark:text-white truncate">
           {field.label || 'Untitled Question'}
         </span>
         {field.profile_field && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#FF7A00] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-journey-accent bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
             <Sparkles className="w-2.5 h-2.5" />
             <span className="hidden sm:inline">Profile Auto-fill</span>
           </span>
         )}
         <span className="text-[11px] text-slate-400 flex-shrink-0 hidden sm:inline">{meta.label}</span>
-        {field.is_required && <span className="text-rose-500 text-xs flex-shrink-0">*</span>}
+        {field.is_required && <span className="text-rose-600 dark:text-rose-400 text-xs flex-shrink-0">*</span>}
       </div>
     );
   }
@@ -1413,7 +1413,7 @@ function QuestionCard({
     <div className="glass-panel rounded-lg border-l-4 border-l-[#FF7A00] border border-slate-200 dark:border-slate-800 p-5 space-y-3">
       {field.profile_field && (
         <div className="flex items-center gap-1.5 -mt-1">
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#FF7A00] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-journey-accent bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full">
             <Sparkles className="w-2.5 h-2.5" />
             <span>Profile Auto-fill: never shown as a question, filled from the submitter's profile</span>
           </span>
@@ -1434,9 +1434,11 @@ function QuestionCard({
         <div className="relative flex-shrink-0">
           <button
             onClick={onToggleTypeMenu}
+            aria-label={`Field type: ${meta.label}`}
+            aria-expanded={typeMenuOpen}
             className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-[#FF7A00] transition-transform duration-100 active:scale-95"
           >
-            <Icon className="w-3.5 h-3.5 text-[#FF7A00]" />
+            <Icon className="w-3.5 h-3.5 text-journey-accent" />
             <span className="hidden sm:inline">{meta.label}</span>
             <ChevronDown className={`w-3 h-3 ${typeMenuOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -1451,7 +1453,7 @@ function QuestionCard({
                     key={t}
                     onClick={() => onTypeChange(t)}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-transform duration-100 active:scale-[0.98] ${
-                      field.type === t ? 'text-[#FF7A00]' : 'text-slate-600 dark:text-slate-300'
+                      field.type === t ? 'text-journey-accent' : 'text-slate-600 dark:text-slate-300'
                     }`}
                   >
                     <TIcon className="w-3.5 h-3.5" /> {m.label}
@@ -1472,7 +1474,7 @@ function QuestionCard({
           className="w-full text-xs bg-transparent border-0 focus:outline-none text-slate-500 dark:text-slate-400"
         />
       ) : (
-        <button onClick={() => onDescriptionChange('')} className="text-[11px] font-semibold text-slate-400 hover:text-[#FF7A00] transition-transform duration-100 active:scale-95 inline-block">
+        <button onClick={() => onDescriptionChange('')} className="text-[11px] font-semibold text-slate-400 hover:text-journey-accent transition-transform duration-100 active:scale-95 inline-block">
           + Add description
         </button>
       )}
@@ -1490,7 +1492,7 @@ function QuestionCard({
       {/* Rows editor (MATRIX_RADIO / MATRIX_CHECKBOX only) */}
       {meta.hasRows && (
         <div className="space-y-2 pl-1 pt-1">
-          <p className="text-[10px] uppercase font-bold text-slate-500">Rows</p>
+          <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Rows</p>
           {(field.rows || []).map((row, i) => (
             <div key={i} className="flex items-center gap-2">
               <span className="text-[11px] font-mono text-slate-400 w-3.5 flex-shrink-0">{i + 1}.</span>
@@ -1504,7 +1506,7 @@ function QuestionCard({
               </button>
             </div>
           ))}
-          <button onClick={onAddRow} className="text-xs font-semibold text-slate-400 hover:text-[#FF7A00] flex items-center gap-1.5 pt-1 transition-transform duration-100 active:scale-95">
+          <button onClick={onAddRow} className="text-xs font-semibold text-slate-400 hover:text-journey-accent flex items-center gap-1.5 pt-1 transition-transform duration-100 active:scale-95">
             <Plus className="w-3.5 h-3.5" /> Add row
           </button>
         </div>
@@ -1513,7 +1515,7 @@ function QuestionCard({
       {/* Options editor (also doubles as the column editor for matrix fields) */}
       {meta.hasOptions && (
         <div className="space-y-2 pl-1 pt-1">
-          {meta.hasRows && <p className="text-[10px] uppercase font-bold text-slate-500">Columns</p>}
+          {meta.hasRows && <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Columns</p>}
           {(field.options || []).map((opt, i) => (
             <div key={i} className="flex items-center gap-2">
               {field.type === 'CHECKBOX' || field.type === 'MATRIX_CHECKBOX' ? (
@@ -1533,7 +1535,7 @@ function QuestionCard({
               </button>
             </div>
           ))}
-          <button onClick={onAddOption} className="text-xs font-semibold text-slate-400 hover:text-[#FF7A00] flex items-center gap-1.5 pt-1 transition-transform duration-100 active:scale-95">
+          <button onClick={onAddOption} className="text-xs font-semibold text-slate-400 hover:text-journey-accent flex items-center gap-1.5 pt-1 transition-transform duration-100 active:scale-95">
             <Plus className="w-3.5 h-3.5" /> {meta.hasRows ? 'Add column' : 'Add option'}
           </button>
         </div>
@@ -1545,7 +1547,7 @@ function QuestionCard({
       {meta.hasScale && (
         <div className="grid grid-cols-2 gap-2 pl-1 pt-1">
           <div>
-            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">
               {field.type === 'RATING' ? 'Min stars' : 'Min value'}
             </label>
             <input
@@ -1556,7 +1558,7 @@ function QuestionCard({
             />
           </div>
           <div>
-            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+            <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">
               {field.type === 'RATING' ? 'Max stars' : 'Max value'}
             </label>
             <input
@@ -1572,7 +1574,7 @@ function QuestionCard({
       {/* Response validation */}
       {hasConstraintOptions(field.type) && (
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
-          <button onClick={onToggleValidation} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
+          <button onClick={onToggleValidation} className="text-xs font-bold text-journey-accent hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
             <ShieldCheck className="w-3.5 h-3.5" />
             {hasActiveValidation(field) ? 'Response validation: Active' : 'Response validation'}
           </button>
@@ -1590,7 +1592,7 @@ function QuestionCard({
 
       {/* Conditional visibility */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
-        <button onClick={onToggleConditional} className="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
+        <button onClick={onToggleConditional} className="text-xs font-bold text-journey-accent hover:underline flex items-center gap-1.5 transition-transform duration-100 active:scale-95">
           <GitFork className="w-3.5 h-3.5" />
           {normalizeConditional(field.conditional_logic) ? 'Conditions: Active' : 'Add conditions'}
         </button>
@@ -1602,7 +1604,7 @@ function QuestionCard({
       {/* Footer toolbar */}
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
         <PipeInsert earlierFields={earlierFields} onInsert={(token) => onLabelChange(`${field.label}${field.label && !field.label.endsWith(' ') ? ' ' : ''}${token}`)} />
-        <button onClick={onDuplicate} title="Duplicate" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-[#FF7A00] transition-transform duration-100 active:scale-90">
+        <button onClick={onDuplicate} title="Duplicate" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-journey-accent transition-transform duration-100 active:scale-90">
           <Copy className="w-4 h-4" />
         </button>
         <button onClick={onRemove} title="Delete" className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500 transition-transform duration-100 active:scale-90">
@@ -1669,7 +1671,7 @@ function ValidationPanel({ field, siblingFields, onChange }: {
             <LabeledInput label="Max characters" type="number" value={r.maxLength} onChange={(v) => onChange({ maxLength: v })} />
             <LabeledInput label="Exact length" type="number" value={r.exactLength} onChange={(v) => onChange({ exactLength: v })} />
             <div>
-              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Format</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Format</label>
               <select value={r.format || ''} onChange={(e) => onChange({ format: (e.target.value || undefined) as any })}
                 className="w-full px-2 py-1.5 rounded border text-xs glass-panel border-slate-200 dark:border-slate-800">
                 {TEXT_FORMAT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -1811,7 +1813,7 @@ function ValidationPanel({ field, siblingFields, onChange }: {
         <>
           {(field.rows || []).length > 0 && (
             <div>
-              <p className="text-[10px] uppercase font-bold text-slate-500 mb-1">Rows that must be answered</p>
+              <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Rows that must be answered</p>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 {(field.rows || []).map((row) => {
                   const list = Array.isArray(r.requiredRows) ? r.requiredRows : [];
@@ -1912,7 +1914,7 @@ function LabeledInput({
 
   return (
     <div>
-      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">{label}</label>
+      <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">{label}</label>
       <input
         type={isNumber ? 'text' : type}
         inputMode={isNumber ? 'decimal' : undefined}
@@ -1921,7 +1923,7 @@ function LabeledInput({
         placeholder={placeholder}
         className="w-full px-2.5 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
       />
-      {hint && <p className="mt-1 text-[10px] text-slate-500">{hint}</p>}
+      {hint && <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">{hint}</p>}
     </div>
   );
 }
@@ -1961,12 +1963,12 @@ function LivePreview({
     >
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
         <div className="flex items-center space-x-2">
-          <Eye className="w-5 h-5 text-slate-500" />
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          <Eye className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             {viewportMode === 'mobile' ? 'Mobile Simulator View' : 'Desktop End User View'}
           </span>
         </div>
-        <button onClick={() => setIsPreviewMode(false)} className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-transform duration-100 active:scale-95">
+        <button onClick={() => setIsPreviewMode(false)} className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 transition-transform duration-100 active:scale-95">
           Exit Preview
         </button>
       </div>
@@ -1985,7 +1987,7 @@ function LivePreview({
       ) : null}
 
       <div>
-        <span className="text-[11px] font-bold uppercase px-2.5 py-0.5 rounded bg-orange-50 text-[#FF7A00]">
+        <span className="text-[11px] font-bold uppercase px-2.5 py-0.5 rounded bg-orange-50 text-journey-accent">
           {formMeta.category}
         </span>
         <h2 className="text-2xl font-extrabold text-[#1A1A2E] dark:text-white mt-2">{formMeta.title}</h2>
@@ -2017,7 +2019,7 @@ function LivePreview({
           if (field.type === 'PAGE_BREAK') {
             return (
               <div key={field.id} className="pt-4 border-t-2 border-dashed border-[#FF7A00]/50">
-                <p className="text-[11px] font-extrabold uppercase tracking-wide text-[#FF7A00]">
+                <p className="text-[11px] font-extrabold uppercase tracking-wide text-journey-accent">
                   Page {builderFields.slice(0, builderFields.indexOf(field) + 1).filter((f) => f.type === 'PAGE_BREAK').length + 1}
                   {previewLayout.skippedPages.has(builderFields.slice(0, builderFields.indexOf(field) + 1).filter((f) => f.type === 'PAGE_BREAK').length) ? ' (skipped by your answers)' : ''}
                 </p>
@@ -2034,7 +2036,7 @@ function LivePreview({
           if (field.type === 'SECTION') {
             return (
               <div key={field.id} className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                <h3 className="text-lg font-bold text-[#FF7A00]">{field.label}</h3>
+                <h3 className="text-lg font-bold text-journey-accent">{field.label}</h3>
                 {field.description && <p className="text-xs text-slate-400 mt-0.5">{field.description}</p>}
               </div>
             );
@@ -2045,9 +2047,9 @@ function LivePreview({
               <div key={field.id} className="space-y-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 px-3.5 py-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <label className="text-sm font-bold text-[#1A1A2E] dark:text-white">
-                    {field.label} {field.is_required && <span className="text-rose-500">*</span>}
+                    {field.label} {field.is_required && <span className="text-rose-600 dark:text-rose-400">*</span>}
                   </label>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#FF7A00] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-journey-accent bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
                     <Sparkles className="w-2.5 h-2.5" />
                     <span>From your profile</span>
                   </span>
@@ -2062,7 +2064,7 @@ function LivePreview({
           return (
             <div key={field.id} className="space-y-2">
               <label className="block text-sm font-bold text-[#1A1A2E] dark:text-white">
-                {field.label} {field.is_required && <span className="text-rose-500">*</span>}
+                {field.label} {field.is_required && <span className="text-rose-600 dark:text-rose-400">*</span>}
               </label>
               {field.description && <p className="text-xs text-slate-400 -mt-1">{field.description}</p>}
 
@@ -2134,7 +2136,7 @@ function LivePreview({
                         value={opt}
                         checked={valueFor(field) === opt}
                         onChange={(e) => updateValue(field, e.target.value)}
-                        className="w-4 h-4 text-[#FF7A00] focus:ring-[#FF7A00]"
+                        className="w-4 h-4 text-journey-accent focus:ring-[#FF7A00]"
                       />
                       <span>{opt}</span>
                     </label>
@@ -2155,7 +2157,7 @@ function LivePreview({
                           const next = e.target.checked ? [...curr, opt] : curr.filter((i: string) => i !== opt);
                           updateValue(field, next);
                         }}
-                        className="w-4 h-4 text-[#FF7A00] rounded focus:ring-[#FF7A00]"
+                        className="w-4 h-4 text-journey-accent rounded focus:ring-[#FF7A00]"
                       />
                       <span>{opt}</span>
                     </label>
@@ -2211,7 +2213,7 @@ function LivePreview({
                         onClick={() => updateValue(field, i)}
                         className={`h-9 w-9 rounded-lg border text-xs font-bold transition-transform duration-100 active:scale-90 ${
                           current === i
-                            ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
+                            ? 'border-[#FF7A00] bg-journey-accent text-journey-on-accent'
                             : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300'
                         }`}
                       >
@@ -2235,7 +2237,7 @@ function LivePreview({
                         <tr>
                           <th className="text-left p-1.5" />
                           {cols.map((c) => (
-                            <th key={c} className="p-1.5 text-center font-semibold text-slate-500">{c}</th>
+                            <th key={c} className="p-1.5 text-center font-semibold text-slate-500 dark:text-slate-400">{c}</th>
                           ))}
                         </tr>
                       </thead>
@@ -2287,7 +2289,7 @@ function LivePreview({
         })}
 
         <div className="pt-4 flex justify-end">
-          <button type="submit" className="px-6 py-3 rounded-md bg-[#FF7A00] text-white font-bold text-sm hover:bg-[#e66f00] transition-transform duration-100 active:scale-95">
+          <button type="submit" className="px-6 py-3 rounded-md bg-journey-accent text-journey-on-accent font-bold text-sm hover:bg-[#e66f00] transition-transform duration-100 active:scale-95">
             Test Submit Response
           </button>
         </div>

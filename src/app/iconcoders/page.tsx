@@ -61,7 +61,7 @@ export default async function IconCodersPage() {
     <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <PageHero
-          icon={<Award className="h-4 w-4 text-[#FF7A00]" />}
+          icon={<Award className="h-4 w-4 text-journey-accent" />}
           eyebrow="SRKR CODING CLUB ICONCODERS"
           title="Code, Compete & Conquer Prizes"
           description="SRKR Coding Club's annual coding competition, where top individual problem-solvers compete for glory and recognition."
@@ -81,7 +81,7 @@ export default async function IconCodersPage() {
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                 No current IconCoders challenge scheduled.
               </p>
-              <p className="mt-2 text-xs text-slate-400 dark:text-slate-600">
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                 Check back once the next edition is announced.
               </p>
             </div>

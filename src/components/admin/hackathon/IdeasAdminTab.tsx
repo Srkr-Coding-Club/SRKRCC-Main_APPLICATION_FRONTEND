@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BellRing, Check, Download, ExternalLink, FileText, IndianRupee, Lightbulb, MessageSquareWarning, Save, X } from 'lucide-react';
+import { BellRing, Check, Download, ExternalLink, IndianRupee, Lightbulb, MessageSquareWarning, Save, X } from 'lucide-react';
 import type { AdminIdeasPayload, Hackathon, IdeaStatus } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { downloadCSV } from '@/lib/dataManagement';
@@ -16,6 +16,7 @@ import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInp
 import { useHackathonPatch } from './useHackathonPatch';
 import FileUploadField from '@/components/forms/FileUploadField';
 import { PaymentQr } from '@/components/hackathons/PaymentQr';
+import { IdeaFileActions } from '@/components/hackathons/IdeaFileActions';
 import { IDEA_FILE_RULES, uploadIdeaQr } from '@/lib/ideaUpload';
 
 const STATUS_PILL: Record<IdeaStatus, { tone: PillTone; label: string }> = {
@@ -28,26 +29,6 @@ const FILTERS: { value: IdeaStatus | ''; label: string }[] = [
   { value: '', label: 'All' }, { value: 'SUBMITTED', label: 'To review' }, { value: 'CHANGES_REQUESTED', label: 'Changes requested' },
   { value: 'APPROVED', label: 'Approved' }, { value: 'REJECTED', label: 'Rejected' },
 ];
-
-/** One saved file of an idea; the link is fetched when it is opened (the payment screenshot is for organizers only). */
-function IdeaFileButton({ slug, ideaId, kind, label, file }: { slug: string; ideaId: number; kind: 'deck' | 'payment'; label: string; file: { name: string; type: string } }) {
-  const { toast } = useToast();
-  const open = async () => {
-    try {
-      const viewable = file.type.startsWith('image/');
-      const link = await hackathonApi.ideaFileLink(slug, ideaId, kind, viewable);
-      if (link.inline) window.open(link.url, '_blank', 'noopener,noreferrer');
-      else window.location.assign(link.url);
-    } catch (err) {
-      toast.error(`Could not open the ${label.toLowerCase()}`, apiErrorMessage(err));
-    }
-  };
-  return (
-    <button type="button" onClick={open} className={BTN_GHOST} aria-label={`${label}: ${file.name}`}>
-      <FileText className="h-3.5 w-3.5" /> {label} <span className="max-w-[10rem] truncate font-normal text-slate-500">{file.name}</span>
-    </button>
-  );
-}
 
 interface IdeasAdminTabProps {
   hackathon: Hackathon;
@@ -154,23 +135,23 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
       <SubmissionPhases hackathon={hackathon} />
 
       <form onSubmit={saveSettings} className={`${PANEL} space-y-4`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Lightbulb className="h-4 w-4 text-[#FF7A00]" /> Phase 1: idea (plan)</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Lightbulb className="h-4 w-4 text-journey-accent" /> Phase 1: idea (plan)</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="idea-opens" className={LABEL}>Opens</label>
             <input id="idea-opens" type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} className={INPUT} />
-            <p className="mt-1 text-[11px] text-slate-400">Blank = open now.</p>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Blank = open now.</p>
           </div>
           <div>
             <label htmlFor="idea-deadline" className={LABEL}>Deadline</label>
             <input id="idea-deadline" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className={INPUT} />
-            {errors.idea_deadline ? <p className="mt-1 text-[11px] text-rose-500">{errors.idea_deadline}</p> : <p className="mt-1 text-[11px] text-slate-400">Must be before the project deadline.</p>}
+            {errors.idea_deadline ? <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.idea_deadline}</p> : <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Must be before the project deadline.</p>}
           </div>
         </div>
         <div className="space-y-4 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
-          <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"><IndianRupee className="h-3.5 w-3.5" /> What teams must provide</h4>
-          <Switch label="Presentation file required" description="The team uploads a .ppt or .pptx with its idea." checked={deckRequired} onChange={setDeckRequired} />
-          {errors.idea_deck_required && <p className="text-[11px] text-rose-500">{errors.idea_deck_required}</p>}
+          <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400"><IndianRupee className="h-3.5 w-3.5" /> What teams must provide</h4>
+          <Switch label="Presentation file required" description="The team uploads a .ppt, .pptx or .pdf with its idea." checked={deckRequired} onChange={setDeckRequired} />
+          {errors.idea_deck_required && <p className="text-[11px] text-rose-600 dark:text-rose-400">{errors.idea_deck_required}</p>}
           <Switch label="LinkedIn post link required" description="The link of the team's LinkedIn post about the hackathon." checked={linkedinRequired} onChange={setLinkedinRequired} />
           <div className="space-y-2">
             <p className={LABEL}>Payment QR code</p>
@@ -189,9 +170,9 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
                   onBusyChange={() => undefined}
                   onProblem={(message) => message && toast.error('QR code', message)}
                 />
-                <p className="text-[11px] text-slate-400">Teams see this image on the idea form and scan it to pay. It is saved as soon as it uploads. Only registered teams and organizers can see it.</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Teams see this image on the idea form and scan it to pay. It is saved as soon as it uploads. Only registered teams and organizers can see it.</p>
                 {qr && (
-                  <button type="button" onClick={() => removeQr().then(() => toast.success('QR code removed')).catch((err) => toast.error('Could not remove it', apiErrorMessage(err)))} className="text-xs font-bold text-rose-500 hover:underline">
+                  <button type="button" onClick={() => removeQr().then(() => toast.success('QR code removed')).catch((err) => toast.error('Could not remove it', apiErrorMessage(err)))} className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline">
                     Remove the QR code
                   </button>
                 )}
@@ -202,12 +183,12 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
             <div>
               <label htmlFor="idea-fee" className={LABEL}>Payment (₹)</label>
               <input id="idea-fee" type="number" inputMode="numeric" min={0} step={1} value={fee} onChange={(e) => setFee(e.target.value)} className={INPUT} />
-              {errors.idea_fee_amount ? <p className="mt-1 text-[11px] text-rose-500">{errors.idea_fee_amount}</p> : <p className="mt-1 text-[11px] text-slate-400">0 = no payment. Above 0, teams must upload a payment screenshot, which only organizers can see.</p>}
+              {errors.idea_fee_amount ? <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.idea_fee_amount}</p> : <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">0 = no payment. Above 0, teams must upload a payment screenshot, which only organizers can see.</p>}
             </div>
             <div>
               <label htmlFor="idea-payment-note" className={LABEL}>How to pay</label>
               <textarea id="idea-payment-note" rows={3} maxLength={1000} value={paymentNote} onChange={(e) => setPaymentNote(e.target.value)} className={INPUT} placeholder="UPI ID, QR instructions, account name…" />
-              {errors.idea_payment_note && <p className="mt-1 text-[11px] text-rose-500">{errors.idea_payment_note}</p>}
+              {errors.idea_payment_note && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.idea_payment_note}</p>}
             </div>
           </div>
         </div>
@@ -222,7 +203,7 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
             <div className="max-w-sm">
               <label htmlFor="idea-edits-until" className={LABEL}>Editing closes at</label>
               <input id="idea-edits-until" type="datetime-local" value={editsUntil} onChange={(e) => setEditsUntil(e.target.value)} className={INPUT} />
-              {errors.idea_edits_until ? <p className="mt-1 text-[11px] text-rose-500">{errors.idea_edits_until}</p> : <p className="mt-1 text-[11px] text-slate-400">Blank = the deadline above. Set a later time to reopen editing after the deadline; teams that have not submitted still cannot.</p>}
+              {errors.idea_edits_until ? <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.idea_edits_until}</p> : <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Blank = the deadline above. Set a later time to reopen editing after the deadline; teams that have not submitted still cannot.</p>}
             </div>
           )}
         </div>
@@ -253,13 +234,13 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
           <div role="tablist" aria-label="Filter ideas" className="flex flex-wrap gap-1.5">
             {FILTERS.map((item) => (
               <button key={item.value} type="button" role="tab" aria-selected={filter === item.value} onClick={() => setFilter(item.value)}
-                className={`rounded-full border px-3 py-1 text-xs font-bold ${filter === item.value ? 'border-[#FF7A00] bg-[#FF7A00]/10 text-[#C25A00] dark:text-[#FF9A4A]' : 'border-slate-200 text-slate-500 dark:border-slate-700'}`}>
+                className={`rounded-full border px-3 py-1 text-xs font-bold ${filter === item.value ? 'border-[#FF7A00] bg-[#FF7A00]/10 text-orange-800 dark:text-[#FF9A4A]' : 'border-slate-200 text-slate-500 dark:text-slate-400 dark:border-slate-700'}`}>
                 {item.label}{item.value ? ` (${data.counts[item.value]})` : ` (${data.rows.length})`}
               </button>
             ))}
           </div>
 
-          {rows.length === 0 ? <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">Nothing here.</p> : (
+          {rows.length === 0 ? <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:text-slate-400 dark:border-slate-700">Nothing here.</p> : (
             <ul className="space-y-3">
               {rows.map((row) => {
                 const open = openId === row.id;
@@ -269,34 +250,34 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-bold text-[#1A1A2E] dark:text-white">{row.title}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           {row.team_name} · updated {formatDateTime(row.updated_at)}
                           {row.review_count > 0 && <> · judges&apos; score <strong>{row.score.toFixed(1)}</strong> ({row.review_count} judge{row.review_count === 1 ? '' : 's'})</>}
                         </p>
                       </div>
                       <StatusPill tone={pill.tone}>{pill.label}</StatusPill>
                     </div>
-                    <button type="button" onClick={() => { setOpenId(open ? null : row.id); setFeedback(row.feedback); }} aria-expanded={open} className="text-xs font-bold text-[#FF7A00] hover:underline">
+                    <button type="button" onClick={() => { setOpenId(open ? null : row.id); setFeedback(row.feedback); }} aria-expanded={open} className="text-xs font-bold text-journey-accent hover:underline">
                       {open ? 'Hide details' : 'Read and review'}
                     </button>
                     {open && (
                       <div className="space-y-3 text-sm">
                         {[['The problem', row.problem], ['The approach', row.solution], ['The plan', row.plan]].map(([label, text]) => text && (
-                          <div key={label}><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p><p className="whitespace-pre-line text-slate-700 dark:text-slate-200">{text}</p></div>
+                          <div key={label}><p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p><p className="whitespace-pre-line text-slate-700 dark:text-slate-200">{text}</p></div>
                         ))}
-                        {row.tech_stack.length > 0 && <p className="text-xs text-slate-500">Tech: {row.tech_stack.join(', ')}</p>}
-                        {row.linkedin_url && <a href={row.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#FF7A00] hover:underline">LinkedIn post <ExternalLink className="h-3 w-3" /></a>}
+                        {row.tech_stack.length > 0 && <p className="text-xs text-slate-500 dark:text-slate-400">Tech: {row.tech_stack.join(', ')}</p>}
+                        {row.linkedin_url && <a href={row.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-journey-accent hover:underline">LinkedIn post <ExternalLink className="h-3 w-3" /></a>}
                         <div className="flex flex-wrap gap-2">
-                          {row.deck_file && <IdeaFileButton slug={slug} ideaId={row.id} kind="deck" label="Presentation" file={row.deck_file} />}
-                          {row.payment_proof && <IdeaFileButton slug={slug} ideaId={row.id} kind="payment" label="Payment screenshot" file={row.payment_proof} />}
+                          {row.deck_file && <IdeaFileActions slug={slug} ideaId={row.id} kind="deck" label="Presentation" file={row.deck_file} />}
+                          {row.payment_proof && <IdeaFileActions slug={slug} ideaId={row.id} kind="payment" label="Payment screenshot" file={row.payment_proof} />}
                         </div>
                         {(row.transaction_id || (hackathon.idea_fee_amount ?? 0) > 0) && (
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
                             Payment: ₹{hackathon.idea_fee_amount ?? 0}{row.transaction_id ? <> · transaction <strong className="font-mono">{row.transaction_id}</strong></> : ' · no transaction ID given'}
-                            {(hackathon.idea_fee_amount ?? 0) > 0 && !row.payment_proof && <span className="font-bold text-rose-500"> · screenshot missing</span>}
+                            {(hackathon.idea_fee_amount ?? 0) > 0 && !row.payment_proof && <span className="font-bold text-rose-600 dark:text-rose-400"> · screenshot missing</span>}
                           </p>
                         )}
-                        {row.deck_url && <a href={row.deck_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#FF7A00] hover:underline">Slides <ExternalLink className="h-3 w-3" /></a>}
+                        {row.deck_url && <a href={row.deck_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-journey-accent hover:underline">Slides <ExternalLink className="h-3 w-3" /></a>}
                         <div>
                           <label htmlFor={`feedback-${row.id}`} className={LABEL}>Note to the team (required unless you approve)</label>
                           <textarea id={`feedback-${row.id}`} rows={3} maxLength={1000} value={feedback} onChange={(e) => setFeedback(e.target.value)} className={INPUT} />

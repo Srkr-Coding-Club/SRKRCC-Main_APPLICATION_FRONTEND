@@ -54,7 +54,7 @@ export function StaffPanel({ slug, role, description, noun }: StaffPanelProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-500">{description}</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{description}</p>
       <form onSubmit={add} className="flex flex-wrap items-end gap-2">
         <div className="min-w-0 flex-1 basis-60">
           <label htmlFor={`staff-${role}`} className={LABEL}>{noun} email</label>
@@ -63,14 +63,14 @@ export function StaffPanel({ slug, role, description, noun }: StaffPanelProps) {
         <button type="submit" disabled={busy || !email.trim()} className={BTN_PRIMARY}><UserPlus className="h-3.5 w-3.5" /> Add</button>
       </form>
       {people.length === 0 ? (
-        <p className="text-xs text-slate-400">No {noun.toLowerCase()}s yet.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">No {noun.toLowerCase()}s yet.</p>
       ) : (
         <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
           {people.map((person) => (
             <li key={person.id} className="flex items-center justify-between gap-3 px-3 py-2">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-[#1A1A2E] dark:text-white">{person.name}</p>
-                <p className="truncate text-xs text-slate-500">{person.email}</p>
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">{person.email}</p>
               </div>
               <button type="button" onClick={() => remove(person)} aria-label={`Remove ${person.name}`} className={BTN_DANGER}><Trash2 className="h-3.5 w-3.5" /></button>
             </li>

@@ -44,7 +44,7 @@ export default function PageHero({
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-journey-accent/15 text-journey-accent">
               {icon}
             </span>
-            <span className="min-w-0 truncate">{eyebrow}</span>
+            <span className="min-w-0 leading-snug">{eyebrow}</span>
           </div>
 
           <h1 className="mt-6 pb-2 max-w-4xl text-balance font-display text-[clamp(2.25rem,5.3vw,4.5rem)] font-semibold leading-[1.04] tracking-[-0.035em] text-journey-text">

@@ -22,7 +22,7 @@ export function EmailVerificationCard() {
   return (
     <section aria-label="Email verification" className="glass-panel space-y-3 rounded-xl border border-amber-300 dark:border-amber-800/60 p-4">
       <h2 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-        <MailWarning className="h-5 w-5 text-amber-600" aria-hidden="true" />
+        <MailWarning className="h-5 w-5 text-amber-700 dark:text-amber-400" aria-hidden="true" />
         Email not verified {state.mode === 'block' && state.days_left !== null && <span className="font-semibold text-slate-600 dark:text-slate-300">({daysLeftText(state.days_left)})</span>}
       </h2>
       <VerifyPanel />

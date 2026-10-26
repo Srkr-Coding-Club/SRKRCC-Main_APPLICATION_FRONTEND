@@ -46,23 +46,23 @@ export function ObjectListEditor<T extends object>({
 
   return (
     <div className="space-y-3">
-      {items.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500 dark:border-slate-700">{emptyText}</p>}
+      {items.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500 dark:text-slate-400 dark:border-slate-700">{emptyText}</p>}
       {items.map((item, index) => (
         <div key={index} className="space-y-3 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
           <div className="flex items-center justify-between gap-2">
-            <p className="min-w-0 truncate text-xs font-bold uppercase tracking-wide text-slate-500">{itemLabel(item, index)}</p>
+            <p className="min-w-0 truncate text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{itemLabel(item, index)}</p>
             <div className="flex shrink-0 items-center gap-1">
               {reorderable && (
                 <>
-                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Move up" className="rounded p-1.5 text-slate-500 hover:bg-slate-100 disabled:opacity-30 dark:hover:bg-slate-800">
+                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Move up" className="rounded p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 disabled:opacity-30 dark:hover:bg-slate-800">
                     <ArrowUp className="h-3.5 w-3.5" />
                   </button>
-                  <button type="button" onClick={() => move(index, 1)} disabled={index === items.length - 1} aria-label="Move down" className="rounded p-1.5 text-slate-500 hover:bg-slate-100 disabled:opacity-30 dark:hover:bg-slate-800">
+                  <button type="button" onClick={() => move(index, 1)} disabled={index === items.length - 1} aria-label="Move down" className="rounded p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 disabled:opacity-30 dark:hover:bg-slate-800">
                     <ArrowDown className="h-3.5 w-3.5" />
                   </button>
                 </>
               )}
-              <button type="button" onClick={() => onChange(items.filter((_, i) => i !== index))} aria-label="Remove" className="rounded p-1.5 text-rose-500 hover:bg-rose-500/10">
+              <button type="button" onClick={() => onChange(items.filter((_, i) => i !== index))} aria-label="Remove" className="rounded p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>

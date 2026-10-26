@@ -17,9 +17,9 @@ export type StageIconKey = 'FLAG' | 'CODE' | 'MIC' | 'TROPHY' | 'CALENDAR' | 'US
 
 /** Full class strings (Tailwind only keeps classes it can see written out). */
 export const TONE_STYLES: Record<StageTone, { label: string; solid: string; soft: string; border: string; line: string; swatch: string }> = {
-  ORANGE: { label: 'Orange', solid: 'bg-[#FF7A00] text-white', soft: 'bg-[#FF7A00]/10 text-[#C25A00] dark:text-[#FFB066]', border: 'border-[#FF7A00]/40', line: 'border-[#FF7A00]/50', swatch: 'bg-[#FF7A00]' },
-  BLUE: { label: 'Blue', solid: 'bg-sky-600 text-white', soft: 'bg-sky-500/10 text-sky-700 dark:text-sky-300', border: 'border-sky-500/40', line: 'border-sky-500/50', swatch: 'bg-sky-600' },
-  GREEN: { label: 'Green', solid: 'bg-emerald-600 text-white', soft: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', border: 'border-emerald-500/40', line: 'border-emerald-500/50', swatch: 'bg-emerald-600' },
+  ORANGE: { label: 'Orange', solid: 'bg-journey-accent text-journey-on-accent', soft: 'bg-journey-accent/10 text-orange-800 dark:text-[#FFB066]', border: 'border-[#FF7A00]/40', line: 'border-[#FF7A00]/50', swatch: 'bg-journey-accent' },
+  BLUE: { label: 'Blue', solid: 'bg-sky-700 text-white', soft: 'bg-sky-500/10 text-sky-700 dark:text-sky-300', border: 'border-sky-500/40', line: 'border-sky-500/50', swatch: 'bg-sky-700' },
+  GREEN: { label: 'Green', solid: 'bg-emerald-700 text-white', soft: 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300', border: 'border-emerald-500/40', line: 'border-emerald-500/50', swatch: 'bg-emerald-700' },
   PURPLE: { label: 'Purple', solid: 'bg-violet-600 text-white', soft: 'bg-violet-500/10 text-violet-700 dark:text-violet-300', border: 'border-violet-500/40', line: 'border-violet-500/50', swatch: 'bg-violet-600' },
   RED: { label: 'Red', solid: 'bg-rose-600 text-white', soft: 'bg-rose-500/10 text-rose-700 dark:text-rose-300', border: 'border-rose-500/40', line: 'border-rose-500/50', swatch: 'bg-rose-600' },
   SLATE: { label: 'Grey', solid: 'bg-slate-600 text-white', soft: 'bg-slate-500/10 text-slate-700 dark:text-slate-300', border: 'border-slate-500/40', line: 'border-slate-400/50', swatch: 'bg-slate-600' },

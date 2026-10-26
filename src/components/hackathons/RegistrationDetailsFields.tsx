@@ -4,7 +4,7 @@ import React from 'react';
 import type { Hackathon, RegistrationQuestion } from '@/lib/types';
 import type { RegistrationInput } from '@/lib/api/hackathons';
 import { FormSelect } from '@/components/ui/FormSelect';
-import { FieldLabel, SpotlightInput, SpotlightTextarea } from '@/components/ui/InputField';
+import { FieldError, FieldLabel, SpotlightInput, SpotlightTextarea, fieldErrorId } from '@/components/ui/InputField';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 
 export type RegistrationConfig = Pick<Hackathon, 'rules' | 'require_rules_acceptance' | 'registration_questions'>;
@@ -43,10 +43,21 @@ function QuestionInput({ question, answer, error, onChange }: { question: Regist
   const id = `reg-${question.key}`;
   if (question.type === 'checkbox') {
     return (
-      <label className="flex items-start gap-2 text-sm text-journey-text">
-        <input type="checkbox" id={id} checked={Boolean(answer)} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#FF7A00]" />
-        <span>{question.label}{question.required && <span className="text-rose-500"> *</span>}</span>
-      </label>
+      <div className="space-y-1.5">
+        <label className="flex items-start gap-2 text-sm text-journey-text">
+          <input
+            type="checkbox"
+            id={id}
+            checked={Boolean(answer)}
+            onChange={(e) => onChange(e.target.checked)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? fieldErrorId(id) : undefined}
+            className="mt-0.5 h-4 w-4 accent-[#FF7A00]"
+          />
+          <span>{question.label}{question.required && <span className="text-rose-600 dark:text-rose-400" aria-hidden="true"> *</span>}</span>
+        </label>
+        <FieldError id={fieldErrorId(id)}>{error}</FieldError>
+      </div>
     );
   }
   return (
@@ -54,6 +65,7 @@ function QuestionInput({ question, answer, error, onChange }: { question: Regist
       <FieldLabel htmlFor={id} required={question.required}>{question.label}</FieldLabel>
       {question.type === 'select' ? (
         <FormSelect
+          aria-label={question.label}
           value={String(answer ?? '')}
           onChange={onChange}
           options={(question.options ?? []).map((option) => ({ value: option, label: option }))}
@@ -61,7 +73,7 @@ function QuestionInput({ question, answer, error, onChange }: { question: Regist
           allowClear={!question.required}
         />
       ) : question.type === 'textarea' ? (
-        <SpotlightTextarea id={id} rows={3} maxLength={1000} value={String(answer ?? '')} onChange={(e) => onChange(e.target.value)} hasError={!!error} />
+        <SpotlightTextarea id={id} rows={3} maxLength={1000} value={String(answer ?? '')} onChange={(e) => onChange(e.target.value)} hasError={!!error} aria-describedby={error ? fieldErrorId(id) : undefined} />
       ) : (
         <SpotlightInput
           id={id}
@@ -70,9 +82,10 @@ function QuestionInput({ question, answer, error, onChange }: { question: Regist
           value={String(answer ?? '')}
           onChange={(e) => onChange(e.target.value)}
           hasError={!!error}
+          aria-describedby={error ? fieldErrorId(id) : undefined}
         />
       )}
-      {error && <p className="text-xs text-rose-500">{error}</p>}
+      <FieldError id={fieldErrorId(id)}>{error}</FieldError>
     </div>
   );
 }
@@ -93,11 +106,18 @@ export function RegistrationDetailsFields({ config, value, onChange, errors = {}
           </div>
           {config.require_rules_acceptance && (
             <label className="flex items-start gap-2 text-sm text-journey-text">
-              <input type="checkbox" checked={value.acceptRules} onChange={(e) => onChange({ ...value, acceptRules: e.target.checked })} className="mt-0.5 h-4 w-4 accent-[#FF7A00]" />
-              <span>I have read and accept the rules<span className="text-rose-500"> *</span></span>
+              <input
+                type="checkbox"
+                checked={value.acceptRules}
+                onChange={(e) => onChange({ ...value, acceptRules: e.target.checked })}
+                aria-invalid={errors.accept_rules ? true : undefined}
+                aria-describedby={errors.accept_rules ? fieldErrorId('accept-rules') : undefined}
+                className="mt-0.5 h-4 w-4 accent-[#FF7A00]"
+              />
+              <span>I have read and accept the rules<span className="text-rose-600 dark:text-rose-400" aria-hidden="true"> *</span></span>
             </label>
           )}
-          {errors.accept_rules && <p className="text-xs text-rose-500">{errors.accept_rules}</p>}
+          <FieldError id={fieldErrorId('accept-rules')}>{errors.accept_rules}</FieldError>
         </div>
       )}
       {questions.map((question) => (

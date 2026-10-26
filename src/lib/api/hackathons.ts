@@ -348,6 +348,39 @@ export const hackathonApi = {
       fetchApi<{ deleted: true }>(`/hackathons/${enc(slug)}/announcements/${id}/`, { method: 'DELETE' }),
     notifyAnnouncement: (slug: string, id: number) =>
       fetchApi<{ recipients: number }>(`/hackathons/${enc(slug)}/announcements/${id}/notify/`, json({})),
+
+    uploadAsset: (slug: string | null | undefined, file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const path = slug
+        ? `/hackathons/${enc(slug)}/upload-asset/`
+        : `/hackathons/upload-asset/`;
+      return fetchApi<{
+        url: string;
+        name: string;
+        size: number;
+        width: number | null;
+        height: number | null;
+        format: string | null;
+      }>(path, {
+        method: 'POST',
+        body: formData,
+      });
+    },
+
+    getAssetUploadPresigned: (body: { filename: string; content_type: string; size?: number; slug?: string | null }) => {
+      const path = body.slug
+        ? `/hackathons/${enc(body.slug)}/asset-presigned-url/`
+        : `/hackathons/asset-presigned-url/`;
+      return fetchApi<{
+        mode: 's3' | 'local';
+        post?: { url: string; fields: Record<string, string> };
+        public_url?: string;
+        key?: string;
+        upload_url?: string;
+        max_bytes?: number;
+      }>(path, json(body));
+    },
   },
 };
 

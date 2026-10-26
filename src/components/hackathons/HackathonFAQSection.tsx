@@ -106,7 +106,7 @@ export function HackathonFAQSection({ hackathon }: { hackathon: Hackathon }) {
       {/* Support / Contact banner */}
       <div className="rounded-2xl border border-journey-text/10 bg-journey-text/[0.03] p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h4 className="text-sm font-bold text-journey-text">Still have questions?</h4>
+          <h3 className="text-sm font-bold text-journey-text">Still have questions?</h3>
           <p className="text-xs text-journey-muted">Reach out to the SRKR Coding Club organizing team anytime.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

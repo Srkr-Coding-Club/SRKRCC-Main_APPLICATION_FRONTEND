@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
@@ -60,6 +60,27 @@ function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: st
 
 export function HackathonDetailClient({ hackathon, problems, announcements, stages, results = null, showcase = [] }: HackathonDetailClientProps) {
   const [shareState, setShareState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const headerCtaRef = useRef<HTMLDivElement>(null);
+  const [showStickyCta, setShowStickyCta] = useState(false);
+
+  // On a phone this page is thousands of pixels tall: once the header's register button scrolls away, keep one in reach.
+  useEffect(() => {
+    const target = headerCtaRef.current;
+    if (!target) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      // Anchor jumps skip the "visible" state, so read the position instead of waiting for an intersection change.
+      setShowStickyCta(target.getBoundingClientRect().bottom < 0);
+    };
+    const onScroll = () => { if (!frame) frame = window.requestAnimationFrame(update); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    update();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const registrationOpen = hackathon.is_registration_open ?? hackathon.status !== 'CLOSED';
   const mode = hackathon.mode ?? 'ONLINE';
@@ -131,7 +152,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
       <div className="mx-auto max-w-6xl space-y-5 px-4 pb-24 sm:px-6 lg:px-8">
         <Link
           href="/hackathons"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-journey-muted transition hover:text-journey-accent"
+          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-journey-muted sm:min-h-8 transition hover:text-journey-accent"
         >
           <ArrowLeft className="h-4 w-4" />
           All Hackathons
@@ -159,11 +180,11 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                   <span
                     className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.12em] ${
                       registrationOpen
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                        ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-400'
                         : 'bg-journey-text/10 text-journey-text/80'
                     }`}
                   >
-                    {registrationOpen ? 'Registrations live' : 'Registrations closed'}
+                    {registrationOpen ? 'Registration open' : 'Registration closed'}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -192,7 +213,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
               <div className="flex items-start justify-between gap-5">
                 <div className="min-w-0 space-y-2">
-                  <h1 className="text-3xl font-extrabold tracking-tight text-journey-text sm:text-4xl">{hackathon.title}</h1>
+                  <h1 className="text-3xl font-semibold tracking-tight text-journey-text sm:text-4xl">{hackathon.title}</h1>
                   <p className="text-base font-medium text-journey-text/80">{hackathon.organizer_name || DEFAULT_ORGANIZER}</p>
                   {hackathon.theme && <p className="text-sm text-journey-muted">{hackathon.theme}</p>}
                 </div>
@@ -207,7 +228,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Fact icon={UsersRound} label="Team size" value={minSize === maxSize ? `${maxSize} ${maxSize === 1 ? 'Member' : 'Members'}` : `${minSize} - ${maxSize} Members`} />
+                <Fact icon={UsersRound} label="Team size" value={minSize === maxSize ? `${maxSize} ${maxSize === 1 ? 'Member' : 'Members'}` : `${minSize}–${maxSize} Members`} />
                 <Fact icon={Calendar} label="Registration deadline" value={deadline} />
                 {showVenue && <Fact icon={MapPin} label="Venue" value={hackathon.venue} />}
                 {teams > 0 && <Fact icon={UsersRound} label="Teams registered" value={`${teams} ${teams === 1 ? 'team' : 'teams'}`} />}
@@ -237,7 +258,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                 </ul>
               )}
 
-              <div className="lg:hidden">
+              <div ref={headerCtaRef} className="lg:hidden">
                 <HackathonCTA hackathon={hackathon} />
               </div>
             </header>
@@ -367,7 +388,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-journey-muted">Team size</dt>
-                  <dd className="font-semibold text-journey-text">{minSize === maxSize ? maxSize : `${minSize} - ${maxSize}`}</dd>
+                  <dd className="font-semibold text-journey-text">{minSize === maxSize ? maxSize : `${minSize}–${maxSize}`}</dd>
                 </div>
                 {hackathon.prize_pool && (
                   <div className="flex justify-between gap-3">
@@ -381,6 +402,16 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
         </div>
       </div>
 
+      {showStickyCta && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-journey-text/10 bg-[var(--background)]/95 px-4 pt-3 backdrop-blur lg:hidden"
+          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <div className="mx-auto max-w-md pr-14">
+            <HackathonCTA hackathon={hackathon} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

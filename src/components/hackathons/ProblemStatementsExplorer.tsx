@@ -111,7 +111,7 @@ export function ProblemStatementsExplorer({
             onClick={() => setOnlyAvailable(!onlyAvailable)}
             className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition whitespace-nowrap ${
               onlyAvailable
-                ? 'border-journey-accent bg-journey-accent/10 text-journey-accent'
+                ? 'border-journey-accent bg-journey-accent/10 text-orange-800 dark:text-journey-accent'
                 : 'border-journey-text/10 bg-journey-surface/50 text-journey-text/80 hover:border-journey-text/25'
             }`}
           >
@@ -140,13 +140,13 @@ export function ProblemStatementsExplorer({
                   onClick={() => setSelectedDomain(domain)}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold shrink-0 transition ${
                     active
-                      ? 'bg-journey-accent text-white shadow-sm'
+                      ? 'bg-journey-accent text-journey-on-accent shadow-sm'
                       : 'bg-journey-text/5 text-journey-text/80 hover:bg-journey-text/10'
                   }`}
                 >
                   <span>{domain === 'ALL' ? 'All Tracks' : domain}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    className={`text-[11px] px-1.5 py-0.2 rounded-full font-extrabold ${
                       active ? 'bg-white/20 text-white' : 'bg-journey-text/10 text-journey-muted'
                     }`}
                   >
@@ -185,11 +185,11 @@ export function ProblemStatementsExplorer({
                   {/* Top Bar: Code + Domain + Slots */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-journey-accent/10 px-2.5 py-1 text-xs font-mono font-bold tracking-wider text-journey-accent border border-journey-accent/30">
+                      <span className="rounded-md bg-journey-accent/10 px-2.5 py-1 text-xs font-mono font-bold tracking-wider text-orange-800 dark:text-journey-accent border border-journey-accent/30">
                         {ps.code}
                       </span>
                       {ps.domain && (
-                        <span className="rounded-full bg-journey-text/5 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-journey-text/80">
+                        <span className="rounded-full bg-journey-text/5 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-journey-text/80">
                           {ps.domain}
                         </span>
                       )}
@@ -200,8 +200,8 @@ export function ProblemStatementsExplorer({
                       <span
                         className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
                           isFull
-                            ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
-                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                            : 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-500/20'
                         }`}
                       >
                         {isFull ? (
@@ -238,7 +238,7 @@ export function ProblemStatementsExplorer({
                       {ps.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-md bg-journey-text/5 px-2 py-0.5 text-[10px] font-medium text-journey-muted"
+                          className="rounded-md bg-journey-text/5 px-2 py-0.5 text-[11px] font-medium text-journey-muted"
                         >
                           #{tag}
                         </span>
@@ -252,7 +252,7 @@ export function ProblemStatementsExplorer({
                   <button
                     type="button"
                     onClick={() => setActiveProblem(ps)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-journey-accent hover:opacity-80 transition group-hover:underline"
+                    className="inline-flex min-h-8 items-center gap-1.5 text-xs font-bold text-journey-accent hover:opacity-80 transition group-hover:underline"
                   >
                     View Full Details
                     <ExternalLink className="h-3.5 w-3.5" />
@@ -297,24 +297,24 @@ export function ProblemStatementsExplorer({
         <div className="relative overflow-hidden rounded-2xl border border-journey-accent/30 bg-journey-accent/5 p-6 sm:p-7 backdrop-blur-sm">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
             <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-journey-accent/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-journey-accent">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-journey-accent/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-orange-800 dark:text-journey-accent">
                 <Lightbulb className="h-3.5 w-3.5" />
                 Open Innovation Track
               </div>
-              <h4 className="text-lg font-bold text-journey-text">
+              <h3 className="text-lg font-bold text-journey-text">
                 Have your own innovative idea or research project?
-              </h4>
+              </h3>
               <p className="text-xs sm:text-sm text-journey-text/80 leading-relaxed">
                 You are not limited to predefined problem statements! Select <strong>Open Innovation</strong> during team
                 registration to define your own custom problem title, track, and description. You will be assigned a unique{' '}
-                <code className="text-journey-accent font-mono font-bold">OI-xxx</code> ID.
+                <code className="font-mono font-bold text-orange-800 dark:text-journey-accent">OI-xxx</code> ID.
               </p>
             </div>
 
             {isRegistrationOpen && (
               <Link
                 href={registerUrl}
-                className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-journey-accent px-5 py-3 text-xs font-bold text-white shadow-md transition hover:-translate-y-0.5 active:scale-95"
+                className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-journey-accent px-5 py-3 text-xs font-bold text-journey-on-accent shadow-md transition hover:-translate-y-0.5 active:scale-95"
               >
                 Register Custom Idea
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -336,7 +336,7 @@ export function ProblemStatementsExplorer({
           <div className="space-y-5">
             {/* Meta badges */}
             <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-journey-text/5 pb-3">
-              <span className="rounded-md bg-journey-accent/10 px-3 py-1 text-xs font-mono font-bold text-journey-accent border border-journey-accent/30">
+              <span className="rounded-md bg-journey-accent/10 px-3 py-1 text-xs font-mono font-bold text-orange-800 dark:text-journey-accent border border-journey-accent/30">
                 {activeProblem.code}
               </span>
               {activeProblem.domain && (
@@ -348,8 +348,8 @@ export function ProblemStatementsExplorer({
                 <span
                   className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${
                     activeProblem.slots_left === 0
-                      ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
-                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                      : 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-500/20'
                   }`}
                 >
                   {activeProblem.slots_left === 0
@@ -401,7 +401,7 @@ export function ProblemStatementsExplorer({
               {isRegistrationOpen && activeProblem.slots_left !== 0 && (
                 <Link
                   href={registerUrlFor(activeProblem.id)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-journey-accent px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:-translate-y-0.5 active:scale-95"
+                  className="inline-flex items-center gap-2 rounded-xl bg-journey-accent px-5 py-2.5 text-xs font-bold text-journey-on-accent shadow-md transition hover:-translate-y-0.5 active:scale-95"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   Select this Statement in Registration

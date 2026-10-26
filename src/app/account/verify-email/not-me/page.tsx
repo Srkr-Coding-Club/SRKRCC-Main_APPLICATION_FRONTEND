@@ -68,7 +68,7 @@ function NotMeContent() {
 
   if (phase.name === 'problem') {
     return (
-      <Card title="This link did not work" icon={<TriangleAlert className="h-6 w-6 text-amber-600" aria-hidden="true" />}>
+      <Card title="This link did not work" icon={<TriangleAlert className="h-6 w-6 text-amber-700 dark:text-amber-400" aria-hidden="true" />}>
         <p role="alert" className="text-sm text-slate-600 dark:text-slate-300">{phase.message}</p>
         <Link href="/" className={primaryButton}>Back to the home page</Link>
       </Card>

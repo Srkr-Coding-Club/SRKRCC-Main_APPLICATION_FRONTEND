@@ -4,7 +4,7 @@ import type { IdeaFileKind } from '@/lib/types';
 
 /** What the picker allows for each kind of idea file. The server checks the same rules again. */
 export const IDEA_FILE_RULES: Record<IdeaFileKind, { allowedFileTypes: string; maxFileSizeMB: number; label: string }> = {
-  DECK: { allowedFileTypes: '.ppt,.pptx', maxFileSizeMB: 25, label: 'slides' },
+  DECK: { allowedFileTypes: '.ppt,.pptx,.pdf', maxFileSizeMB: 25, label: 'slides' },
   PAYMENT: { allowedFileTypes: '.png,.jpg,.jpeg,.webp', maxFileSizeMB: 5, label: 'payment screenshot' },
 };
 

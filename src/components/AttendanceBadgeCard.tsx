@@ -89,7 +89,7 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
           <h3 className="font-display text-sm font-semibold uppercase tracking-[0.14em] sm:text-base">Your Attendance Pass</h3>
         </div>
         <div className="inline-block max-w-full rounded-2xl border border-journey-text/10 bg-white p-3 shadow-sm sm:p-4">
-          <QRCodeSVG value={badge.token} size={192} level="M" includeMargin={false} className="h-auto max-w-full" />
+          <QRCodeSVG value={badge.token} size={192} level="M" includeMargin={false} className="h-auto max-w-full" role="img" title="Your attendance QR code" aria-label="Your attendance QR code" />
         </div>
         {registrantName && (
           <p className="break-words font-display text-base font-semibold text-journey-text sm:text-lg">{registrantName}</p>

@@ -145,7 +145,7 @@ export function JudgingAdminTab({ hackathon, onEnable }: JudgingAdminTabProps) {
               role="tab"
               aria-selected={target === item}
               onClick={() => setTarget(item)}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold transition ${target === item ? 'bg-[#FF7A00] text-white' : 'text-slate-500 hover:text-[#1A1A2E] dark:hover:text-white'}`}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold transition ${target === item ? 'bg-journey-accent text-journey-on-accent' : 'text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white'}`}
             >
               {item === 'PROJECT' ? <Gavel className="h-3.5 w-3.5" /> : <Lightbulb className="h-3.5 w-3.5" />} {item === 'PROJECT' ? 'Projects (phase 2)' : 'Ideas (phase 1)'}
             </button>
@@ -156,8 +156,8 @@ export function JudgingAdminTab({ hackathon, onEnable }: JudgingAdminTabProps) {
       {error && <LoadError message={error} onRetry={load} />}
 
       <section className={`${PANEL} space-y-3`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Gavel className="h-4 w-4 text-[#FF7A00]" /> {copy.heading}</h3>
-        <p className="text-xs text-slate-500">{copy.explain}</p>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Gavel className="h-4 w-4 text-journey-accent" /> {copy.heading}</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{copy.explain}</p>
         {criteria.length === 0 && (
           <button type="button" onClick={useSuggested} disabled={busy} className={BTN_GHOST}><Sparkles className="h-3.5 w-3.5" /> Use a suggested rubric</button>
         )}
@@ -176,7 +176,7 @@ export function JudgingAdminTab({ hackathon, onEnable }: JudgingAdminTabProps) {
       </section>
 
       <section className={`${PANEL} space-y-3`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Users className="h-4 w-4 text-[#FF7A00]" /> Judges</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Users className="h-4 w-4 text-journey-accent" /> Judges</h3>
         <StaffPanel
           slug={slug}
           role="JUDGE"
@@ -186,13 +186,13 @@ export function JudgingAdminTab({ hackathon, onEnable }: JudgingAdminTabProps) {
       </section>
 
       <section className={`${PANEL} space-y-3`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Trophy className="h-4 w-4 text-[#FF7A00]" /> {copy.rowLabel} leaderboard</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Trophy className="h-4 w-4 text-journey-accent" /> {copy.rowLabel} leaderboard</h3>
         {!rows || rows.length === 0 ? (
-          <p className="text-sm text-slate-500">{target === 'IDEA' ? 'No ideas to rank yet.' : 'No submissions to rank yet.'}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{target === 'IDEA' ? 'No ideas to rank yet.' : 'No submissions to rank yet.'}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">
-              <thead className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              <thead className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <tr><th className="py-2 pr-3">#</th><th className="py-2 pr-3">Team</th><th className="py-2 pr-3">{copy.rowLabel}</th><th className="py-2 pr-3">Score</th><th className="py-2">Reviews</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -204,7 +204,7 @@ export function JudgingAdminTab({ hackathon, onEnable }: JudgingAdminTabProps) {
                       <td className="py-2.5 pr-3">{row.title}</td>
                       <td className="py-2.5 pr-3 font-bold tabular-nums">{row.review_count ? row.score.toFixed(1) : '–'}</td>
                       <td className="py-2.5">
-                        <button type="button" onClick={() => showReviews(row.id)} className="text-xs font-bold text-[#FF7A00] hover:underline" aria-expanded={openReviews?.id === row.id}>
+                        <button type="button" onClick={() => showReviews(row.id)} className="text-xs font-bold text-journey-accent hover:underline" aria-expanded={openReviews?.id === row.id}>
                           {row.review_count} of {judges || '?'} judges
                         </button>
                       </td>
@@ -212,12 +212,12 @@ export function JudgingAdminTab({ hackathon, onEnable }: JudgingAdminTabProps) {
                     {openReviews?.id === row.id && (
                       <tr>
                         <td colSpan={5} className="bg-slate-50 px-3 py-3 dark:bg-white/5">
-                          {openReviews.rows.length === 0 ? <p className="text-xs text-slate-500">No judge has scored this yet.</p> : (
+                          {openReviews.rows.length === 0 ? <p className="text-xs text-slate-500 dark:text-slate-400">No judge has scored this yet.</p> : (
                             <ul className="space-y-2">
                               {openReviews.rows.map((review) => (
                                 <li key={review.id} className="text-xs">
                                   <p><strong>{review.judge}</strong> · {review.total.toFixed(1)}/100 · {Object.entries(review.scores).map(([id, value]) => `${criterionName(id)} ${value}`).join(', ')}</p>
-                                  {review.comment && <p className="mt-0.5 text-slate-500">&ldquo;{review.comment}&rdquo;</p>}
+                                  {review.comment && <p className="mt-0.5 text-slate-500 dark:text-slate-400">&ldquo;{review.comment}&rdquo;</p>}
                                 </li>
                               ))}
                             </ul>

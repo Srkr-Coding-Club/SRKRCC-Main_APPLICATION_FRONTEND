@@ -15,7 +15,7 @@ export interface AfterSubmitMeta {
 
 const input =
   'w-full px-3 py-2 rounded-lg border text-xs bg-white dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:border-[#FF7A00] outline-none';
-const label = 'block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1';
+const label = 'block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1';
 
 /** The thank-you page, an optional redirect, and the bot check - the settings that apply once someone has submitted. */
 export function AfterSubmitSettings<T extends AfterSubmitMeta>({ formMeta, setFormMeta }: {
@@ -25,7 +25,7 @@ export function AfterSubmitSettings<T extends AfterSubmitMeta>({ formMeta, setFo
   return (
     <div className="space-y-3 pt-5 pb-5 border-t border-slate-100 dark:border-slate-800" data-testid="after-submit-settings">
       <div className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-        <CheckCircle2 className="w-4 h-4 text-[#FF7A00]" />
+        <CheckCircle2 className="w-4 h-4 text-journey-accent" />
         After submitting
       </div>
 
@@ -86,7 +86,7 @@ export function AfterSubmitSettings<T extends AfterSubmitMeta>({ formMeta, setFo
 
       <label className="flex items-center justify-between cursor-pointer pt-2">
         <span className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-          <ShieldCheck className="w-4 h-4 text-[#FF7A00]" />
+          <ShieldCheck className="w-4 h-4 text-journey-accent" />
           Bot check (CAPTCHA)
         </span>
         <input

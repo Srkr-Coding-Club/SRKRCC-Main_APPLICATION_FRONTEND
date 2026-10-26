@@ -116,9 +116,15 @@ export default async function RootLayout({
         <ToastProvider>
           <EmailVerificationProvider>
             <BackendHeartbeat />
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-journey-accent focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-journey-on-accent"
+            >
+              Skip to main content
+            </a>
             <NavbarSwitcher moduleFlags={moduleFlags} />
             <VerificationBanner />
-            <main className="flex-grow">
+            <main id="main-content" tabIndex={-1} className="flex-grow focus:outline-none">
               <VerificationGate>{children}</VerificationGate>
             </main>
             <Footer />

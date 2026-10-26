@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export interface PageSection {
   id: string;
@@ -10,6 +10,16 @@ export interface PageSection {
 /** Sticky in-page navigation: jumps to a section and highlights the one being read. */
 export function SectionNav({ sections }: { sections: PageSection[] }) {
   const [activeId, setActiveId] = useState(sections[0]?.id ?? '');
+  const barRef = useRef<HTMLUListElement>(null);
+
+  // On a phone the tab bar scrolls sideways: bring the section being read into view without moving the page.
+  useEffect(() => {
+    const bar = barRef.current;
+    const link = bar?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!bar || !link) return;
+    const target = link.offsetLeft - (bar.clientWidth - link.offsetWidth) / 2;
+    bar.scrollTo({ left: target, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }, [activeId]);
 
   useEffect(() => {
     const targets = sections.map((s) => document.getElementById(s.id)).filter((el): el is HTMLElement => !!el);
@@ -38,7 +48,7 @@ export function SectionNav({ sections }: { sections: PageSection[] }) {
       aria-label="Hackathon sections"
       className="sticky top-[72px] z-30 -mx-4 border-b border-journey-text/10 bg-[var(--background)]/90 px-4 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:border sm:px-2"
     >
-      <ul className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <ul ref={barRef} className="relative flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {sections.map((section) => {
           const active = section.id === activeId;
           return (

@@ -136,17 +136,17 @@ export default function BatchScheduleClient() {
     }
   };
 
-  if (loading) return <main className="mx-auto max-w-5xl p-8 text-sm text-slate-500">Checking access…</main>;
-  if (!authorized) return <main className="mx-auto max-w-2xl p-8"><h1 className="text-xl font-bold">Admin or Club Lead access required</h1><p className="mt-2 text-sm text-slate-500">Sign in with an authorized account to schedule CodeQuest problems.</p></main>;
+  if (loading) return <div className="mx-auto max-w-5xl p-8 text-sm text-slate-500 dark:text-slate-400">Checking access…</div>;
+  if (!authorized) return <div className="mx-auto max-w-2xl p-8"><h1 className="text-xl font-bold">Admin or Club Lead access required</h1><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Sign in with an authorized account to schedule CodeQuest problems.</p></div>;
 
   return (
-    <main className="min-h-screen bg-[var(--background)] px-4 py-10 sm:px-6">
+    <div className="min-h-screen bg-[var(--background)] px-4 py-10 sm:px-6">
       <div className="mx-auto max-w-5xl space-y-6">
-        <Link href="/admin/codequest" className="inline-flex items-center gap-2 text-sm font-semibold text-[#FF7A00]"><ArrowLeft className="h-4 w-4" /> Back to CodeQuest</Link>
+        <Link href="/admin/codequest" className="inline-flex items-center gap-2 text-sm font-semibold text-journey-accent"><ArrowLeft className="h-4 w-4" /> Back to CodeQuest</Link>
         <header className="glass-panel rounded-2xl p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#FF7A00]">CodeQuest operations</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-journey-accent">CodeQuest operations</p>
           <h1 className="mt-2 text-2xl font-extrabold">Batch schedule problems</h1>
-          <p className="mt-2 text-sm text-slate-500">Add up to five complete problems. Each becomes visible to members on its scheduled date.</p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Add up to five complete problems. Each becomes visible to members on its scheduled date.</p>
         </header>
 
         {error && <p role="alert" className="rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">{error}</p>}
@@ -196,12 +196,12 @@ export default function BatchScheduleClient() {
           })}
           <div className="flex flex-wrap justify-between gap-3">
             <button type="button" disabled={entries.length >= 5} onClick={() => setEntries((current) => [...current, blankProblem()])} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold disabled:opacity-50 dark:border-slate-700"><Plus className="h-4 w-4" /> Add another ({entries.length}/5)</button>
-            <button type="submit" disabled={saving} className="rounded-lg bg-[#FF7A00] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60">{saving ? 'Scheduling…' : 'Schedule problems'}</button>
+            <button type="submit" disabled={saving} className="rounded-lg bg-journey-accent px-5 py-2.5 text-sm font-bold text-journey-on-accent disabled:opacity-60">{saving ? 'Scheduling…' : 'Schedule problems'}</button>
           </div>
         </form>
 
-        {scheduled.length > 0 && <section className="glass-panel rounded-2xl p-5"><h2 className="font-bold">Scheduled problems</h2><ul className="mt-3 divide-y divide-slate-200 dark:divide-slate-800">{scheduled.map((problem) => <li key={problem.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span className="font-semibold">{problem.title} <span className="font-normal text-slate-500">({problem.difficulty})</span></span><time className="font-mono text-slate-500">{problem.scheduled_date}</time></li>)}</ul></section>}
+        {scheduled.length > 0 && <section className="glass-panel rounded-2xl p-5"><h2 className="font-bold">Scheduled problems</h2><ul className="mt-3 divide-y divide-slate-200 dark:divide-slate-800">{scheduled.map((problem) => <li key={problem.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span className="font-semibold">{problem.title} <span className="font-normal text-slate-500 dark:text-slate-400">({problem.difficulty})</span></span><time className="font-mono text-slate-500 dark:text-slate-400">{problem.scheduled_date}</time></li>)}</ul></section>}
       </div>
-    </main>
+    </div>
   );
 }

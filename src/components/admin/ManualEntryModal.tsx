@@ -59,7 +59,7 @@ export function ManualEntryModal({
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">Admin Manual Data Entry</h3>
-                <p className="text-xs text-slate-500">Offline response recording override</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Offline response recording override</p>
               </div>
             </div>
             <button
@@ -73,7 +73,7 @@ export function ManualEntryModal({
           {/* Target Form info */}
           <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Target Form</p>
+              <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Target Form</p>
               <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{selectedForm.title}</p>
             </div>
             <span
@@ -106,7 +106,7 @@ export function ManualEntryModal({
                 {activeFields.map((field) => (
                   <div key={field.id} className="space-y-1">
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      {field.label} {field.is_required && <span className="text-rose-500">*</span>}
+                      {field.label} {field.is_required && <span className="text-rose-600 dark:text-rose-400">*</span>}
                     </label>
 
                     {/* Text / Email / Phone / URL / Number */}

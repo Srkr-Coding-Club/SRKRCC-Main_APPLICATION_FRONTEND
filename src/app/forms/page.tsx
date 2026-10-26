@@ -167,7 +167,7 @@ export default async function FormsCenterPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         <PageHero
-          icon={<ClipboardList className="h-4 w-4 text-[#FF7A00]" />}
+          icon={<ClipboardList className="h-4 w-4 text-journey-accent" />}
           eyebrow="SRKR CODING CLUB FORMS CENTER"
           title="Active Registrations & Submissions"
           description="Explore and fill out official application forms for upcoming hackathons, workshops, core team recruitment, and feedback surveys."
@@ -189,7 +189,7 @@ export default async function FormsCenterPage() {
         {/* Forms Grid */}
         {formsToDisplay.length === 0 ? (
           <div className="py-20 text-center glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
-            <FileText className="w-12 h-12 text-slate-500 mx-auto" />
+            <FileText className="w-12 h-12 text-slate-500 dark:text-slate-400 mx-auto" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">No Public Forms Currently Active</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
               Check back soon for new hackathon registrations, workshop RSVPs, and membership application forms.

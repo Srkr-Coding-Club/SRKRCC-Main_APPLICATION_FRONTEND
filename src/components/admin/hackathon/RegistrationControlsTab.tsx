@@ -97,13 +97,13 @@ export function RegistrationControlsTab({ hackathon, onSaved }: RegistrationCont
     }, 'Registration controls saved');
   };
 
-  const fieldError = (key: string) => errors[key] && <p className="mt-1 text-[11px] text-rose-500">{errors[key]}</p>;
+  const fieldError = (key: string) => errors[key] && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors[key]}</p>;
 
   return (
     <form onSubmit={submit} className="space-y-6">
       <section className={`${PANEL} space-y-3`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Layers className="h-4 w-4 text-[#FF7A00]" /> Modules for this hackathon</h3>
-        <p className="text-xs text-slate-500">Switch on only what this event needs. Each module adds its own tab and participant screens.</p>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Layers className="h-4 w-4 text-journey-accent" /> Modules for this hackathon</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Switch on only what this event needs. Each module adds its own tab and participant screens.</p>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {FEATURE_OPTIONS.map((option) => (
             <Switch
@@ -119,7 +119,7 @@ export function RegistrationControlsTab({ hackathon, onSaved }: RegistrationCont
       </section>
 
       <section className={`${PANEL} space-y-4`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Gauge className="h-4 w-4 text-[#FF7A00]" /> Capacity</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Gauge className="h-4 w-4 text-journey-accent" /> Capacity</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="max-teams" className={LABEL}>Maximum teams</label>
@@ -138,38 +138,38 @@ export function RegistrationControlsTab({ hackathon, onSaved }: RegistrationCont
           checked={waitlist}
           onChange={setWaitlist}
         />
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Right now {hackathon.team_count ?? 0} active teams{hackathon.waitlisted_team_count ? `, ${hackathon.waitlisted_team_count} of them waitlisted` : ''}.
         </p>
       </section>
 
       <section className={`${PANEL} space-y-4`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ShieldCheck className="h-4 w-4 text-[#FF7A00]" /> Who can take part</h3>
-        <p className="text-xs text-slate-500">Leave a list empty for no restriction. Matching ignores upper and lower case and uses each person&apos;s profile.</p>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ShieldCheck className="h-4 w-4 text-journey-accent" /> Who can take part</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Leave a list empty for no restriction. Matching ignores upper and lower case and uses each person&apos;s profile.</p>
         <div>
           <p className={LABEL}>Colleges</p>
-          <TagInput value={eligibility.colleges ?? []} onChange={(values) => setEligibilityList('colleges', values)} placeholder="Type a college and press Enter" maxTags={50} maxLength={100} />
+          <TagInput aria-label="Allowed colleges" value={eligibility.colleges ?? []} onChange={(values) => setEligibilityList('colleges', values)} placeholder="Type a college and press Enter" maxTags={50} maxLength={100} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <p className={LABEL}>Branches</p>
-            <TagInput value={eligibility.branches ?? []} onChange={(values) => setEligibilityList('branches', values)} placeholder="e.g. CSE" maxTags={50} maxLength={100} />
+            <TagInput aria-label="Allowed branches" value={eligibility.branches ?? []} onChange={(values) => setEligibilityList('branches', values)} placeholder="e.g. CSE" maxTags={50} maxLength={100} />
           </div>
           <div>
             <p className={LABEL}>Years of study</p>
-            <TagInput value={eligibility.years ?? []} onChange={(values) => setEligibilityList('years', values)} placeholder="e.g. 2" maxTags={10} maxLength={10} />
+            <TagInput aria-label="Allowed years of study" value={eligibility.years ?? []} onChange={(values) => setEligibilityList('years', values)} placeholder="e.g. 2" maxTags={10} maxLength={10} />
           </div>
         </div>
         {fieldError('eligibility')}
         <div className="max-w-sm">
           <label htmlFor="reveal-at" className={LABEL}>Reveal problem statements at</label>
           <input id="reveal-at" type="datetime-local" value={revealAt} onChange={(e) => setRevealAt(e.target.value)} className={INPUT} />
-          <p className="mt-1 text-[11px] text-slate-400">Blank = visible as soon as you add them. Admins always see them.</p>
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Blank = visible as soon as you add them. Admins always see them.</p>
         </div>
       </section>
 
       <section className={`${PANEL} space-y-4`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ClipboardList className="h-4 w-4 text-[#FF7A00]" /> Rules and code of conduct</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ClipboardList className="h-4 w-4 text-journey-accent" /> Rules and code of conduct</h3>
         <MarkdownEditor label="Rules (shown on the public page)" value={rules} onChange={setRules} placeholder="Team rules, what is allowed, code of conduct…" />
         <Switch
           label="Participants must accept the rules"
@@ -181,8 +181,8 @@ export function RegistrationControlsTab({ hackathon, onSaved }: RegistrationCont
       </section>
 
       <section className={`${PANEL} space-y-3`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ListChecks className="h-4 w-4 text-[#FF7A00]" /> Extra registration questions</h3>
-        <p className="text-xs text-slate-500">Asked of every participant when they create or join a team (t-shirt size, diet, laptop, GitHub…). Answers appear in the participants export.</p>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ListChecks className="h-4 w-4 text-journey-accent" /> Extra registration questions</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Asked of every participant when they create or join a team (t-shirt size, diet, laptop, GitHub…). Answers appear in the participants export.</p>
         <ObjectListEditor<QuestionDraft>
           items={questions}
           onChange={setQuestions}

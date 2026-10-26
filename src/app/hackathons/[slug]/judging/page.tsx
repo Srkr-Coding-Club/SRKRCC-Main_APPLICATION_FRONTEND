@@ -80,7 +80,7 @@ function ReviewForm({ itemId, teamName, criteria, existing, save, onSaved }: Rev
         <label htmlFor={`comment-${itemId}`} className="text-sm font-semibold text-journey-text">Comment for the organizers</label>
         <textarea id={`comment-${itemId}`} rows={3} maxLength={2000} value={comment} onChange={(e) => setComment(e.target.value)} className="glass-panel block w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700" />
       </div>
-      {error && <p role="alert" className="text-xs text-rose-500">{error}</p>}
+      {error && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
       <button type="submit" disabled={busy} className={BTN_ACCENT}>{busy ? 'Saving…' : existing ? 'Update my scores' : 'Save my scores'}</button>
     </form>
   );
@@ -127,7 +127,7 @@ export default function JudgingPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] py-10">
       <div className="mx-auto max-w-4xl space-y-6 px-4 sm:px-6 lg:px-8">
-        <Link href={`/hackathons/${slug}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-journey-muted hover:text-journey-accent"><ArrowLeft className="h-4 w-4" /> Hackathon page</Link>
+        <Link href={`/hackathons/${slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-journey-muted sm:min-h-8 hover:text-journey-accent"><ArrowLeft className="h-4 w-4" /> Hackathon page</Link>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-journey-text sm:text-3xl"><Gavel className="h-6 w-6 text-journey-accent" /> Judging</h1>
@@ -140,14 +140,14 @@ export default function JudgingPage() {
           <div role="tablist" aria-label="What to score" className="inline-flex rounded-xl border border-journey-text/15 p-1">
             {(['PROJECT', 'IDEA'] as const).map((item) => (
               <button key={item} type="button" role="tab" aria-selected={kind === item} onClick={() => switchKind(item)}
-                className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-4 text-xs font-bold transition sm:min-h-9 ${kind === item ? 'bg-journey-accent text-white' : 'text-journey-muted hover:text-journey-text'}`}>
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-4 text-xs font-bold transition sm:min-h-9 ${kind === item ? 'bg-journey-accent text-journey-on-accent' : 'text-journey-muted hover:text-journey-text'}`}>
                 {item === 'PROJECT' ? <Gavel className="h-3.5 w-3.5" /> : <Lightbulb className="h-3.5 w-3.5" />} {item === 'PROJECT' ? 'Projects' : 'Ideas'}
               </button>
             ))}
           </div>
         )}
 
-        {error && <p role="alert" className={`${PANEL} text-sm text-rose-500`}>{error}</p>}
+        {error && <p role="alert" className={`${PANEL} text-sm text-rose-600 dark:text-rose-400`}>{error}</p>}
         {data && !data.enabled && <p className={`${PANEL} text-sm text-journey-muted`}>Judging is not switched on for this hackathon.</p>}
         {data && data.enabled && rubricMissing && <p className={`${PANEL} text-sm text-journey-muted`}>The organizers have not set the scoring criteria yet. Check back soon.</p>}
         {data && data.enabled && total === 0 && !rubricMissing && <p className={`${PANEL} text-sm text-journey-muted`}>Nothing has been submitted yet.</p>}

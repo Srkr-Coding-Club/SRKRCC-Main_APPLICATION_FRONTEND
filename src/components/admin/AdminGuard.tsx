@@ -76,7 +76,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   if (!mounted || checkingServer) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFAFC] dark:bg-[#0D0E15]">
-        <div className="flex flex-col items-center space-y-4 text-slate-500">
+        <div className="flex flex-col items-center space-y-4 text-slate-500 dark:text-slate-400">
           <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
             <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
           </div>
@@ -96,12 +96,12 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     return (
       <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-20 px-4 flex items-center justify-center transition-colors duration-300">
         <div className="max-w-md w-full p-8 rounded-3xl glass-panel border border-rose-500/20 dark:border-rose-500/20 shadow-2xl space-y-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-500 shadow-inner">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-600 dark:text-rose-400 shadow-inner">
             <ShieldAlert className="w-8 h-8" />
           </div>
 
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-500 text-xs font-bold font-mono uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-bold font-mono uppercase tracking-wider">
               Clearance Restricted
             </div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-white">
@@ -111,11 +111,11 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
             {isAuth ? (
               <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 space-y-2 text-left bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Current User:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Current User:</span>
                   <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[200px]">{email}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Current Role:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Current Role:</span>
                   <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
                     {roleName}
                   </span>

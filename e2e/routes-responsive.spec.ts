@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { openAdmin, savedForm } from './admin-helpers';
 import { adminUser, user } from './helpers';
 
-// Every screen of the site at phone and tablet size. The API answers with "nothing here yet" (empty lists), which is
+// Every screen of the site at phone and tablet size (320 to 1024). The API answers with "nothing here yet" (empty lists), which is
 // also what a brand-new club sees, so this checks the empty states and the page frames of every screen.
 // Looked for: the page scrolling sideways, and controls too small to tap.
 
@@ -10,6 +10,8 @@ const SIZES = [
   { name: 'phone-320', width: 320, height: 640 },
   { name: 'phone-390', width: 390, height: 844 },
   { name: 'tablet-768', width: 768, height: 1024 },
+  // Landscape tablet: the admin navigation bar once needed ~1211px here and pushed every admin page 187px sideways.
+  { name: 'tablet-1024', width: 1024, height: 768 },
 ];
 
 const PUBLIC = ['/', '/about', '/events', '/forms', '/hackathons', '/blogs', '/career', '/codequest', '/iconcoders', '/login', '/signup', '/403'];

@@ -254,7 +254,7 @@ export function EditUserModal({
         <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
           <div>
             <span className="font-bold text-sm text-[#1A1A2E] dark:text-white">{user.name}</span>
-            <p className="font-mono text-slate-500 text-[11px] mt-0.5">{user.email}</p>
+            <p className="font-mono text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">{user.email}</p>
           </div>
           <div className="text-right">
             <span className="text-[10px] uppercase font-bold text-slate-400">User ID</span>
@@ -263,7 +263,7 @@ export function EditUserModal({
         </div>
 
         {errors.form && (
-          <div className="p-3 rounded-lg text-xs font-semibold text-rose-500 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900">
+          <div className="p-3 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900">
             {errors.form}
           </div>
         )}
@@ -281,7 +281,7 @@ export function EditUserModal({
               onChange={(e) => setFirstName(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
             />
-            {errors.firstName && <p className="text-[10px] text-rose-500 mt-1">{errors.firstName}</p>}
+            {errors.firstName && <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{errors.firstName}</p>}
           </div>
 
           <div>
@@ -302,7 +302,7 @@ export function EditUserModal({
             College
           </label>
           <CollegeSelect id="edit-user-college" value={college} onChange={setCollege} aria-invalid={!!errors.college} aria-describedby={errors.college ? 'edit-user-college-error' : undefined} />
-          {errors.college && <p id="edit-user-college-error" role="alert" className="text-[10px] text-rose-500 mt-1">{errors.college}</p>}
+          {errors.college && <p id="edit-user-college-error" role="alert" className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{errors.college}</p>}
         </div>
 
         {/* Academic Details */}
@@ -320,7 +320,7 @@ export function EditUserModal({
               onChange={(e) => setRollNumber(sanitizeRollNumberInput(e.target.value))}
               className="w-full px-3 py-2 rounded-lg border text-sm font-mono bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
             />
-            {errors.rollNumber && <p className="text-[10px] text-rose-500 mt-1">{errors.rollNumber}</p>}
+            {errors.rollNumber && <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{errors.rollNumber}</p>}
           </div>
 
           <div>
@@ -394,13 +394,13 @@ export function EditUserModal({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white">
-              Affiliate ID (Club ID) {role === 'AFFILIATE' && <span className="text-[#FF7A00]">*</span>}
+              Affiliate ID (Club ID) {role === 'AFFILIATE' && <span className="text-journey-accent">*</span>}
             </label>
             <button
               type="button"
               onClick={handleFetchNextClubId}
               disabled={isFetchingClubId || isSubmitting}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#FF7A00] hover:text-[#E06B00] disabled:opacity-50 transition"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-journey-accent hover:text-[#E06B00] disabled:opacity-50 transition"
             >
               {isFetchingClubId ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -419,7 +419,7 @@ export function EditUserModal({
             onChange={(e) => setClubId(sanitizeAffiliateIdInput(e.target.value))}
             className="w-full px-3 py-2 rounded-lg border text-sm font-mono bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
           />
-          {errors.clubId && <p className="text-[10px] text-rose-500 mt-1">{errors.clubId}</p>}
+          {errors.clubId && <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{errors.clubId}</p>}
         </div>
 
         {/* Contact & Social Links */}
@@ -435,7 +435,7 @@ export function EditUserModal({
               onChange={(e) => setPhoneNumber(sanitizePhoneNumberInput(e.target.value))}
               className="w-full px-3 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
             />
-            {errors.phoneNumber && <p className="text-[10px] text-rose-500 mt-1">{errors.phoneNumber}</p>}
+            {errors.phoneNumber && <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{errors.phoneNumber}</p>}
           </div>
 
           <div>
@@ -449,7 +449,7 @@ export function EditUserModal({
               onChange={(e) => setGithubProfile(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
             />
-            {errors.githubProfile && <p className="text-[10px] text-rose-500 mt-1">{errors.githubProfile}</p>}
+            {errors.githubProfile && <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{errors.githubProfile}</p>}
           </div>
 
           <div>
@@ -463,7 +463,7 @@ export function EditUserModal({
               onChange={(e) => setLinkedinProfile(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
             />
-            {errors.linkedinProfile && <p className="text-[10px] text-rose-500 mt-1">{errors.linkedinProfile}</p>}
+            {errors.linkedinProfile && <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{errors.linkedinProfile}</p>}
           </div>
         </div>
 
@@ -480,7 +480,7 @@ export function EditUserModal({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-5 py-2 rounded-lg text-xs font-bold bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition active:scale-95"
+            className="px-5 py-2 rounded-lg text-xs font-bold bg-journey-accent hover:opacity-90 text-journey-on-accent shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition active:scale-95"
           >
             {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {isSubmitting ? 'Saving Changes...' : 'Save User Details'}
