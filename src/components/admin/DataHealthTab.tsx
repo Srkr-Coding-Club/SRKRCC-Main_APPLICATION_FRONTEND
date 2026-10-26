@@ -217,7 +217,7 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
         </div>
         <div className="divide-y divide-slate-200 dark:divide-slate-800/60">
           {recent_activity.length === 0 ? (
-            <div className="px-6 py-8 text-sm text-slate-500 text-center">No recent activity.</div>
+            <div className="px-6 py-8 text-sm text-slate-500 dark:text-slate-400 text-center">No recent activity.</div>
           ) : (
             recent_activity.map((item, i) => (
               <div key={i} className="flex items-start gap-3 px-6 py-3.5">
@@ -231,7 +231,7 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
                     <span className="text-slate-500 dark:text-slate-400">{item.detail}</span>
                   </p>
                 </div>
-                <span className="text-[11px] text-slate-500 whitespace-nowrap flex-shrink-0">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0">
                   {relativeTime(item.timestamp)}
                 </span>
               </div>

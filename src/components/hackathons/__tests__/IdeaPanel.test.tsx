@@ -59,7 +59,7 @@ describe('IdeaPanel: what the form asks for', () => {
     expect(screen.queryByText(/Payment:/)).toBeNull();
     expect(document.querySelector('#idea-payment-file')).toBeNull();
     expect(screen.getByLabelText(/LinkedIn post link/)).toBeTruthy();
-    expect(screen.getByText(/Presentation \(\.ppt or \.pptx\)/)).toBeTruthy();
+    expect(screen.getByText(/Presentation \(\.ppt, \.pptx or \.pdf\)/)).toBeTruthy();
     expect(document.querySelector('label[for=idea-linkedin] .text-rose-500, label[for=idea-linkedin] [aria-hidden]')).toBeNull();
   });
 
@@ -124,7 +124,8 @@ describe('IdeaPanel: saving', () => {
     fireEvent.change(screen.getByLabelText(/Transaction ID/), { target: { value: 'UPI123' } });
     pick(1, png());
     await screen.findByText(/uploaded/, {}, { timeout: 5000 });
-    fireEvent.click(screen.getByRole('button', { name: 'Submit idea' }));
+    // The button still says "Uploading…" for a tick after the file reports itself uploaded; wait for it.
+    fireEvent.click(await screen.findByRole('button', { name: 'Submit idea' }));
     await waitFor(() => expect(api.saveIdea).toHaveBeenCalled(), { timeout: 5000 });
     expect(api.saveIdea.mock.calls[0][1]).toMatchObject({
       title: 'Smart bins', linkedin_url: 'https://www.linkedin.com/posts/x', transaction_id: 'UPI123', payment_file_id: 'pay-1', deck_file_id: null,
@@ -149,7 +150,34 @@ describe('IdeaPanel: saving', () => {
     render(<IdeaPanel hackathon={hackathon} />);
     await screen.findByLabelText(/Idea title/);
     fireEvent.click(screen.getByRole('button', { name: 'Submit idea' }));
-    expect((await screen.findByText(/Upload the screenshot of your payment/)).closest('fieldset')).toBeTruthy();
+    const message = await screen.findByText(/Upload the screenshot of your payment/);
+    expect(message.closest('fieldset')).toBeTruthy();
+    // and a pointer beside the button, where the person is looking
+    expect(screen.getByText(/Not saved yet/)).toBeTruthy();
+  });
+
+  it('keeps what was typed when the save is refused, and says why next to the button', async () => {
+    api.saveIdea.mockRejectedValue(Object.assign(new Error('Your approach is required.'), { body: { field: 'solution' } }));
+    api.myIdea.mockResolvedValue(payload());
+    render(<IdeaPanel hackathon={hackathon} />);
+    await screen.findByLabelText(/Idea title/);
+    fireEvent.change(screen.getByLabelText(/Idea title/), { target: { value: 'Smart bins' } });
+    fireEvent.change(screen.getByLabelText(/The problem/), { target: { value: 'Campus waste overflows' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit idea' }));
+    await waitFor(() => expect(screen.getByText('Your approach is required.')).toBeTruthy());
+    expect(screen.getByText(/Not saved yet/)).toBeTruthy();
+    expect((screen.getByLabelText(/Idea title/) as HTMLInputElement).value).toBe('Smart bins');
+    expect((screen.getByLabelText(/The problem/) as HTMLTextAreaElement).value).toBe('Campus waste overflows');
+  });
+
+  it('confirms a saved idea on the page, not only in a toast', async () => {
+    api.saveIdea.mockResolvedValue(payload({ idea: idea(), review_required: true }));
+    api.myIdea.mockResolvedValue(payload());
+    render(<IdeaPanel hackathon={hackathon} />);
+    await screen.findByLabelText(/Idea title/);
+    fireEvent.click(screen.getByRole('button', { name: 'Submit idea' }));
+    expect((await screen.findByRole('status', { name: '' })).textContent).toBeTruthy();
+    expect(await screen.findByText(/organizers will review it/)).toBeTruthy();
   });
 
   it('shows a saved file already attached when the idea is edited, without uploading again', async () => {
@@ -243,17 +271,19 @@ describe('IdeaPanel: editing control', () => {
     expect((screen.getByText('https://www.linkedin.com/posts/x') as HTMLAnchorElement).getAttribute('rel')).toContain('noopener');
   });
 
-  it('opens a saved image through a fresh link, and an expired or refused link shows a message', async () => {
-    api.ideaFileLink.mockResolvedValueOnce({ url: 'https://bucket/x', expires_in: 60, inline: true }).mockRejectedValueOnce(new Error('Not found'));
+  it('downloads a saved image through a fresh link, and an expired or refused link shows a message', async () => {
+    api.ideaFileLink.mockResolvedValueOnce({ url: 'https://bucket/x', expires_in: 60, inline: false }).mockRejectedValueOnce(new Error('Not found'));
     api.myIdea.mockResolvedValue(payload({ can_edit: false, idea: idea({ payment_proof: { id: 'p', name: 'pay.png', size: 900, type: 'image/png', state: 'ATTACHED' } }) }));
-    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    const original = window.location;
+    const assign = vi.fn();
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...original, assign } });
     render(<IdeaPanel hackathon={hackathon} />);
-    fireEvent.click(await screen.findByRole('button', { name: /pay\.png/ }));
-    await waitFor(() => expect(open).toHaveBeenCalledWith('https://bucket/x', '_blank', 'noopener,noreferrer'));
-    expect(api.ideaFileLink).toHaveBeenCalledWith('demo', 9, 'payment', true);
-    fireEvent.click(screen.getByRole('button', { name: /pay\.png/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Download pay.png' }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('https://bucket/x'));
+    expect(api.ideaFileLink).toHaveBeenCalledWith('demo', 9, 'payment', false);
+    fireEvent.click(screen.getByRole('button', { name: 'Download pay.png' }));
     expect((await screen.findByRole('alert')).textContent).toContain('Not found');
-    open.mockRestore();
+    Object.defineProperty(window, 'location', { configurable: true, value: original });
   });
 
   it('says until when editing is open', async () => {

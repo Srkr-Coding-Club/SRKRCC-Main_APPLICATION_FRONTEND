@@ -26,7 +26,7 @@ const MESSAGE_LIMIT = 500;
 const inputClass =
   'w-full px-2 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]';
 const smallButton =
-  'inline-flex items-center gap-1 text-[11px] font-bold text-[#FF7A00] hover:underline transition-transform duration-100 active:scale-95';
+  'inline-flex items-center gap-1 text-[11px] font-bold text-journey-accent hover:underline transition-transform duration-100 active:scale-95';
 
 const NO_FILL_TYPES = ['SECTION', 'FILE', 'MULTI_FILE', 'SIGNATURE', 'CALCULATED'];
 
@@ -198,14 +198,14 @@ function RuleRow({ rule, fields, onChange, onRemove }: {
             <ValueEditor rule={rule} target={target} onChange={patch} />
           )}
           {operatorValueKind(rule.operator) === 'single' && others.length > 0 && (
-            <label className="flex items-center gap-1.5 text-[11px] text-slate-500 cursor-pointer">
+            <label className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 cursor-pointer">
               <input type="checkbox" className="accent-[#FF7A00]" checked={comparing} onChange={(e) => toggleComparing(e.target.checked)} />
               Compare with another question instead of a fixed value
             </label>
           )}
         </>
       )}
-      {problem && <p className="text-[11px] font-semibold text-rose-500">{problem}</p>}
+      {problem && <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">{problem}</p>}
     </div>
   );
 }
@@ -244,7 +244,7 @@ function GroupEditor({ group, fields, depth, onChange, onRemove }: {
           of these
         </label>
         {onRemove && (
-          <button type="button" onClick={onRemove} className="text-[11px] font-bold text-rose-500 hover:underline">Remove group</button>
+          <button type="button" onClick={onRemove} className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline">Remove group</button>
         )}
       </div>
 
@@ -287,7 +287,7 @@ function ActionValueEditor({ field, action, value, onChange, laterPageBreaks, ha
           {targets.map((t) => <option key={t.id} value={String(t.id)}>{t.label || `Page starting at question ${t.order}`}</option>)}
         </select>
         {(targets.length === 0 || hasUnsavedLaterPageBreaks) && (
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
             {targets.length === 0 ? 'Add a later page break' : 'Some later page breaks are new'} and save the form first, so each page has an id to jump to.
           </p>
         )}
@@ -314,7 +314,7 @@ function ActionValueEditor({ field, action, value, onChange, laterPageBreaks, ha
     const allowed = asList(value);
     return (
       <div className="space-y-1">
-        <p className="text-[11px] font-semibold text-slate-500">Only offer these options:</p>
+        <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Only offer these options:</p>
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           {options.map((opt) => (
             <label key={opt} className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">
@@ -393,8 +393,8 @@ export default function ConditionBuilder({ field, siblingFields, onChange, later
   if (siblingFields.length === 0) {
     return (
       <div className="p-3 rounded bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs mt-2">
-        <p className="font-bold text-[#FF7A00]">{isRouting ? 'Page routing' : 'Conditions'}</p>
-        <p className="text-slate-500 mt-1">
+        <p className="font-bold text-journey-accent">{isRouting ? 'Page routing' : 'Conditions'}</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
           {isRouting
             ? 'Routing reacts to answers on earlier pages. Add a question above this page break first.'
             : 'Add another question first. A condition needs a question to depend on.'}
@@ -406,9 +406,9 @@ export default function ConditionBuilder({ field, siblingFields, onChange, later
   return (
     <div className="p-3 rounded bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-xs space-y-3 mt-2">
       <div className="flex items-center justify-between">
-        <p className="font-bold text-[#FF7A00]">{isRouting ? 'Page routing' : 'Conditions'}</p>
+        <p className="font-bold text-journey-accent">{isRouting ? 'Page routing' : 'Conditions'}</p>
         {current && (
-          <button type="button" onClick={() => onChange({})} className="text-[11px] font-bold text-rose-500 hover:underline">
+          <button type="button" onClick={() => onChange({})} className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline">
             {isRouting ? 'Remove routing' : 'Remove all conditions'}
           </button>
         )}
@@ -451,7 +451,7 @@ export default function ConditionBuilder({ field, siblingFields, onChange, later
             hasUnsavedLaterPageBreaks={hasUnsavedLaterPageBreaks}
           />
           {actionProblem(current.action, current.action_value) && (
-            <p className="text-[11px] font-semibold text-rose-500">{actionProblem(current.action, current.action_value)}</p>
+            <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">{actionProblem(current.action, current.action_value)}</p>
           )}
 
           <GroupEditor

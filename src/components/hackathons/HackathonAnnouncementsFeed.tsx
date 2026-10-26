@@ -6,9 +6,9 @@ import type { HackathonAnnouncement } from '@/lib/types';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 
 const TYPE_STYLE: Record<string, { icon: React.ElementType; bar: string; text: string }> = {
-  INFO: { icon: Info, bar: 'bg-sky-500', text: 'text-sky-600 dark:text-sky-400' },
-  SUCCESS: { icon: CheckCircle2, bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
-  WARNING: { icon: AlertTriangle, bar: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
+  INFO: { icon: Info, bar: 'bg-sky-500', text: 'text-sky-700 dark:text-sky-400' },
+  SUCCESS: { icon: CheckCircle2, bar: 'bg-emerald-500', text: 'text-emerald-800 dark:text-emerald-400' },
+  WARNING: { icon: AlertTriangle, bar: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-400' },
   URGENT: { icon: Siren, bar: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400' },
 };
 

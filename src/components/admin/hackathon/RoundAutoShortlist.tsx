@@ -68,11 +68,11 @@ export function RoundAutoShortlist({ slug, round, features, onApplied }: RoundAu
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-white/[0.02]">
       {dialog}
-      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200"><Wand2 className="h-4 w-4 text-[#FF7A00]" /> Pick teams by rule</p>
+      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200"><Wand2 className="h-4 w-4 text-journey-accent" /> Pick teams by rule</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_200px]">
         <div>
           <label className={LABEL}>Rule</label>
-          <FormSelect
+          <FormSelect aria-label="Rule"
             value={ruleKey}
             onChange={(next) => { setRuleKey(next as typeof ruleKey); setPreview(null); }}
             options={rules.map((item) => ({ value: item.key, label: item.label }))}
@@ -98,7 +98,7 @@ export function RoundAutoShortlist({ slug, round, features, onApplied }: RoundAu
         <div className="space-y-2 text-sm" aria-live="polite">
           <p className="text-slate-600 dark:text-slate-300">
             <strong>{preview.selected.length}</strong> of {preview.selected.length + preview.not_selected.length} teams match
-            {preview.limit ? <> (target {preview.limit}){preview.over_limit && <span className="font-bold text-amber-600"> · over the target</span>}</> : null}.
+            {preview.limit ? <> (target {preview.limit}){preview.over_limit && <span className="font-bold text-amber-700 dark:text-amber-400"> · over the target</span>}</> : null}.
           </p>
           {preview.selected.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">

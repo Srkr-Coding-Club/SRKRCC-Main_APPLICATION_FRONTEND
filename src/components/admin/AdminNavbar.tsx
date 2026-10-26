@@ -197,7 +197,7 @@ export default function AdminNavbar() {
           {/* Center - segmented sliding-pill nav, mirrors the public navbar's silhouette */}
           <nav
             ref={navRef}
-            className="hidden lg:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
+            className="hidden xl:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
             onMouseLeave={() => setHovered(null)}
           >
             {navItems.map((item) => {
@@ -276,11 +276,11 @@ export default function AdminNavbar() {
                                   onClick={() => setClickedDropdown(null)}
                                   className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition active:scale-[0.97]"
                                 >
-                                  <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-[#FF7A00] transition-colors">
+                                  <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-journey-accent transition-colors">
                                     <ChildIcon className="w-4 h-4" />
                                   </div>
                                   <div className="flex flex-col">
-                                    <span className="flex items-center gap-2 text-[13px] font-semibold text-[#1A1A2E] dark:text-white group-hover/item:text-[#FF7A00] transition-colors">
+                                    <span className="flex items-center gap-2 text-[13px] font-semibold text-[#1A1A2E] dark:text-white group-hover/item:text-journey-accent transition-colors">
                                       {child.label}
                                       {child.href === '/admin/maintenance' && maintenanceAttention > 0 && (
                                         <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-black" aria-label={`${maintenanceAttention} need running`}>{maintenanceAttention}</span>
@@ -304,7 +304,7 @@ export default function AdminNavbar() {
           </nav>
 
           {/* Right cluster */}
-          <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
+          <div className="hidden xl:flex items-center gap-3 flex-shrink-0">
             <NotificationBell />
 
             <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#8B2E3B] text-white whitespace-nowrap">
@@ -313,7 +313,7 @@ export default function AdminNavbar() {
 
             <Link
               href="/profile"
-              className="text-[12px] font-semibold text-[#1A1A2E]/70 dark:text-white/60 hover:text-[#FF7A00] transition truncate max-w-[140px] active:scale-95 inline-block"
+              className="text-[12px] font-semibold text-[#1A1A2E]/70 dark:text-white/60 hover:text-journey-accent transition truncate max-w-[140px] active:scale-95 inline-block py-1.5 -my-1.5"
               title={currentUser?.email}
             >
               {currentUser?.first_name || currentUser?.username || currentUser?.email?.split('@')[0] || 'Profile'}
@@ -321,7 +321,7 @@ export default function AdminNavbar() {
 
             <Link
               href="/"
-              className="flex items-center gap-1.5 text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95"
+              className="flex min-h-8 items-center gap-1.5 text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Main Site
@@ -331,7 +331,7 @@ export default function AdminNavbar() {
           </div>
 
           {/* Mobile trigger */}
-          <div className="flex lg:hidden items-center gap-2">
+          <div className="flex xl:hidden items-center gap-2">
             <NotificationBell />
             <ThemeToggle />
             <button
@@ -354,17 +354,17 @@ export default function AdminNavbar() {
       {activeNavItem && pathname !== '/admin' && (
         <div className="w-full border-b border-black/[0.04] dark:border-white/[0.06] bg-[var(--background)]/60">
           <div className="max-w-[1600px] mx-auto px-5 sm:px-8 py-2">
-            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#1A1A2E]/70 dark:text-white/65">
-              <Link href="/admin" className="hover:text-[#FF7A00] transition active:scale-95 inline-block">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-[#1A1A2E]/70 dark:text-white/65">
+              <Link href="/admin" className="inline-flex min-h-6 items-center hover:text-journey-accent transition active:scale-95">
                 Admin
               </Link>
-              <span className="text-[#1A1A2E]/25 dark:text-white/20">/</span>
+              <span aria-hidden="true" className="text-[#1A1A2E]/40 dark:text-white/40">/</span>
               {activeChild ? (
                 <>
-                  <Link href={activeNavItem.href} className="hover:text-[#FF7A00] transition active:scale-95 inline-block">
+                  <Link href={activeNavItem.href} className="inline-flex min-h-6 items-center hover:text-journey-accent transition active:scale-95">
                     {activeNavItem.label}
                   </Link>
-                  <span className="text-[#1A1A2E]/25 dark:text-white/20">/</span>
+                  <span aria-hidden="true" className="text-[#1A1A2E]/40 dark:text-white/40">/</span>
                   <span className="text-[#1A1A2E]/70 dark:text-white/60">{activeChild.label}</span>
                 </>
               ) : (
@@ -385,7 +385,7 @@ export default function AdminNavbar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="lg:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col justify-between p-6 pt-24 overflow-y-auto"
+            className="xl:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col justify-between p-6 pt-24 overflow-y-auto"
           >
             <div className="flex flex-col gap-1">
               {navItems.map((item, i) => {
@@ -403,7 +403,7 @@ export default function AdminNavbar() {
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-3 font-poppins font-bold text-xl transition-transform duration-100 active:scale-95 ${
-                        isActive ? 'text-[#FF7A00]' : 'text-[#1A1A2E] dark:text-white'
+                        isActive ? 'text-journey-accent' : 'text-[#1A1A2E] dark:text-white'
                       }`}
                     >
                       <Icon className="w-5 h-5" />

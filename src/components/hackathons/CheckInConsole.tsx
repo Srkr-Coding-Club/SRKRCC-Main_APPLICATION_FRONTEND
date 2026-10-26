@@ -107,8 +107,8 @@ export function CheckInConsole({ slug }: { slug: string }) {
       <section className={`${PANEL} space-y-3`}>
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
-            <p className="text-3xl font-extrabold tabular-nums text-[#1A1A2E] dark:text-white">{roster?.checked_in ?? 0}<span className="text-lg text-slate-400"> / {roster?.total ?? 0}</span></p>
-            <p className="text-xs text-slate-500">participants checked in ({percent}%)</p>
+            <p className="text-3xl font-extrabold tabular-nums text-[#1A1A2E] dark:text-white">{roster?.checked_in ?? 0}<span className="text-lg text-slate-500 dark:text-slate-400"> / {roster?.total ?? 0}</span></p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">participants checked in ({percent}%)</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setCameraOn((on) => !on)} className={cameraOn ? BTN_GHOST : BTN_PRIMARY}>
@@ -129,7 +129,7 @@ export function CheckInConsole({ slug }: { slug: string }) {
           <div className="h-full bg-[#FF7A00] transition-all" style={{ width: `${percent}%` }} />
         </div>
 
-        {cameraError && <p role="alert" className="text-xs text-rose-500">{cameraError}</p>}
+        {cameraError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{cameraError}</p>}
         {cameraOn && <div id={SCAN_REGION_ID} className="mx-auto w-full max-w-sm overflow-hidden rounded-lg" />}
         {outcome && (
           <div role="status" className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${outcome.ok ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300'}`}>
@@ -142,7 +142,7 @@ export function CheckInConsole({ slug }: { slug: string }) {
       <section className={`${PANEL} space-y-3`}>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-0 flex-1 basis-56">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, email or team…" aria-label="Search participants" className={`${INPUT} pl-9`} />
           </div>
           <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
@@ -150,14 +150,14 @@ export function CheckInConsole({ slug }: { slug: string }) {
           </label>
         </div>
         {visible.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-500">{roster ? 'Nobody matches.' : 'Loading…'}</p>
+          <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">{roster ? 'Nobody matches.' : 'Loading…'}</p>
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {visible.map((person) => (
               <li key={person.user_id} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[#1A1A2E] dark:text-white">{person.name}{person.role === 'LEADER' && <span className="ml-2 text-[10px] font-bold uppercase text-[#FF7A00]">Leader</span>}</p>
-                  <p className="truncate text-xs text-slate-500">{person.team_name} · {person.email}</p>
+                  <p className="truncate text-sm font-semibold text-[#1A1A2E] dark:text-white">{person.name}{person.role === 'LEADER' && <span className="ml-2 text-[11px] font-bold uppercase text-journey-accent">Leader</span>}</p>
+                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">{person.team_name} · {person.email}</p>
                 </div>
                 <button
                   type="button"

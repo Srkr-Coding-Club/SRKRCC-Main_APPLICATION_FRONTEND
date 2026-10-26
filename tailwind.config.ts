@@ -19,6 +19,7 @@ const config: Config = {
           muted: "rgb(var(--journey-muted) / <alpha-value>)",
           accent: "rgb(var(--journey-accent) / <alpha-value>)",
           live: "rgb(var(--journey-live) / <alpha-value>)",
+          "on-accent": "rgb(var(--journey-on-accent) / <alpha-value>)",
         },
         foreground: "var(--foreground)",
         brand: {

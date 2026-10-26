@@ -336,13 +336,13 @@ export function CodeQuestTab() {
       <div className="space-y-6">
         <header className="flex flex-col gap-4 rounded-2xl glass-panel p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-[#FF7A00]">
+            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-journey-accent">
               <Code2 className="h-4 w-4" /> CodeQuest operations
             </p>
             <h1 className="text-2xl font-extrabold text-[#1A1A2E] dark:text-white">
               Daily problem workspace
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Schedule daily challenges and review member solutions from one
               source of truth.
             </p>
@@ -360,14 +360,14 @@ export function CodeQuestTab() {
             </button>
             <button
               onClick={openNew}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#FF7A00] px-4 py-2.5 text-sm font-bold text-white"
+              className="inline-flex items-center gap-2 rounded-lg bg-journey-accent px-4 py-2.5 text-sm font-bold text-journey-on-accent"
             >
               <Plus className="h-4 w-4" /> Schedule problem
             </button>
            {(userRole === 'ADMIN' || userRole === 'CLUB_LEAD') && (
   <PillButton
     href="/codequest/batch-schedule"
-    className="inline-flex items-center gap-2 rounded-lg bg-[#FF7A00] px-4 py-2.5 text-sm font-bold text-white"
+    className="inline-flex items-center gap-2 rounded-lg bg-journey-accent px-4 py-2.5 text-sm font-bold text-journey-on-accent"
   >
     <i className="fa fa-tags mr-2" /> Batch Schedule
   </PillButton>
@@ -439,7 +439,7 @@ export function CodeQuestTab() {
                     <div className="min-w-0">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         {isToday && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FF7A00] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-journey-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-journey-on-accent">
                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />{" "}
                             Today
                           </span>
@@ -449,7 +449,7 @@ export function CodeQuestTab() {
                         >
                         {p.difficulty}
                       </span>
-                      <span className="text-xs font-mono text-slate-500">
+                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
                         {p.scheduled_date}
                       </span>
                       {p.external_url && (
@@ -457,7 +457,7 @@ export function CodeQuestTab() {
                           href={p.external_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-[#FF7A00]"
+                          className="inline-flex items-center gap-1 text-xs text-journey-accent"
                         >
                           <ExternalLink className="h-3 w-3" />{" "}
                           {p.external_platform || "External link"}
@@ -467,7 +467,7 @@ export function CodeQuestTab() {
                     <h2 className="font-bold text-[#1A1A2E] dark:text-white">
                       {p.title}
                     </h2>
-                    <p className="mt-1 line-clamp-1 text-sm text-slate-500">
+                    <p className="mt-1 line-clamp-1 text-sm text-slate-500 dark:text-slate-400">
                       {p.statement}
                     </p>
                   </div>
@@ -503,7 +503,7 @@ export function CodeQuestTab() {
               <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
                 Submission review queue
               </h2>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Accepting a solution securely recalculates that member’s streak.
               </p>
             </div>
@@ -529,7 +529,7 @@ export function CodeQuestTab() {
                     <p className="truncate text-sm font-bold text-[#1A1A2E] dark:text-white">
                       {s.problem_title}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {s.user_name || s.user_email} · {s.language} ·{" "}
                       {new Date(s.created_at).toLocaleString()}
                     </p>
@@ -554,7 +554,7 @@ export function CodeQuestTab() {
               ))
             )}
           </div>
-          <div className="flex items-center justify-between gap-3 border-t border-slate-200 p-4 text-xs text-slate-500 dark:border-slate-800">
+          <div className="flex items-center justify-between gap-3 border-t border-slate-200 p-4 text-xs text-slate-500 dark:text-slate-400 dark:border-slate-800">
             <span>
               {submissionCount} total · page {submissionPage} of {totalSubmissionPages}
             </span>
@@ -614,7 +614,7 @@ export function CodeQuestTab() {
               <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
                 Delete problem?
               </h2>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 Delete “{pendingDelete.title}”? Its submissions will also be
                 deleted. This cannot be undone.
               </p>
@@ -655,16 +655,16 @@ function Stat({
 }) {
   return (
     <div className="rounded-xl glass-panel p-4">
-      <Icon className="mb-3 h-5 w-5 text-[#FF7A00]" />
+      <Icon className="mb-3 h-5 w-5 text-journey-accent" />
       <p className="text-2xl font-extrabold text-[#1A1A2E] dark:text-white">
         {value}
       </p>
-      <p className="text-xs font-semibold text-slate-500">{label}</p>
+      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</p>
     </div>
   );
 }
 function Empty({ text }: { text: string }) {
-  return <p className="p-8 text-center text-sm text-slate-500">{text}</p>;
+  return <p className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">{text}</p>;
 }
 function Verdict({
   accept = false,
@@ -747,7 +747,7 @@ function Editor({
                   ? "Edit scheduled problem"
                   : "Schedule a CodeQuest problem"}
               </h2>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 One problem can be assigned to each calendar date.
               </p>
             </div>
@@ -866,7 +866,7 @@ function Editor({
             </button>
             <button
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#FF7A00] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg bg-journey-accent px-4 py-2 text-sm font-bold text-journey-on-accent disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
               {saving ? "Saving…" : editing ? "Save changes" : "Schedule problem"}
@@ -895,7 +895,7 @@ function SubmissionDetail({
               <h2 className="font-extrabold text-[#1A1A2E] dark:text-white">
                 {submission.problem_title}
               </h2>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {submission.user_name || submission.user_email} ·{" "}
                 {submission.language}
               </p>

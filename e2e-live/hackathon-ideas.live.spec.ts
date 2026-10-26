@@ -59,8 +59,8 @@ test('the team leader sees the payment and the requirements, and cannot submit w
   await expect(page.getByText(/Scan this QR code with any UPI app and pay ₹200/)).toBeVisible();
   await expect.poll(() => page.getByAltText('Payment QR code').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0), { timeout: 30_000 }).toBe(true);
   await page.getByLabel(/Idea title/).fill('Smart bins');
-  await page.getByLabel(/The problem/).fill('Campus waste is not sorted.');
-  await page.getByLabel(/Your approach/).fill('Sensors and an app.');
+  await page.getByLabel(/The problem/).fill('Campus waste is not sorted, so recyclables end up in landfill.');
+  await page.getByLabel(/Your approach/).fill('Sensors in each bin and an app that alerts the cleaners.');
   await page.getByRole('button', { name: 'Submit idea' }).click();
   await expect(page.getByText(/LinkedIn post link is required/)).toBeVisible();
   expect(idea()).toBeNull();
@@ -69,9 +69,10 @@ test('the team leader sees the payment and the requirements, and cannot submit w
 test('a full submission: files go to the bucket, the idea is saved, and the answer holds only references', async ({ page }) => {
   await signIn(page, leader);
   await page.goto(`/hackathons/${SLUG}/dashboard`);
+  await page.waitForLoadState('networkidle');   // the dev server can reload the page while it compiles; type once it has settled
   await page.getByLabel(/Idea title/).fill('Smart bins');
-  await page.getByLabel(/The problem/).fill('Campus waste is not sorted.');
-  await page.getByLabel(/Your approach/).fill('Sensors and an app.');
+  await page.getByLabel(/The problem/).fill('Campus waste is not sorted, so recyclables end up in landfill.');
+  await page.getByLabel(/Your approach/).fill('Sensors in each bin and an app that alerts the cleaners.');
   await page.getByLabel(/The plan/).fill('Week 1: sensors.');
   await page.getByLabel(/LinkedIn post link/).fill(LINKEDIN);
   await page.getByLabel(/Transaction ID/).fill('UPI-884213');
@@ -83,6 +84,7 @@ test('a full submission: files go to the bucket, the idea is saved, and the answ
   await expect(page.getByAltText('Preview of payment.png')).toBeVisible();
   await expect(page.getByText(/uploaded/)).toHaveCount(2);
 
+  await expect(page.getByLabel(/Idea title/)).toHaveValue('Smart bins');
   await page.getByRole('button', { name: 'Submit idea' }).click();
   await expect(page.getByText('Idea sent for review')).toBeVisible();
 
@@ -103,10 +105,10 @@ test('the admin reads the idea and opens the payment screenshot (not public)', a
   await page.getByRole('button', { name: 'Read and review' }).first().click();
   await expect(page.getByRole('link', { name: /LinkedIn post/ })).toHaveAttribute('href', LINKEDIN);
   await expect(page.getByText(/Payment: ₹200 · transaction/)).toContainText('UPI-884213');
-  const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByRole('button', { name: /Payment screenshot: payment\.png/ }).click()]);
-  await popup.waitForLoadState();
-  expect(popup.url()).toContain('X-Amz-Signature');
-  await popup.close();
+  await page.getByRole('button', { name: 'Preview payment.png' }).click();
+  const shot = page.getByRole('dialog', { name: /payment\.png/ }).getByAltText('Preview of payment.png');
+  await expect(shot).toBeVisible();
+  expect(await shot.getAttribute('src')).toContain('X-Amz-Signature');
 });
 
 test('a judge can reach the slides but never the payment screenshot or the transaction id', async ({ page }) => {
@@ -146,8 +148,8 @@ test('with editing switched off the leader is locked out and told why; switching
   await expect(page.getByRole('article', { name: 'Your submission' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Edit submission|Save changes|Submit idea/ })).toHaveCount(0);
   await expect(page.getByText('Transaction ID: UPI-884213')).toBeVisible();
-  await expect(page.getByRole('button', { name: /payment\.png/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /bins\.pptx/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Download payment.png' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Download bins.pptx' })).toBeVisible();
 
   await setEditing(true);
   await page.reload();

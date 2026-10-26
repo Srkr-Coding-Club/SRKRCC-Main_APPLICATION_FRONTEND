@@ -247,7 +247,7 @@ export default function AboutPage() {
               <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:flex-wrap">
                 <Link
                   href="/signup"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-journey-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-journey-accent px-5 py-2.5 text-sm font-semibold text-journey-on-accent transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
                 >
                   Join the Club
                   <ArrowRight className="w-4 h-4" />

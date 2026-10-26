@@ -8,6 +8,7 @@ import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
 import { slugify } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { isGoogleDriveUrl, normalizeImageUrl } from '@/lib/imageUrl';
 
 type RegistrationMode = 'quick' | 'form';
 
@@ -159,7 +160,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
         capacity: Number(capacity),
         start_time: startTime ? new Date(startTime).toISOString() : null,
         end_time: endTime ? new Date(endTime).toISOString() : null,
-        poster_image: posterImage.trim() || null,
+        poster_image: normalizeImageUrl(posterImage) || null,
         // One-click: the server builds the registration form from the ticked details.
         ...(registrationMode === 'quick'
           ? { quick_registration_fields: quickFields }
@@ -219,7 +220,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
               placeholder="e.g. Hands-on Web Dev & Next.js Workshop"
               className={inputClasses}
             />
-            {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
+            {errors.title && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.title}</p>}
           </div>
 
           <div>
@@ -234,7 +235,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
               placeholder="hands-on-web-dev-nextjs-workshop"
               className={inputClasses}
             />
-            {errors.slug && <p className="mt-1 text-[11px] text-rose-500">{errors.slug}</p>}
+            {errors.slug && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.slug}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -257,7 +258,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
                 onChange={(e) => setCapacity(e.target.value)}
                 className={inputClasses}
               />
-              {errors.capacity && <p className="mt-1 text-[11px] text-rose-500">{errors.capacity}</p>}
+              {errors.capacity && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.capacity}</p>}
             </div>
           </div>
 
@@ -270,7 +271,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
               placeholder="CSE Seminar Hall (leave blank if not decided yet)"
               className={inputClasses}
             />
-            {errors.venue && <p className="mt-1 text-[11px] text-rose-500">{errors.venue}</p>}
+            {errors.venue && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.venue}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -282,7 +283,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
                 onChange={(e) => setStartTime(e.target.value)}
                 className={inputClasses}
               />
-              {errors.startTime && <p className="mt-1 text-[11px] text-rose-500">{errors.startTime}</p>}
+              {errors.startTime && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.startTime}</p>}
             </div>
             <div>
               <label className={labelClasses}>Event End Date & Time <span className="normal-case font-medium text-slate-400">(optional)</span></label>
@@ -292,7 +293,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
                 onChange={(e) => setEndTime(e.target.value)}
                 className={inputClasses}
               />
-              {errors.endTime && <p className="mt-1 text-[11px] text-rose-500">{errors.endTime}</p>}
+              {errors.endTime && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.endTime}</p>}
             </div>
           </div>
           <p className="text-[11px] text-slate-400 -mt-2">
@@ -305,9 +306,20 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
               type="url"
               value={posterImage}
               onChange={(e) => setPosterImage(e.target.value)}
+              onBlur={() => {
+                const normalized = normalizeImageUrl(posterImage);
+                if (normalized && normalized !== posterImage.trim()) {
+                  setPosterImage(normalized);
+                }
+              }}
               placeholder="https://images.unsplash.com/..."
               className={inputClasses}
             />
+            {isGoogleDriveUrl(posterImage) && (
+              <p className="mt-1 text-[11px] text-sky-600 dark:text-sky-400">
+                ℹ️ Google Drive link detected. Converted to direct image format. Ensure sharing is set to &ldquo;Anyone with the link&rdquo; (Viewer).
+              </p>
+            )}
           </div>
 
           <div>
@@ -422,7 +434,7 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
+              className="px-4 py-2 rounded-lg text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
             >
               Cancel
             </button>

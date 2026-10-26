@@ -182,7 +182,7 @@ function SetupPasswordContent() {
         <button
           type="submit"
           disabled={!codeInput.trim()}
-          className="px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm transition active:scale-[0.98] disabled:opacity-50"
+          className="px-4 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm transition active:scale-[0.98] disabled:opacity-50"
         >
           Continue
         </button>
@@ -205,7 +205,7 @@ function SetupPasswordContent() {
       footer={
         <p className="text-center text-xs text-slate-500 dark:text-slate-400">
           Already know your password?{' '}
-          <Link href="/login" className="font-bold text-[#FF7A00] hover:text-[#E06B00]">
+          <Link href="/login" className="font-bold text-journey-accent hover:text-[#E06B00]">
             Sign in
           </Link>
         </p>
@@ -214,7 +214,7 @@ function SetupPasswordContent() {
       {/* State A: Validating Token */}
       {isValidatingToken && (
         <div className="py-12 text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#FF7A00]" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-journey-accent" />
           <p className="text-sm text-slate-400">Verifying secure setup token...</p>
         </div>
       )}
@@ -235,7 +235,7 @@ function SetupPasswordContent() {
             <button
               type="button"
               onClick={() => router.push('/account/setup-password')}
-              className="w-full py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs transition active:scale-[0.98] shadow-sm"
+              className="w-full py-2.5 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-xs transition active:scale-[0.98] shadow-sm"
             >
               Request a New Setup Link
             </button>
@@ -252,7 +252,7 @@ function SetupPasswordContent() {
                 Welcome, {memberInfo?.first_name || 'Member'}!
               </span>
               {memberInfo?.club_id && (
-                <span className="px-2 py-0.5 rounded font-mono text-[10px] bg-[#FF7A00] text-white font-bold">
+                <span className="px-2 py-0.5 rounded font-mono text-[10px] bg-journey-accent text-journey-on-accent font-bold">
                   {memberInfo.club_id}
                 </span>
               )}
@@ -342,7 +342,7 @@ function SetupPasswordContent() {
           {submitError && (
             <div
               role="alert"
-              className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs flex items-start gap-2"
+              className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-start gap-2"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div className="space-y-0.5">
@@ -355,7 +355,7 @@ function SetupPasswordContent() {
           <button
             type="submit"
             disabled={isSubmitting || !isPasswordStrong || !passwordsMatch}
-            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50 shadow-md shadow-orange-500/10"
+            className="w-full py-2.5 px-4 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50 shadow-md shadow-orange-500/10"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
             <span>Set Password & Activate</span>
@@ -375,7 +375,7 @@ function SetupPasswordContent() {
           </p>
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm transition shadow-md shadow-orange-500/10"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm transition shadow-md shadow-orange-500/10"
           >
             <span>Proceed to Sign In</span>
             <ArrowRight className="w-4 h-4" />
@@ -409,7 +409,7 @@ function SetupPasswordContent() {
           <button
             type="submit"
             disabled={isRequesting || !requestEmail}
-            className="w-full py-2.5 px-4 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50 shadow-md shadow-orange-500/10"
+            className="w-full py-2.5 px-4 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50 shadow-md shadow-orange-500/10"
           >
             {isRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
             <span>Send Setup Link</span>
@@ -433,7 +433,7 @@ function SetupPasswordContent() {
           <div className="pt-2">
             <Link
               href="/login"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#FF7A00] hover:text-[#E06B00]"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-journey-accent hover:text-[#E06B00]"
             >
               <span>Back to Sign In</span>
             </Link>
@@ -449,7 +449,7 @@ export default function SetupPasswordPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-[#FAFAFC] dark:bg-[#0D0E15]">
-          <div className="flex items-center space-x-3 text-slate-500">
+          <div className="flex items-center space-x-3 text-slate-500 dark:text-slate-400">
             <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
             <span className="text-sm font-medium">Loading account setup...</span>
           </div>

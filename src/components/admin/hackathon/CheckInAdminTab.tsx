@@ -21,7 +21,7 @@ export function CheckInAdminTab({ hackathon, onEnable }: CheckInAdminTabProps) {
     <div className="space-y-6">
       <CheckInConsole slug={hackathon.slug} />
       <section className={`${PANEL} space-y-3`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ScanLine className="h-4 w-4 text-[#FF7A00]" /> Check-in volunteers</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ScanLine className="h-4 w-4 text-journey-accent" /> Check-in volunteers</h3>
         <StaffPanel
           slug={hackathon.slug}
           role="VOLUNTEER"

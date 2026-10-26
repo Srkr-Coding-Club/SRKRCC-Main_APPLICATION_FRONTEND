@@ -102,7 +102,7 @@ export function AnnouncementFormPanel({ isOpen, announcement, onClose, onSaved }
         />
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center space-x-2">
-            <Megaphone className="w-5 h-5 text-[#FF7A00]" />
+            <Megaphone className="w-5 h-5 text-journey-accent" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
               {isEditMode ? `Edit Announcement: ${announcement!.title}` : 'New Announcement'}
             </h3>
@@ -125,7 +125,7 @@ export function AnnouncementFormPanel({ isOpen, announcement, onClose, onSaved }
               placeholder="e.g. Registrations open for IconCoders 2026"
               className={inputClasses}
             />
-            {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
+            {errors.title && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.title}</p>}
           </div>
 
           <div>
@@ -144,7 +144,7 @@ export function AnnouncementFormPanel({ isOpen, announcement, onClose, onSaved }
             onChange={setMessage}
             placeholder="What do you want members to see on the landing page?"
           />
-          {errors.message && <p className="-mt-2 text-[11px] text-rose-500">{errors.message}</p>}
+          {errors.message && <p className="-mt-2 text-[11px] text-rose-600 dark:text-rose-400">{errors.message}</p>}
 
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -162,14 +162,14 @@ export function AnnouncementFormPanel({ isOpen, announcement, onClose, onSaved }
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
+              className="px-4 py-2 rounded-lg text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60"
+              className="px-4 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60"
             >
               {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Announcement'}
             </button>

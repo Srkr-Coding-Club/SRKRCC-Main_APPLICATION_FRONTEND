@@ -10,7 +10,7 @@ import { AnnouncementFormPanel } from './AnnouncementFormPanel';
 const TYPE_BADGE: Record<AnnouncementType, string> = {
   INFO: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800',
   SUCCESS: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
-  WARNING: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+  WARNING: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
   URGENT: 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800',
 };
 
@@ -78,15 +78,15 @@ export function AnnouncementsTab() {
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
         <div>
           <h3 className="text-lg font-extrabold text-[#1A1A2E] dark:text-white flex items-center space-x-2">
-            <Megaphone className="w-5 h-5 text-[#FF7A00]" />
+            <Megaphone className="w-5 h-5 text-journey-accent" />
             <span>Announcements ({announcements.length})</span>
           </h3>
-          <p className="text-xs text-slate-500">Shown as a banner on the landing page while Active.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Shown as a banner on the landing page while Active.</p>
         </div>
 
         <button
           onClick={() => setPanel({ open: true, editing: null })}
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition active:scale-95"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-xs shadow-sm transition active:scale-95"
         >
           <Plus className="w-4 h-4" />
           <span>New Announcement</span>

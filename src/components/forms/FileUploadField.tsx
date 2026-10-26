@@ -167,7 +167,7 @@ export default function FileUploadField({ slug, fieldId, uploadWith, discardWith
       onDragLeave={() => setDragging(false)}
       onDrop={(e) => { e.preventDefault(); setDragging(false); if (!disabled && !full) void add(Array.from(e.dataTransfer.files)); }}
     >
-      <Upload className="mx-auto mb-2 h-7 w-7 text-[#FF7A00]" aria-hidden="true" />
+      <Upload className="mx-auto mb-2 h-7 w-7 text-journey-accent" aria-hidden="true" />
       <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Drag & drop {multiple ? 'files' : 'a file'} here, or</p>
       <button
         type="button"
@@ -191,7 +191,7 @@ export default function FileUploadField({ slug, fieldId, uploadWith, discardWith
         accept={accept}
         onChange={(e) => { const picked = Array.from(e.target.files || []); e.target.value = ''; void add(picked); }}
       />
-      <p className="mt-2 text-[11px] text-slate-500">{hint}</p>
+      <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{hint}</p>
 
       {entries.length > 0 && (
         <ul className="mt-3 space-y-2 text-left" aria-label="Attached files">
@@ -212,10 +212,10 @@ export default function FileUploadField({ slug, fieldId, uploadWith, discardWith
                     <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" role="progressbar" aria-label={`Uploading ${entry.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(entry.progress * 100)}>
                       <div className="h-full bg-[#FF7A00] transition-[width]" style={{ width: `${Math.round(entry.progress * 100)}%` }} />
                     </div>
-                    <p className="mt-0.5 text-[11px] text-slate-500" aria-live="polite">Uploading… {Math.round(entry.progress * 100)}%</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400" aria-live="polite">Uploading… {Math.round(entry.progress * 100)}%</p>
                   </div>
                 )}
-                {entry.state === 'done' && <p className="text-[11px] text-slate-500">{formatSize(entry.size)} · uploaded</p>}
+                {entry.state === 'done' && <p className="text-[11px] text-slate-500 dark:text-slate-400">{formatSize(entry.size)} · uploaded</p>}
                 {entry.state === 'error' && (
                   <p className="flex items-start gap-1 text-[11px] text-red-600" role="alert">
                     <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
@@ -234,7 +234,7 @@ export default function FileUploadField({ slug, fieldId, uploadWith, discardWith
                 disabled={disabled}
                 onClick={() => remove(entry)}
                 aria-label={entry.state === 'uploading' ? `Cancel upload of ${entry.name}` : `Remove ${entry.name}`}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-slate-800"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-slate-800"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>

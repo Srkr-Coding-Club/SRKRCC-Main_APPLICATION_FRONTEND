@@ -48,15 +48,15 @@ export function ProblemDomainsPanel({ slug, domains, usage, onChange }: ProblemD
     <div className="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
       <div>
         <h4 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-          <Tags className="h-4 w-4 text-[#FF7A00]" /> Domains
+          <Tags className="h-4 w-4 text-journey-accent" /> Domains
         </h4>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Problem statements are filed under one of these. They also become the filter pills on the public page, in this order.
         </p>
       </div>
 
       {domains.length === 0 ? (
-        <p className="text-xs text-slate-500">No domains yet. Add the first one below (for example AI, EdTech, HealthTech).</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">No domains yet. Add the first one below (for example AI, EdTech, HealthTech).</p>
       ) : (
         <ul className="flex flex-wrap gap-2">
           {domains.map((domain) => {
@@ -64,14 +64,14 @@ export function ProblemDomainsPanel({ slug, domains, usage, onChange }: ProblemD
             return (
               <li key={domain} className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-3 pr-1.5 text-xs font-semibold text-slate-700 dark:bg-white/5 dark:text-slate-200">
                 {domain}
-                <span className="rounded-full bg-white px-1.5 text-[10px] font-bold text-slate-500 dark:bg-white/10">{used}</span>
+                <span className="rounded-full bg-white px-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 dark:bg-white/10">{used}</span>
                 <button
                   type="button"
                   disabled={busy || used > 0}
                   onClick={() => save(domains.filter((existing) => existing !== domain))}
                   title={used > 0 ? `${used} statement${used === 1 ? '' : 's'} use this domain` : `Remove ${domain}`}
                   aria-label={`Remove domain ${domain}`}
-                  className="rounded-full p-0.5 text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="-mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-500 dark:text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <X className="h-3 w-3" />
                 </button>

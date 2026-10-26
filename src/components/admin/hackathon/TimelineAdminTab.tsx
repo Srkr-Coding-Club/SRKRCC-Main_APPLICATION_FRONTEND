@@ -193,9 +193,9 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 font-bold text-[#1A1A2E] dark:text-white">
-            <GitBranch className="h-4 w-4 text-[#FF7A00]" /> Public Timeline ({stages.length})
+            <GitBranch className="h-4 w-4 text-journey-accent" /> Public Timeline ({stages.length})
           </h3>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             The &ldquo;Stages and Timelines&rdquo; section of the public hackathon page. Add anything: registration, idea submission, rounds, results, ceremonies.
           </p>
         </div>
@@ -215,7 +215,7 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
         <div className="h-24 animate-pulse rounded-lg bg-slate-200 dark:bg-white/5" />
       ) : stages.length === 0 && !loadError ? (
         <div className="space-y-3 py-10 text-center">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             No stages yet, so the public page has no timeline. Start from your rounds or add stages one by one.
           </p>
           <button onClick={importRounds} disabled={busy} className={BTN_GHOST}>
@@ -233,10 +233,10 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
               <div className="min-w-0 flex-1 space-y-0.5">
                 <p className="flex flex-wrap items-center gap-2 font-bold text-[#1A1A2E] dark:text-white">
                   {stage.title}
-                  {!stage.is_visible && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">Hidden</span>}
-                  {stage.badge && <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${TONE_STYLES[stage.tone as StageTone]?.soft ?? ''}`}>{stage.badge}</span>}
+                  {!stage.is_visible && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">Hidden</span>}
+                  {stage.badge && <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${TONE_STYLES[stage.tone as StageTone]?.soft ?? ''}`}>{stage.badge}</span>}
                 </p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   {stage.starts_at ? formatDateTime(stage.starts_at) : 'No date'}
                   {stage.ends_at ? ` → ${formatDateTime(stage.ends_at)}` : ''}
                   {stage.location ? ` · ${stage.location}` : ''}
@@ -295,31 +295,31 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
           <div>
             <label className={LABEL} htmlFor="stage-title">Title *</label>
             <input id="stage-title" value={draft.title} maxLength={150} onChange={(e) => update('title', e.target.value)} placeholder="e.g. Prelims Round (Online)" className={INPUT} />
-            {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
+            {errors.title && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.title}</p>}
           </div>
 
           <MarkdownEditor label="Description" value={draft.description} onChange={(v) => update('description', v)} placeholder="What happens in this stage, what participants must do..." />
-          {errors.description && <p className="-mt-3 text-[11px] text-rose-500">{errors.description}</p>}
+          {errors.description && <p className="-mt-3 text-[11px] text-rose-600 dark:text-rose-400">{errors.description}</p>}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Starts</label>
-              <input type="datetime-local" value={draft.starts_at} onChange={(e) => update('starts_at', e.target.value)} className={INPUT} />
-              {errors.starts_at && <p className="mt-1 text-[11px] text-rose-500">{errors.starts_at}</p>}
+              <input aria-label="Starts" type="datetime-local" value={draft.starts_at} onChange={(e) => update('starts_at', e.target.value)} className={INPUT} />
+              {errors.starts_at && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.starts_at}</p>}
             </div>
             <div>
               <label className={LABEL}>Ends</label>
-              <input type="datetime-local" value={draft.ends_at} onChange={(e) => update('ends_at', e.target.value)} className={INPUT} />
-              {errors.ends_at && <p className="mt-1 text-[11px] text-rose-500">{errors.ends_at}</p>}
+              <input aria-label="Ends" type="datetime-local" value={draft.ends_at} onChange={(e) => update('ends_at', e.target.value)} className={INPUT} />
+              {errors.ends_at && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.ends_at}</p>}
             </div>
             <div>
               <label className={LABEL}>Label chip</label>
-              <input value={draft.badge} maxLength={40} onChange={(e) => update('badge', e.target.value)} placeholder="e.g. Online, Mandatory" className={INPUT} />
-              {errors.badge && <p className="mt-1 text-[11px] text-rose-500">{errors.badge}</p>}
+              <input aria-label="Label chip" value={draft.badge} maxLength={40} onChange={(e) => update('badge', e.target.value)} placeholder="e.g. Online, Mandatory" className={INPUT} />
+              {errors.badge && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.badge}</p>}
             </div>
             <div>
               <label className={LABEL}>Location</label>
-              <input value={draft.location} maxLength={150} onChange={(e) => update('location', e.target.value)} placeholder="e.g. Auditorium, Google Meet" className={INPUT} />
+              <input aria-label="Location" value={draft.location} maxLength={150} onChange={(e) => update('location', e.target.value)} placeholder="e.g. Auditorium, Google Meet" className={INPUT} />
             </div>
           </div>
 
@@ -351,13 +351,13 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
                     role="radio"
                     aria-checked={draft.marker === marker}
                     onClick={() => update('marker', marker)}
-                    className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${draft.marker === marker ? 'border-[#FF7A00] bg-[#FF7A00]/10 text-[#C25A00] dark:text-[#FF9A4A]' : 'border-slate-200 text-slate-500 dark:border-slate-700'}`}
+                    className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${draft.marker === marker ? 'border-[#FF7A00] bg-[#FF7A00]/10 text-orange-800 dark:text-[#FF9A4A]' : 'border-slate-200 text-slate-500 dark:text-slate-400 dark:border-slate-700'}`}
                   >
                     {marker === 'DATE' ? 'Date badge' : 'Icon'}
                   </button>
                 ))}
               </div>
-              <p className="mt-1 text-[11px] text-slate-400">A date badge needs a start date; otherwise the icon is used.</p>
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">A date badge needs a start date; otherwise the icon is used.</p>
             </div>
           </div>
 
@@ -376,7 +376,7 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
                       aria-label={STAGE_ICONS[key].label}
                       title={STAGE_ICONS[key].label}
                       onClick={() => update('icon', key)}
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg border transition ${draft.icon === key ? 'border-[#FF7A00] bg-[#FF7A00]/10 text-[#FF7A00]' : 'border-slate-200 text-slate-500 hover:border-[#FF7A00]/50 dark:border-slate-700'}`}
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg border transition ${draft.icon === key ? 'border-[#FF7A00] bg-[#FF7A00]/10 text-orange-800 dark:text-journey-accent' : 'border-slate-200 text-slate-500 dark:text-slate-400 hover:border-[#FF7A00]/50 dark:border-slate-700'}`}
                     >
                       <Icon className="h-4 w-4" />
                     </button>
@@ -389,13 +389,13 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={LABEL}>Button label</label>
-              <input value={draft.link_label} maxLength={40} onChange={(e) => update('link_label', e.target.value)} placeholder="e.g. Join the meeting" className={INPUT} />
-              {errors.link_label && <p className="mt-1 text-[11px] text-rose-500">{errors.link_label}</p>}
+              <input aria-label="Button label" value={draft.link_label} maxLength={40} onChange={(e) => update('link_label', e.target.value)} placeholder="e.g. Join the meeting" className={INPUT} />
+              {errors.link_label && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.link_label}</p>}
             </div>
             <div>
               <label className={LABEL}>Button link</label>
-              <input type="url" value={draft.link_url} onChange={(e) => update('link_url', e.target.value)} placeholder="https://..." className={INPUT} />
-              {errors.link_url && <p className="mt-1 text-[11px] text-rose-500">{errors.link_url}</p>}
+              <input aria-label="Button link" type="url" value={draft.link_url} onChange={(e) => update('link_url', e.target.value)} placeholder="https://..." className={INPUT} />
+              {errors.link_url && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.link_url}</p>}
             </div>
           </div>
 

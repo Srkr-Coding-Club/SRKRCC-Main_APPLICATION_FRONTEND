@@ -205,6 +205,9 @@ useLayoutEffect(() => {
               ref={stackRef}
               className="relative mx-auto grid w-full touch-pan-y"
               onMouseLeave={resetStack}
+              onBlur={(event) => {
+                if (!stackRef.current?.contains(event.relatedTarget as Node | null)) resetStack();
+              }}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
@@ -218,6 +221,7 @@ useLayoutEffect(() => {
                     zIndex: index + 1,
                   }}
                   onMouseEnter={expandStack}
+                  onFocus={expandStack}
                 >
                   {card}
                 </div>
@@ -238,6 +242,11 @@ useLayoutEffect(() => {
           >
             <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
+          {totalPages > 1 && (
+            <p role="status" className="col-span-3 mt-2 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              {pageSize === 1 ? `Card ${page + 1} of ${cards.length}` : `Page ${page + 1} of ${totalPages}`}
+            </p>
+          )}
         </div>
       ) : (
         <div className="flex items-center justify-center gap-3">

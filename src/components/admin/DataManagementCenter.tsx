@@ -964,7 +964,7 @@ function DataGrid({
       <div className="flex flex-col items-center justify-center py-28 text-slate-500 dark:text-slate-400 gap-2">
         <Database className="w-12 h-12 text-slate-300 dark:text-slate-700" />
         <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No records found</p>
-        <p className="text-xs text-slate-500">Try adjusting your search or active filters.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Try adjusting your search or active filters.</p>
       </div>
     );
   }
@@ -1250,7 +1250,7 @@ export default function DataManagementCenter() {
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-500' : ''}`} />
                   </button>
                   {hasEmailColumn && selectedIds.size > 0 && (
-                    <button onClick={() => setShowEmailEditor(true)} className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm transition-colors active:scale-95">
+                    <button onClick={() => setShowEmailEditor(true)} className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-journey-accent hover:opacity-90 text-journey-on-accent shadow-sm transition-colors active:scale-95">
                       <Mail className="w-3.5 h-3.5" /> Email Selected ({selectedIds.size})
                     </button>
                   )}
@@ -1309,7 +1309,7 @@ export default function DataManagementCenter() {
                   >
                     <Columns className="w-3.5 h-3.5" />
                     Columns
-                    <span className="text-slate-500 text-[10px]">({visibleKeys.size}/{allColumns.length})</span>
+                    <span className="text-slate-500 dark:text-slate-400 text-[10px]">({visibleKeys.size}/{allColumns.length})</span>
                   </button>
                   <ColumnPanel
                     open={showColumnPanel}

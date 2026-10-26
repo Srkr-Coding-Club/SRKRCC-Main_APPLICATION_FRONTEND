@@ -297,7 +297,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Teams Center</h3>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Manage registrations, members, leadership, problem statement choices, and statuses.
           </p>
         </div>
@@ -313,11 +313,12 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="relative flex-1 min-w-[220px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search team, member name, email, roll…"
+            aria-label="Search teams and members"
             className={`${INPUT} pl-9`}
           />
         </div>
@@ -333,16 +334,16 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
 
       {confirmDialog}
       {loadError && <LoadError message={loadError} onRetry={load} />}
-      <p className="text-xs text-slate-500">{filtered.length} of {teams.length} teams</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{filtered.length} of {teams.length} teams</p>
 
       {loading ? (
         <div className="h-40 rounded-lg bg-slate-200 dark:bg-white/5 animate-pulse" />
       ) : filtered.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500">No teams match.</p>
+        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">No teams match.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-800">
+            <thead className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="py-2 pr-3">Team</th>
                 <th className="py-2 pr-3">Leader</th>
@@ -377,7 +378,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                     className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00]/50 dark:hover:bg-white/[0.03] dark:focus:bg-white/[0.03]"
                   >
                     <td className="py-2.5 pr-3 font-semibold text-[#1A1A2E] dark:text-white">{t.name}</td>
-                    <td className="py-2.5 pr-3 text-xs text-slate-500">{t.leader_email ?? '-'}</td>
+                    <td className="py-2.5 pr-3 text-xs text-slate-500 dark:text-slate-400">{t.leader_email ?? '-'}</td>
                     <td className="py-2.5 pr-3 text-xs">{t.member_count}{t.pending_invites.length ? ` (+${t.pending_invites.length} invited)` : ''}</td>
                     <td className="py-2.5 pr-3 text-xs font-mono" title={t.open_innovation ? `Open innovation: ${t.open_innovation.title}` : t.problem_statement?.title}>
                       {problemCode(t)}
@@ -411,14 +412,14 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
               {/* Team Name header & edit */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Team Name</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Team Name</span>
                   {!editingName && (
                     <button
                       onClick={() => {
                         setDraftName(selected.name);
                         setEditingName(true);
                       }}
-                      className="flex items-center gap-1 text-xs text-[#FF7A00] hover:underline"
+                      className="flex items-center gap-1 text-xs text-journey-accent hover:underline"
                     >
                       <Pencil className="h-3 w-3" /> Rename
                     </button>
@@ -448,19 +449,19 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                   <StatusPill tone={TEAM_STATUS_PILL[selected.status].tone}>{TEAM_STATUS_PILL[selected.status].label}</StatusPill>
                 )}
                 {selected.problem_statement && (
-                  <span className="text-xs font-semibold text-slate-500">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {selected.problem_statement.code}: {selected.problem_statement.title}
                   </span>
                 )}
                 {selected.open_innovation && <StatusPill tone="purple">Open innovation</StatusPill>}
                 {selected.is_waitlisted && <StatusPill tone="amber">Waitlisted</StatusPill>}
               </div>
-              {selected.status_reason && <p className="text-xs text-slate-500">Reason given to the team: {selected.status_reason}</p>}
+              {selected.status_reason && <p className="text-xs text-slate-500 dark:text-slate-400">Reason given to the team: {selected.status_reason}</p>}
 
               {/* Reassign / Edit Problem Statement */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Problem Statement</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Problem Statement</span>
                   {!editingProblem && (
                     <button
                       onClick={() => {
@@ -470,7 +471,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                         setDraftOiDomain(selected.open_innovation?.domain ?? '');
                         setEditingProblem(true);
                       }}
-                      className="flex items-center gap-1 text-xs text-[#FF7A00] hover:underline"
+                      className="flex items-center gap-1 text-xs text-journey-accent hover:underline"
                     >
                       <Edit2 className="h-3 w-3" /> Change
                     </button>
@@ -489,15 +490,15 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                       <div className="space-y-2 rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 text-xs">
                         <div>
                           <label className={LABEL}>Custom Problem Title *</label>
-                          <input value={draftOiTitle} onChange={(e) => setDraftOiTitle(e.target.value)} className={INPUT} placeholder="e.g. AI Crop Disease Detector" />
+                          <input aria-label="Custom Problem Title" value={draftOiTitle} onChange={(e) => setDraftOiTitle(e.target.value)} className={INPUT} placeholder="e.g. AI Crop Disease Detector" />
                         </div>
                         <div>
                           <label className={LABEL}>Domain / Track *</label>
-                          <input value={draftOiDomain} onChange={(e) => setDraftOiDomain(e.target.value)} className={INPUT} placeholder="e.g. AgriTech" />
+                          <input aria-label="Domain / Track" value={draftOiDomain} onChange={(e) => setDraftOiDomain(e.target.value)} className={INPUT} placeholder="e.g. AgriTech" />
                         </div>
                         <div>
                           <label className={LABEL}>Description *</label>
-                          <textarea rows={3} value={draftOiDesc} onChange={(e) => setDraftOiDesc(e.target.value)} className={INPUT} placeholder="Problem description…" />
+                          <textarea aria-label="Description" rows={3} value={draftOiDesc} onChange={(e) => setDraftOiDesc(e.target.value)} className={INPUT} placeholder="Problem description…" />
                         </div>
                       </div>
                     )}
@@ -522,7 +523,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                         <p className="font-semibold text-[#1A1A2E] dark:text-white">{selected.problem_statement.title}</p>
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-400">No problem statement selected yet.</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">No problem statement selected yet.</p>
                     )}
                   </div>
                 )}
@@ -530,13 +531,13 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
 
               {/* Members */}
               <div>
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Members ({selected.members.length})</p>
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Members ({selected.members.length})</p>
                 <ul className="space-y-2">
                   {selected.members.map((m) => (
                     <li key={m.user_id} className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 text-xs space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="flex items-center gap-1.5 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                          {m.name} {m.role === 'LEADER' && <Crown className="h-3.5 w-3.5 text-[#FF7A00]" />}
+                          {m.name} {m.role === 'LEADER' && <Crown className="h-3.5 w-3.5 text-journey-accent" />}
                         </p>
                         {m.role !== 'LEADER' && (
                           <div className="flex gap-1">
@@ -563,12 +564,12 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                           </div>
                         )}
                       </div>
-                      <p className="text-slate-500">{m.email}</p>
-                      <p className="text-slate-500">
+                      <p className="text-slate-500 dark:text-slate-400">{m.email}</p>
+                      <p className="text-slate-500 dark:text-slate-400">
                         {[m.phone_number, m.college, m.branch, m.year ? `Year ${m.year}` : null, m.roll_number, m.club_id].filter(Boolean).join(' · ') || 'No profile details'}
                       </p>
                       {Object.keys(m.answers ?? {}).length > 0 && (
-                        <p className="text-slate-500">{Object.entries(m.answers ?? {}).map(([key, value]) => `${key}: ${value === true ? 'yes' : value}`).join(' · ')}</p>
+                        <p className="text-slate-500 dark:text-slate-400">{Object.entries(m.answers ?? {}).map(([key, value]) => `${key}: ${value === true ? 'yes' : value}`).join(' · ')}</p>
                       )}
                     </li>
                   ))}
@@ -577,8 +578,8 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
 
               {selected.pending_invites.length > 0 && (
                 <div>
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Pending invites</p>
-                  <ul className="space-y-1 text-xs text-slate-500">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Pending invites</p>
+                  <ul className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
                     {selected.pending_invites.map((i) => (
                       <li key={i.id}>{i.invited_user.name} ({i.invited_user.email})</li>
                     ))}
@@ -588,7 +589,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
 
               {/* Add member admin override with instant autocomplete */}
               <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Add member (admin override)</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Add member (admin override)</p>
                 <div className="relative" ref={addDropdownRef}>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -606,7 +607,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                       />
                       {addSearching ? (
                         <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF7A00]" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-journey-accent" />
                         </div>
                       ) : addQuery ? (
                         <button
@@ -617,7 +618,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                             setAddSuggestions([]);
                             setAddShowDropdown(false);
                           }}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -656,21 +657,21 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                           className="w-full text-left px-3 py-2 flex items-center justify-between gap-2 hover:bg-[#FF7A00]/5 transition cursor-pointer"
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7A00]/15 text-[10px] font-bold text-[#FF7A00]">
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7A00]/15 text-[11px] font-bold text-orange-800 dark:text-journey-accent">
                               {(u.name || '?').charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
                               <p className="text-xs font-bold text-[#1A1A2E] dark:text-white truncate">{u.name}</p>
-                              <p className="text-[10px] text-slate-400 truncate">{u.email}{u.club_id ? ` · ${u.club_id}` : ''}</p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{u.email}{u.club_id ? ` · ${u.club_id}` : ''}</p>
                             </div>
                           </div>
                           <div className="shrink-0">
                             {u.can_invite ? (
-                              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3" /> Eligible
                               </span>
                             ) : (
-                              <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 max-w-[120px] truncate" title={u.reason}>
+                              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1 max-w-[120px] truncate" title={u.reason}>
                                 <AlertCircle className="h-3 w-3 shrink-0" /> {u.reason}
                               </span>
                             )}
@@ -685,12 +686,12 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                 {addSelectedUser && (
                   <div className={`rounded-lg border p-2.5 text-xs flex items-center justify-between gap-3 ${addSelectedUser.can_invite ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF7A00]/15 text-xs font-bold text-[#FF7A00]">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF7A00]/15 text-xs font-bold text-orange-800 dark:text-journey-accent">
                         {(addSelectedUser.name || '?').charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <p className="font-bold text-[#1A1A2E] dark:text-white truncate">{addSelectedUser.name}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{addSelectedUser.email}{addSelectedUser.club_id ? ` · ${addSelectedUser.club_id}` : ''}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{addSelectedUser.email}{addSelectedUser.club_id ? ` · ${addSelectedUser.club_id}` : ''}</p>
                       </div>
                     </div>
                     <div className="shrink-0">
@@ -699,19 +700,19 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                           <CheckCircle2 className="h-3.5 w-3.5" /> Eligible
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400" title={addSelectedUser.reason}>
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400" title={addSelectedUser.reason}>
                           <AlertCircle className="h-3.5 w-3.5" /> Note: {addSelectedUser.reason}
                         </span>
                       )}
                     </div>
                   </div>
                 )}
-                <p className="text-[11px] text-slate-400">Skips size limits and window; enforced: one team per user.</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Skips size limits and window; enforced: one team per user.</p>
               </div>
 
               {/* Team Status setting */}
               <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Team status</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Team status</p>
                 <input
                   value={statusReason}
                   onChange={(e) => setStatusReason(e.target.value)}
@@ -733,7 +734,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
               {/* Round History */}
               {(selected.round_entries?.length ?? 0) > 0 && (
                 <div>
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Round history</p>
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Round history</p>
                   <ul className="space-y-2">
                     {selected.round_entries!.map((e) => (
                       <li key={e.id} className="rounded-lg border border-slate-200 dark:border-slate-800 p-2.5 text-xs space-y-1">
@@ -741,8 +742,8 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                           <span className="font-bold">R{e.round_order} · {e.round_name}</span>
                           <StatusPill tone={ENTRY_STATUS_PILL[e.status].tone}>{ENTRY_STATUS_PILL[e.status].label}</StatusPill>
                         </div>
-                        {e.feedback && <p className="text-slate-500">Feedback: {e.feedback}</p>}
-                        {e.admin_notes && <p className="text-slate-400">Notes: {e.admin_notes}</p>}
+                        {e.feedback && <p className="text-slate-500 dark:text-slate-400">Feedback: {e.feedback}</p>}
+                        {e.admin_notes && <p className="text-slate-500 dark:text-slate-400">Notes: {e.admin_notes}</p>}
                         {e.has_details && <p className="text-emerald-600">Details submitted</p>}
                       </li>
                     ))}
@@ -752,7 +753,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
 
               {/* Delete Team Button */}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-rose-500">Danger Zone</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Danger Zone</p>
                 <button
                   type="button"
                   onClick={() => setDeleteConfirmTeam(selected)}
@@ -763,7 +764,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                 </button>
               </div>
 
-              <p className="flex items-center gap-1.5 text-[11px] text-slate-400">
+              <p className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
                 <Users className="h-3 w-3" /> Created {new Date(selected.created_at).toLocaleString('en-IN')}
               </p>
             </div>
@@ -783,7 +784,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
         <form onSubmit={handleCreateTeam} className="space-y-4">
           <div>
             <label className={LABEL}>Team Name *</label>
-            <input
+            <input aria-label="Team Name"
               value={newTeamName}
               onChange={(e) => setNewTeamName(e.target.value)}
               placeholder="Code Innovators"
@@ -793,7 +794,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
           </div>
           <div>
             <label className={LABEL}>Leader Email *</label>
-            <input
+            <input aria-label="Leader Email"
               type="email"
               value={newLeaderEmail}
               onChange={(e) => setNewLeaderEmail(e.target.value)}
@@ -801,11 +802,11 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
               className={INPUT}
               required
             />
-            <p className="mt-1 text-[11px] text-slate-400">The user must have an existing account on the platform.</p>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">The user must have an existing account on the platform.</p>
           </div>
           <div>
             <label className={LABEL}>Problem Statement (Optional)</label>
-            <FormSelect
+            <FormSelect aria-label="Problem Statement (Optional)"
               value={newTeamProblem}
               onChange={setNewTeamProblem}
               options={problemOptions}
@@ -817,15 +818,15 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
             <div className="space-y-3 rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 text-xs">
               <div>
                 <label className={LABEL}>Custom Problem Title *</label>
-                <input value={newOiTitle} onChange={(e) => setNewOiTitle(e.target.value)} className={INPUT} placeholder="e.g. AI Crop Disease Detector" />
+                <input aria-label="Custom Problem Title" value={newOiTitle} onChange={(e) => setNewOiTitle(e.target.value)} className={INPUT} placeholder="e.g. AI Crop Disease Detector" />
               </div>
               <div>
                 <label className={LABEL}>Domain / Track *</label>
-                <input value={newOiDomain} onChange={(e) => setNewOiDomain(e.target.value)} className={INPUT} placeholder="e.g. AgriTech" />
+                <input aria-label="Domain / Track" value={newOiDomain} onChange={(e) => setNewOiDomain(e.target.value)} className={INPUT} placeholder="e.g. AgriTech" />
               </div>
               <div>
                 <label className={LABEL}>Description *</label>
-                <textarea rows={3} value={newOiDesc} onChange={(e) => setNewOiDesc(e.target.value)} className={INPUT} placeholder="Problem description…" />
+                <textarea aria-label="Description" rows={3} value={newOiDesc} onChange={(e) => setNewOiDesc(e.target.value)} className={INPUT} placeholder="Problem description…" />
               </div>
             </div>
           )}

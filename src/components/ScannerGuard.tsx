@@ -67,7 +67,7 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
 
   if (!mounted || checkingServer) {
     return (
-      <main className="journey-type relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden bg-journey-bg px-5 py-12">
+      <div className="journey-type relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden bg-journey-bg px-5 py-12">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-dot-grid opacity-[0.12] [mask-image:radial-gradient(ellipse_at_center,#000,transparent_75%)] dark:opacity-[0.18]" />
         <div className="relative flex max-w-md flex-col items-center space-y-4 rounded-[24px] border border-journey-text/10 bg-journey-surface p-6 text-center shadow-[0_24px_60px_-30px_rgba(30,41,59,0.35)] dark:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)] sm:p-8">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-journey-accent/20 bg-journey-accent/10">
@@ -78,7 +78,7 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
             <p className="text-sm leading-relaxed text-journey-muted">Checking your role with the security gateway…</p>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -87,7 +87,7 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
     const email = currentUser?.email || 'Unknown';
 
     return (
-      <main className="journey-type relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-journey-bg px-5 py-12 transition-colors duration-300 sm:px-8 sm:py-16">
+      <div className="journey-type relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-journey-bg px-5 py-12 transition-colors duration-300 sm:px-8 sm:py-16">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-dot-grid opacity-[0.12] [mask-image:radial-gradient(ellipse_at_center,#000,transparent_75%)] dark:opacity-[0.18]" />
         <section className="relative w-full max-w-md space-y-6 overflow-hidden rounded-[28px] border border-journey-text/10 bg-journey-surface p-5 text-center shadow-[0_24px_60px_-30px_rgba(30,41,59,0.35)] sm:p-8 dark:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)]">
           <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgb(var(--journey-accent)/0.16),transparent)]" />
@@ -132,7 +132,7 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
                 <button
                   onClick={() => checkPermissions()}
                   disabled={checkingServer}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-journey-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 active:scale-[0.98] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-journey-accent px-5 py-2.5 text-sm font-semibold text-journey-on-accent shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 active:scale-[0.98] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
                 >
                   <RefreshCw className={`w-4 h-4 ${checkingServer ? 'animate-spin' : ''}`} />
                   Re-check My Permissions
@@ -148,7 +148,7 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
             ) : (
               <Link
                 href="/login?next=/attendance/scan"
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-journey-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-journey-accent px-5 py-2.5 text-sm font-semibold text-journey-on-accent shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
               >
                 <LogIn className="w-4 h-4" />
                 Sign In
@@ -156,7 +156,7 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
             )}
           </div>
         </section>
-      </main>
+      </div>
     );
   }
 

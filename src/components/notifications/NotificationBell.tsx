@@ -43,7 +43,7 @@ function getTypeIcon(type: AnnouncementType) {
     case 'WARNING':
       return <AlertTriangle className="h-4 w-4 text-amber-500" />;
     case 'URGENT':
-      return <AlertOctagon className="h-4 w-4 text-rose-500" />;
+      return <AlertOctagon className="h-4 w-4 text-rose-600 dark:text-rose-400" />;
     case 'INFO':
     default:
       return <Info className="h-4 w-4 text-blue-500" />;
@@ -55,7 +55,7 @@ function getTypeBadgeColor(type: AnnouncementType) {
     case 'SUCCESS':
       return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
     case 'WARNING':
-      return 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400';
+      return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400';
     case 'URGENT':
       return 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 animate-pulse';
     case 'INFO':
@@ -254,7 +254,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
           if (!open) updatePopoverPosition();
           setOpen((prev) => !prev);
         }}
-        className="relative flex h-11 w-11 items-center justify-center rounded-full border border-black/[0.08] text-[#1A1A2E]/70 transition duration-150 hover:border-[#FF7A00]/40 hover:bg-[#FF7A00]/5 hover:text-[#FF7A00] active:scale-95 dark:border-white/[0.1] dark:text-white/70 sm:h-9 sm:w-9"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full border border-black/[0.08] text-[#1A1A2E]/70 transition duration-150 hover:border-[#FF7A00]/40 hover:bg-[#FF7A00]/5 hover:text-journey-accent active:scale-95 dark:border-white/[0.1] dark:text-white/70 sm:h-9 sm:w-9"
         aria-label="Notifications"
         aria-expanded={open}
       >
@@ -262,7 +262,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
 
         {/* Counter Badge */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FF7A00] px-1 font-mono text-[9px] font-extrabold text-white shadow-sm shadow-[#FF7A00]/40 animate-in zoom-in-50">
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-journey-accent px-1 font-mono text-[9px] font-extrabold text-journey-on-accent shadow-sm shadow-[#FF7A00]/40 animate-in zoom-in-50">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -283,12 +283,12 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-4 py-3 bg-slate-50/50 dark:bg-white/[0.02]">
             <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-[#FF7A00]" />
+              <Bell className="h-4 w-4 text-journey-accent" />
               <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">
                 Notifications
               </h3>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#FF7A00]">
+                <span className="rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/20 px-2 py-0.5 text-[10px] font-extrabold text-journey-accent">
                   {unreadCount} new
                 </span>
               )}
@@ -299,7 +299,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
                 <button
                   type="button"
                   onClick={handleMarkAllRead}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-[#FF7A00] hover:bg-[#FF7A00]/10 transition"
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-journey-accent hover:bg-[#FF7A00]/10 transition"
                   title="Mark all as read"
                 >
                   <CheckCheck className="h-3.5 w-3.5" />
@@ -323,8 +323,8 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
               onClick={() => setTab('all')}
               className={`py-2 px-3 border-b-2 transition ${
                 tab === 'all'
-                  ? 'border-[#FF7A00] text-[#FF7A00]'
-                  : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  ? 'border-[#FF7A00] text-journey-accent'
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               All
@@ -334,8 +334,8 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
               onClick={() => setTab('unread')}
               className={`py-2 px-3 border-b-2 transition flex items-center gap-1.5 ${
                 tab === 'unread'
-                  ? 'border-[#FF7A00] text-[#FF7A00]'
-                  : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  ? 'border-[#FF7A00] text-journey-accent'
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <span>Unread</span>
@@ -351,7 +351,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
           <div className="min-h-0 max-h-[380px] flex-1 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800/60">
             {loading ? (
               <div className="flex flex-col items-center justify-center p-8 text-xs text-slate-400">
-                <Loader2 className="h-5 w-5 animate-spin text-[#FF7A00] mb-2" />
+                <Loader2 className="h-5 w-5 animate-spin text-journey-accent mb-2" />
                 <span>Loading notifications…</span>
               </div>
             ) : displayedList.length === 0 ? (
@@ -421,7 +421,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
                             if (!notif.is_read) handleMarkAsRead(notif.id);
                             setOpen(false);
                           }}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FF7A00] hover:underline"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-journey-accent hover:underline"
                         >
                           <span>Open action</span>
                           <ExternalLink className="h-3 w-3" />
@@ -437,7 +437,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
                         type="button"
                         onClick={() => handleMarkAsRead(notif.id)}
                         disabled={actionBusy === notif.id}
-                        className="rounded p-1 text-slate-400 hover:text-emerald-500 transition"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition"
                         title="Mark as read"
                       >
                         <Check className="h-3.5 w-3.5" />
@@ -447,7 +447,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
                       type="button"
                       onClick={() => handleDelete(notif.id)}
                       disabled={actionBusy === notif.id}
-                      className="rounded p-1 text-slate-400 hover:text-rose-500 transition"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-slate-400 hover:text-rose-500 transition"
                       title="Delete"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

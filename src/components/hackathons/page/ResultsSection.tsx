@@ -9,7 +9,7 @@ export function WinnersList({ results }: { results: HackathonResults }) {
       <ol className="space-y-3">
         {results.winners.map((winner) => (
           <li key={winner.id} className="flex items-start gap-3 rounded-2xl border border-journey-accent/30 bg-journey-accent/5 p-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-journey-accent text-white" aria-hidden="true"><Medal className="h-5 w-5" /></span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-journey-accent text-journey-on-accent" aria-hidden="true"><Medal className="h-5 w-5" /></span>
             <div className="min-w-0 space-y-0.5">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-journey-accent">{winner.title}{winner.prize ? ` · ${winner.prize}` : ''}</p>
               <p className="text-lg font-bold text-journey-text">{winner.team_name}</p>
@@ -56,7 +56,7 @@ export function ProjectShowcase({ projects }: { projects: ShowcaseProject[] }) {
         <li key={project.id} className="flex flex-col gap-2 rounded-2xl border border-journey-text/10 bg-journey-surface/60 p-5">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-bold text-journey-text">{project.project_title}</h3>
-            {project.award && <span className="rounded-full bg-journey-accent/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-journey-accent">{project.award}</span>}
+            {project.award && <span className="rounded-full bg-journey-accent/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-orange-800 dark:text-journey-accent">{project.award}</span>}
           </div>
           <p className="text-xs text-journey-muted">{project.team_name}{project.members.length ? ` · ${project.members.join(', ')}` : ''}</p>
           {project.tagline && <p className="text-sm font-medium text-journey-text/80">{project.tagline}</p>}

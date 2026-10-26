@@ -14,7 +14,7 @@ export function PeopleGrid({ people }: { people: PublicPerson[] }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={person.photo_url} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" loading="lazy" />
           ) : (
-            <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-journey-accent/15 text-sm font-bold text-journey-accent">{initials(person.name)}</span>
+            <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-journey-accent/15 text-sm font-bold text-orange-800 dark:text-journey-accent">{initials(person.name)}</span>
           )}
           <div className="min-w-0 space-y-0.5">
             <p className="font-bold text-journey-text">{person.name}</p>
@@ -46,10 +46,10 @@ export function SponsorsGrid({ sponsors }: { sponsors: HackathonSponsor[] }) {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={sponsor.logo_url} alt={sponsor.name} className="max-h-12 w-auto max-w-full object-contain" loading="lazy" />
               ) : (
-                <span className="text-sm font-bold text-journey-text">{sponsor.name}</span>
+                <span className="text-sm font-bold text-[#1A1A2E]">{sponsor.name}</span>
               );
               return (
-                <li key={`${sponsor.name}-${index}`} className="flex min-h-20 items-center justify-center rounded-xl border border-journey-text/10 bg-white/90 p-3 dark:bg-white/95">
+                <li key={`${sponsor.name}-${index}`} className="flex min-h-20 items-center justify-center rounded-xl border border-journey-text/10 bg-white/90 p-3 text-[#1A1A2E] dark:bg-white/95">
                   {sponsor.url ? <a href={sponsor.url} target="_blank" rel="noopener noreferrer" aria-label={sponsor.name} className="flex h-full w-full items-center justify-center">{content}</a> : content}
                 </li>
               );
@@ -71,8 +71,8 @@ export function ContactBlock({ contacts, links, mapUrl }: { contacts: HackathonC
             <li key={`${contact.name}-${index}`} className="space-y-1 rounded-xl border border-journey-text/10 p-4">
               <p className="font-bold text-journey-text">{contact.name}</p>
               {contact.role && <p className="text-xs text-journey-muted">{contact.role}</p>}
-              {contact.email && <p className="flex items-center gap-1.5 text-sm text-journey-text/80"><Mail className="h-3.5 w-3.5 text-journey-accent" aria-hidden="true" /><a href={`mailto:${contact.email}`} className="break-all hover:underline">{contact.email}</a></p>}
-              {contact.phone && <p className="flex items-center gap-1.5 text-sm text-journey-text/80"><Phone className="h-3.5 w-3.5 text-journey-accent" aria-hidden="true" /><a href={`tel:${contact.phone.replace(/\s+/g, '')}`} className="hover:underline">{contact.phone}</a></p>}
+              {contact.email && <p className="flex items-center gap-1.5 text-sm text-journey-text/80"><Mail className="h-3.5 w-3.5 text-journey-accent" aria-hidden="true" /><a href={`mailto:${contact.email}`} className="inline-flex min-h-6 items-center break-all hover:underline">{contact.email}</a></p>}
+              {contact.phone && <p className="flex items-center gap-1.5 text-sm text-journey-text/80"><Phone className="h-3.5 w-3.5 text-journey-accent" aria-hidden="true" /><a href={`tel:${contact.phone.replace(/\s+/g, '')}`} className="inline-flex min-h-6 items-center hover:underline">{contact.phone}</a></p>}
             </li>
           ))}
         </ul>
@@ -85,7 +85,7 @@ export function ContactBlock({ contacts, links, mapUrl }: { contacts: HackathonC
             </a>
           ))}
           {mapUrl && (
-            <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-journey-accent px-4 text-sm font-bold text-white sm:min-h-10">
+            <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-journey-accent px-4 text-sm font-bold text-journey-on-accent sm:min-h-10">
               <MapPin className="h-3.5 w-3.5" aria-hidden="true" /> Get directions
             </a>
           )}

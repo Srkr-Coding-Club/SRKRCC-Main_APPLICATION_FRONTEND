@@ -44,7 +44,7 @@ export default async function EventsPage() {
     <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <PageHero
-          icon={<Calendar className="h-4 w-4 text-[#FF7A00]" />}
+          icon={<Calendar className="h-4 w-4 text-journey-accent" />}
           eyebrow="SRKR CODING CLUB WORKSHOPS"
           title="Workshops & Tech Seminars"
           description="Explore upcoming technical workshops, expert guest seminars, competitive coding bootcamps, and official club gatherings."
@@ -62,7 +62,7 @@ export default async function EventsPage() {
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
               <Calendar className="h-8 w-8 text-slate-300 dark:text-slate-700" />
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No upcoming events right now.</p>
-              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon. New workshops and seminars are announced regularly.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Check back soon. New workshops and seminars are announced regularly.</p>
             </div>
           )}
         </div>

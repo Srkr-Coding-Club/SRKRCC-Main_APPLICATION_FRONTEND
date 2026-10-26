@@ -115,7 +115,7 @@ export function FinderLists({ slug, hackathon, listing, hasTeam, iAmLeader, onCh
                         <button type="button" disabled={busyKey === `cancel-${sent.id}`} onClick={() => run(`cancel-${sent.id}`, () => hackathonApi.finder.answerRequest(slug, sent.id, 'cancel'), 'Request cancelled')} className={BTN_QUIET}>Cancel request</button>
                       </div>
                     ) : (
-                      <button type="button" disabled={busyKey === `join-${team.id}`} onClick={() => openAsk(team)} className={`${BTN} mt-1 bg-journey-accent text-white`}>
+                      <button type="button" disabled={busyKey === `join-${team.id}`} onClick={() => openAsk(team)} className={`${BTN} mt-1 bg-journey-accent text-journey-on-accent`}>
                         <Send className="h-3.5 w-3.5" aria-hidden="true" /> Ask to join
                       </button>
                     ))}
@@ -133,13 +133,13 @@ export function FinderLists({ slug, hackathon, listing, hasTeam, iAmLeader, onCh
             <ul className="space-y-3">
               {seekers.map((person) => (
                 <li key={person.id} className="space-y-1 rounded-xl border border-journey-text/10 p-3">
-                  <p className="font-bold text-journey-text">{person.name}{person.is_me && <span className="ml-2 text-[10px] font-bold text-journey-muted">(you)</span>}</p>
+                  <p className="font-bold text-journey-text">{person.name}{person.is_me && <span className="ml-2 text-[11px] font-bold text-journey-muted">(you)</span>}</p>
                   {person.profile && <p className="text-xs text-journey-muted">{person.profile}</p>}
                   {person.skills && <p className="text-sm text-journey-text/80">Skills: {person.skills}</p>}
                   {person.phone && <p className="text-xs text-journey-muted">Mobile: <a href={`tel:${person.phone}`} className="font-semibold hover:text-journey-accent">{person.phone}</a></p>}
                   {person.note && <p className="text-sm text-journey-muted">{person.note}</p>}
                   {iAmLeader && !person.is_me && (
-                    <button type="button" disabled={busyKey === `invite-${person.id}`} onClick={() => run(`invite-${person.id}`, () => hackathonApi.finder.invite(slug, person.id), `Invite sent to ${person.name}`)} className={`${BTN} mt-1 bg-journey-accent text-white`}>
+                    <button type="button" disabled={busyKey === `invite-${person.id}`} onClick={() => run(`invite-${person.id}`, () => hackathonApi.finder.invite(slug, person.id), `Invite sent to ${person.name}`)} className={`${BTN} mt-1 bg-journey-accent text-journey-on-accent`}>
                       <UserPlus className="h-3.5 w-3.5" aria-hidden="true" /> Invite to my team
                     </button>
                   )}
@@ -159,7 +159,7 @@ export function FinderLists({ slug, hackathon, listing, hasTeam, iAmLeader, onCh
             <div className="space-y-1.5">
               <FieldLabel htmlFor="join-message">A short message (optional)</FieldLabel>
               <SpotlightTextarea id="join-message" rows={3} maxLength={300} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Why you would be a good fit" hasError={!!errors.message} />
-              {errors.message && <p className="text-xs text-rose-500">{errors.message}</p>}
+              {errors.message && <p className="text-xs text-rose-600 dark:text-rose-400">{errors.message}</p>}
             </div>
             {needsDetails && (
               <RegistrationDetailsFields config={hackathon} value={registration} onChange={setRegistration} errors={errors} />
@@ -209,7 +209,7 @@ export function JoinRequestsToAnswer({ slug, requests, onChanged }: { slug: stri
             {request.message && <p className="text-sm text-journey-text/80">&ldquo;{request.message}&rdquo;</p>}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" disabled={!!busy || !!request.blocked_reason} onClick={() => answer(request, 'accept')} aria-label={`Accept ${request.name}`} className={`${BTN} bg-emerald-600 text-white hover:opacity-90`}>
+            <button type="button" disabled={!!busy || !!request.blocked_reason} onClick={() => answer(request, 'accept')} aria-label={`Accept ${request.name}`} className={`${BTN} bg-emerald-700 text-white hover:opacity-90`}>
               <Check className="h-3.5 w-3.5" aria-hidden="true" /> {busy === `accept-${request.id}` ? 'Adding…' : 'Accept'}
             </button>
             <button type="button" disabled={!!busy} onClick={() => answer(request, 'decline')} aria-label={`Decline ${request.name}`} className={BTN_QUIET}>

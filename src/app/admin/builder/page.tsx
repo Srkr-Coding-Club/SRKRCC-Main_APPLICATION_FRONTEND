@@ -133,7 +133,7 @@ export default function AdminBuilderPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-[#FAFAFC] dark:bg-[#0D0E15]">
-          <div className="flex items-center space-x-3 text-slate-500">
+          <div className="flex items-center space-x-3 text-slate-500 dark:text-slate-400">
             <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
             <span className="text-sm font-medium">Loading Form Canvas...</span>
           </div>

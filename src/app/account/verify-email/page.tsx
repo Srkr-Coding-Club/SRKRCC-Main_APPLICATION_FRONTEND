@@ -82,7 +82,7 @@ function VerifyEmailContent() {
 
   if (phase.name === 'checking') {
     return (
-      <Card title="Checking your link" icon={<Loader2 className="h-6 w-6 animate-spin text-[#FF7A00]" aria-hidden="true" />}>
+      <Card title="Checking your link" icon={<Loader2 className="h-6 w-6 animate-spin text-journey-accent" aria-hidden="true" />}>
         <p role="status" className="text-sm text-slate-600 dark:text-slate-300">One moment...</p>
       </Card>
     );
@@ -91,7 +91,7 @@ function VerifyEmailContent() {
   if (phase.name === 'ready' || phase.name === 'confirming') {
     const changing = phase.purpose === 'CHANGE';
     return (
-      <Card title={changing ? 'Confirm your new email address' : 'Confirm your email address'} icon={<MailCheck className="h-6 w-6 text-[#FF7A00]" aria-hidden="true" />}>
+      <Card title={changing ? 'Confirm your new email address' : 'Confirm your email address'} icon={<MailCheck className="h-6 w-6 text-journey-accent" aria-hidden="true" />}>
         <p className="text-sm text-slate-600 dark:text-slate-300">
           {changing ? 'Use' : 'Confirm that'} <strong className="text-[#1A1A2E] dark:text-white">{phase.email}</strong>{' '}
           {changing ? 'as the email address of your SRKR Coding Club account.' : 'is your address for your SRKR Coding Club account.'}
@@ -106,7 +106,7 @@ function VerifyEmailContent() {
 
   if (phase.name === 'used') {
     return (
-      <Card title="This link was already used" icon={<TriangleAlert className="h-6 w-6 text-amber-600" aria-hidden="true" />}>
+      <Card title="This link was already used" icon={<TriangleAlert className="h-6 w-6 text-amber-700 dark:text-amber-400" aria-hidden="true" />}>
         <p role="status" className="text-sm text-slate-600 dark:text-slate-300">
           This link has been used, but the address on the account is not verified right now. Sign in and ask for a new link.
         </p>
@@ -131,7 +131,7 @@ function VerifyEmailContent() {
 
   const expired = phase.code === 'LINK_EXPIRED' || phase.code === 'EMAIL_CHANGED';
   return (
-    <Card title={PROBLEM_TITLES[phase.code] || 'This link did not work'} icon={<TriangleAlert className="h-6 w-6 text-amber-600" aria-hidden="true" />}>
+    <Card title={PROBLEM_TITLES[phase.code] || 'This link did not work'} icon={<TriangleAlert className="h-6 w-6 text-amber-700 dark:text-amber-400" aria-hidden="true" />}>
       <p role="alert" className="text-sm text-slate-600 dark:text-slate-300">{phase.message}</p>
       {expired && signedIn ? (
         <VerifyPanel allowChange={false} />

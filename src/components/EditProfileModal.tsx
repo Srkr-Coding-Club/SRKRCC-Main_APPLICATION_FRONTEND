@@ -60,7 +60,7 @@ type FormErrors = Partial<Record<keyof FormState, string>>;
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} role="alert" className="flex items-start gap-1.5 text-xs font-semibold text-rose-500">
+    <p id={id} role="alert" className="flex items-start gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400">
       <AlertCircle className="mt-px h-3.5 w-3.5 flex-shrink-0" />
       <span>{message}</span>
     </p>
@@ -291,7 +291,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
       >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center space-x-2">
-            <Settings className="w-5 h-5 text-[#FF7A00]" />
+            <Settings className="w-5 h-5 text-journey-accent" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Edit Profile</h3>
           </div>
           <button
@@ -482,7 +482,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSaved }: EditProf
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-lg text-xs font-bold bg-[#FF7A00] hover:bg-[#E06B00] text-white shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-transform duration-100 active:scale-95"
+              className="px-5 py-2 rounded-lg text-xs font-bold bg-journey-accent hover:opacity-90 text-journey-on-accent shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-transform duration-100 active:scale-95"
             >
               {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {isSubmitting ? 'Saving...' : 'Save Changes'}

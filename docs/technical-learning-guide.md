@@ -389,3 +389,30 @@ The Problem Statements tab has a **Domains** panel (`ProblemDomainsPanel`: chips
 - `RoundsAdminTab` now shows each round's kind, a shortlist target with progress ("12 of 10 planned"), the dates-derived status, up/down ordering and an "Evidence" column (idea status and score, project score, check-ins) next to each team. An empty hackathon can add suggested rounds (idea review, project review, final pitch) in one click.
 - `RoundAutoShortlist` ("Pick teams by rule") previews who a rule selects, then applies it; if the result exceeds the round's target it asks first. Which rules appear depends on the modules switched on (`roundKinds.ts`), and the default rule follows the round's kind.
 - Judging has a second rubric for **ideas**. Admins switch between Projects and Ideas in the Judging tab; judges get the same toggle on `/hackathons/[slug]/judging` once an idea rubric exists. Idea scores show on the Ideas tab and can drive round shortlisting.
+
+## Contrast, landmarks and form conventions (UI/UX audit, October 2026)
+
+Full audit: `docs/ui-ux-audit/`. The rules that came out of it, so new screens do not reintroduce the problems:
+
+- **Colour on accent fills.** Text on a solid accent fill uses `text-journey-on-accent` (token `--journey-on-accent`: the dark ground in dark theme, the off-white in light theme), never `text-white`. White on `#FF7A00` is 2.6:1. Hover on such a fill is `hover:opacity-90`.
+- **Accent as text.** Use `text-journey-accent` (the theme-aware token: `#C2410C` light, `#FF7A00` dark), never `text-[#FF7A00]` (2.55:1 on light). On an accent tint (`bg-journey-accent/10`) use `text-orange-800 dark:text-journey-accent`.
+- **Grey text.** `text-slate-500` needs `dark:text-slate-400` (4.04:1 on the dark ground otherwise); on light surfaces use `text-slate-500` or darker, not `text-slate-400` (2.5:1). Status text: `text-rose-600 dark:text-rose-400`, `text-amber-700 dark:text-amber-400`, `text-emerald-800 dark:text-emerald-300` on tints. Surfaces that stay light in both themes (the certificate sheet, email previews) must not get `dark:text-*` classes.
+- **Focus.** The global `:focus-visible` ring and the shared input focus colour use `journey-accent`, which clears the 3:1 non-text bar in both themes.
+- **Landmarks.** The root layout owns the only `<main id="main-content">` and a skip link. Pages and components render `<div>`, not `<main>`.
+- **Page titles.** Client pages cannot export `metadata`; give the route a small server `layout.tsx` that exports `metadata: { title }` (the site template appends the club name). Done for the hackathon participant routes, `/login`, `/signup` and `/admin/hackathons`.
+- **Form errors.** Use `FieldError` and `fieldErrorId` from `components/ui/InputField.tsx`: `role="alert"`, linked to the control with `aria-describedby`. Controls that are not native inputs get `aria-label` / `aria-labelledby` (`FormSelect`, `TagInput`, `MarkdownEditor` accept them). Bind every `<label>` to its control (`htmlFor` + `useId`).
+- **Inputs on phones are 16px** (`text-base sm:text-sm`), including the admin `INPUT` constant, so iOS does not zoom on focus.
+- **`FormSelect`** is keyboard operable (arrows, Home/End, Escape, Tab). Escape closes only the list, so a dialog around it stays open.
+- **Tab strips** (`HackathonManager`, `SectionNav`) keep the active tab scrolled into view; `HackathonManager` follows the ARIA tab pattern (roving tabindex, arrow keys, `tabpanel`).
+- **Admin navigation** switches to the hamburger below `xl` (1280px); the desktop bar needs about 1211px.
+- **Touch targets:** at least 24px (WCAG 2.2 AA), 44px for primary controls on phones.
+- **Audit tooling** lives in `e2e-audit/` (stand-in API, 8-viewport crawler with axe, contrast and tab probes, before/after flow checks). See its header comments for usage; none of it runs in the normal test suites.
+
+## Idea and project submissions: PDF decks, previews, link rules (October 2026)
+
+- **Decks** accept `.ppt`, `.pptx` and `.pdf` (`DECK` in `src/lib/ideaUpload.ts`, `idea_files.py` on the backend). The server still checks the file's first bytes, so a renamed file is refused.
+- **Preview.** `FilePreviewDialog` shows a PDF in the browser's own viewer (iframe) or an image; PowerPoint cannot be shown by a browser and is download-only. A file just picked is previewed from a blob URL (nothing leaves the browser); a saved file is fetched through a 60-second signed link requested when the button is pressed (`IdeaFileActions`, used by the team page and the admin Ideas tab). The CSP (report-only) allows `frame-src 'self' blob:` plus the upload origins.
+- **Link rules** live in `apps/hackathons/link_rules.py` (authority) and are mirrored for instant feedback in `src/lib/validation/submissionLinks.ts`: https only, no credentials, no localhost/private/`.local` hosts, at most 200 characters; repo links need a code host and `owner/repo`; video and LinkedIn links are host-allowlisted. Demo and slides links may be any public site. Reachability is not checked on purpose: the server fetching a team-supplied address would be a request-forgery door.
+- **Detail rules:** project title ≥ 3 characters, description ≥ 30; idea title ≥ 3, problem and approach ≥ 20. The forms check links before sending (no round trip) and keep what was typed when the server refuses a save.
+- **Admin sees projects** in Projects (phase 2): the table plus a "Read project" dialog with the whole description, tech and links.
+- **Live tests** (`e2e-live/`, real Django + moto S3): `hackathon-submissions`, `hackathon-idea-pdf`, `hackathon-ideas`. Delete `.next` first if a production build exists. Moto ignores the download filename override that real S3 honours.
