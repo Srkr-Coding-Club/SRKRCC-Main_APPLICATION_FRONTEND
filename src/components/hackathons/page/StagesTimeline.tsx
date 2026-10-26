@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ExternalLink, MapPin } from 'lucide-react';
 import type { PublicStage } from '@/lib/types';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
 import { istDayMonth } from '@/lib/hackathonPage';
+import { useScrollEntrance } from '@/lib/hooks/useScrollEntrance';
+import { riseIn, staggerIn } from '@/lib/entranceMotion';
 import {
   STAGE_ICONS,
   TONE_STYLES,
@@ -83,10 +85,12 @@ export function StageEntry({
   return (
     <li className="flex gap-4">
       <div className="flex w-12 shrink-0 flex-col items-center">
-        <StageMarker stage={stage} status={status} />
+        <div className="st-marker">
+          <StageMarker stage={stage} status={status} />
+        </div>
         {!isLast && (
           <div
-            className={`mt-1 w-px flex-1 border-l ${status === 'done' ? `${tone.line} border-solid` : 'border-dashed border-slate-300 dark:border-slate-700'}`}
+            className={`st-line mt-1 w-px flex-1 origin-top border-l ${status === 'done' ? `${tone.line} border-solid` : 'border-dashed border-slate-300 dark:border-slate-700'}`}
             aria-hidden="true"
           />
         )}
@@ -98,7 +102,7 @@ export function StageEntry({
           {hint && <span className="font-semibold text-journey-accent dark:text-[#FFB066]">· {hint}</span>}
         </p>
         <div
-          className={`space-y-3 rounded-2xl border bg-white/70 p-5 dark:bg-white/[0.03] ${
+          className={`st-card space-y-3 rounded-2xl border bg-white/70 p-5 dark:bg-white/[0.03] ${
             status === 'live' ? 'border-emerald-500/50 shadow-[0_0_0_1px_rgba(16,185,129,0.15)]' : status === 'next' ? tone.border : 'border-slate-200 dark:border-white/10'
           } ${status === 'done' ? 'opacity-80' : ''}`}
         >
@@ -153,6 +157,17 @@ export function StageEntry({
 
 /** Vertical timeline of the stages an admin curated for the public page. */
 export function StagesTimeline({ stages }: { stages: PublicStage[] }) {
+  const listRef = useRef<HTMLOListElement>(null);
+  useScrollEntrance(
+    listRef,
+    (tl) => {
+      staggerIn(tl, '.st-marker', { y: 0, scale: 0.4, stagger: 0.18, duration: 0.45 });
+      tl.fromTo('.st-line', { scaleY: 0 }, { scaleY: 1, duration: 0.6, stagger: 0.18, ease: 'power2.inOut', clearProps: 'transform' }, '<0.1');
+      riseIn(tl, '.st-card', { y: 18, duration: 0.55, position: '<0.1' });
+    },
+    { start: 'top 85%' },
+  );
+
   // Time-dependent badges are filled in after mount so the server and client markup agree.
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
@@ -166,7 +181,7 @@ export function StagesTimeline({ stages }: { stages: PublicStage[] }) {
   if (nextIndex >= 0 && !statuses.includes('live')) statuses[nextIndex] = 'next';
 
   return (
-    <ol className="space-y-6">
+    <ol ref={listRef} className="space-y-6">
       {stages.map((stage, index) => (
         <StageEntry key={stage.id} stage={stage} status={statuses[index]} isLast={index === stages.length - 1} now={now} />
       ))}

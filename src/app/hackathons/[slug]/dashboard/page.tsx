@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -11,6 +11,8 @@ import type { HackathonAnnouncement, HackathonTeamInvite, MyTeamPayload, Problem
 import { getStoredUser, isAuthenticated } from '@/lib/auth';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { invalidateMyHackathonStatus } from '@/lib/hooks/useMyHackathonStatus';
+import { useScrollEntranceWithin } from '@/lib/hooks/useScrollEntrance';
+import { riseIn } from '@/lib/entranceMotion';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -50,6 +52,12 @@ export default function HackathonDashboardPage() {
   const [preselectedProblemId, setPreselectedProblemId] = useState('');
 
   const me = getStoredUser();
+
+  // Every panel (and the header) rises into view, including ones that only render once their data has loaded.
+  const pageRef = useRef<HTMLDivElement>(null);
+  useScrollEntranceWithin(pageRef, 'section.glass-panel, [data-entrance]', (tl, element) => riseIn(tl, element, { y: 22, duration: 0.6 }), {
+    enabled: !loading && !loadError && !!data,
+  });
 
   const load = useCallback(async () => {
     setLoadError('');
@@ -174,7 +182,7 @@ export default function HackathonDashboardPage() {
   const statusPill = team ? TEAM_STATUS_PILL[team.status] : null;
 
   return (
-    <div className="min-h-screen bg-[var(--background)] py-10 transition-colors duration-300">
+    <div ref={pageRef} className="min-h-screen bg-[var(--background)] py-10 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {dialog}
         <Link href={`/hackathons/${slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-journey-muted sm:min-h-8 hover:text-journey-accent transition">
@@ -182,7 +190,7 @@ export default function HackathonDashboardPage() {
         </Link>
 
         {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl border border-journey-text/10 bg-journey-surface p-6 sm:p-8 shadow-sm">
+        <div data-entrance className="relative overflow-hidden rounded-2xl border border-journey-text/10 bg-journey-surface p-6 sm:p-8 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-2">
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-journey-accent">Participant dashboard</p>

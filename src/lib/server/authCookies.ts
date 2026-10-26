@@ -12,13 +12,23 @@ type SessionTokens = {
   refresh?: string;
 };
 
-function sessionCookieOptions(secure: boolean, maxAge: number) {
+export function resolveCookieDomain(host?: string | null): string | undefined {
+  if (!host) return undefined;
+  const cleanHost = host.split(':')[0].toLowerCase();
+  if (cleanHost === 'srkrcodingclub.in' || cleanHost.endsWith('.srkrcodingclub.in')) {
+    return '.srkrcodingclub.in';
+  }
+  return undefined;
+}
+
+function sessionCookieOptions(secure: boolean, maxAge: number, domain?: string) {
   return {
     httpOnly: true,
     secure,
     sameSite: 'lax' as const,
     path: '/',
     maxAge,
+    ...(domain ? { domain } : {}),
   };
 }
 
@@ -27,18 +37,19 @@ export function setSessionCookies(
   tokens: SessionTokens,
   secure: boolean,
   role?: string,
+  domain?: string,
 ) {
   response.cookies.set(
     ACCESS_TOKEN_COOKIE,
     tokens.access,
-    sessionCookieOptions(secure, ACCESS_TOKEN_MAX_AGE),
+    sessionCookieOptions(secure, ACCESS_TOKEN_MAX_AGE, domain),
   );
 
   if (tokens.refresh) {
     response.cookies.set(
       REFRESH_TOKEN_COOKIE,
       tokens.refresh,
-      sessionCookieOptions(secure, REFRESH_TOKEN_MAX_AGE),
+      sessionCookieOptions(secure, REFRESH_TOKEN_MAX_AGE, domain),
     );
   }
 
@@ -49,12 +60,19 @@ export function setSessionCookies(
       sameSite: 'lax',
       path: '/',
       maxAge: REFRESH_TOKEN_MAX_AGE,
+      ...(domain ? { domain } : {}),
     });
   }
 }
 
-export function clearSessionCookies(response: NextResponse) {
-  response.cookies.delete(ACCESS_TOKEN_COOKIE);
-  response.cookies.delete(REFRESH_TOKEN_COOKIE);
-  response.cookies.delete(ROLE_COOKIE);
+export function clearSessionCookies(response: NextResponse, domain?: string) {
+  response.cookies.delete({ name: ACCESS_TOKEN_COOKIE, path: '/', ...(domain ? { domain } : {}) });
+  response.cookies.delete({ name: REFRESH_TOKEN_COOKIE, path: '/', ...(domain ? { domain } : {}) });
+  response.cookies.delete({ name: ROLE_COOKIE, path: '/', ...(domain ? { domain } : {}) });
+
+  if (domain) {
+    response.cookies.delete({ name: ACCESS_TOKEN_COOKIE, path: '/' });
+    response.cookies.delete({ name: REFRESH_TOKEN_COOKIE, path: '/' });
+    response.cookies.delete({ name: ROLE_COOKIE, path: '/' });
+  }
 }

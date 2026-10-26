@@ -71,11 +71,20 @@ export function notifyAuthChange() {
   }
 }
 
+function getDomainAttribute(): string {
+  if (typeof window === 'undefined') return '';
+  const hostname = window.location.hostname.toLowerCase();
+  if (hostname === 'srkrcodingclub.in' || hostname.endsWith('.srkrcodingclub.in')) {
+    return '; domain=.srkrcodingclub.in';
+  }
+  return '';
+}
+
 export function setStoredUser(user: AuthUser) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(USER_KEY, JSON.stringify(user));
   if (user.role) {
-    document.cookie = `${ROLE_COOKIE}=${encodeURIComponent(user.role)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    document.cookie = `${ROLE_COOKIE}=${encodeURIComponent(user.role)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax${getDomainAttribute()}`;
   }
   notifyAuthChange();
 }
@@ -83,6 +92,10 @@ export function setStoredUser(user: AuthUser) {
 export function clearAuthSession() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(USER_KEY);
+  const domainAttr = getDomainAttribute();
+  if (domainAttr) {
+    document.cookie = `${ROLE_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${domainAttr}`;
+  }
   document.cookie = `${ROLE_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
   notifyAuthChange();
   

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useScrollEntrance } from '@/lib/hooks/useScrollEntrance';
+import { riseIn } from '@/lib/entranceMotion';
 
 export interface PageSection {
   id: string;
@@ -46,6 +48,7 @@ export function SectionNav({ sections }: { sections: PageSection[] }) {
   return (
     <nav
       aria-label="Hackathon sections"
+      data-sticky-bar
       className="sticky top-[72px] z-30 -mx-4 border-b border-journey-text/10 bg-[var(--background)]/90 px-4 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:border sm:px-2"
     >
       <ul ref={barRef} className="relative flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -83,8 +86,12 @@ export function PageSectionCard({
   title: string;
   children: React.ReactNode;
 }) {
+  const ref = useRef<HTMLElement>(null);
+  useScrollEntrance(ref, (tl) => riseIn(tl, ref.current), { start: 'top 90%' });
+
   return (
     <section
+      ref={ref}
       id={id}
       className="scroll-mt-36 space-y-5 rounded-2xl border border-journey-text/10 bg-journey-surface/50 p-5 sm:p-7"
     >

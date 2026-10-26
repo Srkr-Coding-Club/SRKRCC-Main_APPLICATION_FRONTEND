@@ -8,7 +8,7 @@ import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import IconCodersEditionCard from '@/components/IconCodersEditionCard';
 import IconCodersHallOfFameCard from '@/components/IconCodersHallOfFameCard';
-import BounceCards from '@/components/ui/BounceCards';
+import CardGrid from '@/components/ui/CardGrid';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
@@ -71,10 +71,7 @@ export default async function IconCodersPage() {
           <SectionHeading icon={Award} eyebrow="Current Edition" title="Current Challenge" />
           {challenge ? (
             <div className="max-w-sm">
-              <BounceCards
-                layout="bounce-stack"
-                cards={[<IconCodersEditionCard key={challenge.id} challenge={challenge} />]}
-              />
+              <CardGrid cards={[<IconCodersEditionCard key={challenge.id} challenge={challenge} />]} />
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center dark:border-slate-800">
