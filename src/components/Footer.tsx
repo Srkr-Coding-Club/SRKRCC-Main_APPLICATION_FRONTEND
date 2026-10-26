@@ -80,7 +80,7 @@ export default function Footer() {
                 </div>
               </div>
 
-              <p className="font-mono text-xs text-[#FF7A00]">// Learn &middot; Build &middot; Innovate</p>
+              <p className="font-mono text-xs text-journey-accent">// Learn &middot; Build &middot; Innovate</p>
 
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
                 Building a vibrant ecosystem for student developers to learn core fundamentals, collaborate on real
@@ -94,7 +94,7 @@ export default function Footer() {
                     href={href}
                     target="_blank"
                     rel="noreferrer"
-                    className="group relative w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition-colors"
+                    className="group relative w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-journey-accent hover:border-[#FF7A00]/40 transition-colors"
                     aria-label={label}
                   >
                     <span className="absolute inset-0 rounded-full blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300 bg-[#FF7A00] -z-10" />
@@ -112,7 +112,7 @@ export default function Footer() {
               <ul className="space-y-2.5 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {QUICK_LINKS.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="inline-block py-1.5 hover:text-[#FF7A00] transition-colors sm:py-0">
+                    <Link href={l.href} className="inline-flex min-h-6 items-center py-1.5 hover:text-journey-accent transition-colors sm:py-0">
                       {l.label}
                     </Link>
                   </li>
@@ -128,7 +128,7 @@ export default function Footer() {
               <ul className="space-y-2.5 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {RESOURCES.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="inline-block py-1.5 hover:text-[#FF7A00] transition-colors sm:py-0">
+                    <Link href={l.href} className="inline-flex min-h-6 items-center py-1.5 hover:text-journey-accent transition-colors sm:py-0">
                       {l.label}
                     </Link>
                   </li>
@@ -143,28 +143,28 @@ export default function Footer() {
               </h2>
               <ul className="space-y-3 text-xs text-slate-600 dark:text-slate-400">
                 <li className="flex items-center gap-2.5">
-                  <Mail className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
+                  <Mail className="w-4 h-4 text-journey-accent flex-shrink-0" />
                   <a
                     href="mailto:srkrcodingclubofficial@gmail.com"
-                    className="break-all hover:text-[#FF7A00] transition-colors"
+                    className="inline-flex min-h-6 items-center break-all hover:text-journey-accent transition-colors"
                   >
                     srkrcodingclubofficial@gmail.com
                   </a>
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Phone className="w-4 h-4 text-[#FF7A00] flex-shrink-0" />
+                  <Phone className="w-4 h-4 text-journey-accent flex-shrink-0" />
                   <div className="flex flex-wrap items-center gap-x-1.5">
-                    <a href="tel:+918500216667" className="inline-block py-1.5 hover:text-[#FF7A00] transition-colors sm:py-0">
+                    <a href="tel:+918500216667" className="inline-flex min-h-6 items-center py-1.5 hover:text-journey-accent transition-colors sm:py-0">
                       +91 8500216667
                     </a>
                     <span>,</span>
-                    <a href="tel:+917997266366" className="inline-block py-1.5 hover:text-[#FF7A00] transition-colors sm:py-0">
+                    <a href="tel:+917997266366" className="inline-flex min-h-6 items-center py-1.5 hover:text-journey-accent transition-colors sm:py-0">
                       +91 7997266366
                     </a>
                   </div>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <MapPin className="w-4 h-4 text-[#FF7A00] flex-shrink-0 mt-0.5" />
+                  <MapPin className="w-4 h-4 text-journey-accent flex-shrink-0 mt-0.5" />
                   <span>SRKR Engineering College, Bhimavaram, Andhra Pradesh &ndash; 534204</span>
                 </li>
               </ul>
@@ -186,14 +186,14 @@ export default function Footer() {
                   resetIntroSeen();
                   window.location.href = '/';
                 }}
-                className="flex min-h-8 items-center gap-1.5 py-1.5 font-mono text-[11px] text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] transition-colors"
+                className="flex min-h-8 items-center gap-1.5 py-1.5 font-mono text-[11px] text-slate-500 dark:text-slate-400 hover:text-journey-accent transition-colors"
               >
                 <RotateCcw className="w-3 h-3 flex-shrink-0" />
                 <span>Experience the intro again</span>
               </button>
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#FF7A00] hover:border-[#FF7A00]/40 transition active:scale-90 fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 [html[data-intro-chrome]:not([data-intro-done=true])_&]:invisible"
+                className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-journey-accent hover:border-[#FF7A00]/40 transition active:scale-90 fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 [html[data-intro-chrome]:not([data-intro-done=true])_&]:invisible"
                 aria-label="Back to top"
               >
                 <ArrowUp className="w-3.5 h-3.5" />

@@ -63,7 +63,7 @@ export function StoredFile({ slug, file }: { slug: string; file: { upload_id: st
     >
       <FileThumb slug={slug} id={file.upload_id} type={type} name={file.name} />
       <span className="max-w-[130px] truncate">{file.name}</span>
-      {error ? <span className="font-normal not-italic text-rose-500">unavailable</span> : file.size ? <span className="flex items-center gap-1 font-normal text-slate-500"><Download className="h-3 w-3" aria-hidden="true" />{formatSize(file.size)}</span> : null}
+      {error ? <span className="font-normal not-italic text-rose-600 dark:text-rose-400">unavailable</span> : file.size ? <span className="flex items-center gap-1 font-normal text-slate-500 dark:text-slate-400"><Download className="h-3 w-3" aria-hidden="true" />{formatSize(file.size)}</span> : null}
     </button>
   );
 }

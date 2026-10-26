@@ -172,7 +172,7 @@ const BADGE_TONES: Record<string, { tile: string; glow: string; icon: React.Reac
   orange: {
     tile: 'border-orange-200 bg-orange-50/80 dark:border-orange-900/50 dark:bg-orange-950/30',
     glow: '#FF7A0040',
-    icon: <Flame className="h-6 w-6 text-[#FF7A00]" />,
+    icon: <Flame className="h-6 w-6 text-journey-accent" />,
   },
   purple: {
     tile: 'border-purple-200 bg-purple-50/80 dark:border-purple-900/50 dark:bg-purple-950/30',
@@ -362,7 +362,7 @@ function ProfileCard({
           <button
             type="button"
             onClick={onLogout}
-            className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-full bg-journey-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_10px_26px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] ${focusRing}`}
+            className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-full bg-journey-accent px-4 py-1.5 text-xs font-bold text-journey-on-accent shadow-[0_10px_26px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] ${focusRing}`}
           >
             <LogOut className="h-3.5 w-3.5" />
             <span>Log Out</span>
@@ -461,7 +461,7 @@ function RefreshNotice({ onRetry, onClose, retrying }: { onRetry: () => void; on
   return (
     <div role="alert" className="toast-in fixed right-4 top-20 z-[60] w-[calc(100vw-2rem)] max-w-sm sm:top-24">
       <div className="flex items-start gap-3 rounded-2xl border border-rose-500/25 bg-journey-bg/95 p-4 shadow-[0_24px_60px_-24px_rgba(26,26,46,0.6)] backdrop-blur-xl">
-        <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
+        <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
           <AlertTriangle className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
@@ -471,7 +471,7 @@ function RefreshNotice({ onRetry, onClose, retrying }: { onRetry: () => void; on
             type="button"
             onClick={onRetry}
             disabled={retrying}
-            className={`mt-2.5 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-journey-accent px-3.5 py-1 text-xs font-bold text-white transition hover:brightness-110 active:scale-95 disabled:opacity-60 ${focusRing}`}
+            className={`mt-2.5 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-journey-accent px-3.5 py-1 text-xs font-bold text-journey-on-accent transition hover:brightness-110 active:scale-95 disabled:opacity-60 ${focusRing}`}
           >
             {retrying && <Loader2 className="h-3 w-3 animate-spin" />}
             <span>{retrying ? 'Retrying…' : 'Retry'}</span>
@@ -546,7 +546,7 @@ function EventTicket({ evt, onShowQr }: { evt: RegisteredEventItem; onShowQr: ()
           <button
             type="button"
             onClick={onShowQr}
-            className={`flex w-full flex-row items-center justify-center gap-3 rounded-2xl bg-journey-accent px-4 py-3 text-white shadow-[0_10px_26px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] sm:aspect-square sm:h-28 sm:w-28 sm:flex-col sm:gap-1.5 sm:px-2 sm:py-2 ${focusRing}`}
+            className={`flex w-full flex-row items-center justify-center gap-3 rounded-2xl bg-journey-accent px-4 py-3 text-journey-on-accent shadow-[0_10px_26px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] sm:aspect-square sm:h-28 sm:w-28 sm:flex-col sm:gap-1.5 sm:px-2 sm:py-2 ${focusRing}`}
           >
             <QrCode className="h-7 w-7" />
             <span className="text-xs font-bold sm:text-center sm:leading-tight">View QR Badge</span>
@@ -879,7 +879,7 @@ function ProfileContent() {
         )}
 
         {authError === 'admin_access_required' && (
-          <Notice tone="rose" icon={<ShieldAlert className="h-5 w-5 text-rose-500" />} title="Admin Clearance Required">
+          <Notice tone="rose" icon={<ShieldAlert className="h-5 w-5 text-rose-600 dark:text-rose-400" />} title="Admin Clearance Required">
             Your account role is <strong>{user.role}</strong>. Access to the Admin Control Room is restricted to users with <strong>ADMIN</strong> or{' '}
             <strong>CLUB_LEAD</strong> permissions.
           </Notice>
@@ -913,7 +913,7 @@ function ProfileContent() {
                 {isStaff && (
                   <Link
                     href="/admin"
-                    className={`inline-flex min-h-11 flex-1 basis-[8rem] items-center justify-center gap-2 rounded-2xl bg-journey-accent px-4 py-2 text-xs font-bold text-white shadow-[0_10px_26px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] ${focusRing}`}
+                    className={`inline-flex min-h-11 flex-1 basis-[8rem] items-center justify-center gap-2 rounded-2xl bg-journey-accent px-4 py-2 text-xs font-bold text-journey-on-accent shadow-[0_10px_26px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] ${focusRing}`}
                   >
                     <LayoutGrid className="h-4 w-4" />
                     <span>Admin Room</span>
@@ -931,7 +931,7 @@ function ProfileContent() {
           </aside>
 
           {/* ===== Activity column ===== */}
-          <main className="min-w-0 space-y-6 lg:min-h-[34rem] lg:space-y-8">
+          <div className="min-w-0 space-y-6 lg:min-h-[34rem] lg:space-y-8">
             {/* 6 cards beside the profile card; opening badges takes over the whole block */}
             <section aria-label="Your activity and badges" className="grid grid-cols-2 gap-3 xl:grid-cols-3">
               {!badgesOpen &&
@@ -956,8 +956,8 @@ function ProfileContent() {
                     label: 'Hackathon teams',
                     value: String(user.hackathonTeams),
                     icon: <Trophy className="h-5 w-5" />,
-                    iconClassName: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400',
-                    valueClassName: 'text-amber-600 dark:text-amber-400',
+                    iconClassName: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400',
+                    valueClassName: 'text-amber-700 dark:text-amber-400',
                     glow: '#f59e0b40',
                   },
                   {
@@ -1024,7 +1024,7 @@ function ProfileContent() {
                 >
                   <Link
                     href="/events"
-                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-full bg-journey-accent px-5 py-2 text-xs font-bold text-white shadow-[0_8px_24px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] ${focusRing}`}
+                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-full bg-journey-accent px-5 py-2 text-xs font-bold text-journey-on-accent shadow-[0_8px_24px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] ${focusRing}`}
                   >
                     <span>Browse Events & Forms</span>
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -1034,7 +1034,7 @@ function ProfileContent() {
             </section>
 
             <MyHackathonsPanel />
-          </main>
+          </div>
         </div>
       </div>
 

@@ -257,12 +257,12 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                                   className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] active:bg-black/[0.06] dark:active:bg-white/[0.08] transition-colors"
                                 >
                                   {Icon && (
-                                    <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-[#FF7A00] transition-colors">
+                                    <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-journey-accent transition-colors">
                                       <Icon className="w-4 h-4" />
                                     </div>
                                   )}
                                   <div className="flex flex-col">
-                                    <span className="text-[13px] font-semibold text-[#1A1A2E] dark:text-white group-hover/item:text-[#FF7A00] transition-colors">
+                                    <span className="text-[13px] font-semibold text-[#1A1A2E] dark:text-white group-hover/item:text-journey-accent transition-colors">
                                       {child.label}
                                     </span>
                                     {child.desc && (
@@ -304,7 +304,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#1A1A2E] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] transition shadow-sm active:scale-95 duration-100"
                   aria-label="User Profile"
                 >
-                  <User className="w-3.5 h-3.5 text-[#FF7A00]" />
+                  <User className="w-3.5 h-3.5 text-journey-accent" />
                   <span>{currentUser?.first_name || currentUser?.username || 'Profile'}</span>
                   {currentUser?.club_id && (
                     <span className="px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-[10px]">
@@ -317,7 +317,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               <>
                 <Link
                   href="/login"
-                  className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-block"
+                  className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-flex min-h-8 items-center"
                 >
                   Login
                 </Link>
@@ -409,7 +409,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white flex items-center justify-center gap-2 transition-transform duration-100 active:scale-95"
                     >
-                      <User className="w-4 h-4 text-[#FF7A00]" />
+                      <User className="w-4 h-4 text-journey-accent" />
                       <span>{currentUser?.first_name || currentUser?.username || 'My Profile'}</span>
                     </Link>
                     {(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD') && (

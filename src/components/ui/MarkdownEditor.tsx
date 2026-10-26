@@ -324,7 +324,7 @@ export function MarkdownEditor({
                 className={`p-2 rounded-lg transition ${
                   showCheatsheet
                     ? 'bg-orange-500/15 text-orange-500'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-200'
                 }`}
                 title="Markdown Cheatsheet"
                 aria-label="Markdown Cheatsheet"
@@ -379,7 +379,8 @@ export function MarkdownEditor({
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className={`w-full p-4 bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none resize-y leading-relaxed ${minHeight}`}
+            aria-label={label?.replace(/\s*\*$/, '') ?? 'Markdown text'}
+            className={`w-full p-4 bg-transparent text-base sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none resize-y leading-relaxed ${minHeight}`}
           />
         ) : (
           /* Live Markdown Preview Area */
@@ -387,7 +388,7 @@ export function MarkdownEditor({
             {value.trim() ? (
               <MarkdownRenderer content={value} />
             ) : (
-              <div className="h-full flex items-center justify-center py-8 text-slate-400 text-xs italic">
+              <div className="h-full flex items-center justify-center py-8 text-slate-500 dark:text-slate-400 text-xs italic">
                 No description written yet. Switch to "Write" to add guidelines.
               </div>
             )}
@@ -395,7 +396,7 @@ export function MarkdownEditor({
         )}
 
         {/* Footer info pill */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/50 dark:bg-[#151722]/50 border-t border-slate-100 dark:border-slate-800/60 text-[11px] text-slate-400">
+        <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/50 dark:bg-[#151722]/50 border-t border-slate-100 dark:border-slate-800/60 text-[11px] text-slate-500 dark:text-slate-400">
           <span className="text-[10px]">
             {mode === 'write' ? 'Markdown Supported' : 'Rendered Preview'}
           </span>

@@ -90,7 +90,7 @@ export function FormFilesTab({ slug, fileFields }: Props) {
           <p>{targets.length === 1
             ? <>"{targets[0].name}" from {targets[0].uploader?.name || 'an unknown person'} will be removed from their response and from storage. This cannot be undone.</>
             : <>These files will be removed from their responses and from storage. This cannot be undone.</>}</p>
-          {required.length > 0 && <p className="text-xs text-slate-500">If a question needs a file, that response will be left without one.</p>}
+          {required.length > 0 && <p className="text-xs text-slate-500 dark:text-slate-400">If a question needs a file, that response will be left without one.</p>}
         </div>
       ),
     });
@@ -135,7 +135,7 @@ export function FormFilesTab({ slug, fileFields }: Props) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           <input type="text" aria-label="Search files" placeholder="File or person…" value={search} onChange={(e) => setSearch(e.target.value)} className={`${control} w-52 pl-9`} />
         </div>
         <FormSelect
@@ -146,7 +146,7 @@ export function FormFilesTab({ slug, fileFields }: Props) {
           className="min-w-[170px]"
         />
         <FormSelect value={kind} placeholder="All types" options={KINDS} onChange={(value) => { setKind(value as typeof kind); setPage(1); }} className="min-w-[140px]" />
-        <button type="button" onClick={() => void load()} aria-label="Refresh files" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 text-slate-500 hover:text-slate-800 dark:border-slate-700 dark:hover:text-white">
+        <button type="button" onClick={() => void load()} aria-label="Refresh files" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:border-slate-700 dark:hover:text-white">
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
         </button>
       </div>
@@ -167,10 +167,10 @@ export function FormFilesTab({ slug, fileFields }: Props) {
       {selected.size > 0 && (
         <div className="flex items-center gap-3 rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-2.5" role="region" aria-label="Selected files">
           <span className="text-xs font-bold text-orange-500">{selected.size} selected</span>
-          <button type="button" onClick={() => void remove(files.filter((f) => selected.has(f.id)))} className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-500 hover:text-rose-400">
+          <button type="button" onClick={() => void remove(files.filter((f) => selected.has(f.id)))} className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-400">
             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Delete
           </button>
-          <button type="button" onClick={() => setSelected(new Set())} className="ml-auto text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-200">Clear</button>
+          <button type="button" onClick={() => setSelected(new Set())} className="ml-auto text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">Clear</button>
         </div>
       )}
 
@@ -182,7 +182,7 @@ export function FormFilesTab({ slug, fileFields }: Props) {
       )}
 
       {!error && data && files.length === 0 && (
-        <p className="py-16 text-center text-sm text-slate-500">{debounced || field || kind ? 'No files match these filters.' : 'No files have been uploaded to this form yet.'}</p>
+        <p className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{debounced || field || kind ? 'No files match these filters.' : 'No files have been uploaded to this form yet.'}</p>
       )}
 
       {loading && !data && <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-slate-400" aria-label="Loading files" /></div>}
@@ -194,7 +194,7 @@ export function FormFilesTab({ slug, fileFields }: Props) {
           return (
             <li key={file.id} className={`flex flex-col gap-3 rounded-xl border p-3 ${isSelected ? 'border-orange-500/50 bg-orange-500/5' : 'border-slate-200 dark:border-slate-800'}`}>
               <div className="flex items-start gap-3">
-                <button type="button" onClick={() => toggle(file.id)} aria-pressed={isSelected} aria-label={`${isSelected ? 'Deselect' : 'Select'} ${file.name}`} className="-m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-slate-700 dark:hover:text-white">
+                <button type="button" onClick={() => toggle(file.id)} aria-pressed={isSelected} aria-label={`${isSelected ? 'Deselect' : 'Select'} ${file.name}`} className="-m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white">
                   {isSelected ? <CheckSquare className="h-4 w-4" aria-hidden="true" /> : <Square className="h-4 w-4" aria-hidden="true" />}
                 </button>
                 <FileThumb slug={slug} id={file.id} type={file.type} name={file.name} className="h-16 w-16" />
@@ -226,7 +226,7 @@ export function FormFilesTab({ slug, fileFields }: Props) {
                     disabled={state !== undefined}
                     onClick={() => void run()}
                     aria-label={`${label} ${file.name}`}
-                    className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${danger ? 'border-rose-500/30 text-rose-500 hover:bg-rose-500/10' : 'border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+                    className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${danger ? 'border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10' : 'border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'}`}
                   >
                     {state === 'deleting' && danger ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
                     {label}
@@ -241,7 +241,7 @@ export function FormFilesTab({ slug, fileFields }: Props) {
       {data && pages > 1 && (
         <nav aria-label="Pages of files" className="flex items-center justify-center gap-3 pt-2">
           <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous page" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 disabled:opacity-40 dark:border-slate-700"><ChevronLeft className="h-4 w-4" aria-hidden="true" /></button>
-          <span className="text-xs text-slate-500">Page {page} of {pages}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">Page {page} of {pages}</span>
           <button type="button" disabled={page >= pages} onClick={() => setPage(page + 1)} aria-label="Next page" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 disabled:opacity-40 dark:border-slate-700"><ChevronRight className="h-4 w-4" aria-hidden="true" /></button>
         </nav>
       )}
@@ -254,7 +254,7 @@ export function FormFilesTab({ slug, fileFields }: Props) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={viewing.url} alt={viewing.file.name} className="mx-auto max-h-[70vh] max-w-full rounded object-contain" />
           )}
-          <p className="mt-3 text-center text-xs text-slate-500">{viewing.file.uploader?.name} · {formatSize(viewing.file.size)}</p>
+          <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">{viewing.file.uploader?.name} · {formatSize(viewing.file.size)}</p>
         </Modal>
       )}
       {dialog}

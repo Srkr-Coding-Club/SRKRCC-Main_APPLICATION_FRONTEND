@@ -39,7 +39,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
       }
       status={
         hackathon.status === 'CLOSED' ? (
-          <span className="inline-flex items-center rounded-full bg-journey-text/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-journey-text/80">
+          <span className="inline-flex items-center rounded-full bg-journey-text/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-journey-text/80">
             Closed
           </span>
         ) : null
@@ -74,19 +74,19 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
           <Link
             href={detailHref}
             aria-label={`View details for ${hackathon.title}`}
-            className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-journey-text/10 px-2 py-2.5 text-[11px] font-semibold text-journey-text/80 transition hover:text-journey-text sm:px-3 sm:text-[12px]"
+            className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-journey-text/10 px-2 py-2.5 text-xs font-semibold text-journey-text/80 transition hover:text-journey-text sm:px-3"
           >
             Details
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
           {!registrationOpen ? (
-            <span className="inline-flex min-w-0 flex-1 items-center justify-center rounded-lg bg-journey-text/10 px-2 py-2.5 text-center text-[10px] font-semibold leading-tight text-journey-muted sm:px-3 sm:text-[12px]">
+            <span className="inline-flex min-w-0 flex-1 items-center justify-center rounded-lg bg-journey-text/10 px-2 py-2.5 text-center text-xs font-semibold leading-tight text-journey-text/70 sm:px-3">
               {notYetOpen ? 'Registration opens soon' : 'Registration Closed'}
             </span>
           ) : (
             <Link
               href={detailHref}
-              className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-accent px-2 py-2.5 text-[10px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 sm:px-3 sm:text-[12px]"
+              className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-accent px-2 py-2.5 text-xs font-semibold text-journey-on-accent transition-transform duration-200 hover:-translate-y-0.5 sm:px-3"
             >
               <Trophy className="h-3 w-3 hidden sm:block" />
               Register Team

@@ -66,7 +66,7 @@ export function SubmissionThanks({ title, message, redirectUrl, delaySeconds, up
       )}
 
       {target && !stopped && (
-        <p role="status" className="text-xs text-slate-500">
+        <p role="status" className="text-xs text-slate-500 dark:text-slate-400">
           {left === 1 ? t('redirectInOne') : t('redirectIn', { n: left })}{' '}
           <button type="button" onClick={() => setStopped(true)} className="inline-flex min-h-8 items-center px-2 font-bold underline">{t('stayHere')}</button>
           {' · '}
@@ -77,7 +77,7 @@ export function SubmissionThanks({ title, message, redirectUrl, delaySeconds, up
       <div className="pt-4">
         <Link
           href="/forms"
-          className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg bg-[#FF7A00] text-white font-bold text-sm shadow-sm hover:bg-[#E06B00] transition"
+          className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg bg-journey-accent text-journey-on-accent font-bold text-sm shadow-sm hover:opacity-90 transition"
         >
           <span>{t('returnToForms')}</span>
         </Link>

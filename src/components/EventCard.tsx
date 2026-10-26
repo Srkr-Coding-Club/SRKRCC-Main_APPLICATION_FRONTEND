@@ -169,14 +169,14 @@ export default function EventCard({
             ) : event.is_quick_registration && event.form_slug ? (
               <QuickRegisterButton
                 event={event}
-                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-accent px-2 py-2.5 text-[10px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 sm:gap-1.5 sm:px-4 sm:text-[13px]"
+                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-accent px-2 py-2.5 text-[10px] font-semibold text-journey-on-accent transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 sm:gap-1.5 sm:px-4 sm:text-[13px]"
                 registeredClassName="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-emerald-500/10 px-2 py-2.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 sm:gap-1.5 sm:px-4 sm:text-[13px]"
                 label="Register Now"
               />
             ) : (
               <Link
                 href={event.form_slug ? `/forms/${event.form_slug}` : "/forms"}
-                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-accent px-2 py-2.5 text-[10px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 sm:px-3 sm:text-[12px]"
+                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-journey-accent px-2 py-2.5 text-[10px] font-semibold text-journey-on-accent transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 sm:px-3 sm:text-[12px]"
               >
                 <Ticket className="h-4 w-4 hidden sm:block" />
                 Register Now

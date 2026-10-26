@@ -75,7 +75,7 @@ function MemberDetailContent({
               <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                 member.membership_status === 'ACTIVE'
                   ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400'
+                  : 'bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400'
               }`}>
                 {member.membership_status || 'ACTIVE'}
               </span>
@@ -100,27 +100,27 @@ function MemberDetailContent({
       {/* Primary Details Grid */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Branch / Dept</span>
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Branch / Dept</span>
           <div className="text-sm font-bold text-[#1A1A2E] dark:text-white mt-0.5">{member.branch || 'Not Specified'}</div>
         </div>
         <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Roll Number</span>
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Roll Number</span>
           <div className="text-sm font-bold text-[#1A1A2E] dark:text-white mt-0.5 font-mono">{member.roll_number || 'Not set'}</div>
         </div>
         <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phone Number</span>
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phone Number</span>
           <div className="text-sm font-bold text-[#1A1A2E] dark:text-white mt-0.5">{member.phone_number || 'N/A'}</div>
         </div>
         <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Year of Study</span>
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Year of Study</span>
           <div className="text-sm font-bold text-[#1A1A2E] dark:text-white mt-0.5">Year {member.year || '1'}</div>
         </div>
         <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Referred / Onboarded By</span>
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Referred / Onboarded By</span>
           <div className="text-sm font-bold text-orange-400 mt-0.5 truncate">{member.referred_by_display || member.referred_by_raw || 'Direct / None'}</div>
         </div>
         <div className="bg-slate-100 dark:bg-slate-800/40 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Member Since</span>
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Member Since</span>
           <div className="text-sm font-bold text-[#1A1A2E] dark:text-white mt-0.5">
             {member.registered_at
               ? new Date(member.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -134,7 +134,7 @@ function MemberDetailContent({
       {/* Social / Portfolio Links */}
       {(member.github_profile || member.linkedin_profile) && (
         <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Profiles & Portfolio</span>
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Profiles & Portfolio</span>
           <div className="flex flex-wrap items-center gap-3 text-xs">
             {member.github_profile && (
               <a
@@ -396,7 +396,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
       {/* Filter & Search Bar */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[260px]">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400" />
           <input
             type="text"
             placeholder="Search by Name, Email, Phone, or Club ID (e.g. 25SCC277)…"
@@ -407,6 +407,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
         </div>
 
         <select
+          aria-label="Filter by role"
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
           className="px-3.5 py-2.5 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
@@ -421,6 +422,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
         </select>
 
         <select
+          aria-label="Filter by status"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="px-3.5 py-2.5 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
@@ -432,6 +434,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
         </select>
 
         <select
+          aria-label="Filter by branch"
           value={branchFilter}
           onChange={(e) => setBranchFilter(e.target.value)}
           className="px-3.5 py-2.5 glass-panel border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-[#1A1A2E] dark:text-white focus:outline-none focus:border-orange-500 font-semibold"
@@ -462,7 +465,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
           <p className="text-xs text-slate-500 dark:text-slate-400">Loading club members…</p>
         </div>
       ) : filteredMembers.length === 0 ? (
-        <div className="py-20 text-center text-slate-500 text-xs glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
+        <div className="py-20 text-center text-slate-500 dark:text-slate-400 text-xs glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
           <Users className="w-10 h-10 text-slate-600 mx-auto opacity-50" />
           <p className="font-bold text-sm text-[#1A1A2E] dark:text-white">No members matched your search filters</p>
           <p className="text-slate-400 max-w-sm mx-auto">
@@ -484,7 +487,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
         <div className="glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
-              <thead className="bg-slate-50 dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
+              <thead className="bg-slate-50 dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold text-[10px]">
                 <tr>
                   <th className="px-5 py-3.5">Club ID</th>
                   <th className="px-5 py-3.5">Member Name & Email</th>
@@ -563,7 +566,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                           className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                             m.membership_status === 'ACTIVE'
                               ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                              : 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400'
+                              : 'bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400'
                           }`}
                         >
                           {m.membership_status || 'ACTIVE'}
@@ -574,7 +577,7 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
                       <td className="px-5 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => setEditingMember(m)}
-                          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 transition active:scale-95"
+                          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded bg-[#FF7A00]/10 text-journey-accent hover:bg-[#FF7A00]/20 transition active:scale-95"
                         >
                           <Pencil className="w-3 h-3" />
                           Edit

@@ -41,14 +41,14 @@ export function SubmissionPhases({ hackathon }: { hackathon: Hackathon }) {
     <ol className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[1fr_auto_1fr]" aria-label="Submission phases">
       {phases.map((phase, index) => (
         <React.Fragment key={phase.title}>
-          {index === 1 && <li aria-hidden="true" className="hidden items-center justify-center text-slate-400 sm:flex"><ArrowRight className="h-5 w-5" /></li>}
+          {index === 1 && <li aria-hidden="true" className="hidden items-center justify-center text-slate-500 dark:text-slate-400 sm:flex"><ArrowRight className="h-5 w-5" /></li>}
           <li className="space-y-1 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">{phase.title}</p>
               <StatusPill tone={PILL[phase.state].tone}>{PILL[phase.state].label}</StatusPill>
             </div>
-            <p className="text-xs text-slate-500">{phase.note}</p>
-            {phase.deadline && <p className="text-xs text-slate-500">Deadline: {formatDateTime(phase.deadline)}</p>}
+            <p className="text-xs text-slate-500 dark:text-slate-400">{phase.note}</p>
+            {phase.deadline && <p className="text-xs text-slate-500 dark:text-slate-400">Deadline: {formatDateTime(phase.deadline)}</p>}
           </li>
         </React.Fragment>
       ))}

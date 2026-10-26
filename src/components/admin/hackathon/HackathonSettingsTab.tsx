@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, HelpCircle, LayoutTemplate, Lock, Save, Trash2, Unlock, Sparkles, Calendar, Trophy, Users, Shield, FileText, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -21,6 +21,7 @@ import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErro
 
 export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackathon; onSaved: (h: Hackathon) => void }) {
   const { toast } = useToast();
+  const fieldId = useId();
 
   // Core Details
   const [title, setTitle] = useState('');
@@ -228,14 +229,14 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         {/* Section 1: General Event Info */}
         <section className={`${PANEL} space-y-4`}>
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#FF7A00]" />
+            <Sparkles className="h-4 w-4 text-journey-accent" />
             General Information
           </h3>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className={LABEL}>Hackathon Title</label>
-              <input
+              <label className={LABEL} htmlFor={`${fieldId}-hackathon-title`}>Hackathon Title</label>
+              <input id={`${fieldId}-hackathon-title`}
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -243,12 +244,12 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
                 required
                 className={INPUT}
               />
-              {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
+              {errors.title && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.title}</p>}
             </div>
 
             <div className="sm:col-span-2">
-              <label className={LABEL}>Theme / Tagline</label>
-              <input
+              <label className={LABEL} htmlFor={`${fieldId}-theme-tagline`}>Theme / Tagline</label>
+              <input id={`${fieldId}-theme-tagline`}
                 type="text"
                 value={theme}
                 onChange={(e) => setTheme(e.target.value)}
@@ -256,57 +257,58 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
                 required
                 className={INPUT}
               />
-              {errors.theme && <p className="mt-1 text-[11px] text-rose-500">{errors.theme}</p>}
+              {errors.theme && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.theme}</p>}
             </div>
 
             <div>
-              <label className={LABEL}>Prize Pool</label>
-              <input
+              <label className={LABEL} htmlFor={`${fieldId}-prize-pool`}>Prize Pool</label>
+              <input id={`${fieldId}-prize-pool`}
                 type="text"
                 value={prizePool}
                 onChange={(e) => setPrizePool(e.target.value)}
                 placeholder="e.g. ₹50,000"
                 className={INPUT}
               />
-              {errors.prize_pool && <p className="mt-1 text-[11px] text-rose-500">{errors.prize_pool}</p>}
+              {errors.prize_pool && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.prize_pool}</p>}
             </div>
 
             <div>
-              <label className={LABEL}>Banner Image URL</label>
-              <input
+              <label className={LABEL} htmlFor={`${fieldId}-banner-image-url`}>Banner Image URL</label>
+              <input id={`${fieldId}-banner-image-url`}
                 type="url"
                 value={bannerImage}
                 onChange={(e) => setBannerImage(e.target.value)}
                 placeholder="https://..."
                 className={INPUT}
               />
-              {errors.banner_image && <p className="mt-1 text-[11px] text-rose-500">{errors.banner_image}</p>}
+              {errors.banner_image && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.banner_image}</p>}
             </div>
 
             {bannerImage.trim() && (
               <div className="sm:col-span-2">
                 <BannerCropEditor imageUrl={bannerImage.trim()} value={bannerCrop} onChange={setBannerCrop} />
-                {errors.banner_crop && <p className="mt-1 text-[11px] text-rose-500">{errors.banner_crop}</p>}
+                {errors.banner_crop && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.banner_crop}</p>}
               </div>
             )}
 
             <div>
-              <label className={LABEL}>Linked form <span className="normal-case font-medium text-slate-400">(optional)</span></label>
+              <label id={`${fieldId}-linked-form`} className={LABEL}>Linked form <span className="normal-case font-medium text-slate-500 dark:text-slate-400">(optional)</span></label>
               <FormSelect
+                aria-labelledby={`${fieldId}-linked-form`}
                 value={registrationForm}
                 onChange={setRegistrationForm}
                 options={formOptions}
                 placeholder={formsError ? 'Could not load forms' : 'No form linked'}
               />
-              {errors.registration_form && <p className="mt-1 text-[11px] text-rose-500">{errors.registration_form}</p>}
-              <p className="mt-1 text-[11px] text-slate-400">
+              {errors.registration_form && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.registration_form}</p>}
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                 Ties a form from the Form Builder to this hackathon so its responses are counted here. Teams still register from the participant dashboard.
                 {hackathon.form_slug && (
                   <>
                     {' '}
-                    <Link href={`/admin/responses?form=${hackathon.form_slug}`} className="font-bold text-[#FF7A00] hover:underline">View responses</Link>
+                    <Link href={`/admin/responses?form=${hackathon.form_slug}`} className="font-bold text-journey-accent hover:underline">View responses</Link>
                     {' · '}
-                    <Link href="/admin/forms" className="font-bold text-[#FF7A00] hover:underline">Open Form Builder</Link>
+                    <Link href="/admin/forms" className="font-bold text-journey-accent hover:underline">Open Form Builder</Link>
                   </>
                 )}
               </p>
@@ -317,56 +319,56 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         {/* Section 2: Event Dates & Schedule */}
         <section className={`${PANEL} space-y-4`}>
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-[#FF7A00]" />
+            <Calendar className="h-4 w-4 text-journey-accent" />
             Event Schedule & Visibility Window
           </h3>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={LABEL}>Start Date & Time</label>
-              <input
+              <label className={LABEL} htmlFor={`${fieldId}-start-date-time`}>Start Date & Time</label>
+              <input id={`${fieldId}-start-date-time`}
                 type="datetime-local"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 required
                 className={INPUT}
               />
-              {errors.start_date && <p className="mt-1 text-[11px] text-rose-500">{errors.start_date}</p>}
+              {errors.start_date && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.start_date}</p>}
             </div>
 
             <div>
-              <label className={LABEL}>End Date & Time</label>
-              <input
+              <label className={LABEL} htmlFor={`${fieldId}-end-date-time`}>End Date & Time</label>
+              <input id={`${fieldId}-end-date-time`}
                 type="datetime-local"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 required
                 className={INPUT}
               />
-              {errors.end_date && <p className="mt-1 text-[11px] text-rose-500">{errors.end_date}</p>}
+              {errors.end_date && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.end_date}</p>}
             </div>
 
             <div>
-              <label className={LABEL}>Visible from (Optional)</label>
-              <input
+              <label className={LABEL} htmlFor={`${fieldId}-visible-from-optional`}>Visible from (Optional)</label>
+              <input id={`${fieldId}-visible-from-optional`}
                 type="datetime-local"
                 value={visibleFrom}
                 onChange={(e) => setVisibleFrom(e.target.value)}
                 className={INPUT}
               />
-              <p className="mt-1 text-[11px] text-slate-400">Blank = visible immediately to non-admins.</p>
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Blank = visible immediately to non-admins.</p>
             </div>
 
             <div>
-              <label className={LABEL}>Visible until (Optional)</label>
-              <input
+              <label className={LABEL} htmlFor={`${fieldId}-visible-until-optional`}>Visible until (Optional)</label>
+              <input id={`${fieldId}-visible-until-optional`}
                 type="datetime-local"
                 value={visibleUntil}
                 onChange={(e) => setVisibleUntil(e.target.value)}
                 className={INPUT}
               />
-              {errors.visible_until && <p className="mt-1 text-[11px] text-rose-500">{errors.visible_until}</p>}
-              <p className="mt-1 text-[11px] text-slate-400">After this date, the hackathon is hidden from the public.</p>
+              {errors.visible_until && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.visible_until}</p>}
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">After this date, the hackathon is hidden from the public.</p>
             </div>
           </div>
         </section>
@@ -374,10 +376,10 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         {/* Section 3: Event Description, Rules & Guidelines (Markdown) */}
         <section className={`${PANEL} space-y-4`}>
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
-            <FileText className="h-4 w-4 text-[#FF7A00]" />
+            <FileText className="h-4 w-4 text-journey-accent" />
             Description, Rules & Overview (Markdown)
           </h3>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             This markdown content is directly rendered on the public hackathon details page under the Overview tab. Include
             rules, tracks, schedule details, accommodation guidelines, and judging rubrics.
           </p>
@@ -388,54 +390,54 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
               onChange={setDescription}
               placeholder="Write event overview, guidelines, perks, and rules in Markdown..."
             />
-            {errors.description && <p className="mt-1 text-[11px] text-rose-500">{errors.description}</p>}
+            {errors.description && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.description}</p>}
           </div>
         </section>
 
         {/* How the public hackathon page looks */}
         <section className={`${PANEL} space-y-4`}>
           <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-            <LayoutTemplate className="h-4 w-4 text-[#FF7A00]" />
+            <LayoutTemplate className="h-4 w-4 text-journey-accent" />
             Public Page Presentation
           </h3>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             What visitors see on the hackathon page. The stages timeline has its own tab (Public Timeline).
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={LABEL}>Event format</label>
-              <select value={mode} onChange={(e) => setMode(e.target.value as NonNullable<Hackathon['mode']>)} className={INPUT}>
+              <label className={LABEL} htmlFor={`${fieldId}-event-format`}>Event format</label>
+              <select id={`${fieldId}-event-format`} value={mode} onChange={(e) => setMode(e.target.value as NonNullable<Hackathon['mode']>)} className={INPUT}>
                 <option value="ONLINE">Online</option>
                 <option value="OFFLINE">Offline</option>
                 <option value="HYBRID">Hybrid</option>
               </select>
-              {errors.mode && <p className="mt-1 text-[11px] text-rose-500">{errors.mode}</p>}
+              {errors.mode && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.mode}</p>}
             </div>
             <div>
-              <label className={LABEL}>Venue {mode === 'ONLINE' && <span className="font-medium normal-case text-slate-400">(shown for offline / hybrid)</span>}</label>
-              <input value={venue} onChange={(e) => setVenue(e.target.value)} maxLength={200} placeholder="e.g. SRKR Engineering College, Bhimavaram" className={INPUT} />
-              {errors.venue && <p className="mt-1 text-[11px] text-rose-500">{errors.venue}</p>}
+              <label className={LABEL} htmlFor={`${fieldId}-venue`}>Venue {mode === 'ONLINE' && <span className="font-medium normal-case text-slate-500 dark:text-slate-400">(shown for offline / hybrid)</span>}</label>
+              <input id={`${fieldId}-venue`} value={venue} onChange={(e) => setVenue(e.target.value)} maxLength={200} placeholder="e.g. SRKR Engineering College, Bhimavaram" className={INPUT} />
+              {errors.venue && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.venue}</p>}
             </div>
             <div>
-              <label className={LABEL}>Organizer</label>
-              <input value={organizer} onChange={(e) => setOrganizer(e.target.value)} maxLength={150} placeholder="Blank = SRKR Coding Club, SRKR Engineering College" className={INPUT} />
+              <label className={LABEL} htmlFor={`${fieldId}-organizer`}>Organizer</label>
+              <input id={`${fieldId}-organizer`} value={organizer} onChange={(e) => setOrganizer(e.target.value)} maxLength={150} placeholder="Blank = SRKR Coding Club, SRKR Engineering College" className={INPUT} />
             </div>
             <div>
-              <label className={LABEL}>Logo image URL</label>
-              <input type="url" value={logoImage} onChange={(e) => setLogoImage(e.target.value)} placeholder="https://..." className={INPUT} />
-              {errors.logo_image && <p className="mt-1 text-[11px] text-rose-500">{errors.logo_image}</p>}
+              <label className={LABEL} htmlFor={`${fieldId}-logo-image-url`}>Logo image URL</label>
+              <input id={`${fieldId}-logo-image-url`} type="url" value={logoImage} onChange={(e) => setLogoImage(e.target.value)} placeholder="https://..." className={INPUT} />
+              {errors.logo_image && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.logo_image}</p>}
             </div>
           </div>
           <div>
-            <label className={LABEL}>Tags</label>
-            <input value={tagsText} onChange={(e) => setTagsText(e.target.value)} placeholder="Technology & Coding, Data Science, Management" className={INPUT} />
-            <p className="mt-1 text-[11px] text-slate-400">Comma separated, up to 10. Shown as the category line under the title.</p>
-            {errors.tags && <p className="mt-1 text-[11px] text-rose-500">{errors.tags}</p>}
+            <label className={LABEL} htmlFor={`${fieldId}-tags`}>Tags</label>
+            <input id={`${fieldId}-tags`} value={tagsText} onChange={(e) => setTagsText(e.target.value)} placeholder="Technology & Coding, Data Science, Management" className={INPUT} />
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Comma separated, up to 10. Shown as the category line under the title.</p>
+            {errors.tags && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.tags}</p>}
           </div>
 
           <div className="space-y-3">
             <label className={LABEL}>Prizes</label>
-            <p className="text-[11px] text-slate-400">Leave empty to show just the prize pool above as one card.</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Leave empty to show just the prize pool above as one card.</p>
             <ul className="space-y-3">
               {prizes.map((prize, index) => (
                 <li key={index} className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
@@ -477,7 +479,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
                 </li>
               ))}
             </ul>
-            {errors.prizes && <p className="text-[11px] text-rose-500">{errors.prizes}</p>}
+            {errors.prizes && <p className="text-[11px] text-rose-600 dark:text-rose-400">{errors.prizes}</p>}
             <button type="button" disabled={prizes.length >= 12} onClick={() => setPrizes((prev) => [...prev, { title: '', amount: '', description: '' }])} className={BTN_GHOST}>
               Add a prize
             </button>
@@ -487,10 +489,10 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         {/* FAQ shown on the public page */}
         <section className={`${PANEL} space-y-4`}>
           <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
-            <HelpCircle className="h-4 w-4 text-[#FF7A00]" />
+            <HelpCircle className="h-4 w-4 text-journey-accent" />
             FAQ
           </h3>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Questions shown on the public FAQ tab. Leave this empty to show the standard FAQ (eligibility, team size, problem statements).
           </p>
           <ul className="space-y-3">
@@ -521,7 +523,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
               </li>
             ))}
           </ul>
-          {errors.faq && <p className="text-[11px] text-rose-500">{errors.faq}</p>}
+          {errors.faq && <p className="text-[11px] text-rose-600 dark:text-rose-400">{errors.faq}</p>}
           <button type="button" disabled={faq.length >= 20} onClick={() => setFaq((prev) => [...prev, { question: '', answer: '' }])} className={BTN_GHOST}>
             Add a question
           </button>
@@ -530,37 +532,37 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         {/* Section 4: Team Registration Rules */}
         <section className={`${PANEL} space-y-5`}>
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
-            <Users className="h-4 w-4 text-[#FF7A00]" />
+            <Users className="h-4 w-4 text-journey-accent" />
             Team Registration & Squad Rules
           </h3>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={LABEL}>Registration opens</label>
-              <input type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} className={INPUT} />
-              <p className="mt-1 text-[11px] text-slate-400">Blank = open immediately.</p>
+              <label className={LABEL} htmlFor={`${fieldId}-registration-opens`}>Registration opens</label>
+              <input id={`${fieldId}-registration-opens`} type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} className={INPUT} />
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Blank = open immediately.</p>
             </div>
             <div>
-              <label className={LABEL}>Registration closes</label>
-              <input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className={INPUT} />
-              {errors.registration_closes_at && <p className="mt-1 text-[11px] text-rose-500">{errors.registration_closes_at}</p>}
-              <p className="mt-1 text-[11px] text-slate-400">After this, teams can no longer be created or changed.</p>
+              <label className={LABEL} htmlFor={`${fieldId}-registration-closes`}>Registration closes</label>
+              <input id={`${fieldId}-registration-closes`} type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className={INPUT} />
+              {errors.registration_closes_at && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.registration_closes_at}</p>}
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">After this, teams can no longer be created or changed.</p>
             </div>
             <div>
-              <label className={LABEL}>Min team size</label>
-              <input type="number" min={1} value={minSize} onChange={(e) => setMinSize(e.target.value)} className={INPUT} />
-              {errors.min_team_size && <p className="mt-1 text-[11px] text-rose-500">{errors.min_team_size}</p>}
+              <label className={LABEL} htmlFor={`${fieldId}-min-team-size`}>Min team size</label>
+              <input id={`${fieldId}-min-team-size`} type="number" min={1} value={minSize} onChange={(e) => setMinSize(e.target.value)} className={INPUT} />
+              {errors.min_team_size && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.min_team_size}</p>}
             </div>
             <div>
-              <label className={LABEL}>Max team size</label>
-              <input type="number" min={1} value={maxSize} onChange={(e) => setMaxSize(e.target.value)} className={INPUT} />
-              {errors.max_team_size && <p className="mt-1 text-[11px] text-rose-500">{errors.max_team_size}</p>}
+              <label className={LABEL} htmlFor={`${fieldId}-max-team-size`}>Max team size</label>
+              <input id={`${fieldId}-max-team-size`} type="number" min={1} value={maxSize} onChange={(e) => setMaxSize(e.target.value)} className={INPUT} />
+              {errors.max_team_size && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.max_team_size}</p>}
             </div>
           </div>
 
           <div>
             <label className={LABEL}>Required profile details</label>
-            <p className="mb-2 text-[11px] text-slate-400">
+            <p className="mb-2 text-[11px] text-slate-500 dark:text-slate-400">
               Every member must have these on their SRKRCC profile to create or join a team. No re-typing during registration.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -573,8 +575,8 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
                     onClick={() => setRequired((prev) => (on ? prev.filter((k) => k !== f.key) : [...prev, f.key]))}
                     className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
                       on
-                        ? 'border-[#FF7A00] bg-[#FF7A00]/10 text-[#C25A00] dark:text-[#FF9A4A]'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-500'
+                        ? 'border-[#FF7A00] bg-[#FF7A00]/10 text-orange-800 dark:text-[#FF9A4A]'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
                     }`}
                   >
                     {on ? '✓ ' : ''}{f.label}
@@ -582,7 +584,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
                 );
               })}
             </div>
-            {errors.required_profile_fields && <p className="mt-1 text-[11px] text-rose-500">{errors.required_profile_fields}</p>}
+            {errors.required_profile_fields && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.required_profile_fields}</p>}
           </div>
 
           <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-800 p-3 cursor-pointer">
@@ -594,7 +596,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             />
             <span className="text-sm">
               <span className="font-bold text-[#1A1A2E] dark:text-white">Allow open innovation</span>
-              <span className="block text-xs text-slate-500">
+              <span className="block text-xs text-slate-500 dark:text-slate-400">
                 Teams may bring their own problem instead of picking a statement. They must submit a title, description, and domain.
               </span>
             </span>
@@ -609,7 +611,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             />
             <span className="text-sm">
               <span className="font-bold text-[#1A1A2E] dark:text-white">Lock team changes</span>
-              <span className="block text-xs text-slate-500">
+              <span className="block text-xs text-slate-500 dark:text-slate-400">
                 Participants can no longer rename, change their problem, invite, remove, or leave. Admins can still edit.
               </span>
             </span>
@@ -625,7 +627,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
           style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
         >
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">You have unsaved changes.</p>
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">You have unsaved changes.</p>
             <button type="submit" disabled={busy} className={BTN_PRIMARY}>
               <Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save all settings'}
             </button>
@@ -637,7 +639,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
       <aside className="space-y-4 lg:sticky lg:top-24 self-start">
         <div className={`${PANEL} space-y-3`}>
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Registration Status</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             {draft
               ? 'Draft: only admins can see this hackathon. Finish the settings, add problem statements, then publish.'
               : closed
@@ -667,7 +669,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         {!draft && (
           <div className={`${PANEL} space-y-3`}>
             <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Public visibility</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               {hackathon.is_manually_hidden
                 ? 'Hidden: removed from the public site. Only admins and club leads can open it.'
                 : hackathon.is_hidden
@@ -696,7 +698,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         {canDelete && (
           <div className={`${PANEL} space-y-3 border-rose-500/30`}>
             <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400">Danger zone</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               Permanently deletes this hackathon with its teams, rounds, announcements and submissions. Consider hiding it instead.
             </p>
             <button type="button" onClick={() => lifecycle.requestDelete(hackathon)} disabled={lifecycleBusy} className={`${BTN_DANGER} border border-rose-500/40`}>

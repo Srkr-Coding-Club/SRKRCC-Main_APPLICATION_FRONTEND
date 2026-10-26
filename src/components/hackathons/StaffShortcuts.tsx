@@ -8,7 +8,7 @@ import { hackathonApi } from '@/lib/api/hackathons';
 import { isAuthenticated } from '@/lib/auth';
 
 const MANAGE_PERMISSIONS: HackathonPermissionKey[] = ['settings', 'content', 'teams', 'rounds', 'ideas', 'submissions', 'judging', 'results', 'insights', 'staff'];
-const LINK = 'inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-journey-accent/40 bg-journey-accent/10 px-3 py-1.5 text-xs font-bold text-journey-accent transition hover:bg-journey-accent/20 sm:min-h-0';
+const LINK = 'inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-journey-accent/40 bg-journey-accent/10 px-3 py-1.5 text-xs font-bold text-orange-800 dark:text-journey-accent transition hover:bg-journey-accent/20 sm:min-h-0';
 
 /** Quick links for people who hold a role in this hackathon; renders nothing for everyone else. */
 export function StaffShortcuts({ slug }: { slug: string }) {

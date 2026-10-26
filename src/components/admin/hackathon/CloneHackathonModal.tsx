@@ -53,17 +53,17 @@ export function CloneHackathonModal({ hackathon, onClose }: { hackathon: Hackath
       }
     >
       <form id="clone-hackathon-form" onSubmit={submit} className="space-y-4">
-        <p className="text-xs text-slate-500">Copies the settings, FAQ, stages, rounds (without teams), judging rubric and people. Every date moves by the same amount. Teams, submissions and scores are never copied.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Copies the settings, FAQ, stages, rounds (without teams), judging rubric and people. Every date moves by the same amount. Teams, submissions and scores are never copied.</p>
         <div>
           <label htmlFor="clone-title" className={LABEL}>Title</label>
           <input id="clone-title" value={title} onChange={(e) => setTitle(e.target.value)} className={INPUT} maxLength={200} />
-          {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
-          {errors.slug && <p className="mt-1 text-[11px] text-rose-500">{errors.slug}</p>}
+          {errors.title && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.title}</p>}
+          {errors.slug && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.slug}</p>}
         </div>
         <div>
           <label htmlFor="clone-start" className={LABEL}>New start date and time</label>
           <input id="clone-start" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} className={INPUT} />
-          {errors.start_date && <p className="mt-1 text-[11px] text-rose-500">{errors.start_date}</p>}
+          {errors.start_date && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.start_date}</p>}
         </div>
         <Switch label="Also copy problem statements" description="Handy if you reuse them; otherwise start with an empty list." checked={copyProblems} onChange={setCopyProblems} />
       </form>

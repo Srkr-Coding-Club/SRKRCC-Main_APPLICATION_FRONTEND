@@ -24,7 +24,7 @@ export default async function VerifyCertificatePage({ params }: { params: Promis
   const result = await verify(decodeURIComponent(code));
 
   return (
-    <main className="flex min-h-[70vh] items-center justify-center bg-[var(--background)] px-4 py-16">
+    <div className="flex min-h-[70vh] items-center justify-center bg-[var(--background)] px-4 py-16">
       <div className="glass-panel w-full max-w-lg space-y-4 rounded-2xl border border-journey-text/10 p-8 text-center">
         {result?.valid ? (
           <>
@@ -39,12 +39,12 @@ export default async function VerifyCertificatePage({ params }: { params: Promis
           </>
         ) : (
           <>
-            <ShieldX className="mx-auto h-12 w-12 text-rose-500" aria-hidden="true" />
+            <ShieldX className="mx-auto h-12 w-12 text-rose-600 dark:text-rose-400" aria-hidden="true" />
             <h1 className="text-xl font-semibold text-journey-text">We could not verify this certificate</h1>
             <p className="text-sm text-journey-muted">The code is not valid. Check that it was copied in full, or ask the person for the verification link printed on the certificate.</p>
           </>
         )}
       </div>
-    </main>
+    </div>
   );
 }

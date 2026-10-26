@@ -81,13 +81,13 @@ export function SubmissionPanel({ hackathon }: SubmissionPanelProps) {
     }
   };
 
-  if (loadError) return <section className={PANEL}><p className="text-sm text-rose-500">{loadError}</p></section>;
+  if (loadError) return <section className={PANEL}><p className="text-sm text-rose-600 dark:text-rose-400">{loadError}</p></section>;
   if (!payload) return <section className={`${PANEL} h-40 animate-pulse`} aria-busy="true" />;
 
   const left = timeLeft(payload.deadline, now);
   const submitted = payload.submission;
   const editable = payload.can_edit;
-  const field = (key: keyof SubmissionDraft) => errors[key] && <p className="text-xs text-rose-500">{errors[key]}</p>;
+  const field = (key: keyof SubmissionDraft) => errors[key] && <p className="text-xs text-rose-600 dark:text-rose-400">{errors[key]}</p>;
 
   return (
     <section className={`${PANEL} space-y-4`}>
@@ -121,7 +121,7 @@ export function SubmissionPanel({ hackathon }: SubmissionPanelProps) {
           <div className="space-y-1.5">
             <FieldLabel htmlFor="sub-description" required>What did you build?</FieldLabel>
             <SpotlightTextarea id="sub-description" rows={6} value={draft.description} maxLength={DESCRIPTION_LIMIT} onChange={(e) => set('description', e.target.value)} hasError={!!errors.description} placeholder="The problem, your solution, how it works and what is next." />
-            <div className="flex justify-between text-xs"><span className="text-rose-500">{errors.description}</span><span className="text-journey-muted">{draft.description.length}/{DESCRIPTION_LIMIT}</span></div>
+            <div className="flex justify-between text-xs"><span className="text-rose-600 dark:text-rose-400">{errors.description}</span><span className="text-journey-muted">{draft.description.length}/{DESCRIPTION_LIMIT}</span></div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">

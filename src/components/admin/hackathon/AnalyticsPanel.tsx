@@ -13,8 +13,8 @@ function Bars({ title, rows }: { title: string; rows: { label: string; count: nu
   const peak = Math.max(1, ...rows.map((row) => row.count));
   return (
     <div className="space-y-2">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{title}</p>
-      {rows.length === 0 ? <p className="text-xs text-slate-400">No data yet.</p> : (
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{title}</p>
+      {rows.length === 0 ? <p className="text-xs text-slate-500 dark:text-slate-400">No data yet.</p> : (
         <ul className="space-y-1.5">
           {rows.map((row) => (
             <li key={row.label} className="text-xs">
@@ -65,7 +65,7 @@ export function AnalyticsPanel({ slug }: { slug: string }) {
   return (
     <section className={`${PANEL} space-y-5`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><BarChart3 className="h-4 w-4 text-[#FF7A00]" /> Participation insight</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><BarChart3 className="h-4 w-4 text-journey-accent" /> Participation insight</h3>
         <button type="button" onClick={exportParticipants} disabled={exporting} className={BTN_GHOST}><Download className="h-3.5 w-3.5" /> {exporting ? 'Preparing…' : 'Export participants (CSV)'}</button>
       </div>
 
@@ -77,7 +77,7 @@ export function AnalyticsPanel({ slug }: { slug: string }) {
           </li>
         ))}
       </ol>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         {data.checked_in} checked in · {data.waitlisted_teams} on the waitlist
         {data.capacity.max_teams ? ` · ${data.capacity.placed_teams}/${data.capacity.max_teams} team places used` : ''}
         {data.capacity.max_participants ? ` · ${data.capacity.placed_participants}/${data.capacity.max_participants} participant places used` : ''}
@@ -91,7 +91,7 @@ export function AnalyticsPanel({ slug }: { slug: string }) {
 
       {perDay.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">People joining teams, per day (last {perDay.length} days with activity)</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">People joining teams, per day (last {perDay.length} days with activity)</p>
           <div className="flex h-24 items-end gap-1" role="img" aria-label={`Daily sign-ups, peak ${dayPeak}`}>
             {perDay.map((day) => (
               <div key={day.date} title={`${day.date}: ${day.count}`} className="flex-1 rounded-t bg-[#FF7A00]/80" style={{ height: `${Math.max(6, (day.count / dayPeak) * 100)}%` }} />

@@ -168,7 +168,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
         />
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center space-x-2">
-            <Trophy className="w-5 h-5 text-[#FF7A00]" />
+            <Trophy className="w-5 h-5 text-journey-accent" />
             <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">
               {isEditMode ? `Edit Hackathon: ${hackathon!.title}` : 'Launch New Hackathon'}
             </h3>
@@ -194,7 +194,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
               placeholder="e.g. Hackoverflow 2026"
               className={inputClasses}
             />
-            {errors.title && <p className="mt-1 text-[11px] text-rose-500">{errors.title}</p>}
+            {errors.title && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.title}</p>}
           </div>
 
           <div>
@@ -211,7 +211,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
               className={`${inputClasses} disabled:opacity-60`}
             />
             {isEditMode && <p className="mt-1 text-[11px] text-slate-400">The slug is part of every shared link, so it cannot change.</p>}
-            {errors.slug && <p className="mt-1 text-[11px] text-rose-500">{errors.slug}</p>}
+            {errors.slug && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.slug}</p>}
           </div>
 
           <div>
@@ -223,7 +223,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
               placeholder="Advanced Data Structures & Algorithmic Problem Solving"
               className={inputClasses}
             />
-            {errors.theme && <p className="mt-1 text-[11px] text-rose-500">{errors.theme}</p>}
+            {errors.theme && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.theme}</p>}
           </div>
 
           <div>
@@ -245,7 +245,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
                 onChange={(e) => setStartDate(e.target.value)}
                 className={inputClasses}
               />
-              {errors.startDate && <p className="mt-1 text-[11px] text-rose-500">{errors.startDate}</p>}
+              {errors.startDate && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.startDate}</p>}
             </div>
             <div>
               <label className={labelClasses}>End Date *</label>
@@ -255,7 +255,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
                 onChange={(e) => setEndDate(e.target.value)}
                 className={inputClasses}
               />
-              {errors.endDate && <p className="mt-1 text-[11px] text-rose-500">{errors.endDate}</p>}
+              {errors.endDate && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.endDate}</p>}
             </div>
           </div>
 
@@ -292,7 +292,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
           {!isEditMode && (
             <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
               <legend className="px-1 text-xs font-bold uppercase text-[#1A1A2E] dark:text-white">Modules for this event</legend>
-              <p className="text-xs text-slate-500">Switch on only what you need. Everything here, and more (rules, eligibility, questions), can be changed later under Registration controls.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Switch on only what you need. Everything here, and more (rules, eligibility, questions), can be changed later under Registration controls.</p>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {FEATURE_OPTIONS.map((option) => (
                   <Switch
@@ -307,7 +307,7 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
               <div className="max-w-xs">
                 <label htmlFor="create-max-teams" className={labelClasses}>Maximum teams <span className="normal-case font-medium text-slate-400">(optional)</span></label>
                 <input id="create-max-teams" type="number" min={1} value={maxTeams} onChange={(e) => setMaxTeams(e.target.value)} placeholder="Unlimited" className={inputClasses} />
-                {errors.max_teams && <p className="mt-1 text-[11px] text-rose-500">{errors.max_teams}</p>}
+                {errors.max_teams && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.max_teams}</p>}
               </div>
             </fieldset>
           )}
@@ -323,14 +323,14 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
+              className="px-4 py-2 rounded-lg text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60"
+              className="px-4 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60"
             >
               {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Hackathon'}
             </button>

@@ -77,7 +77,7 @@ export function Modal({ isOpen, onClose, title, icon: Icon, children, footer, bu
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4 dark:border-slate-800 sm:px-7">
           <div className="flex min-w-0 items-center gap-2">
-            {Icon && <Icon className="h-5 w-5 shrink-0 text-[#FF7A00]" />}
+            {Icon && <Icon className="h-5 w-5 shrink-0 text-journey-accent" />}
             <h3 className="truncate text-lg font-bold text-[#1A1A2E] dark:text-white">{title}</h3>
           </div>
           <button
@@ -85,7 +85,7 @@ export function Modal({ isOpen, onClose, title, icon: Icon, children, footer, bu
             onClick={onClose}
             disabled={busy}
             aria-label="Close"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-400 transition hover:text-slate-900 active:scale-90 disabled:opacity-40 dark:hover:text-white sm:min-h-9 sm:min-w-9"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 transition hover:text-slate-900 active:scale-90 disabled:opacity-40 dark:hover:text-white sm:min-h-9 sm:min-w-9"
           >
             <X className="h-5 w-5" />
           </button>

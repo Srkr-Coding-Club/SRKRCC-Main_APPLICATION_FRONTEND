@@ -297,7 +297,7 @@ export function BackgroundJobsTab() {
           <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white">Background Jobs</h3>
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400" />
               <input
                 type="text"
                 placeholder="Search by title, type, or creator…"
@@ -344,7 +344,7 @@ export function BackgroundJobsTab() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-            <thead className="bg-[#FAFAFC] dark:bg-[#0D0E15] text-xs uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-[#FAFAFC] dark:bg-[#0D0E15] text-xs uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-6 py-4 font-bold">Type</th>
                 <th className="px-6 py-4 font-bold">Title</th>
@@ -410,13 +410,13 @@ export function BackgroundJobsTab() {
                           {job.created_by ? (
                             <div className="flex flex-col">
                               <span className="font-semibold text-[#1A1A2E] dark:text-white">{job.created_by.name}</span>
-                              <span className="text-[11px] text-slate-500">{job.created_by.email}</span>
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400">{job.created_by.email}</span>
                             </div>
                           ) : (
                             '-'
                           )}
                         </td>
-                        <td className="px-6 py-4 text-xs font-mono text-slate-500">{formatSummaryInline(job)}</td>
+                        <td className="px-6 py-4 text-xs font-mono text-slate-500 dark:text-slate-400">{formatSummaryInline(job)}</td>
                         <td className="px-6 py-4 text-right">
                           <button
                             type="button"
@@ -443,7 +443,7 @@ export function BackgroundJobsTab() {
                               )}
                               <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
                                 <div>
-                                  <span className="text-slate-500">Completed:</span>{' '}
+                                  <span className="text-slate-500 dark:text-slate-400">Completed:</span>{' '}
                                   <span className="font-semibold text-[#1A1A2E] dark:text-white">
                                     {job.completed_at
                                       ? new Date(job.completed_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
@@ -451,7 +451,7 @@ export function BackgroundJobsTab() {
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-slate-500">Raw status:</span>{' '}
+                                  <span className="text-slate-500 dark:text-slate-400">Raw status:</span>{' '}
                                   <span className="font-mono font-semibold text-[#1A1A2E] dark:text-white">{job.status}</span>
                                 </div>
                               </div>
@@ -459,7 +459,7 @@ export function BackgroundJobsTab() {
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                   {remainingSummary.map(([key, value]) => (
                                     <div key={key} className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
-                                      <p className="text-[10px] uppercase tracking-wider text-slate-500">{formatFieldKey(key)}</p>
+                                      <p className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">{formatFieldKey(key)}</p>
                                       <p className="text-sm font-bold font-mono text-[#1A1A2E] dark:text-white">{formatNumber(value)}</p>
                                     </div>
                                   ))}

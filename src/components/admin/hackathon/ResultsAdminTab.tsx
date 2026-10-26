@@ -143,7 +143,7 @@ export function ResultsAdminTab({ hackathon, onSaved, onEnable }: ResultsAdminTa
     <div className="space-y-6">
       <section className={`${PANEL} space-y-4`}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Trophy className="h-4 w-4 text-[#FF7A00]" /> Winners and awards</h3>
+          <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Trophy className="h-4 w-4 text-journey-accent" /> Winners and awards</h3>
           <StatusPill tone={published ? 'green' : 'amber'}>{published ? `Published ${formatDateTime(hackathon.results_published_at)}` : 'Not published'}</StatusPill>
         </div>
         <ObjectListEditor<AwardDraft>
@@ -167,20 +167,20 @@ export function ResultsAdminTab({ hackathon, onSaved, onEnable }: ResultsAdminTa
       </section>
 
       <section className={`${PANEL} space-y-4`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Megaphone className="h-4 w-4 text-[#FF7A00]" /> Publish results</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Megaphone className="h-4 w-4 text-journey-accent" /> Publish results</h3>
         <Switch label="Show every team's score" description="Off = only the winners appear. On = the full ranked leaderboard is public too." checked={showLeaderboard} onChange={saveLeaderboardSetting} disabled={patching} />
         {!published && <Switch label="Notify participants" description="Sends an in-app notification to every registered participant." checked={notify} onChange={setNotify} />}
-        {!hackathon.features?.showcase && <p className="text-xs text-slate-500">Tip: switch on the Project showcase module to list submitted projects publicly after you publish.
-          <button type="button" onClick={onEnable} className="ml-1 font-bold text-[#FF7A00] hover:underline">Open Registration controls</button></p>}
+        {!hackathon.features?.showcase && <p className="text-xs text-slate-500 dark:text-slate-400">Tip: switch on the Project showcase module to list submitted projects publicly after you publish.
+          <button type="button" onClick={onEnable} className="ml-1 font-bold text-journey-accent hover:underline">Open Registration controls</button></p>}
         <button type="button" onClick={togglePublished} disabled={busy} className={published ? BTN_GHOST : BTN_PRIMARY}>
           {published ? <><EyeOff className="h-3.5 w-3.5" /> Hide results again</> : <><Eye className="h-3.5 w-3.5" /> Publish results</>}
         </button>
       </section>
 
       <section className={`${PANEL} space-y-4`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Award className="h-4 w-4 text-[#FF7A00]" /> Certificates</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Award className="h-4 w-4 text-journey-accent" /> Certificates</h3>
         {!certificatesOn ? (
-          <p className="text-sm text-slate-500">Certificates are switched off. <button type="button" onClick={onEnable} className="font-bold text-[#FF7A00] hover:underline">Switch them on in Registration controls</button>.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Certificates are switched off. <button type="button" onClick={onEnable} className="font-bold text-journey-accent hover:underline">Switch them on in Registration controls</button>.</p>
         ) : (
           <form onSubmit={saveCertificates} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -191,7 +191,7 @@ export function ResultsAdminTab({ hackathon, onSaved, onEnable }: ResultsAdminTa
               <div className="sm:col-span-2">
                 <label htmlFor="cert-body" className={LABEL}>Wording</label>
                 <textarea id="cert-body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} className={INPUT} maxLength={600} />
-                <p className="mt-1 text-[11px] text-slate-400">{PLACEHOLDER_HELP}</p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{PLACEHOLDER_HELP}</p>
               </div>
               <div>
                 <label htmlFor="cert-signatory" className={LABEL}>Signatory name</label>
@@ -206,7 +206,7 @@ export function ResultsAdminTab({ hackathon, onSaved, onEnable }: ResultsAdminTa
                 <select id="cert-eligibility" value={eligibility} onChange={(e) => setEligibility(e.target.value as CertificateEligibility)} className={INPUT}>
                   {CERTIFICATE_RULES.map((rule) => <option key={rule.value} value={rule.value}>{rule.label}</option>)}
                 </select>
-                {eligible !== null && <p className="mt-1 text-[11px] text-slate-400">{eligible} participants qualify right now. Winners automatically get an award certificate.</p>}
+                {eligible !== null && <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{eligible} participants qualify right now. Winners automatically get an award certificate.</p>}
               </div>
             </div>
             <Switch label="Release certificates" description="Participants can download theirs, and are notified, as soon as you save with this on." checked={released} onChange={setReleased} />

@@ -102,7 +102,7 @@ export default function PublicListingCard({
           }}
         >
           <div ref={categoryRef} className="flex min-h-7 items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-journey-accent/30 bg-journey-accent/10 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-journey-accent">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-journey-accent/30 bg-journey-accent/10 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-orange-800 dark:text-journey-accent">
               {category}
             </span>
             {status}

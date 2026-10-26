@@ -171,7 +171,7 @@ export default function LoginCard({
   const isCurrentAdmin = loggedInUser?.role === 'ADMIN' || loggedInUser?.role === 'CLUB_LEAD';
 
   return (
-    <motion.main
+    <motion.div
       initial={embedded || pageLayout ? false : { opacity: 0 }}
       animate={embedded || pageLayout ? undefined : { opacity: 1 }}
       transition={{ duration: 0.05, ease: 'easeOut' }}
@@ -239,14 +239,14 @@ export default function LoginCard({
 
             {/* SECURE SIGN IN Badge 
             <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
-              <Lock className="h-3 w-3 text-slate-500 stroke-[2.2]" />
+              <Lock className="h-3 w-3 text-slate-500 dark:text-slate-400 stroke-[2.2]" />
               Secure Sign In
             </div> */}
 
             {/* Title & Subtitle */}
-            <h2 className="text-[24px] font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+            <h1 className="text-[24px] font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
               Sign in
-            </h2>
+            </h1>
             <p className="mb-5 text-[12px] text-slate-500 dark:text-slate-400">
               Enter your credentials to continue.
             </p>
@@ -270,7 +270,7 @@ export default function LoginCard({
                   <button
                     type="button"
                     onClick={handleContinueAsExisting}
-                    className="flex-1 py-1.5 px-3 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-medium text-xs flex items-center justify-center gap-1.5"
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-medium text-xs flex items-center justify-center gap-1.5"
                   >
                     <span>Continue</span>
                     <ArrowRight className="w-3.5 h-3.5 text-white" />
@@ -357,7 +357,7 @@ export default function LoginCard({
                   />
                 </div>
                 {fieldErrors.email && (
-                  <p id="login-email-error" role="alert" className="text-[10px] text-rose-500 flex items-start gap-1 font-medium">
+                  <p id="login-email-error" role="alert" className="text-[10px] text-rose-600 dark:text-rose-400 flex items-start gap-1 font-medium">
                     <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
                     <span>{fieldErrors.email}</span>
                   </p>
@@ -375,7 +375,7 @@ export default function LoginCard({
                   </label>
                   <Link
                     href="/account/setup-password"
-                    className="text-[10px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                    className="inline-flex min-h-8 items-center px-1 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
                   >
                     Forgot?
                   </Link>
@@ -408,7 +408,7 @@ export default function LoginCard({
                   </button>
                 </div>
                 {fieldErrors.password && (
-                  <p id="login-password-error" role="alert" className="text-[10px] text-rose-500 flex items-start gap-1 font-medium">
+                  <p id="login-password-error" role="alert" className="text-[10px] text-rose-600 dark:text-rose-400 flex items-start gap-1 font-medium">
                     <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
                     <span>{fieldErrors.password}</span>
                   </p>
@@ -457,6 +457,6 @@ export default function LoginCard({
           </div>
         </div>
       </motion.section>
-    </motion.main>
+    </motion.div>
   );
 }

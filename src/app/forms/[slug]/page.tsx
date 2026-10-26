@@ -501,7 +501,7 @@ function ModernSelect({
             ml-3 h-4 w-4 shrink-0
             text-slate-400
             transition-transform duration-200
-            ${isOpen ? "rotate-180 text-[#FF7A00]" : ""}
+            ${isOpen ? "rotate-180 text-journey-accent" : ""}
           `}
         />
       </button>
@@ -547,7 +547,7 @@ function ModernSelect({
             <span>{placeholder}</span>
 
             {!value && (
-              <Check className="h-4 w-4 text-[#FF7A00]" />
+              <Check className="h-4 w-4 text-journey-accent" />
             )}
           </button>
 
@@ -579,7 +579,7 @@ function ModernSelect({
                 <span className="truncate">{option}</span>
 
                 {selected && (
-                  <Check className="ml-3 h-4 w-4 shrink-0 text-[#FF7A00]" />
+                  <Check className="ml-3 h-4 w-4 shrink-0 text-journey-accent" />
                 )}
               </button>
             );
@@ -741,7 +741,7 @@ function SignaturePad({
       <button
         type="button"
         onClick={handleClear}
-        className="min-h-8 px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#FF7A00] transition active:scale-95"
+        className="min-h-8 px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-journey-accent transition active:scale-95"
       >
         Clear
       </button>
@@ -1540,7 +1540,7 @@ export default function FormDetailSubmissionPage() {
 
   if (notFound || !form) {
     return (
-      <main className="journey-type relative isolate flex min-h-[75vh] items-center justify-center overflow-hidden bg-journey-bg px-5 py-12 text-center sm:px-8 sm:py-16">
+      <div className="journey-type relative isolate flex min-h-[75vh] items-center justify-center overflow-hidden bg-journey-bg px-5 py-12 text-center sm:px-8 sm:py-16">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-dot-grid opacity-[0.12] [mask-image:radial-gradient(ellipse_at_center,#000,transparent_75%)] dark:opacity-[0.18]" />
         <section className="relative w-full max-w-md space-y-5 overflow-hidden rounded-[28px] border border-journey-text/10 bg-journey-surface p-6 shadow-[0_24px_60px_-30px_rgba(30,41,59,0.35)] sm:p-8 dark:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)]">
           <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,rgb(var(--journey-accent)/0.16),transparent)]" />
@@ -1554,14 +1554,14 @@ export default function FormDetailSubmissionPage() {
           <div className="relative pt-1">
             <Link
               href="/forms"
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-journey-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface sm:w-auto"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-journey-accent px-5 py-2.5 text-sm font-semibold text-journey-on-accent shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface sm:w-auto"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Forms</span>
             </Link>
           </div>
         </section>
-      </main>
+      </div>
     );
   }
 
@@ -1599,7 +1599,7 @@ export default function FormDetailSubmissionPage() {
               <div className="relative mt-6 space-y-3">
                 <Link
                   href={`/login?next=/forms/${slug}`}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-journey-accent px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-journey-accent px-5 py-3 text-sm font-semibold text-journey-on-accent shadow-lg shadow-orange-900/10 transition hover:bg-journey-accent/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent focus-visible:ring-offset-2 focus-visible:ring-offset-journey-surface"
                 >
                   <span>Sign in to continue</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1631,7 +1631,7 @@ export default function FormDetailSubmissionPage() {
         <div>
           <Link
             href="/forms"
-            className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#FF7A00] px-4 py-2 rounded-full glass-panel border border-slate-200 dark:border-slate-800 shadow-sm transition"
+            className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-journey-accent px-4 py-2 rounded-full glass-panel border border-slate-200 dark:border-slate-800 shadow-sm transition"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Forms Center</span>
@@ -1661,7 +1661,7 @@ export default function FormDetailSubmissionPage() {
             {/* Header */}
             <div className="border-b border-slate-100 dark:border-slate-800 pb-6 space-y-4">
               <div className="flex items-center space-x-3">
-                <div className="p-3 rounded-2xl bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]">
+                <div className="p-3 rounded-2xl bg-orange-50 dark:bg-orange-950/40 text-journey-accent">
                   <FileText className="w-6 h-6" />
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1A1A2E] dark:text-white">
@@ -1691,7 +1691,7 @@ export default function FormDetailSubmissionPage() {
                   {hasSubmitted && form?.allow_multiple_responses !== true && (
                     canEditResponse ? (
                       <div className="p-4 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/40 flex items-start gap-3">
-                        <Edit3 className="w-5 h-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
+                        <Edit3 className="w-5 h-5 text-journey-accent flex-shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
                           <p className="font-bold text-orange-800 dark:text-orange-300">
                             Response Edit Mode Active
@@ -1703,7 +1703,7 @@ export default function FormDetailSubmissionPage() {
                       </div>
                     ) : (
                       <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
-                        <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                        <Lock className="w-5 h-5 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
                           <p className="font-bold text-amber-800 dark:text-amber-300">
                             Response Already Submitted (Edits Locked)
@@ -1725,7 +1725,7 @@ export default function FormDetailSubmissionPage() {
               ) : (
                 <div className="p-4 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <Lock className="w-5 h-5 text-[#FF7A00] flex-shrink-0" />
+                    <Lock className="w-5 h-5 text-journey-accent flex-shrink-0" />
                     <div className="text-xs">
                       <p className="font-bold text-slate-900 dark:text-white">Sign In Required</p>
                       <p className="text-slate-500 dark:text-slate-400">You must be logged in to fill and submit this form.</p>
@@ -1733,7 +1733,7 @@ export default function FormDetailSubmissionPage() {
                   </div>
                   <Link
                     href={`/login?next=/forms/${slug}`}
-                    className="px-4 py-2 rounded-full bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs whitespace-nowrap shadow transition text-center"
+                    className="px-4 py-2 rounded-full bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-xs whitespace-nowrap shadow transition text-center"
                   >
                     Click Here to Log In
                   </Link>
@@ -1762,7 +1762,7 @@ export default function FormDetailSubmissionPage() {
                 if (form.status === 'DRAFT') {
                   return (
                     <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                      <AlertCircle className="w-5 h-5 text-amber-700 dark:text-amber-500 flex-shrink-0 mt-0.5" />
                       <div className="text-xs text-amber-800 dark:text-amber-300">
                         <p className="font-bold">Draft Preview Mode</p>
                         <p className="mt-0.5 text-amber-700/80 dark:text-amber-400/80">This form has not been published yet. Responses submitted here are for testing only.</p>
@@ -1929,7 +1929,7 @@ export default function FormDetailSubmissionPage() {
                   return (
                     <div key={field.id} className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
                       <div>
-                        <h3 className="text-lg font-bold text-[#FF7A00]">{field.label}</h3>
+                        <h3 className="text-lg font-bold text-journey-accent">{field.label}</h3>
                         {field.description && <p className="text-xs text-slate-400 mt-0.5">{field.description}</p>}
                       </div>
                       {messageNote}
@@ -1957,7 +1957,7 @@ export default function FormDetailSubmissionPage() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <FieldLabel required={conditionallyRequired}>{field.label}</FieldLabel>
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#FF7A00] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-journey-accent bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
                           <Sparkles className="w-2.5 h-2.5" />
                           <span>From your profile</span>
                         </span>
@@ -2003,7 +2003,7 @@ export default function FormDetailSubmissionPage() {
                     )}
                     {messageNote}
                     {limitedPlaces.length > 0 && (
-                      <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">Places left: {limitedPlaces.join(', ')}</p>
+                      <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">Places left: {limitedPlaces.join(', ')}</p>
                     )}
                     {layout.setValues.has(String(field.id)) && (
                       <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Filled in automatically from your other answers.</p>
@@ -2173,7 +2173,7 @@ export default function FormDetailSubmissionPage() {
 
                               {/* Selected check indicator */}
                               {selected && (
-                                <span className="ml-auto text-[#FF7A00]">
+                                <span className="ml-auto text-journey-accent">
                                   <CheckCircle2 className="h-4 w-4" />
                                 </span>
                               )}
@@ -2258,7 +2258,7 @@ export default function FormDetailSubmissionPage() {
                                   transition-all duration-200
                                   ${
                                     selected
-                                      ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
+                                      ? 'border-[#FF7A00] bg-journey-accent text-journey-on-accent'
                                       : 'border-slate-300 dark:border-slate-600 group-hover:border-[#FF7A00]/60'
                                   }
                                 `}
@@ -2330,7 +2330,7 @@ export default function FormDetailSubmissionPage() {
 
                     {/* FILE / MULTI_FILE Field */}
                     {(field.type === 'FILE' || field.type === 'MULTI_FILE') && uploadConfig.direct_upload && !currentUser && (
-                      <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500 dark:border-slate-700">Sign in to attach files to this form.</p>
+                      <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500 dark:text-slate-400 dark:border-slate-700">Sign in to attach files to this form.</p>
                     )}
                     {(field.type === 'FILE' || field.type === 'MULTI_FILE') && uploadConfig.direct_upload && !!currentUser && (
                       <FileUploadField
@@ -2356,7 +2356,7 @@ export default function FormDetailSubmissionPage() {
                     )}
                     {(field.type === 'FILE' || field.type === 'MULTI_FILE') && !uploadConfig.direct_upload && (
                       <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center bg-[#FAFAFC] dark:bg-[#0D0E15] hover:border-[#FF7A00]/50 transition">
-                        <Upload className="w-8 h-8 text-[#FF7A00] mx-auto mb-2" />
+                        <Upload className="w-8 h-8 text-journey-accent mx-auto mb-2" />
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                           Drag & drop {field.type === 'MULTI_FILE' ? 'files' : 'a file'} or click to select
                         </p>
@@ -2426,7 +2426,7 @@ export default function FormDetailSubmissionPage() {
                               <Star
                                 className={`w-7 h-7 transition-colors ${
                                   current >= i
-                                    ? 'fill-[#FF7A00] text-[#FF7A00]'
+                                    ? 'fill-[#FF7A00] text-journey-accent'
                                     : 'text-slate-300 dark:text-slate-700'
                                 }`}
                               />
@@ -2462,7 +2462,7 @@ export default function FormDetailSubmissionPage() {
                                 aria-pressed={selected}
                                 className={`h-10 w-10 rounded-lg border text-sm font-bold transition-all active:scale-90 ${
                                   selected
-                                    ? 'border-[#FF7A00] bg-[#FF7A00] text-white'
+                                    ? 'border-[#FF7A00] bg-journey-accent text-journey-on-accent'
                                     : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-[#FF7A00]/50'
                                 }`}
                               >
@@ -2627,7 +2627,7 @@ export default function FormDetailSubmissionPage() {
                         id={errorId}
                         role="alert"
                         aria-live="polite"
-                        className="text-xs text-rose-500 font-semibold flex items-center space-x-1"
+                        className="text-xs text-rose-600 dark:text-rose-400 font-semibold flex items-center space-x-1"
                       >
                         <AlertCircle className="w-3.5 h-3.5" />
                         <span>{errors[field.id] || errors[String(field.id)]}</span>
@@ -2657,7 +2657,7 @@ export default function FormDetailSubmissionPage() {
                       <button
                         type="button"
                         onClick={() => setShowLoginModal(true)}
-                        className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98]"
+                        className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-journey-accent text-journey-on-accent font-extrabold text-sm shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98]"
                       >
                         <Lock className="w-4 h-4" />
                         <span>{t('signInButton')}</span>
@@ -2700,13 +2700,13 @@ export default function FormDetailSubmissionPage() {
                 if (missingRequiredProfileFields.length > 0 && !isClosed && !isBeforeOpen) {
                   return (
                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <p className="text-xs text-rose-500 font-semibold flex items-center gap-1.5">
+                      <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5">
                         <AlertCircle className="w-4 h-4" />
                         <span>Complete your profile to register. Missing: {missingRequiredProfileFields.map((f) => f.label).join(', ')}</span>
                       </p>
                       <Link
                         href="/profile"
-                        className="inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-gradient-to-br from-[#FF7A00] to-[#E06B00] text-white font-extrabold text-sm shadow-sm transition active:scale-[0.98]"
+                        className="inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-journey-accent text-journey-on-accent font-extrabold text-sm shadow-sm transition active:scale-[0.98]"
                       >
                         <span>Update Your Profile</span>
                       </Link>
@@ -2747,7 +2747,7 @@ export default function FormDetailSubmissionPage() {
                         type="button"
                         onClick={goNext}
                         disabled={isClosed || isBeforeOpen}
-                        className="inline-flex items-center gap-2 px-7 py-3 rounded-lg bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-2 px-7 py-3 rounded-lg bg-journey-accent text-journey-on-accent font-extrabold text-base transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <span>{t('next')}</span>
                         <ArrowRight className="w-4 h-4" />
@@ -2757,7 +2757,7 @@ export default function FormDetailSubmissionPage() {
                       key="submit-form"
                       type="submit"
                       disabled={isSubmitting || anyUploading || isClosed || isBeforeOpen || cooldown > 0 || verifyLocked || (!!form.captcha_enabled && !isEditMode && !captchaToken)}
-                      className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-gradient-to-br from-[#FF7A00] to-[#E06B00] dark:from-[#FF7A00] dark:to-[#A8460A] text-white font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-journey-accent text-journey-on-accent font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <span>
                         {cooldown > 0

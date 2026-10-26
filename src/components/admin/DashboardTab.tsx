@@ -181,7 +181,7 @@ export function DashboardTab({
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Users</p>
             <p className="text-2xl sm:text-3xl font-extrabold text-[#1A1A2E] dark:text-white mt-1">{userCount}</p>
           </div>
-          <div className="p-2.5 sm:p-3 rounded-md bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00]">
+          <div className="p-2.5 sm:p-3 rounded-md bg-orange-50 dark:bg-orange-950/40 text-journey-accent">
             <Users className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
@@ -225,12 +225,12 @@ export function DashboardTab({
         <div className="lg:col-span-8 glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white flex items-center space-x-2">
-              <BarChart3 className="w-5 h-5 text-[#FF7A00]" />
+              <BarChart3 className="w-5 h-5 text-journey-accent" />
               <span>Registrations Overview Trend (Monthly)</span>
             </h3>
             <span
               className={`text-xs font-mono font-bold flex items-center gap-1 ${
-                monthlyTrend.growthUp ? 'text-emerald-500' : 'text-rose-500'
+                monthlyTrend.growthUp ? 'text-emerald-500' : 'text-rose-600 dark:text-rose-400'
               }`}
             >
               {monthlyTrend.growthUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
@@ -260,7 +260,7 @@ export function DashboardTab({
                     hoveredBar === i ? 'opacity-100' : 'opacity-90'
                   }`}
                 ></div>
-                <span className="text-xs font-bold text-slate-500">{bar.month}</span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{bar.month}</span>
               </div>
             ))}
           </div>
@@ -280,7 +280,7 @@ export function DashboardTab({
                 <div key={item.branch} className="space-y-1">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-[#1A1A2E] dark:text-white">{item.branch}</span>
-                    <span className="text-slate-500 font-mono">
+                    <span className="text-slate-500 dark:text-slate-400 font-mono">
                       {item.pct}% ({item.count})
                     </span>
                   </div>
@@ -299,7 +299,7 @@ export function DashboardTab({
         <div className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Recent Dynamic Forms</h3>
-            <Link href="/admin/forms" className="text-xs font-bold text-[#FF7A00] hover:underline">
+            <Link href="/admin/forms" className="text-xs font-bold text-journey-accent hover:underline">
               Manage All →
             </Link>
           </div>
@@ -314,9 +314,9 @@ export function DashboardTab({
                 <div key={pf.id} className="p-3.5 rounded-lg bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <div className="min-w-0 pr-2">
                     <p className="text-xs font-bold text-[#1A1A2E] dark:text-white truncate">{pf.title}</p>
-                    <p className="text-[11px] text-slate-500">Status: {pf.status} • {pf.response_count ?? 0} responses</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Status: {pf.status} • {pf.response_count ?? 0} responses</p>
                   </div>
-                  <Link href={`/forms/${pf.slug}`} target="_blank" className="text-xs font-bold text-[#FF7A00] hover:underline whitespace-nowrap">
+                  <Link href={`/forms/${pf.slug}`} target="_blank" className="text-xs font-bold text-journey-accent hover:underline whitespace-nowrap">
                     View Live →
                   </Link>
                 </div>
@@ -328,7 +328,7 @@ export function DashboardTab({
         <div className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Latest Live Registrations</h3>
-            <Link href="/admin/responses" className="text-xs font-bold text-[#FF7A00] hover:underline">
+            <Link href="/admin/responses" className="text-xs font-bold text-journey-accent hover:underline">
               View Responses →
             </Link>
           </div>
@@ -343,7 +343,7 @@ export function DashboardTab({
                 <div key={sub.id} className="p-3.5 rounded-lg bg-[#FAFAFC] dark:bg-[#0D0E15] border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <div className="min-w-0 pr-2">
                     <p className="text-xs font-bold text-[#1A1A2E] dark:text-white truncate">{sub.submitterName}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{sub.formTitle} • {sub.submittedAt}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{sub.formTitle} • {sub.submittedAt}</p>
                   </div>
                   <span className="text-xs font-mono font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">Recorded</span>
                 </div>

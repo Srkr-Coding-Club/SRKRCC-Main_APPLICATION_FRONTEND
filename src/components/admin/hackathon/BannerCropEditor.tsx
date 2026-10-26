@@ -113,7 +113,7 @@ export function BannerCropEditor({ imageUrl, value, onChange }: BannerCropEditor
         }`}
       >
         {failed ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-4 text-center text-xs text-slate-500">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
             <ImageOff className="h-6 w-6" aria-hidden="true" />
             Could not load this image. Check the URL is public and points straight to an image.
           </div>
@@ -127,7 +127,7 @@ export function BannerCropEditor({ imageUrl, value, onChange }: BannerCropEditor
               onLoad={setNaturalSize}
               onError={() => setFailedUrl(imageUrl)}
             />
-            <span className="pointer-events-none absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white">
+            <span className="pointer-events-none absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white">
               <Move className="h-3 w-3" aria-hidden="true" /> Drag to reposition
             </span>
           </>
@@ -168,7 +168,7 @@ function CropSlider({ label, value, min, max, step, unit, disabled, onChange }: 
     <label className="block text-xs font-bold text-[#1A1A2E] dark:text-white">
       <span className="flex items-center justify-between">
         {label}
-        <span className="font-mono font-medium text-slate-500">
+        <span className="font-mono font-medium text-slate-500 dark:text-slate-400">
           {Number.isInteger(value) ? value : value.toFixed(2)}
           {unit}
         </span>

@@ -97,7 +97,7 @@ export function AttendanceReportTab({ report, loading, formTitle }: AttendanceRe
       <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 p-6 pb-4">
           <h3 className="text-lg font-bold text-[#1A1A2E] dark:text-white flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#FF7A00]" />
+            <Users className="w-4 h-4 text-journey-accent" />
             Registrant Attendance ({report.registrants.length})
           </h3>
           <button
@@ -113,7 +113,7 @@ export function AttendanceReportTab({ report, loading, formTitle }: AttendanceRe
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-            <thead className="bg-[#FAFAFC] dark:bg-[#0D0E15] text-xs uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-[#FAFAFC] dark:bg-[#0D0E15] text-xs uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-6 py-4 font-bold whitespace-nowrap">Registrant</th>
                 {report.sessions.map((s) => (

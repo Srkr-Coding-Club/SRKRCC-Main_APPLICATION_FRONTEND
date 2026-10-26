@@ -40,7 +40,7 @@ function PermissionChecklist({ catalog, value, onChange, grantable, idPrefix }: 
             <input id={id} type="checkbox" checked={value.includes(item.key)} disabled={locked} onChange={(e) => toggle(item.key, e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#FF7A00]" />
             <span className="min-w-0">
               <span className="block text-sm font-bold text-[#1A1A2E] dark:text-white">{item.label}</span>
-              <span className="block text-xs text-slate-500">{item.description}</span>
+              <span className="block text-xs text-slate-500 dark:text-slate-400">{item.description}</span>
             </span>
           </label>
         );
@@ -143,20 +143,20 @@ export function RolesAdminTab({ hackathon }: RolesAdminTabProps) {
       {error && <LoadError message={error} onRetry={load} />}
 
       <section className={`${PANEL} space-y-3`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ShieldCheck className="h-4 w-4 text-[#FF7A00]" /> Roles for this hackathon</h3>
-        <p className="text-xs text-slate-500">These apply to this hackathon only. Site-wide Admins and Club Leads can always manage every hackathon. Anyone you add needs an account on the site.</p>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><ShieldCheck className="h-4 w-4 text-journey-accent" /> Roles for this hackathon</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">These apply to this hackathon only. Site-wide Admins and Club Leads can always manage every hackathon. Anyone you add needs an account on the site.</p>
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {(Object.keys(ROLE_LABEL) as HackathonStaffRole[]).map((item) => (
             <li key={item} className="space-y-1 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
               <StatusPill tone={ROLE_TONE[item]}>{ROLE_LABEL[item]}</StatusPill>
-              <p className="text-xs text-slate-500">{ROLE_BLURB[item]}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{ROLE_BLURB[item]}</p>
             </li>
           ))}
         </ul>
       </section>
 
       <form onSubmit={add} className={`${PANEL} space-y-4`}>
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><UserPlus className="h-4 w-4 text-[#FF7A00]" /> Add a person</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><UserPlus className="h-4 w-4 text-journey-accent" /> Add a person</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="role-email" className={LABEL}>Account email</label>
@@ -172,14 +172,14 @@ export function RolesAdminTab({ hackathon }: RolesAdminTabProps) {
         <div className="space-y-2">
           <p className={LABEL}>Permissions (start from the role, then adjust)</p>
           <PermissionChecklist catalog={me.catalog} value={picked} onChange={setPicked} grantable={grantable} idPrefix="new" />
-          {!me.is_site_organizer && <p className="text-[11px] text-slate-400">You can only hand out permissions you hold yourself.</p>}
+          {!me.is_site_organizer && <p className="text-[11px] text-slate-500 dark:text-slate-400">You can only hand out permissions you hold yourself.</p>}
         </div>
         <button type="submit" disabled={busy || !email.trim() || picked.length === 0} className={BTN_PRIMARY}><UserPlus className="h-3.5 w-3.5" /> {busy ? 'Adding…' : `Add ${ROLE_LABEL[role].toLowerCase()}`}</button>
       </form>
 
       <section className={`${PANEL} space-y-3`}>
         <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">People ({people.length})</h3>
-        {people.length === 0 ? <p className="text-sm text-slate-500">Nobody has been added yet.</p> : (
+        {people.length === 0 ? <p className="text-sm text-slate-500 dark:text-slate-400">Nobody has been added yet.</p> : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {people.map((person) => {
               const editing = editingId === person.id;
@@ -190,7 +190,7 @@ export function RolesAdminTab({ hackathon }: RolesAdminTabProps) {
                       <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[#1A1A2E] dark:text-white">
                         {person.name} <StatusPill tone={ROLE_TONE[person.role]}>{ROLE_LABEL[person.role]}</StatusPill>
                       </p>
-                      <p className="truncate text-xs text-slate-500">{person.email}</p>
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{person.email}</p>
                     </div>
                     <div className="flex gap-1.5">
                       <button type="button" onClick={() => { setEditingId(editing ? null : person.id); setDraft(person.permissions); }} className={BTN_GHOST} aria-expanded={editing}>

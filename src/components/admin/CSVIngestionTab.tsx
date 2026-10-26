@@ -264,7 +264,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
   const domainIcons: Record<BackupDomainKey, React.ReactNode> = {
     USERS: <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />,
     FORMS: <Layers className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
-    EVENTS: <Calendar className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
+    EVENTS: <Calendar className="w-6 h-6 text-amber-700 dark:text-amber-400" />,
     HACKATHONS: <Trophy className="w-6 h-6 text-purple-600 dark:text-purple-400" />,
     UNKNOWN_RAW: <Archive className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />,
   };
@@ -333,7 +333,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                     ? 'bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-300 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300'
                     : currentStep > s.step
                     ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10'
-                    : 'text-slate-500'
+                    : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
                 <div
@@ -379,7 +379,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                   <span className="text-indigo-600 dark:text-indigo-400 font-mono">.xlsx</span> file here, or click to browse. Max 10 MB, up to 10,000 rows.
                 </p>
 
-                <div className="mt-6 flex items-center gap-4 text-xs text-slate-500">
+                <div className="mt-6 flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
                   <span className="flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> SHA-256 Hashed
                   </span>
@@ -397,7 +397,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                     <FileSpreadsheet className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <span>Download Pre-formatted Mock Datasets for Testing</span>
                   </div>
-                  <span className="text-[11px] text-slate-500">CSV & Excel formats ready</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">CSV & Excel formats ready</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
@@ -439,7 +439,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                     >
                       <div>
                         <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">{d.label}</span>
-                        <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">{d.desc}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight mt-0.5">{d.desc}</span>
                       </div>
                       <div className="flex items-center gap-1.5 pt-1">
                         <a
@@ -540,7 +540,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                           <h4 className="text-base font-semibold text-[#1A1A2E] dark:text-white">{dom.title}</h4>
                           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{dom.desc}</p>
                         </div>
-                        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800/80 text-[11px] text-slate-500 font-mono">
+                        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                           {dom.req}
                         </div>
                       </div>
@@ -732,7 +732,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                         </>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Required: {analysis.required_fields.join(', ') || 'None'}
                     </div>
                   </div>
@@ -764,12 +764,12 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                         </>
                       ) : (
                         <>
-                          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                          <span className="text-base font-bold text-amber-600 dark:text-amber-400">FAIL (BELOW 50%)</span>
+                          <AlertTriangle className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+                          <span className="text-base font-bold text-amber-700 dark:text-amber-400">FAIL (BELOW 50%)</span>
                         </>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Requires Pass + ≥50% canonical field match
                     </div>
                   </div>
@@ -779,7 +779,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                 {!analysis.is_eligible_for_structured_import && (
                   <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 mb-6 flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <AlertTriangle className="w-5 h-5 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
                       <div>
                         <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300">Structured Import Requirements Not Met</h4>
                         <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
@@ -910,7 +910,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono">
                         {preview.rows_sample.map((row) => (
                           <tr key={row.source_row_number} className="hover:bg-slate-100 dark:hover:bg-slate-800/30">
-                            <td className="p-3 text-slate-500">{row.source_row_number}</td>
+                            <td className="p-3 text-slate-500 dark:text-slate-400">{row.source_row_number}</td>
                             <td className="p-3">
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -1018,7 +1018,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
           <div className="p-6 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div className="relative flex-1 max-w-md w-full">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search backups by filename or SHA-256 hash..."
@@ -1044,7 +1044,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                 <p className="text-sm">Loading backup vault archives...</p>
               </div>
             ) : backupHistory.length === 0 ? (
-              <div className="text-center py-16 text-slate-500">
+              <div className="text-center py-16 text-slate-500 dark:text-slate-400">
                 <Archive className="w-12 h-12 mx-auto text-slate-400 dark:text-slate-600 mb-3" />
                 <h4 className="text-base font-semibold text-slate-600 dark:text-slate-400">No Backup Archives Found</h4>
                 <p className="text-xs mt-1">Upload a spreadsheet via the Ingestion Wizard to preserve it here.</p>
@@ -1078,7 +1078,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
                               <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                               <span className="truncate max-w-xs">{b.original_filename}</span>
                             </div>
-                            <div className="text-[10px] text-slate-500 mt-0.5 truncate max-w-xs font-mono">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-xs font-mono">
                               SHA-256: {b.file_sha256.slice(0, 16)}...
                             </div>
                           </td>

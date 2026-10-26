@@ -93,7 +93,7 @@ function renderCellValue(type: string, value: unknown, formSlug?: string): React
 
           if (!url) {
             return (
-              <span key={i} className="flex items-center gap-1 text-[11px] text-slate-500 italic" title="File contents were not stored">
+              <span key={i} className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 italic" title="File contents were not stored">
                 <Download className="w-3 h-3 flex-shrink-0 opacity-40" />
                 <span className="truncate max-w-[140px] not-italic">{name}</span>
                 <span>(no file)</span>
@@ -106,7 +106,7 @@ function renderCellValue(type: string, value: unknown, formSlug?: string): React
             // validated, the url itself is not), so this is the last line of
             // defense before it would otherwise run in an admin's session on click.
             return (
-              <span key={i} className="flex items-center gap-1 text-[11px] text-rose-500 italic" title="Blocked unsafe file URL">
+              <span key={i} className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 italic" title="Blocked unsafe file URL">
                 <AlertCircle className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate max-w-[140px] not-italic">{name}</span>
               </span>
@@ -158,10 +158,10 @@ function ConfirmationEmailBadge({ status }: { status: ConfirmationEmailStatus | 
   }
   const config = {
     SENT: { icon: CheckCircle2, cls: 'text-emerald-600 dark:text-emerald-400', label: 'Sent' },
-    PENDING: { icon: Clock, cls: 'text-amber-600 dark:text-amber-400', label: 'Pending' },
-    RETRYING: { icon: Clock, cls: 'text-amber-600 dark:text-amber-400', label: 'Retrying' },
+    PENDING: { icon: Clock, cls: 'text-amber-700 dark:text-amber-400', label: 'Pending' },
+    RETRYING: { icon: Clock, cls: 'text-amber-700 dark:text-amber-400', label: 'Retrying' },
     FAILED: { icon: XCircle, cls: 'text-rose-600 dark:text-rose-400', label: 'Failed' },
-  }[status.status] ?? { icon: Clock, cls: 'text-slate-500', label: status.status };
+  }[status.status] ?? { icon: Clock, cls: 'text-slate-500 dark:text-slate-400', label: status.status };
   const Icon = config.icon;
   return (
     <span
@@ -195,7 +195,7 @@ function ConfirmationEmailCell({
           onClick={() => onResend(response.id)}
           disabled={resending}
           title={response.confirmation_email ? 'Resend confirmation email' : 'Send confirmation email'}
-          className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded-lg text-slate-400 hover:text-[#FF7A00] disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-90"
+          className="flex items-center justify-center min-h-8 min-w-8 p-1.5 rounded-lg text-slate-400 hover:text-journey-accent disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-90"
         >
           <RotateCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
         </button>
@@ -219,7 +219,7 @@ function ResponseDrawerContent({
       {/* Meta */}
       <div className="space-y-2">
         <div>
-          <p className="text-xs text-slate-500">Respondent</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Respondent</p>
           <p className="text-sm font-bold text-[#1A1A2E] dark:text-white">
             {response.user?.name || response.user_name || (response.is_manual_entry ? 'Admin Entry' : 'Anonymous Student')}
           </p>
@@ -234,7 +234,7 @@ function ResponseDrawerContent({
             { label: 'Type', value: response.is_manual_entry ? 'Manual Entry' : response.is_test_submission ? 'Test' : 'Public' },
           ].map(({ label, value }) => (
             <div key={label} className="bg-slate-800/50 rounded-lg p-3">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</div>
               <div className="text-xs font-semibold text-[#1A1A2E] dark:text-white mt-1">{value}</div>
             </div>
           ))}
@@ -242,10 +242,10 @@ function ResponseDrawerContent({
         {(form.confirmation_email_enabled || response.confirmation_email) && (
           <div className="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Confirmation Email</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">Confirmation Email</div>
               <div className="mt-1"><ConfirmationEmailBadge status={response.confirmation_email} /></div>
               {response.confirmation_email?.error_message && (
-                <p className="text-[10px] text-rose-500 mt-1 max-w-[220px] truncate" title={response.confirmation_email.error_message}>
+                <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1 max-w-[220px] truncate" title={response.confirmation_email.error_message}>
                   {response.confirmation_email.error_message}
                 </p>
               )}
@@ -254,7 +254,7 @@ function ResponseDrawerContent({
               <button
                 onClick={() => onResend(response.id)}
                 disabled={resending}
-                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-95 shrink-0"
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF7A00]/10 text-journey-accent hover:bg-[#FF7A00]/20 disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-95 shrink-0"
               >
                 <RotateCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
                 {response.confirmation_email ? 'Resend' : 'Send Now'}
@@ -265,7 +265,7 @@ function ResponseDrawerContent({
         {(form.confirmation_notification_enabled || response.confirmation_notification) && (
           <div className="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">In-App Notification</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">In-App Notification</div>
               <div className="mt-1">
                 {response.confirmation_notification ? (
                   <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
@@ -288,7 +288,7 @@ function ResponseDrawerContent({
               <button
                 onClick={() => onResendNotification(response.id)}
                 disabled={resendingNotification}
-                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF7A00]/10 text-[#FF7A00] hover:bg-[#FF7A00]/20 disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-95 shrink-0"
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF7A00]/10 text-journey-accent hover:bg-[#FF7A00]/20 disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-95 shrink-0"
               >
                 <RotateCw className={`w-3 h-3 ${resendingNotification ? 'animate-spin' : ''}`} />
                 {response.confirmation_notification ? 'Resend' : 'Send Now'}
@@ -299,12 +299,12 @@ function ResponseDrawerContent({
       </div>
       {/* Answers */}
       <div className="space-y-3">
-        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Answers</p>
+        <p className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">Answers</p>
         {response.answers.map((ans) => (
           <div key={ans.field_id} className="border-b border-slate-200 dark:border-slate-800/60 pb-3 last:border-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{ans.field_label}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-500 font-mono">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-500 dark:text-slate-400 font-mono">
                 {ans.field_type}
               </span>
             </div>
@@ -628,7 +628,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <input
               type="text"
               aria-label="Search responses"
@@ -705,7 +705,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
         {/* Timeline chart */}
         {showChart && (
           <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-4">Submissions Per Day (Last 30 Days)</p>
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold mb-4">Submissions Per Day (Last 30 Days)</p>
             <ResponseTimelineChart data={timelineData} />
           </div>
         )}
@@ -737,7 +737,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                           if (selectedIds.size === allIds.length) setSelectedIds(new Set());
                           else setSelectedIds(new Set(allIds));
                         }}
-                        className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 hover:text-orange-400 transition-transform duration-100 active:scale-90"
+                        className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-orange-400 transition-transform duration-100 active:scale-90"
                       >
                         {selectedIds.size === data.results.length
                           ? <CheckSquare className="w-4 h-4" />
@@ -776,7 +776,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
                           <button
                             aria-label={`Select the response from ${resp.user?.name || resp.user_name || resp.user_email || `#${resp.id}`}`}
                             aria-pressed={isSelected}
-                            onClick={() => toggleRow(resp.id)} className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 hover:text-orange-400 transition-transform duration-100 active:scale-90">
+                            onClick={() => toggleRow(resp.id)} className="flex items-center justify-center min-h-8 min-w-8 p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-orange-400 transition-transform duration-100 active:scale-90">
                             {isSelected ? <CheckSquare className="w-4 h-4 text-orange-500" /> : <Square className="w-4 h-4" />}
                           </button>
                         </td>

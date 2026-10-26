@@ -5,7 +5,7 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 export function LoadError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm">
-      <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+      <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
       <p className="min-w-0 flex-1 text-rose-700 dark:text-rose-300">{message}</p>
       <button
         type="button"

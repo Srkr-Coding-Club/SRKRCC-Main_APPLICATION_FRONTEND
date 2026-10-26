@@ -33,11 +33,11 @@ export function VerifyDialog() {
       >
         <div className="glass-panel w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 p-4">
-            <div className="flex items-center gap-2 text-[#FF7A00]">
+            <div className="flex items-center gap-2 text-journey-accent">
               <MailCheck className="h-5 w-5" aria-hidden="true" />
               <h2 className="text-base font-bold text-[#1A1A2E] dark:text-white">Verify your email</h2>
             </div>
-            <button type="button" onClick={closeDialog} aria-label="Close" className="rounded-lg p-2 text-slate-500 hover:text-[#1A1A2E] dark:hover:text-white">
+            <button type="button" onClick={closeDialog} aria-label="Close" className="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:text-[#1A1A2E] dark:hover:text-white">
               <X className="h-5 w-5" />
             </button>
           </div>

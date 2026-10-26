@@ -105,12 +105,12 @@ const FIELD_ORDER: FieldName[] = [
 ];
 
 const STRENGTH_BAR_COLORS = ['bg-rose-500', 'bg-rose-500', 'bg-amber-500', 'bg-lime-500', 'bg-emerald-500'];
-const STRENGTH_TEXT_COLORS = ['text-rose-500', 'text-rose-500', 'text-amber-500', 'text-lime-600', 'text-emerald-500'];
+const STRENGTH_TEXT_COLORS = ['text-rose-600 dark:text-rose-400', 'text-rose-600 dark:text-rose-400', 'text-amber-500', 'text-lime-600', 'text-emerald-500'];
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} role="alert" className="flex items-start gap-1.5 text-xs font-semibold text-rose-500">
+    <p id={id} role="alert" className="flex items-start gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400">
       <AlertCircle className="mt-px h-3.5 w-3.5 flex-shrink-0" />
       <span>{message}</span>
     </p>
@@ -177,7 +177,7 @@ function SignupSelect({
         <span className="truncate font-medium text-slate-800 dark:text-slate-100">
           {selectedOption?.label}
         </span>
-        <ChevronDown className={`ml-3 h-4 w-4 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-[#FF7A00]' : ''}`} />
+        <ChevronDown className={`ml-3 h-4 w-4 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-journey-accent' : ''}`} />
       </button>
 
       {isOpen && (
@@ -201,7 +201,7 @@ function SignupSelect({
                 }`}
               >
                 <span className="truncate">{option.label}</span>
-                {selected && <Check className="ml-3 h-4 w-4 shrink-0 text-[#FF7A00]" />}
+                {selected && <Check className="ml-3 h-4 w-4 shrink-0 text-journey-accent" />}
               </button>
             );
           })}
@@ -356,7 +356,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
   const labelClasses = 'block text-[10px] font-bold tracking-wider text-slate-600 dark:text-slate-300 uppercase';
 
   return (
-    <motion.main
+    <motion.div
       initial={embedded || pageLayout ? false : { opacity: 0 }}
       animate={embedded || pageLayout ? undefined : { opacity: 1 }}
       transition={{ duration: 0.05, ease: 'easeOut' }}
@@ -425,7 +425,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
           <div className="mb-5 space-y-1 text-left">
             {/* SECURE SIGN UP Badge 
             <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
-              <Lock className="h-3 w-3 text-slate-500" />
+              <Lock className="h-3 w-3 text-slate-500 dark:text-slate-400" />
               Secure Sign Up
             </div> */}
 
@@ -446,7 +446,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.fullName} className={labelClasses}>
-                    Full Name <span className="text-[#FF7A00]">*</span>
+                    Full Name <span className="text-journey-accent">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -475,7 +475,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
 
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.email} className={labelClasses}>
-                    Email <span className="text-[#FF7A00]">*</span>
+                    Email <span className="text-journey-accent">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -500,14 +500,14 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
                   <FieldError id="signup-email-error" message={visibleError('email')} />
                   {emailAlreadyRegistered && (
                     onSwitchToLogin ? (
-                      <button type="button" onClick={onSwitchToLogin} className="inline-flex items-center gap-1 text-xs font-bold text-[#FF7A00] hover:text-[#E06B00]">
+                      <button type="button" onClick={onSwitchToLogin} className="inline-flex items-center gap-1 text-xs font-bold text-journey-accent hover:text-[#E06B00]">
                         Sign in with this email instead
                         <ArrowRight className="w-3 h-3" />
                       </button>
                     ) : (
                       <Link
                         href={isSafeNextPath(nextUrl) ? `/login?next=${encodeURIComponent(nextUrl)}` : '/login'}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-[#FF7A00] hover:text-[#E06B00]"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-journey-accent hover:text-[#E06B00]"
                       >
                         Sign in with this email instead
                         <ArrowRight className="w-3 h-3" />
@@ -524,7 +524,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <div className="space-y-1.5 lg:col-span-2">
                   <label htmlFor={FIELD_INPUT_ID.college} className={labelClasses}>
-                    College <span className="text-[#FF7A00]">*</span>
+                    College <span className="text-journey-accent">*</span>
                   </label>
                   <CollegeSelect
                     id={FIELD_INPUT_ID.college}
@@ -601,7 +601,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
 
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.branch} className={labelClasses}>
-                    Branch <span className="text-[#FF7A00]">*</span>
+                    Branch <span className="text-journey-accent">*</span>
                   </label>
                   <SignupSelect
                     id={FIELD_INPUT_ID.branch}
@@ -617,7 +617,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
 
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.year} className={labelClasses}>
-                    Year of Study <span className="text-[#FF7A00]">*</span>
+                    Year of Study <span className="text-journey-accent">*</span>
                   </label>
                   <SignupSelect
                     id={FIELD_INPUT_ID.year}
@@ -655,11 +655,11 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
                       }
                     }}
                     disabled={isLoading || success}
-                    className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-slate-300 dark:border-slate-700 text-[#FF7A00] accent-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/30"
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-slate-300 dark:border-slate-700 text-journey-accent accent-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/30"
                   />
                   <span className="space-y-0.5">
                     <span className="flex items-center gap-1.5 text-sm font-bold text-[#1A1A2E] dark:text-white">
-                      <Users className="w-3.5 h-3.5 text-[#FF7A00]" />
+                      <Users className="w-3.5 h-3.5 text-journey-accent" />
                       Are you an affiliate?
                     </span>
                     <span className="block text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
@@ -672,7 +672,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
                 {formData.isAffiliate && (
                   <div className="px-4 pb-4 space-y-1.5">
                     <label htmlFor={FIELD_INPUT_ID.affiliateId} className={labelClasses}>
-                      Affiliate ID <span className="text-[#FF7A00]">*</span>
+                      Affiliate ID <span className="text-journey-accent">*</span>
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -711,7 +711,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.password} className={labelClasses}>
-                    Password <span className="text-[#FF7A00]">*</span>
+                    Password <span className="text-journey-accent">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -745,7 +745,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
 
                 <div className="space-y-1.5">
                   <label htmlFor={FIELD_INPUT_ID.confirmPassword} className={labelClasses}>
-                    Confirm Password <span className="text-[#FF7A00]">*</span>
+                    Confirm Password <span className="text-journey-accent">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -864,6 +864,6 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
           </div>
         </div>
       </motion.section>
-    </motion.main>
+    </motion.div>
   );
 }

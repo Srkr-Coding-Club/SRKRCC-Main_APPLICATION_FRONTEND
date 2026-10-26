@@ -124,7 +124,8 @@ describe('IdeaPanel: saving', () => {
     fireEvent.change(screen.getByLabelText(/Transaction ID/), { target: { value: 'UPI123' } });
     pick(1, png());
     await screen.findByText(/uploaded/, {}, { timeout: 5000 });
-    fireEvent.click(screen.getByRole('button', { name: 'Submit idea' }));
+    // The button still says "Uploading…" for a tick after the file reports itself uploaded; wait for it.
+    fireEvent.click(await screen.findByRole('button', { name: 'Submit idea' }));
     await waitFor(() => expect(api.saveIdea).toHaveBeenCalled(), { timeout: 5000 });
     expect(api.saveIdea.mock.calls[0][1]).toMatchObject({
       title: 'Smart bins', linkedin_url: 'https://www.linkedin.com/posts/x', transaction_id: 'UPI123', payment_file_id: 'pay-1', deck_file_id: null,

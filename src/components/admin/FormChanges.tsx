@@ -8,7 +8,7 @@ import { ChangeImpact, FormDiff, describeFieldChange, impactWarnings, plural, sh
 export function FormChanges({ diff, impact }: { diff: FormDiff; impact?: ChangeImpact }) {
   const warnings = impact ? impactWarnings(impact) : [];
   if (diff.is_empty) {
-    return <p className="text-xs text-slate-500">No difference.</p>;
+    return <p className="text-xs text-slate-500 dark:text-slate-400">No difference.</p>;
   }
 
   return (

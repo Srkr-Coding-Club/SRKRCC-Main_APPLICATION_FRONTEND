@@ -54,7 +54,7 @@ function SavedFile({ slug, ideaId, kind, file }: { slug: string; ideaId: number;
         <span className="font-normal text-journey-muted">{formatSize(file.size)}</span>
         <ExternalLink className="h-3 w-3" aria-hidden="true" />
       </button>
-      {error && <p role="alert" className="text-xs text-rose-500">{error}</p>}
+      {error && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
     </div>
   );
 }
@@ -118,13 +118,13 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
     }
   };
 
-  if (loadError) return <section className={PANEL}><p className="text-sm text-rose-500">{loadError}</p></section>;
+  if (loadError) return <section className={PANEL}><p className="text-sm text-rose-600 dark:text-rose-400">{loadError}</p></section>;
   if (!payload) return <section className={`${PANEL} h-40 animate-pulse`} aria-busy="true" />;
 
   const { config } = payload;
   const idea = payload.idea;
   const status = idea ? STATUS[idea.status] : null;
-  const fieldError = (key: string) => (errors[key] || problems[key]) && <p className="text-xs text-rose-500">{errors[key] || problems[key]}</p>;
+  const fieldError = (key: string) => (errors[key] || problems[key]) && <p className="text-xs text-rose-600 dark:text-rose-400">{errors[key] || problems[key]}</p>;
   const needsFiles = config.fee_amount > 0 || config.deck_required;
   const filesMissing = needsFiles && !config.files_available;
 

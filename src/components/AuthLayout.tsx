@@ -80,7 +80,7 @@ export default function AuthLayout({
               {features.map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm text-white/75">
                   <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06]">
-                    <Icon className="h-4 w-4 text-[#FF7A00]" />
+                    <Icon className="h-4 w-4 text-journey-accent" />
                   </span>
                   {text}
                 </li>

@@ -20,8 +20,8 @@ export default function AdminAnnouncementsPage() {
             onClick={() => setActiveTab('broadcast')}
             className={`flex items-center gap-2 pb-3.5 text-sm font-bold border-b-2 transition ${
               activeTab === 'broadcast'
-                ? 'border-[#FF7A00] text-[#FF7A00]'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'border-[#FF7A00] text-journey-accent'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Bell className="h-4 w-4" />
@@ -33,8 +33,8 @@ export default function AdminAnnouncementsPage() {
             onClick={() => setActiveTab('banners')}
             className={`flex items-center gap-2 pb-3.5 text-sm font-bold border-b-2 transition ${
               activeTab === 'banners'
-                ? 'border-[#FF7A00] text-[#FF7A00]'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'border-[#FF7A00] text-journey-accent'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Megaphone className="h-4 w-4" />

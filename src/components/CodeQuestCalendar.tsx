@@ -169,7 +169,7 @@ export default function CodeQuestCalendar({
           const cellClass = [
             'relative no-underline flex min-h-8 w-full flex-col items-center justify-center rounded-lg text-xs transition-colors sm:min-h-9 sm:text-sm',
             isPotd
-              ? 'bg-[#FF7A00] font-bold text-white shadow-sm'
+              ? 'bg-journey-accent font-bold text-journey-on-accent shadow-sm'
               : problem
                 ? 'border border-orange-500/25 bg-orange-500/[0.08] text-[#1A1A2E] hover:bg-orange-500/20 dark:text-white dark:hover:bg-orange-400/20'
                 : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/60',
@@ -293,7 +293,7 @@ export default function CodeQuestCalendar({
         <span className="inline-flex items-center gap-1.5">
           <span
             aria-hidden="true"
-            className="flex h-2 w-2 items-center justify-center rounded-sm bg-[#FF7A00] text-white"
+            className="flex h-2 w-2 items-center justify-center rounded-sm bg-journey-accent text-journey-on-accent"
           >
             <Star className="h-1.5 w-1.5 fill-current" />
           </span>

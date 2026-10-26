@@ -51,7 +51,7 @@ export function FormTemplatesModal({ isOpen, onClose, onUse }: {
       <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 outline-none" role="dialog" aria-modal="true" aria-label="Start from a template">
         <div className="glass-panel rounded-xl max-w-lg w-full max-h-[80vh] flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 p-4">
-            <div className="flex items-center gap-2 text-[#FF7A00]">
+            <div className="flex items-center gap-2 text-journey-accent">
               <LayoutTemplate className="w-5 h-5" />
               <h3 className="text-base font-bold text-[#1A1A2E] dark:text-white">Start from a template</h3>
             </div>
@@ -60,10 +60,10 @@ export function FormTemplatesModal({ isOpen, onClose, onUse }: {
             </button>
           </div>
           <div className="p-4 overflow-y-auto space-y-2">
-            {error && <p role="alert" className="text-xs font-semibold text-rose-500">{error}</p>}
+            {error && <p role="alert" className="text-xs font-semibold text-rose-600 dark:text-rose-400">{error}</p>}
             {loading && <p className="text-xs text-slate-400">Loading...</p>}
             {!loading && !error && templates.length === 0 && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 No templates yet. Open a form and choose "Save as template" to keep it as a starting point.
               </p>
             )}

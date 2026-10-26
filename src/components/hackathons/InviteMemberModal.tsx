@@ -214,7 +214,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
               ({slotsLeft} open slot{slotsLeft === 1 ? '' : 's'} remaining)
             </span>
           ) : (
-            <span className="ml-1 font-semibold text-rose-500">(Your team is full)</span>
+            <span className="ml-1 font-semibold text-rose-600 dark:text-rose-400">(Your team is full)</span>
           )}
         </p>
 
@@ -297,14 +297,14 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
                       <div className="flex items-center gap-1.5">
                         <span className="truncate text-xs font-bold text-journey-text">{user.name}</span>
                         {user.club_id && (
-                          <span className="rounded border border-journey-text/10/60 bg-journey-text/10 px-1 font-mono text-[9px] font-semibold text-journey-muted">
+                          <span className="rounded border border-journey-text/10/60 bg-journey-text/10 px-1 font-mono text-[11px] font-semibold text-journey-muted">
                             {user.club_id}
                           </span>
                         )}
                       </div>
                       <p className="truncate text-[11px] text-journey-muted">{user.email}</p>
                       {!user.can_invite && user.reason && (
-                        <p className="mt-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">{user.reason}</p>
+                        <p className="mt-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">{user.reason}</p>
                       )}
                     </div>
                   </div>
@@ -312,7 +312,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
                     className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
                       user.can_invite
                         ? 'border-emerald-500/20 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
-                        : 'border-amber-500/20 bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400'
+                        : 'border-amber-500/20 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
                     }`}
                   >
                     {user.can_invite ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
@@ -325,7 +325,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
 
           {/* No results message */}
           {rateLimited && !searching && (
-            <p role="alert" className="pt-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+            <p role="alert" className="pt-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
               You are searching too fast. Wait a few seconds and keep typing.
             </p>
           )}
@@ -347,7 +347,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
               type="button"
               onClick={sendEmailInvite}
               disabled={busy || slotsLeft === 0}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-sky-700 active:scale-95 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-sky-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-sky-700 active:scale-95 disabled:opacity-40"
             >
               <Mail className="h-3.5 w-3.5" /> {busy ? 'Sending…' : 'Email them an invite'}
             </button>
@@ -390,7 +390,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
                       {selectedUser.name}
                     </h4>
                     {selectedUser.club_id && (
-                      <span className="inline-flex items-center gap-1 rounded bg-journey-text/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-journey-text/80 border border-journey-text/10">
+                      <span className="inline-flex items-center gap-1 rounded bg-journey-text/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-journey-text/80 border border-journey-text/10">
                         <IdCard className="h-2.5 w-2.5" /> {selectedUser.club_id}
                       </span>
                     )}
@@ -403,12 +403,12 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
                   {/* Status Badge & Reasoning */}
                   <div className="pt-1.5">
                     {selectedUser.can_invite ? (
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-400">
                         <CheckCircle2 className="h-4 w-4 shrink-0" />
                         <span>Eligible to join this team</span>
                       </div>
                     ) : (
-                      <div className="flex items-start gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                      <div className="flex items-start gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
                         <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                         <span>{selectedUser.reason}</span>
                       </div>
@@ -440,7 +440,7 @@ export function InviteMemberModal({ isOpen, onClose, slug, team, slotsLeft, onIn
           <button
             type="submit"
             disabled={busy || !selectedUser?.can_invite}
-            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-white text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <UserPlus className="h-4 w-4" />
             {busy ? 'Sending…' : 'Send Invite'}

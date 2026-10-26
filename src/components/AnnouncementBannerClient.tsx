@@ -11,7 +11,7 @@ const TYPE_STYLE: Record<AnnouncementType, { text: string; icon: React.ElementTy
   INFO: { text: 'text-blue-500 dark:text-blue-400', icon: Info },
   SUCCESS: { text: 'text-emerald-500 dark:text-emerald-400', icon: CheckCircle2 },
   WARNING: { text: 'text-amber-500 dark:text-amber-400', icon: AlertTriangle },
-  URGENT: { text: 'text-rose-500 dark:text-rose-400', icon: AlertOctagon },
+  URGENT: { text: 'text-rose-600 dark:text-rose-400', icon: AlertOctagon },
 };
 
 function readDismissed(): number[] {
@@ -90,7 +90,7 @@ export default function AnnouncementBannerClient({ announcements }: { announceme
   return (
     <div data-site-chrome>
       <div className="group flex items-center bg-white/90 dark:bg-[#0D0E15]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-1.5 pl-4 pr-3 py-2 shrink-0 border-r border-slate-200 dark:border-slate-800 text-[#FF7A00]">
+        <div className="flex items-center gap-1.5 pl-4 pr-3 py-2 shrink-0 border-r border-slate-200 dark:border-slate-800 text-journey-accent">
           <Megaphone className="w-4 h-4" />
         </div>
 
@@ -132,7 +132,7 @@ export default function AnnouncementBannerClient({ announcements }: { announceme
               <button
                 type="button"
                 onClick={() => dismissOne(expanded.id)}
-                className="text-[11px] font-bold px-2 py-1 rounded-md text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/10 transition"
+                className="text-[11px] font-bold px-2 py-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/10 transition"
               >
                 Dismiss
               </button>

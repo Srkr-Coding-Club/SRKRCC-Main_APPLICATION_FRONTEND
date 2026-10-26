@@ -12,10 +12,12 @@ interface TagInputProps {
   maxTags?: number;
   maxLength?: number;
   id?: string;
+  /** Names the field when no <label htmlFor={id}> does. */
+  'aria-label'?: string;
 }
 
 /** Chip input: Enter or comma adds a tag, Backspace on an empty field removes the last one. */
-export function TagInput({ value, onChange, suggestions = [], placeholder = 'Type a tag and press Enter', maxTags = 10, maxLength = 30, id }: TagInputProps) {
+export function TagInput({ value, onChange, suggestions = [], placeholder = 'Type a tag and press Enter', maxTags = 10, maxLength = 30, id, 'aria-label': ariaLabel }: TagInputProps) {
   const [draft, setDraft] = useState('');
 
   const has = (tag: string) => value.some((existing) => existing.toLowerCase() === tag.toLowerCase());
@@ -39,15 +41,16 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Typ
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-[#FAFAFC] px-2.5 py-2 focus-within:border-[#FF7A00] dark:border-slate-800 dark:bg-[#0D0E15]">
         {value.map((tag) => (
-          <span key={tag} className="inline-flex items-center gap-1 rounded-md bg-[#FF7A00]/10 px-2 py-0.5 text-xs font-semibold text-[#C25A00] dark:text-[#FFB066]">
+          <span key={tag} className="inline-flex items-center gap-1 rounded-md bg-[#FF7A00]/10 px-2 py-0.5 text-xs font-semibold text-orange-800 dark:text-[#FFB066]">
             {tag}
-            <button type="button" onClick={() => onChange(value.filter((existing) => existing !== tag))} aria-label={`Remove tag ${tag}`} className="rounded hover:bg-[#FF7A00]/20">
+            <button type="button" onClick={() => onChange(value.filter((existing) => existing !== tag))} aria-label={`Remove tag ${tag}`} className="-mr-1.5 inline-flex h-6 w-6 items-center justify-center rounded hover:bg-[#FF7A00]/20">
               <X className="h-3 w-3" />
             </button>
           </span>
         ))}
         <input
           id={id}
+          aria-label={ariaLabel}
           value={draft}
           maxLength={maxLength}
           disabled={value.length >= maxTags}
@@ -70,19 +73,19 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Typ
           }}
           onBlur={commit}
           placeholder={value.length >= maxTags ? `Up to ${maxTags} tags` : placeholder}
-          className="min-w-[8rem] flex-1 bg-transparent text-sm text-[#1A1A2E] outline-none placeholder:text-slate-400 dark:text-white"
+          className="min-w-[8rem] flex-1 bg-transparent text-base sm:text-sm text-[#1A1A2E] outline-none placeholder:text-slate-400 dark:text-white"
         />
       </div>
       {available.length > 0 && value.length < maxTags && (
         <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span className="text-slate-400">Used elsewhere:</span>
+          <span className="text-slate-500 dark:text-slate-400">Used elsewhere:</span>
           {available.map((tag) => (
             <button
               key={tag}
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => add(tag)}
-              className="rounded-md border border-slate-200 px-2 py-0.5 font-semibold text-slate-600 transition hover:border-[#FF7A00]/50 hover:text-[#FF7A00] dark:border-slate-700 dark:text-slate-300"
+              className="rounded-md border border-slate-200 px-2 py-0.5 font-semibold text-slate-600 transition hover:border-[#FF7A00]/50 hover:text-journey-accent dark:border-slate-700 dark:text-slate-300"
             >
               + {tag}
             </button>

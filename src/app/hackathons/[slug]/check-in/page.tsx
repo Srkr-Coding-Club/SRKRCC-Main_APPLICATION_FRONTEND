@@ -15,8 +15,8 @@ export default function CheckInPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] py-8">
       <div className="mx-auto max-w-3xl space-y-5 px-4 sm:px-6">
-        <Link href={`/hackathons/${slug}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-journey-muted hover:text-journey-accent"><ArrowLeft className="h-4 w-4" /> Hackathon page</Link>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-journey-text"><ScanLine className="h-6 w-6 text-journey-accent" /> Check-in</h1>
+        <Link href={`/hackathons/${slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-journey-muted sm:min-h-8 hover:text-journey-accent"><ArrowLeft className="h-4 w-4" /> Hackathon page</Link>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-journey-text sm:text-3xl"><ScanLine className="h-6 w-6 text-journey-accent" /> Check-in</h1>
         {signedIn && <CheckInConsole slug={slug} />}
       </div>
     </div>

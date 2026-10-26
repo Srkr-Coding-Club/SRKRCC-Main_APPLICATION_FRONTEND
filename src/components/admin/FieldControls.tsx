@@ -12,7 +12,7 @@ import { MAX_FORMULA_LENGTH, evaluateFormula, formulaReferences, parseFormula } 
 
 const inputClass =
   'w-full px-2 py-1.5 rounded border text-xs glass-panel text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]';
-const labelClass = 'block text-[10px] uppercase font-bold text-slate-500 mb-1';
+const labelClass = 'block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1';
 
 const UNIQUE_TYPES = ['TEXT', 'EMAIL', 'PHONE', 'NUMBER', 'URL'];
 const LIMITED_TYPES = ['RADIO', 'DROPDOWN', 'CHECKBOX'];
@@ -157,7 +157,7 @@ export function FieldControls({ field, onChange }: { field: FormField; onChange:
           <p className={labelClass}>Your own error messages (optional)</p>
           {messageKeys.map(({ key, label }) => (
             <label key={key} className="grid grid-cols-1 sm:grid-cols-[10rem_1fr] items-center gap-1 sm:gap-2">
-              <span className="text-[11px] font-semibold text-slate-500">{label}</span>
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{label}</span>
               <input
                 className={inputClass}
                 maxLength={200}
@@ -179,7 +179,7 @@ export function HiddenFieldEditor({ field, onChange }: { field: FormField; onCha
   const rules = field.validation_rules || {};
   return (
     <div className="space-y-2 text-xs">
-      <p className="text-slate-500">
+      <p className="text-slate-500 dark:text-slate-400">
         The respondent never sees this. It records a value from the link they opened (for example <code>?ref=poster</code>), so you
         can tell where responses came from. Anyone can edit a link, so treat it as a hint, not proof.
       </p>
@@ -221,7 +221,7 @@ export function CalculatedFieldEditor({ field, earlierFields, onChange }: {
 
   return (
     <div className="space-y-2 text-xs">
-      <p className="text-slate-500">
+      <p className="text-slate-500 dark:text-slate-400">
         Worked out automatically from other answers and shown to the respondent as read-only. The server recalculates it when the form is
         submitted. Use <code>+ - * /</code>, brackets and <code>{'{'}id{'}'}</code> for a question's answer; blank answers count as 0.
       </p>
@@ -259,7 +259,7 @@ export function CalculatedFieldEditor({ field, earlierFields, onChange }: {
           />
         </label>
       </div>
-      {problem && <p className="text-[11px] font-semibold text-rose-500">{problem}</p>}
+      {problem && <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">{problem}</p>}
       {!problem && formula.trim() && sample !== null && (
         <p className="text-[11px] text-slate-400">Example: with every answer set to 1 the result is {sample}.</p>
       )}
@@ -274,7 +274,7 @@ export function PipeInsert({ earlierFields, onInsert }: { earlierFields: FormFie
   return (
     <select
       aria-label="Insert an earlier answer"
-      className="px-2 py-1 rounded border text-[11px] glass-panel border-slate-200 dark:border-slate-800 text-slate-500"
+      className="px-2 py-1 rounded border text-[11px] glass-panel border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400"
       value=""
       onChange={(e) => e.target.value && onInsert(`{{${e.target.value}}}`)}
     >
@@ -326,7 +326,7 @@ export function CrossFieldRulesEditor({ field, siblingFields, onChange }: {
             <button
               type="button"
               aria-label="Remove comparison"
-              className="px-2 py-1.5 text-[11px] font-bold text-rose-500 hover:underline"
+              className="px-2 py-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline"
               onClick={() => save(rules.filter((_, i) => i !== index))}
             >
               Remove
@@ -353,7 +353,7 @@ export function CrossFieldRulesEditor({ field, siblingFields, onChange }: {
       ))}
       <button
         type="button"
-        className="text-[11px] font-bold text-[#FF7A00] hover:underline"
+        className="text-[11px] font-bold text-journey-accent hover:underline"
         onClick={() => save([...rules, { op: 'eq', field: siblingFields[0].id }])}
       >
         + Add a comparison

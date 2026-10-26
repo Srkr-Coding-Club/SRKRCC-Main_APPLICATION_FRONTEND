@@ -36,3 +36,7 @@ Thumbs.db
 # Playwright browser tests
 /test-results/
 /playwright-report/
+
+# UI/UX audit scripts (e2e-audit/) write raw measurements and captures here
+/docs/ui-ux-audit/data/
+/docs/ui-ux-audit/screenshots/

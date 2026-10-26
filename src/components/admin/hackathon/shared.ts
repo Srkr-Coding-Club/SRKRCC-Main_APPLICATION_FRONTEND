@@ -1,9 +1,9 @@
 export const INPUT =
-  'w-full px-3.5 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]';
+  'w-full px-3.5 py-2 rounded-lg border text-base sm:text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-journey-accent focus:ring-1 focus:ring-journey-accent';
 export const LABEL = 'block text-xs font-bold uppercase text-[#1A1A2E] dark:text-white mb-1';
 export const PANEL = 'glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6';
 export const BTN = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed';
-export const BTN_PRIMARY = `${BTN} bg-[#FF7A00] text-white hover:bg-[#E06B00]`;
+export const BTN_PRIMARY = `${BTN} bg-journey-accent text-journey-on-accent hover:opacity-90`;
 export const BTN_GHOST = `${BTN} border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800`;
 export const BTN_DANGER = `${BTN} text-rose-600 dark:text-rose-400 hover:bg-rose-500/10`;
 

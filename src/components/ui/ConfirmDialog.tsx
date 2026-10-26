@@ -49,7 +49,7 @@ export function useConfirmDialog() {
           <button
             type="button"
             onClick={() => settle(false)}
-            className="rounded-lg px-4 py-2 text-sm font-bold text-slate-500 transition hover:text-slate-800 dark:hover:text-slate-200"
+            className="rounded-lg px-4 py-2 text-sm font-bold text-slate-500 dark:text-slate-400 transition hover:text-slate-800 dark:hover:text-slate-200"
           >
             {pending.options.cancelLabel ?? 'Cancel'}
           </button>
@@ -57,8 +57,8 @@ export function useConfirmDialog() {
             type="button"
             autoFocus
             onClick={() => settle(true)}
-            className={`rounded-lg px-5 py-2 text-sm font-bold text-white shadow-sm transition active:scale-95 ${
-              pending.options.danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#FF7A00] hover:bg-[#E06B00]'
+            className={`rounded-lg px-5 py-2 text-sm font-bold shadow-sm transition active:scale-95 ${
+              pending.options.danger ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-journey-accent text-journey-on-accent hover:opacity-90'
             }`}
           >
             {pending.options.confirmLabel ?? 'Confirm'}

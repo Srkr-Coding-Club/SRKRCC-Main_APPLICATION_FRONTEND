@@ -97,7 +97,7 @@ function EventDetailCard({ event }: { event: Event }) {
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 space-y-2.5 p-4 sm:p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#FF7A00] px-2.5 py-0.5 text-[11px] font-semibold text-white shadow-sm">
+              <span className="inline-flex items-center gap-1 rounded-full bg-journey-accent px-2.5 py-0.5 text-[11px] font-semibold text-journey-on-accent shadow-sm">
                 <Ticket className="h-3 w-3" />
                 {event.category}
               </span>
@@ -203,7 +203,7 @@ function EventDetailCard({ event }: { event: Event }) {
         {/* Date / time / venue: one segmented info bar */}
         <dl className="grid shrink-0 grid-cols-2 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/90 dark:border-white/10 dark:bg-white/[0.04] sm:grid-cols-3">
           <div className="flex items-start gap-2.5 border-r border-slate-200 px-3.5 py-2.5 dark:border-white/10">
-            <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#FF7A00]" />
+            <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-journey-accent" />
             <div className="min-w-0">
               <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Date</dt>
               <dd className="text-xs font-semibold leading-snug text-[#1A1A2E] dark:text-white mt-0.5">
@@ -212,7 +212,7 @@ function EventDetailCard({ event }: { event: Event }) {
             </div>
           </div>
           <div className="flex items-start gap-2.5 px-3.5 py-2.5 sm:border-r sm:border-slate-200 sm:dark:border-white/10">
-            <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#FF7A00]" />
+            <Clock className="mt-0.5 h-4 w-4 shrink-0 text-journey-accent" />
             <div className="min-w-0">
               <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Time</dt>
               <dd className="text-xs font-semibold leading-snug text-[#1A1A2E] dark:text-white mt-0.5">
@@ -224,7 +224,7 @@ function EventDetailCard({ event }: { event: Event }) {
             </div>
           </div>
           <div className="col-span-2 flex items-start gap-2.5 border-t border-slate-200 px-3.5 py-2.5 dark:border-white/10 sm:col-span-1 sm:border-t-0">
-            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#FF7A00]" />
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-journey-accent" />
             <div className="min-w-0">
               <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Venue</dt>
               <dd className="text-xs font-semibold leading-snug text-[#1A1A2E] dark:text-white mt-0.5 truncate">

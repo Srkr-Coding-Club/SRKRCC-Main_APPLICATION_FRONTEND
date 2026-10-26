@@ -18,11 +18,11 @@ type Tab = 'overview' | 'settings' | 'problems' | 'teams' | 'rounds' | 'announce
 function Tile({ icon: Icon, label, value, sub, onClick }: { icon: React.ElementType; label: string; value: React.ReactNode; sub?: string; onClick?: () => void }) {
   return (
     <button onClick={onClick} disabled={!onClick} className={`${PANEL} text-left transition enabled:hover:border-[#FF7A00]/60`}>
-      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-        <Icon className="h-4 w-4 text-[#FF7A00]" /> {label}
+      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <Icon className="h-4 w-4 text-journey-accent" /> {label}
       </div>
       <p className="mt-2 text-3xl font-extrabold text-[#1A1A2E] dark:text-white">{value}</p>
-      {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
+      {sub && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{sub}</p>}
     </button>
   );
 }
@@ -81,7 +81,7 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
               <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white">
                 <Users className="h-4 w-4 text-amber-500" /> Teams below the minimum size ({stats.forming_teams.length})
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 These teams are not registered, so they are left out of Round 1.
                 {stats.registration_closes_at && stats.is_registration_open ? ` Registration closes ${formatDateTime(stats.registration_closes_at)}.` : ''}
               </p>
@@ -95,9 +95,9 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
               <li key={team.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-xs dark:border-slate-800">
                 <span className="min-w-0">
                   <span className="block truncate font-bold text-[#1A1A2E] dark:text-white">{team.name}</span>
-                  <span className="block truncate text-slate-500">{team.leader_email ?? 'No leader'}</span>
+                  <span className="block truncate text-slate-500 dark:text-slate-400">{team.leader_email ?? 'No leader'}</span>
                 </span>
-                <span className="shrink-0 font-semibold text-amber-600 dark:text-amber-400">
+                <span className="shrink-0 font-semibold text-amber-700 dark:text-amber-400">
                   {team.members}/{stats.min_team_size} · needs {team.needed}
                 </span>
               </li>
@@ -108,12 +108,12 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className={`${PANEL} space-y-3`}>
-          <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Target className="h-4 w-4 text-[#FF7A00]" /> Problem statement uptake</h3>
-          <p className="text-xs text-slate-500">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Target className="h-4 w-4 text-journey-accent" /> Problem statement uptake</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             <span className="font-bold text-[#1A1A2E] dark:text-white">{stats.open_innovation_teams}</span> active team{stats.open_innovation_teams === 1 ? '' : 's'} brought their own problem (open innovation).
           </p>
           {stats.problem_statements.length === 0 ? (
-            <p className="text-sm text-slate-500">No problem statements yet.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">No problem statements yet.</p>
           ) : (
             <ul className="space-y-2.5">
               {stats.problem_statements.map((p) => {
@@ -122,7 +122,7 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
                   <li key={p.id} className="space-y-1">
                     <div className="flex justify-between gap-2 text-xs">
                       <span className="font-semibold text-[#1A1A2E] dark:text-white truncate">{p.code}: {p.title}</span>
-                      <span className="text-slate-500 shrink-0">{p.teams}{p.max_teams ? ` / ${p.max_teams}` : ''} teams</span>
+                      <span className="text-slate-500 dark:text-slate-400 shrink-0">{p.teams}{p.max_teams ? ` / ${p.max_teams}` : ''} teams</span>
                     </div>
                     {pct !== null && (
                       <div className="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
@@ -137,15 +137,15 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
         </section>
 
         <section className={`${PANEL} space-y-3`}>
-          <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Flag className="h-4 w-4 text-[#FF7A00]" /> Round funnel</h3>
+          <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><Flag className="h-4 w-4 text-journey-accent" /> Round funnel</h3>
           {stats.rounds.length === 0 ? (
-            <p className="text-sm text-slate-500">No rounds created yet.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">No rounds created yet.</p>
           ) : (
             <ul className="space-y-2">
               {stats.rounds.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs">
                   <span className="font-bold text-[#1A1A2E] dark:text-white">R{r.order} · {r.name}</span>
-                  <span className="text-slate-500">{r.total} teams</span>
+                  <span className="text-slate-500 dark:text-slate-400">{r.total} teams</span>
                   <StatusPill tone="green">{r.SHORTLISTED} shortlisted</StatusPill>
                   <StatusPill tone="red">{r.REJECTED} not</StatusPill>
                   <StatusPill tone="amber">{r.PENDING} pending</StatusPill>

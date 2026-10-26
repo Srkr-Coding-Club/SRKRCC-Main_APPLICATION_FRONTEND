@@ -233,7 +233,7 @@ export default function FormCard({
           {/* category chip, top-left: translucent orange */}
           <div
             ref={tagRef}
-            className="absolute left-2 top-2 max-w-[55%] truncate rounded-full bg-[#FF7A00] px-3 py-1 text-xs font-semibold text-white shadow-md"
+            className="absolute left-2 top-2 max-w-[55%] truncate rounded-full bg-journey-accent px-3 py-1 text-xs font-semibold text-journey-on-accent shadow-md"
           >
             {form.category || "Registration"}
           </div>
@@ -295,7 +295,7 @@ export default function FormCard({
               </p>
               <div className="mt-0.5 grid grid-cols-[minmax(0,1fr)_6.5rem] items-center gap-x-3">
                 <span className="inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap text-sm font-semibold leading-none text-slate-800 dark:text-slate-100">
-                  <Calendar className="h-3.5 w-3.5 shrink-0 text-[#FF7A00]" />
+                  <Calendar className="h-3.5 w-3.5 shrink-0 text-journey-accent" />
                   {formattedOpen || "Open now"}
                 </span>
                 {formattedOpenTime ? (
@@ -319,7 +319,7 @@ export default function FormCard({
               </p>
               <div className="mt-0.5 grid grid-cols-[minmax(0,1fr)_6.5rem] items-center gap-x-3">
                 <span className="inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap text-sm font-semibold leading-none text-slate-800 dark:text-slate-100">
-                  <Calendar className="h-3.5 w-3.5 shrink-0 text-[#FF7A00]" />
+                  <Calendar className="h-3.5 w-3.5 shrink-0 text-journey-accent" />
                   {formattedClose || "No deadline"}
                 </span>
                 {formattedCloseTime ? (
@@ -338,7 +338,7 @@ export default function FormCard({
           <div ref={footerRef} className="mt-auto pt-6">
             <Link
               href={`/forms/${form.slug}`}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#FF7A00] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(255,122,0,0.6)] transition-all hover:bg-[#E06B00] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent active:scale-[0.97]"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-journey-accent px-4 py-2.5 text-center text-sm font-semibold text-journey-on-accent shadow-[0_8px_18px_-8px_rgba(255,122,0,0.6)] transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent active:scale-[0.97]"
             >
               {isUpcoming ? "View Schedule" : "Fill Form"}
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />

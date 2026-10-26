@@ -58,9 +58,9 @@ export function DeleteHackathonDialog({ hackathon, busy, onCancel, onConfirm, on
           {impactError ? (
             <p className="text-xs text-rose-600 dark:text-rose-400">{impactError}</p>
           ) : !impact ? (
-            <p className="text-xs text-slate-500">Counting what will be deleted…</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Counting what will be deleted…</p>
           ) : nonEmptyImpact.length === 0 ? (
-            <p className="text-xs text-slate-500">Nothing else is attached to this hackathon.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Nothing else is attached to this hackathon.</p>
           ) : (
             <ul className="grid grid-cols-1 gap-1 text-xs sm:grid-cols-2">
               {nonEmptyImpact.map(([key, label]) => (

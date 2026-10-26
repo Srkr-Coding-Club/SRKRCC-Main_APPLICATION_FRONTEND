@@ -95,7 +95,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
               className="max-w-full h-auto rounded-lg my-2 border border-slate-200 dark:border-slate-800"
             />
           ) : (
-            <span key={keyIdx++} className="text-rose-500 text-xs italic">[blocked image: unsafe URL]</span>
+            <span key={keyIdx++} className="text-rose-600 dark:text-rose-400 text-xs italic">[blocked image: unsafe URL]</span>
           )
         );
         remaining = remaining.slice(imageMatch[0].length);

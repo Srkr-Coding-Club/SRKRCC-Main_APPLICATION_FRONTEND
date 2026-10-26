@@ -53,7 +53,7 @@ export default async function CareerPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
 
         <PageHero
-          icon={<Briefcase className="h-4 w-4 text-[#FF7A00]" />}
+          icon={<Briefcase className="h-4 w-4 text-journey-accent" />}
           eyebrow="SRKR CODING CLUB CAREER HUB"
           title="Internships & Placement Drives"
           description="Explore exclusive software engineering internships, campus recruitment drives, and referral applications for SRKRCC members."
@@ -70,7 +70,7 @@ export default async function CareerPage() {
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
               <Briefcase className="h-8 w-8 text-slate-300 dark:text-slate-700" />
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No open opportunities right now.</p>
-              <p className="text-xs text-slate-400 dark:text-slate-600">Check back soon. New internships and placement drives are posted regularly.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Check back soon. New internships and placement drives are posted regularly.</p>
             </div>
           )}
 
@@ -87,21 +87,21 @@ export default async function CareerPage() {
                   <span
                     className={`text-xs font-extrabold px-3 py-1 rounded-md border ${
                       j.job_type === 'INTERNSHIP'
-                        ? 'bg-orange-50 dark:bg-orange-950/40 text-[#FF7A00] border-orange-200 dark:border-orange-800'
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-journey-accent border-orange-200 dark:border-orange-800'
                         : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
                     }`}
                   >
                     {j.job_type}
                   </span>
 
-                  <span className="text-xs font-mono font-bold text-rose-500">
+                  <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
                     Deadline: {j.deadline}
                   </span>
                 </div>
 
                 {/* Job Title & Company */}
                 <div>
-                  <h3 className="text-xl font-bold text-[#1A1A2E] dark:text-white group-hover:text-[#FF7A00] transition">
+                  <h3 className="text-xl font-bold text-[#1A1A2E] dark:text-white group-hover:text-journey-accent transition">
                     {j.title}
                   </h3>
                   <p className="text-xs font-bold text-[#8B2E3B] dark:text-rose-400 flex items-center space-x-1.5 mt-1">
@@ -119,7 +119,7 @@ export default async function CareerPage() {
                 {/* Location & Stipend */}
                 <div className="pt-2 space-y-2 text-xs font-medium text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center space-x-2">
-                    <MapPin className="w-4 h-4 text-[#FF7A00]" />
+                    <MapPin className="w-4 h-4 text-journey-accent" />
                     <span>{j.location}</span>
                   </div>
 
@@ -140,7 +140,7 @@ export default async function CareerPage() {
 
                 <Link
                   href={j.form_slug ? `/forms/${j.form_slug}` : '/forms'}
-                  className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-[#FF7A00] hover:bg-[#E06B00] text-white font-bold text-xs shadow-sm transition"
+                  className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-xs shadow-sm transition"
                 >
                   <span>Apply Now</span>
                   <ArrowRight className="w-3.5 h-3.5" />

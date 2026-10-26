@@ -45,10 +45,10 @@ export default async function CodeQuestPage() {
   const today = getCodeQuestToday();
 
   return (
-    <main className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="mx-auto max-w-7xl space-y-12 px-4 sm:px-6 lg:px-8">
         <PageHero
-          icon={<Laptop className="h-4 w-4 text-[#FF7A00]" />}
+          icon={<Laptop className="h-4 w-4 text-journey-accent" />}
           eyebrow="SRKR CODING CLUB CODEQUEST DAILY"
           title="Today's Coding Challenge"
           description="A new challenge unlocks at midnight. Solve today's problem, keep your streak alive, and return tomorrow for the next quest."
@@ -58,7 +58,7 @@ export default async function CodeQuestPage() {
           <Card className="hover:-translate-y-0.5 motion-reduce:transform-none">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
-                <div className="rounded-2xl border border-orange-500/10 bg-orange-500/[0.06] p-3.5 text-[#FF7A00] transition-transform duration-500 ease-out group-hover:rotate-3 group-hover:scale-105 motion-reduce:transition-none">
+                <div className="rounded-2xl border border-orange-500/10 bg-orange-500/[0.06] p-3.5 text-journey-accent transition-transform duration-500 ease-out group-hover:rotate-3 group-hover:scale-105 motion-reduce:transition-none">
                   <Flame className="h-7 w-7" strokeWidth={1.8} />
                 </div>
                 <div className="space-y-1">
@@ -97,6 +97,6 @@ export default async function CodeQuestPage() {
           <CodeQuestDaily problems={problems} today={today} />
         )}
       </div>
-    </main>
+    </div>
   );
 }

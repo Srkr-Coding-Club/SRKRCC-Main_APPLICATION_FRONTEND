@@ -167,7 +167,7 @@ export default function ResponsesExportModal({
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Columns <span className="font-normal normal-case text-slate-500">({selectedColumns.length} of {columns.length})</span>
+                  Columns <span className="font-normal normal-case text-slate-500 dark:text-slate-400">({selectedColumns.length} of {columns.length})</span>
                 </p>
                 <div className="flex gap-3 text-xs font-semibold">
                   <button

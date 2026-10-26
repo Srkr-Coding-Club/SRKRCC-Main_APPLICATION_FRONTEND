@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 
 /**
@@ -20,6 +20,8 @@ export function FormSelect({
   className = '',
   allowClear = true,
   disabled = false,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }: {
   value: string;
   options: { value: string; label: string; hint?: string; disabled?: boolean }[];
@@ -29,9 +31,14 @@ export function FormSelect({
   /** Show the placeholder as a selectable "none" row at the top. */
   allowClear?: boolean;
   disabled?: boolean;
+  /** Names the control for screen readers; give one of the two whenever no visible text names it. */
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerId = useId();
   const selected = options.find((o) => o.value === value);
 
   useEffect(() => {
@@ -45,29 +52,70 @@ export function FormSelect({
   const handleSelect = (v: string) => {
     onChange(v);
     setIsOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const optionButtons = () => Array.from(ref.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)') ?? []);
+
+  /** Escape closes, arrows / Home / End move through the options, Tab leaves and closes the list. */
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape' && isOpen) {
+      // Closes the list only: a dialog around it must not also close and lose what was typed.
+      event.preventDefault();
+      event.stopPropagation();
+      setIsOpen(false);
+      triggerRef.current?.focus();
+      return;
+    }
+    if (event.key === 'Tab') {
+      setIsOpen(false);
+      return;
+    }
+    const step = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : event.key === 'Home' ? 'first' : event.key === 'End' ? 'last' : 0;
+    if (!step) return;
+    event.preventDefault();
+    if (!isOpen) {
+      setIsOpen(true);
+      requestAnimationFrame(() => {
+        const options = optionButtons();
+        (options.find((option) => option.getAttribute('aria-selected') === 'true') ?? options[0])?.focus();
+      });
+      return;
+    }
+    const options = optionButtons();
+    const at = options.indexOf(document.activeElement as HTMLButtonElement);
+    const next = step === 'first' ? 0 : step === 'last' ? options.length - 1 : Math.min(Math.max(at + step, 0), options.length - 1);
+    options[next]?.focus();
   };
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div ref={ref} className={`relative ${className}`} onKeyDown={onKeyDown}>
       <button
+        ref={triggerRef}
+        id={triggerId}
         type="button"
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        // The name keeps the chosen value in it: a label alone would hide what is selected.
+        aria-label={ariaLabel && !ariaLabelledBy ? `${ariaLabel}: ${selected?.label || placeholder}` : undefined}
+        aria-labelledby={ariaLabelledBy ? `${ariaLabelledBy} ${triggerId}` : undefined}
         className={`flex w-full items-center justify-between gap-2 px-3 py-2 glass-panel border rounded-xl text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
           isOpen ? 'border-orange-500/60' : 'border-slate-300 dark:border-slate-700'
         }`}
       >
-        <span className={`truncate ${selected ? 'text-[#1A1A2E] dark:text-white' : 'text-slate-400'}`}>
+        <span className={`truncate ${selected ? 'text-[#1A1A2E] dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
           {selected?.label || placeholder}
         </span>
-        <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-500 dark:text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
         <div
           role="listbox"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-72 overflow-y-auto rounded-xl glass-panel-solid bg-white dark:bg-[#151622] p-1.5 shadow-[0_12px_35px_rgba(0,0,0,0.15)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.5)]"
         >
           {allowClear && <button
@@ -101,7 +149,7 @@ export function FormSelect({
             >
               <span className={`truncate ${o.disabled ? 'opacity-40' : ''}`}>
                 {o.label}
-                {o.hint && <span className="ml-2 text-[11px] font-normal text-slate-400">{o.hint}</span>}
+                {o.hint && <span className="ml-2 text-[11px] font-normal text-slate-500 dark:text-slate-400">{o.hint}</span>}
               </span>
               {o.value === value && <Check className="ml-2 w-3.5 h-3.5 shrink-0" />}
             </button>

@@ -42,7 +42,7 @@ export default async function HackathonsPage() {
   const hackathons = await getHackathons();
 
   return (
-    <div className="min-h-screen bg-[var(--background)] py-12 transition-colors duration-300">
+    <div className="min-h-[70vh] bg-[var(--background)] py-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <PageHero
           icon={<Trophy className="h-4 w-4 text-journey-accent" />}
@@ -54,7 +54,7 @@ export default async function HackathonsPage() {
         <div className="space-y-6">
           <SectionHeading
             icon={Trophy}
-            title={`Upcoming Hackathons (${hackathons.length})`}
+            title={`All Hackathons (${hackathons.length})`}
             description="Form a squad, build a prototype, and pitch to judges for a shot at the prize pool."
           />
 
