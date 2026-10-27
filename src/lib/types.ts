@@ -185,6 +185,9 @@ export interface Hackathon {
   submission_deadline?: string | null;
   submissions_open?: boolean;
   idea_opens_at?: string | null;
+  /** QR codes work from check_in_opens_at and scans stop after check_in_closes_at (empty = no limit). */
+  check_in_opens_at?: string | null;
+  check_in_closes_at?: string | null;
   idea_deadline?: string | null;
   /** Organizers must approve an idea before it counts. */
   idea_review_required?: boolean;
@@ -395,10 +398,57 @@ export interface ParticipantRound {
   } | null;
 }
 
+/** A leader's request to withdraw a team that holds a place; organizers decide. */
+export interface MyWithdrawalRequest {
+  id: number;
+  status: 'PENDING' | 'APPROVED' | 'DENIED';
+  reason: string;
+  created_at: string;
+  decision_note: string;
+  decided_at: string | null;
+}
+
+export interface WithdrawalRow {
+  id: number;
+  status: 'PENDING' | 'APPROVED' | 'DENIED' | 'CANCELLED';
+  reason: string;
+  created_at: string;
+  team_id: number;
+  team_name: string;
+  team_status: HackathonTeamStatus;
+  is_waitlisted: boolean;
+  requested_by: string;
+  requested_by_email: string;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string;
+}
+
+export interface TeamRepeater {
+  user_id: number;
+  name: string;
+  email: string;
+  teams_created: number;
+  teams_withdrawn: number;
+  extra_allowed: number;
+  at_limit: boolean;
+}
+
+export interface WithdrawalOverview {
+  pending: WithdrawalRow[];
+  decided: WithdrawalRow[];
+  repeaters: TeamRepeater[];
+  limits: { max_teams: number; cooldown_minutes: number };
+}
+
 export interface MyTeamPayload {
   hackathon: Hackathon;
   profile_missing: string[];
   team: HackathonTeam | null;
+  /** The latest withdrawal request on the team (pending or decided), if any. */
+  withdrawal_request?: MyWithdrawalRequest | null;
+  /** What one person may do: teams they can create, and the wait after withdrawing one. */
+  team_limits?: { max_teams: number; cooldown_minutes: number };
   is_leader: boolean;
   invites: HackathonTeamInvite[];
   rounds: ParticipantRound[];
@@ -1413,16 +1463,52 @@ export interface CheckInParticipant {
   role: 'LEADER' | 'MEMBER';
   checked_in: boolean;
   checked_in_at: string | null;
+  checked_in_by: string | null;
+}
+
+/** Someone whose team is not registered (forming or waitlisted); only organizers see these and can let them in. */
+export interface CheckInHeldBack {
+  user_id: number;
+  name: string;
+  email: string;
+  team_name: string;
+  why: string;
 }
 
 export interface CheckInRoster {
   participants: CheckInParticipant[];
+  /** Everyone on a placed team, whatever the filter. */
   total: number;
   checked_in: number;
+  /** Rows matching the current search / filter (participants holds the first `limit` of them). */
+  count: number;
+  limit: number;
+  offset: number;
+  held_back: CheckInHeldBack[];
+}
+
+export interface CheckInStats {
+  total: number;
+  overrides: number;
+  volunteers: { name: string; count: number }[];
+  /** 15 for a normal event, 60 once arrivals span more than two days. */
+  bucket_minutes: number;
+  timeline: { at: string; count: number }[];
+}
+
+export interface CheckInNoShows {
+  window: 'NOT_OPEN' | 'OPEN' | 'CLOSED';
+  teams: { team_id: number; name: string; members: number }[];
+  absent_participants: number;
+  waitlisted_teams: number;
 }
 
 export interface MyCheckIn {
+  /** Empty unless the window is OPEN. */
   token: string;
+  window: 'NOT_OPEN' | 'OPEN' | 'CLOSED';
+  opens_at: string | null;
+  closes_at: string | null;
   checked_in: boolean;
   checked_in_at: string | null;
 }
@@ -1602,7 +1688,7 @@ export interface AdminIdeasPayload {
 }
 
 export type RoundRuleKey =
-  | 'PROJECT_SCORE_TOP' | 'PROJECT_SCORE_MIN' | 'IDEA_SCORE_TOP' | 'IDEA_SCORE_MIN' | 'IDEA_APPROVED' | 'HAS_PROJECT' | 'CHECKED_IN';
+  | 'PROJECT_SCORE_TOP' | 'PROJECT_SCORE_MIN' | 'IDEA_SCORE_TOP' | 'IDEA_SCORE_MIN' | 'IDEA_APPROVED' | 'HAS_PROJECT' | 'CHECKED_IN' | 'ALL_CHECKED_IN';
 
 export interface AutoShortlistRow {
   entry_id: number;

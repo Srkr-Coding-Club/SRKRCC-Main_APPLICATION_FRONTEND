@@ -18,6 +18,8 @@ import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { StatusPill, TEAM_STATUS_PILL } from '@/components/ui/StatusPill';
 import { TeamFormModal } from '@/components/hackathons/TeamFormModal';
+import { WithdrawTeamModal } from '@/components/hackathons/WithdrawTeamModal';
+import { WithdrawalNotice } from '@/components/hackathons/WithdrawalNotice';
 import { InviteMemberModal } from '@/components/hackathons/InviteMemberModal';
 import { RoundsTimeline } from '@/components/hackathons/RoundsTimeline';
 import { HackathonAnnouncementsFeed, formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
@@ -47,6 +49,7 @@ export default function HackathonDashboardPage() {
   const [loadError, setLoadError] = useState('');
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [teamModal, setTeamModal] = useState<'create' | 'edit' | null>(null);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteToAccept, setInviteToAccept] = useState<HackathonTeamInvite | null>(null);
   const [preselectedProblemId, setPreselectedProblemId] = useState('');
@@ -444,27 +447,38 @@ export default function HackathonDashboardPage() {
                   </div>
                 )}
 
+                {data?.withdrawal_request && data.withdrawal_request.status !== 'APPROVED' && (
+                  <WithdrawalNotice
+                    request={data.withdrawal_request}
+                    canCancel={isLeader}
+                    busy={busyKey === 'cancel-withdrawal'}
+                    onCancel={() => run('cancel-withdrawal', () => hackathonApi.cancelWithdrawal(team.id), 'Withdrawal request cancelled')}
+                  />
+                )}
+
                 {editable && (
                   <div className="flex items-center justify-end gap-3 border-t border-journey-text/10 pt-4">
                     {isLeader && team.member_count > 1 && (
                       <p className="mr-auto text-xs text-journey-muted">Transfer leadership to a teammate before you can leave.</p>
                     )}
                     <button
-                      disabled={!!busyKey || (isLeader && team.member_count > 1)}
+                      disabled={!!busyKey || (isLeader && team.member_count > 1) || data?.withdrawal_request?.status === 'PENDING'}
                       onClick={async () => {
+                        if (isLeader) {
+                          setWithdrawOpen(true);
+                          return;
+                        }
                         const ok = await confirm({
-                          title: isLeader ? 'Withdraw this team?' : 'Leave this team?',
-                          message: isLeader
-                            ? 'You are the only member, so leaving withdraws the team and cancels its pending invites.'
-                            : 'You will leave the team. You can join another team or accept a new invite afterwards.',
-                          confirmLabel: isLeader ? 'Withdraw team' : 'Leave team',
+                          title: 'Leave this team?',
+                          message: 'You will leave the team. You can join another team or accept a new invite afterwards.',
+                          confirmLabel: 'Leave team',
                           danger: true,
                         });
                         if (ok) run('leave', () => hackathonApi.leaveTeam(team.id), 'You left the team');
                       }}
                       className={`${BTN} text-rose-600 dark:text-rose-400 hover:bg-rose-500/10`}
                     >
-                      <LogOut className="h-3.5 w-3.5" /> Leave team
+                      <LogOut className="h-3.5 w-3.5" /> {isLeader ? 'Withdraw team' : 'Leave team'}
                     </button>
                   </div>
                 )}
@@ -551,6 +565,21 @@ export default function HackathonDashboardPage() {
         </div>
       </div>
 
+      {team && (
+        <WithdrawTeamModal
+          isOpen={withdrawOpen}
+          onClose={() => setWithdrawOpen(false)}
+          needsApproval={(team.status === 'REGISTERED' && !team.is_waitlisted) || (data?.rounds ?? []).some((round) => round.entry !== null)}
+          maxTeams={data?.team_limits?.max_teams}
+          onSubmit={async (reason) => {
+            const result = await hackathonApi.leaveTeam(team.id, reason);
+            setWithdrawOpen(false);
+            toast.success(result.withdrawal_requested ? 'Request sent' : 'Team withdrawn', result.withdrawal_requested ? 'The organizers will decide. Your team stays until then.' : undefined);
+            invalidateMyHackathonStatus(slug);
+            await load();
+          }}
+        />
+      )}
       <TeamFormModal
         isOpen={teamModal !== null}
         onClose={() => setTeamModal(null)}

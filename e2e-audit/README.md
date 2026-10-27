@@ -17,6 +17,10 @@ node e2e-audit/crawl.mjs <label> [routeRegex] [viewportRegex]   # 43 routes x 8 
 node e2e-audit/contrast.mjs <light|dark> <base> <anon|user|admin> <route...>    # every colour-contrast failure with ratio and colours
 node e2e-audit/tabs.mjs <label> <base> <WxH> [theme]            # all 16 admin hackathon tabs
 node e2e-audit/flows.mjs <base> <label>                          # keyboard / structure checks (exit 1 on any failure)
+node e2e-audit/check-in-flow.mjs <base> [outDir]                # check-in console, admin panels, participant card (35 checks, stateful stand-in routes)
+node e2e-audit/team-modal.mjs <base> [outDir]                  # create-team modal at 7 sizes + light/dark (130 checks)
+node e2e-audit/export-flow.mjs <base>                             # every Export control: file name, requested URL, formats, phone menu (47 checks)
+node e2e-audit/withdraw-flow.mjs <base>                            # team withdrawal: participant dialog, pending/denied notice, creation limit, organizer panel (44 checks)
 node e2e-audit/select-keyboard.mjs <base>                        # FormSelect keyboard behaviour
 node e2e-audit/scroll-clip.mjs <base>                            # the 1024px admin overflow, by scrolling
 python e2e-audit/compare.py before.json after.json [--hack]      # before / after tables

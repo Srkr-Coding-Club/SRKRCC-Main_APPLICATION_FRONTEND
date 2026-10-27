@@ -773,7 +773,7 @@ export function AttendanceScannerTab({ hideReportTab = false }: AttendanceScanne
               Refresh Report
             </button>
           </div>
-          <AttendanceReportTab report={report} loading={loadingReport} formTitle={selectedForm?.title} />
+          <AttendanceReportTab formId={typeof selectedForm?.id === 'number' ? selectedForm.id : null} report={report} loading={loadingReport} formTitle={selectedForm?.title} />
         </div>
       )}
     </div>
