@@ -1,15 +1,19 @@
 import { fetchApi } from '@/lib/api-client';
+import { downloadServerExport, type ExportFormat } from '@/lib/exportApi';
 import type {
   AdminRoundEntry,
   AdminIdeasPayload,
   AdminSubmissionsPayload,
   CertificateVerification,
+  CheckInNoShows,
+  CheckInStats,
   CheckInRoster,
   FinderListing,
   Hackathon,
   HackathonAnalytics,
   HackathonAward,
   AutoShortlistResult,
+  WithdrawalOverview,
   CriterionTarget,
   HackathonCertificate,
   IdeaLeaderboardPayload,
@@ -75,8 +79,14 @@ const json = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.strin
 const patch = (body: unknown): RequestInit => ({ method: 'PATCH', body: JSON.stringify(body) });
 const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) });
 
+/** The downloads the server renders for one hackathon (apps/hackathons/exports.py). */
+export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in';
+
 /** Typed wrappers for /api/hackathons/* (see apps/hackathons/urls.py). */
 export const hackathonApi = {
+  /** Saves a server-rendered export; ``params`` narrow it (teams: ids, rounds: round and status). */
+  exportFile: (slug: string, kind: HackathonExportKind, format: ExportFormat, params: Record<string, string | number | undefined> = {}) =>
+    downloadServerExport(`/hackathons/${enc(slug)}/export/${kind}/`, format, params),
   // --- public / participant ---
   get: (slug: string) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/`),
   problemStatements: (slug: string) => fetchApi<ProblemStatement[]>(`/hackathons/${enc(slug)}/problem-statements/`),
@@ -145,9 +155,23 @@ export const hackathonApi = {
       fetchApi<JudgeReview>(`/hackathons/${enc(slug)}/judging/${submissionId}/`, json(body)),
   },
   checkIn: {
-    roster: (slug: string) => fetchApi<CheckInRoster>(`/hackathons/${enc(slug)}/check-in/`),
-    checkIn: (slug: string, body: { user_id?: number; token?: string }) =>
-      fetchApi<{ created: boolean; user_id: number; name: string; team_name: string; checked_in_at: string }>(
+    roster: (slug: string, params: { q?: string; missing?: boolean; limit?: number; offset?: number } = {}) => {
+      const search = new URLSearchParams();
+      if (params.q) search.set('q', params.q);
+      if (params.missing) search.set('missing', '1');
+      if (params.limit) search.set('limit', String(params.limit));
+      if (params.offset) search.set('offset', String(params.offset));
+      const suffix = search.toString();
+      return fetchApi<CheckInRoster>(`/hackathons/${enc(slug)}/check-in/${suffix ? `?${suffix}` : ''}`);
+    },
+    stats: (slug: string) => fetchApi<CheckInStats>(`/hackathons/${enc(slug)}/check-in/stats/`),
+    noShows: (slug: string) => fetchApi<CheckInNoShows>(`/hackathons/${enc(slug)}/check-in/no-shows/`),
+    remindNoShows: (slug: string) =>
+      fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/check-in/no-shows/`, json({ action: 'remind' })),
+    withdrawNoShows: (slug: string, teamIds: number[]) =>
+      fetchApi<{ withdrawn: number }>(`/hackathons/${enc(slug)}/check-in/no-shows/`, json({ action: 'withdraw', team_ids: teamIds })),
+    checkIn: (slug: string, body: { user_id?: number; token?: string; scanned_at?: string; override?: boolean; reason?: string }) =>
+      fetchApi<{ created: boolean; user_id: number; name: string; team_name: string; checked_in_at: string; checked_in_by: string | null }>(
         `/hackathons/${enc(slug)}/check-in/`, json(body),
       ),
     undo: (slug: string, userId: number) =>
@@ -183,17 +207,24 @@ export const hackathonApi = {
     fetchApi<HackathonTeam>(`/hackathons/teams/${id}/remove-member/`, json({ user_id: userId })),
   transferLeadership: (id: number, userId: number) =>
     fetchApi<HackathonTeam>(`/hackathons/teams/${id}/transfer-leadership/`, json({ user_id: userId })),
-  leaveTeam: (id: number) => fetchApi<{ left: true; hackathon_slug: string }>(`/hackathons/teams/${id}/leave/`, json({})),
+  /** A member just leaves. The only member withdraws the team: a reason is required, and a team that holds a place waits for an organizer. */
+  leaveTeam: (id: number, reason?: string) =>
+    fetchApi<{ left: boolean; withdrawal_requested: boolean; hackathon_slug: string }>(`/hackathons/teams/${id}/leave/`, json(reason ? { reason } : {})),
+  cancelWithdrawal: (id: number) => fetchApi<HackathonTeam>(`/hackathons/teams/${id}/cancel-withdrawal/`, json({})),
 
   // --- admin ---
   admin: {
+    withdrawals: (slug: string) => fetchApi<WithdrawalOverview>(`/hackathons/${enc(slug)}/withdrawals/`),
+    decideWithdrawal: (slug: string, id: number, body: { approve: boolean; note?: string }) =>
+      fetchApi<{ id: number; status: string }>(`/hackathons/${enc(slug)}/withdrawals/${id}/decide/`, json(body)),
+    allowMoreTeams: (slug: string, body: { user_id: number; extra: number; reason?: string }) =>
+      fetchApi<{ user_id: number; extra: number }>(`/hackathons/${enc(slug)}/team-allowances/`, json(body)),
     update: (slug: string, body: Partial<Hackathon>) => fetchApi<Hackathon>(`/hackathons/${enc(slug)}/`, patch(body)),
     setOpen: (slug: string, open: boolean) =>
       fetchApi<Hackathon>(`/hackathons/${enc(slug)}/${open ? 'reopen' : 'close'}/`, json({})),
     clone: (slug: string, body: { title: string; slug?: string; start_date: string; copy_problem_statements?: boolean }) =>
       fetchApi<{ slug: string; title: string }>(`/hackathons/${enc(slug)}/clone/`, json(body)),
     analytics: (slug: string) => fetchApi<HackathonAnalytics>(`/hackathons/${enc(slug)}/analytics/`),
-    participants: (slug: string) => fetchApi<Record<string, string | number>[]>(`/hackathons/${enc(slug)}/participants/`),
     submissions: (slug: string) => fetchApi<AdminSubmissionsPayload>(`/hackathons/${enc(slug)}/submissions/`),
     remindMissingSubmissions: (slug: string) =>
       fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/submissions/remind/`, json({})),

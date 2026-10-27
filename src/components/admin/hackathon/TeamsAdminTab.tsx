@@ -2,12 +2,13 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { AlertCircle, AlertTriangle, CheckCircle2, Crown, Download, Edit2, IdCard, Loader2, Pencil, Plus, Search, Trash2, UserMinus, UserPlus, Users, X, XCircle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Crown, Edit2, IdCard, Loader2, Pencil, Plus, Search, Trash2, UserMinus, UserPlus, Users, X, XCircle } from 'lucide-react';
 import type { Hackathon, HackathonTeam, ProblemStatement, UserLookupResult } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
-import { downloadCSV } from '@/lib/dataManagement';
+import { ExportMenu } from '@/components/ui/ExportMenu';
 import { LoadError } from './LoadError';
+import { WithdrawalsPanel } from './WithdrawalsPanel';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DetailDrawer } from '@/components/admin/DetailDrawer';
 import { Modal } from '@/components/ui/Modal';
@@ -266,27 +267,6 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
     }
   };
 
-  const exportCsv = () => {
-    const rows = filtered.flatMap((t) => t.members.map((m) => ({
-      team: t.name,
-      team_status: t.status,
-      problem_id: t.problem_statement?.code ?? t.open_innovation?.code ?? '',
-      problem_title: t.problem_statement?.title ?? t.open_innovation?.title ?? '',
-      problem_domain: t.problem_statement?.domain ?? t.open_innovation?.domain ?? '',
-      open_innovation: t.open_innovation ? 'yes' : 'no',
-      role: m.role,
-      name: m.name,
-      email: m.email,
-      phone: m.phone_number ?? '',
-      college: m.college ?? '',
-      branch: m.branch ?? '',
-      year: m.year ?? '',
-      roll_number: m.roll_number ?? '',
-      club_id: m.club_id ?? '',
-    })));
-    downloadCSV(rows, `${slug}-teams-${Date.now()}.csv`);
-  };
-
   const problemOptions = useMemo(() => [
     ...problems.map((p) => ({ value: String(p.id), label: `${p.code}: ${p.title}` })),
     ...(hackathon.allow_open_innovation ? [{ value: OPEN_INNOVATION, label: 'Open innovation (own problem)' }] : []),
@@ -294,6 +274,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
 
   return (
     <section className={`${PANEL} space-y-4`}>
+      <WithdrawalsPanel slug={slug} onChanged={load} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">Teams Center</h3>
@@ -302,9 +283,12 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={exportCsv} disabled={filtered.length === 0} className={BTN_GHOST}>
-            <Download className="h-3.5 w-3.5" /> Export CSV
-          </button>
+          <ExportMenu
+            subject="teams"
+            disabled={filtered.length === 0}
+            // Exactly the teams on screen after filtering; with no filter the server exports everything.
+            onExport={(format) => hackathonApi.exportFile(slug, 'teams', format, { ids: filtered.length === teams.length ? undefined : filtered.map((t) => t.id).join(',') })}
+          />
           <button onClick={() => setNewTeamOpen(true)} className={BTN_PRIMARY}>
             <Plus className="h-3.5 w-3.5" /> Register Team
           </button>
