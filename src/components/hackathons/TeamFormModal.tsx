@@ -4,13 +4,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Lightbulb, ListChecks, Pencil, UsersRound } from 'lucide-react';
 import type { HackathonTeam, ProblemStatement } from '@/lib/types';
 import { Modal } from '@/components/ui/Modal';
-import { FormSelect } from '@/components/ui/FormSelect';
 import { FieldError, FieldLabel, SpotlightInput, SpotlightTextarea, fieldErrorId } from '@/components/ui/InputField';
-import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { apiErrorMessage, hackathonApi, type TeamProblemBody } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
+import { slotHint, type PickerEntry } from '@/lib/problemPicker';
+import { ProblemPicker } from './ProblemPicker';
 import {
-  EMPTY_REGISTRATION, RegistrationDetailsFields, registrationErrors, toRegistrationInput,
+  EMPTY_REGISTRATION, RegistrationDetailsFields, needsRegistrationDetails, registrationErrors, toRegistrationInput,
   type RegistrationConfig, type RegistrationValue,
 } from './RegistrationDetailsFields';
 
@@ -41,6 +41,9 @@ type FieldErrors = Partial<Record<
   'name' | 'problem_statement' | 'open_innovation' | 'custom_problem_title' | 'custom_problem_description' | 'custom_problem_domain' | 'form',
   string
 >>;
+
+const STEP_LABELS = ['Team', 'Details'] as const;
+const FORM_ID = 'team-form';
 
 const FIELD_KEYS: (keyof FieldErrors)[] = [
   'name', 'problem_statement', 'open_innovation', 'custom_problem_title', 'custom_problem_description', 'custom_problem_domain',
@@ -78,6 +81,8 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
   const [errors, setErrors] = useState<FieldErrors>({});
   const [details, setDetails] = useState<RegistrationValue>(EMPTY_REGISTRATION);
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
+  const [step, setStep] = useState(1);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const active = useMemo(() => problemStatements.filter((p) => p.is_active), [problemStatements]);
   const domains = useMemo(() => [...new Set(active.map((p) => p.domain).filter(Boolean))], [active]);
@@ -93,28 +98,30 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
     setDomain(team?.open_innovation?.domain ?? '');
     setMode(team?.open_innovation ? 'open' : hasStatements ? 'statement' : 'none');
     setErrors({});
+    setStep(1);
     setDetails(EMPTY_REGISTRATION);
     setDetailErrors({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, team, hasStatements, initialProblemId]);
 
-  const options = active.map((p) => {
-    const mine = team?.problem_statement?.id === p.id;
-    const full = p.slots_left === 0 && !mine;
-    return {
-      value: String(p.id),
-      label: `${p.code}: ${p.title}`,
-      hint: full ? 'Full' : p.slots_left !== null ? `${p.slots_left} left` : undefined,
-      disabled: full,
-    };
-  });
+  const entries: PickerEntry[] = active.map((p) => ({
+    id: String(p.id),
+    code: p.code,
+    title: p.title,
+    domain: p.domain ?? '',
+    description: p.description ?? '',
+    tags: p.tags ?? [],
+    ...slotHint(p.slots_left, team?.problem_statement?.id === p.id),
+  }));
   // An admin may have deactivated the statement the team already holds; it must stay
   // visible (and keepable) or the leader could not even rename the team.
   const current = team?.problem_statement;
-  if (current && !options.some((option) => option.value === String(current.id))) {
-    options.unshift({ value: String(current.id), label: `${current.code}: ${current.title}`, hint: 'Current', disabled: false });
+  if (current && !entries.some((entry) => entry.id === String(current.id))) {
+    entries.unshift({ id: String(current.id), code: current.code, title: current.title, domain: current.domain ?? '', description: '', tags: [], hint: 'Current', disabled: false });
   }
-  const selected = active.find((p) => String(p.id) === psId);
+
+  // Teams whose organizers ask for rules or extra answers fill those in on a second step, so a phone never shows one long form.
+  const totalSteps = !editing && registration && needsRegistrationDetails(registration) ? 2 : 1;
 
   const validate = (): FieldErrors => {
     const next: FieldErrors = {};
@@ -146,13 +153,27 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
     return editing ? { problem_statement: null } : {};
   };
 
+  const goNext = () => {
+    const next = validate();
+    setErrors(next);
+    if (!Object.keys(next).length) setStep(2);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (step === 1 && totalSteps === 2) {
+      goNext();
+      return;
+    }
     const next = validate();
     setErrors(next);
     const missingDetails = !editing && registration ? registrationErrors(registration, details) : {};
     setDetailErrors(missingDetails);
-    if (Object.keys(next).length || Object.keys(missingDetails).length) return;
+    if (Object.keys(next).length) {
+      setStep(1);
+      return;
+    }
+    if (Object.keys(missingDetails).length) return;
 
     setBusy(true);
     try {
@@ -165,8 +186,13 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
       const field = err?.body?.field as string | undefined;
       const message = apiErrorMessage(err);
       const detailField = field === 'accept_rules' || (registration?.registration_questions ?? []).some((question) => question.key === field);
-      if (detailField && field) setDetailErrors({ [field]: message });
-      else setErrors(field && FIELD_KEYS.includes(field as keyof FieldErrors) ? { [field]: message } : { form: message });
+      if (detailField && field) {
+        setDetailErrors({ [field]: message });
+        setStep(2);
+      } else {
+        setErrors(field && FIELD_KEYS.includes(field as keyof FieldErrors) ? { [field]: message } : { form: message });
+        if (field && FIELD_KEYS.includes(field as keyof FieldErrors)) setStep(1);
+      }
     } finally {
       setBusy(false);
     }
@@ -174,138 +200,159 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
 
   const showModeSwitch = allowOpenInnovation && (hasStatements || !editing || mode === 'open');
 
+  const choosingStatement = step === 1 && mode === 'statement' && hasStatements && !lockedProblem;
+  const lastStep = step === totalSteps;
+
+  const footer = (
+    <div className="flex justify-end gap-2">
+      {step === 2 ? (
+        <button type="button" onClick={() => setStep(1)} disabled={busy} className="min-h-11 rounded-lg px-4 py-2 text-sm font-bold text-journey-muted hover:text-journey-text sm:min-h-0">Back</button>
+      ) : (
+        <button type="button" onClick={onClose} disabled={busy} className="min-h-11 rounded-lg px-4 py-2 text-sm font-bold text-journey-muted hover:text-journey-text sm:min-h-0">Cancel</button>
+      )}
+      <button
+        type="submit"
+        form={FORM_ID}
+        disabled={busy}
+        className="min-h-11 rounded-lg bg-journey-accent px-5 py-2 text-sm font-bold text-journey-on-accent shadow-sm transition hover:opacity-90 active:scale-95 disabled:opacity-60 sm:min-h-0"
+      >
+        {busy ? 'Saving…' : !lastStep ? 'Next' : editing ? 'Save changes' : 'Create team'}
+      </button>
+    </div>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} busy={busy} title={editing ? 'Edit team' : 'Create your team'} icon={editing ? Pencil : UsersRound} maxWidth="max-w-xl">
-      <form onSubmit={submit} className="space-y-4">
-        <div className="space-y-1.5">
-          <FieldLabel htmlFor="team-name" required>Team name</FieldLabel>
-          <SpotlightInput
-            id="team-name"
-            value={name}
-            maxLength={150}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Bug Slayers"
-            hasError={!!errors.name}
-            aria-describedby={errors.name ? fieldErrorId('team-name') : undefined}
-            autoFocus
-          />
-          <FieldError id={fieldErrorId('team-name')}>{errors.name}</FieldError>
-        </div>
-
-        {lockedProblem && (
-          <p className="rounded-lg border border-journey-text/10 bg-journey-text/[0.03] px-3 py-2 text-xs text-journey-text/80">
-            Your team is already part of a round, so its problem can no longer be changed. Contact the organizers if something is wrong.
-          </p>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      busy={busy || sheetOpen}
+      title={editing ? 'Edit team' : 'Create your team'}
+      icon={editing ? Pencil : UsersRound}
+      maxWidth={choosingStatement ? 'max-w-xl lg:max-w-4xl 2xl:max-w-5xl' : 'max-w-xl lg:max-w-2xl'}
+      footer={footer}
+    >
+      <form id={FORM_ID} onSubmit={submit} className="space-y-4" noValidate>
+        {totalSteps === 2 && (
+          <ol className="flex items-center gap-2 text-xs font-bold" aria-label="Progress">
+            {STEP_LABELS.map((label, index) => (
+              <li key={label} aria-current={step === index + 1 ? 'step' : undefined} className={`flex items-center gap-2 ${step === index + 1 ? 'text-journey-accent' : 'text-journey-muted'}`}>
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] ${step === index + 1 ? 'border-journey-accent bg-journey-accent/10' : 'border-journey-text/20'}`}>{index + 1}</span>
+                {label}
+                {index === 0 && <span className="h-px w-6 bg-journey-text/20" aria-hidden="true" />}
+              </li>
+            ))}
+          </ol>
         )}
 
-        {(hasStatements || allowOpenInnovation) && !lockedProblem && (
-          <div className="space-y-2">
-            <FieldLabel required={hasStatements}>Your problem</FieldLabel>
-            {showModeSwitch && (
-              <div className="flex gap-2" role="group" aria-label="How will your team choose a problem?">
-                {hasStatements ? (
-                  <ModeButton active={mode === 'statement'} icon={ListChecks} onClick={() => setMode('statement')}>Pick a statement</ModeButton>
-                ) : (
-                  <ModeButton active={mode === 'none'} icon={ListChecks} onClick={() => setMode('none')}>Decide later</ModeButton>
-                )}
-                <ModeButton active={mode === 'open'} icon={Lightbulb} onClick={() => setMode('open')}>Open innovation</ModeButton>
-              </div>
-            )}
-
-            {mode === 'statement' && hasStatements && (
-              <div className="space-y-2">
-                <FormSelect aria-label="Problem statement" value={psId} onChange={setPsId} options={options} placeholder="Select a problem statement" allowClear={false} />
-                <FieldError>{errors.problem_statement}</FieldError>
-                {selected && (
-                  <div className="max-h-40 overflow-y-auto rounded-lg border border-journey-text/10 bg-journey-text/[0.03] p-3 text-xs space-y-1">
-                    <p className="font-bold text-journey-accent">{selected.code} · {selected.domain}</p>
-                    {selected.description?.trim() && <MarkdownRenderer content={selected.description} />}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {mode === 'open' && (
-              <div className="space-y-3 rounded-lg border border-journey-accent/30 bg-journey-accent/5 p-3">
-                <p className="text-xs text-journey-text/80">
-                  Bring your own idea. Describe the problem you will solve. The organizers review it. All three fields are required.
-                </p>
-                <div className="space-y-1.5">
-                  <FieldLabel htmlFor="oi-title" required>Problem title</FieldLabel>
-                  <SpotlightInput
-                    id="oi-title"
-                    value={title}
-                    maxLength={TITLE_LIMIT}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Smart waste bins for the campus"
-                    hasError={!!errors.custom_problem_title}
-                    aria-describedby={errors.custom_problem_title ? fieldErrorId('oi-title') : undefined}
-                  />
-                  <FieldError id={fieldErrorId('oi-title')}>{errors.custom_problem_title}</FieldError>
-                </div>
-                <div className="space-y-1.5">
-                  <FieldLabel htmlFor="oi-domain" required>Domain</FieldLabel>
-                  <SpotlightInput
-                    id="oi-domain"
-                    list="open-innovation-domains"
-                    value={domain}
-                    maxLength={DOMAIN_LIMIT}
-                    onChange={(e) => setDomain(e.target.value)}
-                    placeholder="e.g. IoT, HealthTech, EdTech"
-                    hasError={!!errors.custom_problem_domain}
-                    aria-describedby={errors.custom_problem_domain ? fieldErrorId('oi-domain') : undefined}
-                  />
-                  <datalist id="open-innovation-domains">
-                    {domains.map((d) => <option key={d} value={d} />)}
-                  </datalist>
-                  <FieldError id={fieldErrorId('oi-domain')}>{errors.custom_problem_domain}</FieldError>
-                </div>
-                <div className="space-y-1.5">
-                  <FieldLabel htmlFor="oi-description" required>Description</FieldLabel>
-                  <SpotlightTextarea
-                    id="oi-description"
-                    rows={5}
-                    value={description}
-                    maxLength={DESCRIPTION_LIMIT}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="What is the problem, who faces it, and how will your team approach it?"
-                    hasError={!!errors.custom_problem_description}
-                    aria-describedby={errors.custom_problem_description ? fieldErrorId('oi-description') : undefined}
-                  />
-                  <div className="flex justify-between gap-3 text-xs">
-                    <FieldError id={fieldErrorId('oi-description')}>{errors.custom_problem_description}</FieldError>
-                    <span className="text-journey-muted">{description.length}/{DESCRIPTION_LIMIT}</span>
-                  </div>
-                </div>
-                <FieldError>{errors.open_innovation}</FieldError>
-              </div>
-            )}
+        {step === 1 && (<>
+          <div className="space-y-1.5">
+            <FieldLabel htmlFor="team-name" required>Team name</FieldLabel>
+            <SpotlightInput
+              id="team-name"
+              value={name}
+              maxLength={150}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Bug Slayers"
+              hasError={!!errors.name}
+              aria-describedby={errors.name ? fieldErrorId('team-name') : undefined}
+              autoFocus
+            />
+            <FieldError id={fieldErrorId('team-name')}>{errors.name}</FieldError>
           </div>
-        )}
 
-        {!editing && registration && (
+          {lockedProblem && (
+            <p className="rounded-lg border border-journey-text/10 bg-journey-text/[0.03] px-3 py-2 text-xs text-journey-text/80">
+              Your team is already part of a round, so its problem can no longer be changed. Contact the organizers if something is wrong.
+            </p>
+          )}
+
+          {(hasStatements || allowOpenInnovation) && !lockedProblem && (
+            <div className="space-y-2">
+              <FieldLabel required={hasStatements}>Your problem</FieldLabel>
+              {showModeSwitch && (
+                <div className="flex gap-2" role="group" aria-label="How will your team choose a problem?">
+                  {hasStatements ? (
+                    <ModeButton active={mode === 'statement'} icon={ListChecks} onClick={() => setMode('statement')}>Pick a statement</ModeButton>
+                  ) : (
+                    <ModeButton active={mode === 'none'} icon={ListChecks} onClick={() => setMode('none')}>Decide later</ModeButton>
+                  )}
+                  <ModeButton active={mode === 'open'} icon={Lightbulb} onClick={() => setMode('open')}>Open innovation</ModeButton>
+                </div>
+              )}
+
+              {mode === 'statement' && hasStatements && (
+                <ProblemPicker entries={entries} value={psId} onChange={setPsId} error={errors.problem_statement} onSheetOpenChange={setSheetOpen} />
+              )}
+
+              {mode === 'open' && (
+                <div className="space-y-3 rounded-lg border border-journey-accent/30 bg-journey-accent/5 p-3">
+                  <p className="text-xs text-journey-text/80">
+                    Bring your own idea. Describe the problem you will solve. The organizers review it. All three fields are required.
+                  </p>
+                  <div className="space-y-1.5">
+                    <FieldLabel htmlFor="oi-title" required>Problem title</FieldLabel>
+                    <SpotlightInput
+                      id="oi-title"
+                      value={title}
+                      maxLength={TITLE_LIMIT}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g. Smart waste bins for the campus"
+                      hasError={!!errors.custom_problem_title}
+                      aria-describedby={errors.custom_problem_title ? fieldErrorId('oi-title') : undefined}
+                    />
+                    <FieldError id={fieldErrorId('oi-title')}>{errors.custom_problem_title}</FieldError>
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldLabel htmlFor="oi-domain" required>Domain</FieldLabel>
+                    <SpotlightInput
+                      id="oi-domain"
+                      list="open-innovation-domains"
+                      value={domain}
+                      maxLength={DOMAIN_LIMIT}
+                      onChange={(e) => setDomain(e.target.value)}
+                      placeholder="e.g. IoT, HealthTech, EdTech"
+                      hasError={!!errors.custom_problem_domain}
+                      aria-describedby={errors.custom_problem_domain ? fieldErrorId('oi-domain') : undefined}
+                    />
+                    <datalist id="open-innovation-domains">
+                      {domains.map((d) => <option key={d} value={d} />)}
+                    </datalist>
+                    <FieldError id={fieldErrorId('oi-domain')}>{errors.custom_problem_domain}</FieldError>
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldLabel htmlFor="oi-description" required>Description</FieldLabel>
+                    <SpotlightTextarea
+                      id="oi-description"
+                      rows={5}
+                      value={description}
+                      maxLength={DESCRIPTION_LIMIT}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="What is the problem, who faces it, and how will your team approach it?"
+                      hasError={!!errors.custom_problem_description}
+                      aria-describedby={errors.custom_problem_description ? fieldErrorId('oi-description') : undefined}
+                    />
+                    <div className="flex justify-between gap-3 text-xs">
+                      <FieldError id={fieldErrorId('oi-description')}>{errors.custom_problem_description}</FieldError>
+                      <span className="text-journey-muted">{description.length}/{DESCRIPTION_LIMIT}</span>
+                    </div>
+                  </div>
+                  <FieldError>{errors.open_innovation}</FieldError>
+                </div>
+              )}
+            </div>
+          )}
+        </>)}
+
+        {step === 2 && !editing && registration && (
           <RegistrationDetailsFields config={registration} value={details} onChange={setDetails} errors={detailErrors} />
         )}
 
-        {!editing && (
+        {step === totalSteps && !editing && (
           <p className="text-xs text-journey-muted">
             You&apos;ll be the team leader, so only you can edit the team and invite members.
           </p>
         )}
         {errors.form && <p role="alert" className="rounded-lg bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400">{errors.form}</p>}
-
-        <div className="flex justify-end gap-2 pt-1">
-          <button type="button" onClick={onClose} disabled={busy} className="px-4 py-2 rounded-lg text-sm font-bold text-journey-muted hover:text-journey-text">
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="px-5 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-60"
-          >
-            {busy ? 'Saving…' : editing ? 'Save changes' : 'Create team'}
-          </button>
-        </div>
       </form>
     </Modal>
   );

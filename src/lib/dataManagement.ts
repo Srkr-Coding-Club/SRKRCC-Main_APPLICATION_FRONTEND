@@ -3,7 +3,6 @@
  * Shared utilities for the Club Data Management Center.
  */
 
-import Papa from 'papaparse';
 
 // ---------------------------------------------------------------------------
 // Relative time formatting
@@ -70,28 +69,6 @@ export function groupByDay(
   });
 
   return Object.entries(counts).map(([date, count]) => ({ date, count }));
-}
-
-// ---------------------------------------------------------------------------
-// CSV download
-// ---------------------------------------------------------------------------
-
-/**
- * Serialize data to CSV and trigger a browser download.
- * JSON object/array values are stringified to avoid "[object Object]" output.
- */
-export function downloadCSV(data: object[], filename: string): void {
-  const normalized = data.map((row) =>
-    Object.fromEntries(
-      Object.entries(row).map(([k, v]) => [
-        k,
-        v !== null && typeof v === 'object' ? JSON.stringify(v) : v,
-      ])
-    )
-  );
-  // escapeFormulae stops a value like =HYPERLINK(...) typed into a team name from running in Excel.
-  const csv = Papa.unparse(normalized, { escapeFormulae: true });
-  saveBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), filename);
 }
 
 /** Triggers a browser download for an in-memory file. */

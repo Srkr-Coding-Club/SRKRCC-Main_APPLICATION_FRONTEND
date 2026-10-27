@@ -684,7 +684,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
                         autoFocus
                         autoCapitalize="characters"
                         spellCheck={false}
-                        placeholder="25SCC277"
+                        placeholder="Enter your Club Affiliate ID"
                         value={formData.affiliateId}
                         aria-invalid={Boolean(visibleError('affiliateId'))}
                         aria-describedby={visibleError('affiliateId') ? 'signup-affiliate-error' : undefined}
@@ -697,7 +697,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
                     <FieldError id="signup-affiliate-error" message={visibleError('affiliateId')} />
                     {!visibleError('affiliateId') && (
                       <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                        Format: the year, then SCC or CCA, then your number, e.g. 25SCC277 or 21CCA041.
+                        Your Club Affiliate ID is a unique code given to you by the club representative. Please enter it
                       </p>
                     )}
                   </div>

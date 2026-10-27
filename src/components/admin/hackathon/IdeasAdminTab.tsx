@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BellRing, Check, Download, ExternalLink, IndianRupee, Lightbulb, MessageSquareWarning, Save, X } from 'lucide-react';
+import { BellRing, Check, ExternalLink, IndianRupee, Lightbulb, MessageSquareWarning, Save, X } from 'lucide-react';
 import type { AdminIdeasPayload, Hackathon, IdeaStatus } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
-import { downloadCSV } from '@/lib/dataManagement';
 import { useToast } from '@/context/ToastContext';
+import { ExportMenu } from '@/components/ui/ExportMenu';
 import { Switch } from '@/components/ui/Switch';
 import { StatusPill, type PillTone } from '@/components/ui/StatusPill';
 import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
@@ -122,14 +122,6 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
     }
   };
 
-  const exportCsv = () => {
-    if (data) downloadCSV(data.rows.map((row) => ({
-      team: row.team_name, status: row.status, title: row.title, problem: row.problem, solution: row.solution, plan: row.plan,
-      tech_stack: row.tech_stack.join(', '), deck_url: row.deck_url ?? '', linkedin_url: row.linkedin_url ?? '', has_slides_file: row.deck_file ? 'yes' : 'no',
-      payment_screenshot: row.payment_proof ? 'yes' : 'no', transaction_id: row.transaction_id ?? '', feedback: row.feedback, submitted: row.updated_at,
-    })), `${slug}-ideas-${Date.now()}.csv`);
-  };
-
   return (
     <div className="space-y-6">
       <SubmissionPhases hackathon={hackathon} />
@@ -227,7 +219,7 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
             </h3>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={remind} disabled={reminding || data.missing.length === 0 || data.state === 'CLOSED'} className={BTN_GHOST}><BellRing className="h-3.5 w-3.5" /> {reminding ? 'Sending…' : 'Remind teams without one'}</button>
-              <button type="button" onClick={exportCsv} disabled={data.rows.length === 0} className={BTN_GHOST}><Download className="h-3.5 w-3.5" /> Export CSV</button>
+              <ExportMenu subject="ideas" disabled={data.rows.length === 0} onExport={(format) => hackathonApi.exportFile(slug, 'ideas', format)} />
             </div>
           </div>
 

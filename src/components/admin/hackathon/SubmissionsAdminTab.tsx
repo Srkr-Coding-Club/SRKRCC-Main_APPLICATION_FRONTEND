@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { BellRing, Download, ExternalLink, Eye, FileUp, Save } from 'lucide-react';
+import { BellRing, ExternalLink, Eye, FileUp, Save } from 'lucide-react';
 import type { AdminSubmissionRow, AdminSubmissionsPayload, Hackathon } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
-import { downloadCSV } from '@/lib/dataManagement';
 import { useToast } from '@/context/ToastContext';
+import { ExportMenu } from '@/components/ui/ExportMenu';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { Modal } from '@/components/ui/Modal';
 import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
@@ -74,11 +74,6 @@ export function SubmissionsAdminTab({ hackathon, onSaved, onEnable }: Submission
     }
   };
 
-  const exportCsv = () => {
-    if (!data) return;
-    downloadCSV(data.rows.map(({ id, team_id, ...row }) => row), `${hackathon.slug}-submissions-${Date.now()}.csv`);
-  };
-
   const pill = STATE_PILL[data?.state ?? 'OPEN'];
 
   return (
@@ -114,7 +109,7 @@ export function SubmissionsAdminTab({ hackathon, onSaved, onEnable }: Submission
               <button type="button" onClick={remind} disabled={reminding || data.missing.length === 0 || data.state === 'CLOSED'} className={BTN_GHOST}>
                 <BellRing className="h-3.5 w-3.5" /> {reminding ? 'Sending…' : 'Remind teams without one'}
               </button>
-              <button type="button" onClick={exportCsv} disabled={data.rows.length === 0} className={BTN_GHOST}><Download className="h-3.5 w-3.5" /> Export CSV</button>
+              <ExportMenu subject="projects" disabled={data.rows.length === 0} onExport={(format) => hackathonApi.exportFile(hackathon.slug, 'submissions', format)} />
             </div>
           </div>
 

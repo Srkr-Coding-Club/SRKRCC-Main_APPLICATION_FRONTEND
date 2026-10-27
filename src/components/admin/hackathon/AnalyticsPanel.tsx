@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { BarChart3, Download } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import type { HackathonAnalytics } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
-import { downloadCSV } from '@/lib/dataManagement';
-import { useToast } from '@/context/ToastContext';
+import { ExportMenu } from '@/components/ui/ExportMenu';
 import { LoadError } from './LoadError';
-import { BTN_GHOST, PANEL } from './shared';
+import { PANEL } from './shared';
 
 function Bars({ title, rows }: { title: string; rows: { label: string; count: number }[] }) {
   const peak = Math.max(1, ...rows.map((row) => row.count));
@@ -30,10 +29,8 @@ function Bars({ title, rows }: { title: string; rows: { label: string; count: nu
 
 /** Participation funnel, who the participants are, and the participants export. */
 export function AnalyticsPanel({ slug }: { slug: string }) {
-  const { toast } = useToast();
   const [data, setData] = useState<HackathonAnalytics | null>(null);
   const [error, setError] = useState('');
-  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(() => {
     setError('');
@@ -41,19 +38,6 @@ export function AnalyticsPanel({ slug }: { slug: string }) {
   }, [slug]);
 
   useEffect(load, [load]);
-
-  const exportParticipants = async () => {
-    setExporting(true);
-    try {
-      const rows = await hackathonApi.admin.participants(slug);
-      if (rows.length === 0) toast.success('No participants to export yet');
-      else downloadCSV(rows, `${slug}-participants-${Date.now()}.csv`);
-    } catch (err) {
-      toast.error('Could not export', apiErrorMessage(err));
-    } finally {
-      setExporting(false);
-    }
-  };
 
   if (error) return <LoadError message={error} onRetry={load} />;
   if (!data) return <div className="h-40 animate-pulse rounded-xl bg-slate-200 dark:bg-white/5" />;
@@ -66,7 +50,7 @@ export function AnalyticsPanel({ slug }: { slug: string }) {
     <section className={`${PANEL} space-y-5`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><BarChart3 className="h-4 w-4 text-journey-accent" /> Participation insight</h3>
-        <button type="button" onClick={exportParticipants} disabled={exporting} className={BTN_GHOST}><Download className="h-3.5 w-3.5" /> {exporting ? 'Preparing…' : 'Export participants (CSV)'}</button>
+        <ExportMenu subject="participants" onExport={(format) => hackathonApi.exportFile(slug, 'participants', format)} />
       </div>
 
       <ol className="space-y-2">

@@ -45,4 +45,5 @@ export const ROUND_RULES: RuleSpec[] = [
   { key: 'IDEA_APPROVED', label: 'Idea approved', valueLabel: null, needs: (f) => Boolean(f.ideas) },
   { key: 'HAS_PROJECT', label: 'Submitted a project', valueLabel: null, needs: (f) => Boolean(f.submissions) },
   { key: 'CHECKED_IN', label: 'At least one member checked in', valueLabel: null, needs: (f) => Boolean(f.check_in) },
+  { key: 'ALL_CHECKED_IN', label: 'Every member checked in', valueLabel: null, needs: (f) => Boolean(f.check_in) },
 ];

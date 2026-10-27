@@ -77,6 +77,12 @@ export function CheckInCard({ slug }: { slug: string }) {
             <p className="font-bold text-journey-text">You are checked in</p>
             <p className="text-xs text-journey-muted">{formatDateTime(state.checked_in_at)}</p>
           </div>
+        ) : state.window !== 'OPEN' ? (
+          <p className="py-4 text-sm text-journey-muted">
+            {state.window === 'NOT_OPEN'
+              ? `Check-in opens ${formatDateTime(state.opens_at)}. Your QR code will appear here.`
+              : 'Check-in has closed. Please ask a volunteer at the desk for help.'}
+          </p>
         ) : (
           <>
             <div className="mx-auto w-fit rounded-xl bg-white p-3"><QRCodeSVG value={state.token} size={192} level="M" role="img" title="Your check-in QR code" aria-label="Your check-in QR code. Show it at the desk." /></div>

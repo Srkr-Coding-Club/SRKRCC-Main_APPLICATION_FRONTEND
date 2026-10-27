@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Users,
   Search,
-  Download,
   Mail,
   ChevronLeft,
   ChevronRight,
@@ -28,6 +27,8 @@ import {
 import { User, PaginatedResponse, Form } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
 import { useToast } from '@/context/ToastContext';
+import { ExportMenu } from '@/components/ui/ExportMenu';
+import { downloadDatasetRows } from '@/lib/exportApi';
 import { DetailDrawer } from './DetailDrawer';
 import { EditUserModal } from './EditUserModal';
 import Portal from '@/components/ui/Portal';
@@ -278,44 +279,6 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
     new Set(members.map((m) => m.branch).filter(Boolean))
   ).sort() as string[];
 
-  // CSV Export
-  const handleExportCSV = () => {
-    if (filteredMembers.length === 0) {
-      toast.error('No Data', 'No members to export.');
-      return;
-    }
-    const headers = [
-      'S.No', 'Full Name', 'Email', 'Roll Number', 'Branch',
-      'Year', 'Phone Number', 'Club ID', 'Role', 'Status',
-      'Referred By', 'Joined Date'
-    ];
-    const rows = filteredMembers.map((m, idx) => [
-      idx + 1,
-      `"${(`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.username).replace(/"/g, '""')}"`,
-      `"${m.email}"`,
-      `"${m.roll_number || ''}"`,
-      `"${m.branch || ''}"`,
-      `"${m.year ? `${m.year}` : ''}"`,
-      `"${m.phone_number || ''}"`,
-      `"${m.club_id || ''}"`,
-      `"${m.role || ''}"`,
-      `"${m.membership_status || 'ACTIVE'}"`,
-      `"${m.referred_by_display || m.referred_by_raw || ''}"`,
-      `"${m.registered_at ? new Date(m.registered_at).toLocaleDateString('en-US') : (m.created_at ? new Date(m.created_at).toLocaleDateString('en-US') : '')}"`,
-    ]);
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `srkrcc_members_export_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success('CSV Exported', `Exported ${filteredMembers.length} member records.`);
-  };
-
   // Dispatch Email Broadcast
   const handleSendEmailCampaign = async () => {
     if (!emailSubject.trim() || !emailMessage.trim()) {
@@ -383,13 +346,13 @@ export function MembersTab({ forms = [] }: MembersTabProps) {
             <span>Broadcast Email</span>
           </button>
 
-          <button
-            onClick={handleExportCSV}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold shadow-md transition active:scale-95"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export CSV</span>
-          </button>
+          <ExportMenu
+            subject="members"
+            disabled={filteredMembers.length === 0}
+            // The members on screen, in every column the Data Management Center offers for users.
+            onExport={(format) => downloadDatasetRows('users', filteredMembers.map((m) => String(m.id)), format)}
+            triggerClassName="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold shadow-md transition active:scale-95 disabled:opacity-40"
+          />
         </div>
       </div>
 

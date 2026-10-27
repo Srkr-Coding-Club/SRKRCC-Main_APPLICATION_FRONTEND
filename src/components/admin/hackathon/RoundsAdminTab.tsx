@@ -8,7 +8,6 @@ import {
   ArrowUp,
   CheckCircle2,
   Clock,
-  Download,
   Eye,
   EyeOff,
   FileText,
@@ -33,7 +32,7 @@ import { LoadError } from './LoadError';
 import { RoundAutoShortlist } from './RoundAutoShortlist';
 import { ROUND_KIND_LABEL, ROUND_KIND_OPTIONS, ROUND_TEMPLATES } from './roundKinds';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { downloadCSV } from '@/lib/dataManagement';
+import { ExportMenu } from '@/components/ui/ExportMenu';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { ENTRY_STATUS_PILL, ROUND_STATUS_PILL, StatusPill } from '@/components/ui/StatusPill';
@@ -377,28 +376,6 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
     );
   };
 
-  const exportEntries = () => {
-    if (!round) return;
-    downloadCSV(
-      entries.map((e) => ({
-        team: e.team_name,
-        leader_email: e.leader_email ?? '',
-        members: e.member_count,
-        problem: e.problem_code ?? '',
-        status: e.status,
-        idea_status: e.idea_status ?? '',
-        idea_score: e.idea_score ?? '',
-        project_submitted: e.has_project ? 'yes' : 'no',
-        project_score: e.project_score ?? '',
-        checked_in_members: e.checked_in,
-        feedback: e.feedback,
-        admin_notes: e.admin_notes,
-        details_submitted: e.details_response_id ? 'yes' : 'no',
-      })),
-      `${slug}-round-${round.order}-${Date.now()}.csv`,
-    );
-  };
-
   const moveRound = async (id: number, delta: -1 | 1) => {
     const ids = rounds.map((r) => r.id);
     const from = ids.indexOf(id);
@@ -499,7 +476,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
               )}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              <button onClick={exportEntries} disabled={entries.length === 0} className={BTN_GHOST}><Download className="h-3.5 w-3.5" /> Export</button>
+              <ExportMenu subject="round results" disabled={entries.length === 0} onExport={(format) => hackathonApi.exportFile(slug, 'rounds', format, { round: round.id })} />
               <button onClick={() => openRound(round)} className={BTN_GHOST}><Pencil className="h-3.5 w-3.5" /> Edit</button>
               <button
                 onClick={() => setWildcardOpen(true)}

@@ -77,3 +77,87 @@ describe('FormSelect keyboard and naming', () => {
     expect((await axe.run(document.body, { rules: { region: { enabled: false }, 'color-contrast': { enabled: false } } })).violations).toEqual([]);
   });
 });
+
+describe('FormSelect list placement and long lists', () => {
+  const many = Array.from({ length: 20 }, (_, i) => ({ value: String(i), label: 'Option number ' + i }));
+
+  it('renders the list outside the component so a dialog or scroll area cannot clip it', () => {
+    const { trigger } = renderSelect();
+    fireEvent.click(trigger);
+    const list = screen.getByRole('listbox');
+    expect(list.parentElement).toBe(document.body);
+    expect(list.style.position).toBe('fixed');
+  });
+
+  it('has no search box for a short list and one for a long list, which filters and can be empty', () => {
+    const { trigger } = renderSelect();
+    fireEvent.click(trigger);
+    expect(screen.queryByLabelText('Search options')).toBeNull();
+    cleanup();
+
+    const { trigger: longTrigger } = renderSelect({ options: many });
+    fireEvent.click(longTrigger);
+    const search = screen.getByLabelText('Search options');
+    fireEvent.change(search, { target: { value: 'number 1' } });
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toContain('Option number 12');
+    expect(screen.queryByRole('option', { name: 'Option number 2' })).toBeNull();
+    fireEvent.change(search, { target: { value: 'zzz' } });
+    expect(screen.getByText('Nothing matches.')).toBeTruthy();
+  });
+
+  it('can force the search box on or off', () => {
+    const { trigger } = renderSelect({ searchable: true });
+    fireEvent.click(trigger);
+    expect(screen.getByLabelText('Search options')).toBeTruthy();
+    cleanup();
+    const { trigger: other } = renderSelect({ options: many, searchable: false });
+    fireEvent.click(other);
+    expect(screen.queryByLabelText('Search options')).toBeNull();
+  });
+
+  it('forgets the search when it closes and reopens', () => {
+    const { trigger } = renderSelect({ options: many });
+    fireEvent.click(trigger);
+    fireEvent.change(screen.getByLabelText('Search options'), { target: { value: 'number 3' } });
+    fireEvent.click(trigger);
+    fireEvent.click(trigger);
+    expect((screen.getByLabelText('Search options') as HTMLInputElement).value).toBe('');
+  });
+
+  it('lets long labels wrap instead of cutting them off', () => {
+    const label = 'A very long option label that used to be cut off with an ellipsis in the list';
+    const { trigger } = renderSelect({ options: [{ value: 'x', label }] });
+    fireEvent.click(trigger);
+    const row = screen.getByRole('option', { name: label });
+    expect(row.innerHTML).not.toContain('truncate');
+    expect(row.querySelector('span')?.className).toContain('break-words');
+  });
+
+  it('closes when clicking outside but not when clicking inside the list', () => {
+    const { trigger } = renderSelect({ options: many });
+    fireEvent.click(trigger);
+    fireEvent.mouseDown(screen.getByLabelText('Search options'));
+    expect(screen.getByRole('listbox')).toBeTruthy();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('Tab from inside the list hands focus back to the button and closes the list', () => {
+    const { trigger } = renderSelect();
+    fireEvent.click(trigger);
+    const option = screen.getByRole('option', { name: 'Alpha' });
+    option.focus();
+    fireEvent.keyDown(option, { key: 'Tab' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('ArrowDown from the search box enters the list', () => {
+    const { trigger } = renderSelect({ options: many, allowClear: false });
+    fireEvent.click(trigger);
+    const search = screen.getByLabelText('Search options');
+    search.focus();
+    fireEvent.keyDown(search, { key: 'ArrowDown' });
+    expect(document.activeElement?.textContent).toContain('Option number 0');
+  });
+});

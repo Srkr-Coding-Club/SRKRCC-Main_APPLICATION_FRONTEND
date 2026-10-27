@@ -195,7 +195,7 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
                 {active.key === 'ideas' && <IdeasAdminTab hackathon={hackathon} onSaved={setHackathon} onEnable={goToRegistration} />}
                 {active.key === 'submissions' && <SubmissionsAdminTab hackathon={hackathon} onSaved={setHackathon} onEnable={goToRegistration} />}
                 {active.key === 'judging' && <JudgingAdminTab hackathon={hackathon} onEnable={goToRegistration} />}
-                {active.key === 'checkin' && <CheckInAdminTab hackathon={hackathon} onEnable={goToRegistration} />}
+                {active.key === 'checkin' && <CheckInAdminTab hackathon={hackathon} onSaved={setHackathon} onEnable={goToRegistration} />}
                 {active.key === 'results' && <ResultsAdminTab hackathon={hackathon} onSaved={setHackathon} onEnable={goToRegistration} />}
                 {active.key === 'publicpage' && <PublicPageAdminTab hackathon={hackathon} onSaved={setHackathon} />}
                 {active.key === 'announcements' && <HackathonAnnouncementsAdminTab slug={slug} />}
