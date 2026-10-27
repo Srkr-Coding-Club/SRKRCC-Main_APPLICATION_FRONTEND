@@ -28,10 +28,21 @@ const exportsSeen = [];
 // Team withdrawal: solo = the only member; registered = the team holds a place (needs approval); request = what the dashboard shows.
 const wd = { solo: false, registered: false, request: null, posts: [], overview: null };
 const ci = {
-  window: 'OPEN', offline: false, arrived: new Map(),
+  window: 'OPEN', offline: false, arrived: new Map(), lunch: new Map(), batches: new Map(), teamScans: 0,
+  sessions: [
+    { id: 1, day_index: 0, slot: 'MORNING', date: '2026-11-01', name: 'Check-in', is_main: true, needs_arrival: false, counts_for_certificate: true, scan_mode: 'BOTH', is_active: true, outside_schedule: false },
+    { id: 2, day_index: 0, slot: 'AFTERNOON', date: '2026-11-01', name: 'Lunch', is_main: false, needs_arrival: true, counts_for_certificate: false, scan_mode: 'BOTH', is_active: true, outside_schedule: false },
+  ],
   people: Array.from({ length: 12 }, (_, i) => ({ user_id: i + 1, name: ['Asha Rao', 'Bo Li', 'Cy Doe', 'Dee Kay', 'Eli Sun', 'Fin Lee', 'Gia Ray', 'Hal Moe', 'Ian Fox', 'Joy Ng', 'Kai Oz', 'Lou Pak'][i], email: `p${i + 1}@x.io`, team_name: `Team ${Math.floor(i / 3) + 1}` })),
   held: [{ user_id: 99, name: 'Fay Forming', email: 'fay@x.io', team_name: 'Late Joiners', why: 'Team still forming' }],
 };
+const sidOf = (v) => (Number(v) === 2 ? 2 : 1);
+const arrivals = (sid) => (sid === 2 ? ci.lunch : ci.arrived);
+const sessionRows = () => ci.sessions.map((x) => ({ ...x, opens_at: x.is_main && ci.window === 'NOT_OPEN' ? iso(0, 2) : null, closes_at: null, window: x.is_main ? ci.window : 'OPEN', checked_in: arrivals(x.id).size }));
+const teamMembers = (token, sid) => ci.people.filter((x) => x.team_name === `Team ${String(token).replace('team-', '')}`).map((x) => ({
+  user_id: x.user_id, name: x.name, role: 'MEMBER', checked_in: arrivals(sid).has(x.user_id), checked_in_at: arrivals(sid).get(x.user_id)?.at ?? null,
+  checked_in_by: arrivals(sid).get(x.user_id)?.by ?? null, via: arrivals(sid).get(x.user_id)?.via ?? null, blocked: sid === 2 && !ci.arrived.has(x.user_id) ? 'NOT_ARRIVED' : null,
+}));
 const hackathons = [
   { ...base, id: 1, slug: 'hackoverflow-2026', title: 'HackOverflow 2026', theme: 'Build for Bharat', status: 'LIVE', is_registration_open: true,
     start_date: iso(14), end_date: iso(16), registration_opens_at: iso(-5), registration_closes_at: iso(10), submission_deadline: iso(16), idea_deadline: iso(7) },
@@ -147,44 +158,97 @@ function handle(req, res, raw) {
   if (/\/rounds\/1\/entries$/.test(p)) {
     return send([{ id: 1, team_id: 11, team_name: 'Null Pointers', team_status: 'REGISTERED', leader_email: 'dana@srkr.ac.in', member_count: 2, problem_statement: null, problem_code: 'PS-01', status: 'PENDING', admin_notes: '', feedback: '', decided_by_name: null, decided_at: null, details_response_id: null, idea_status: null, idea_score: null, has_project: false, project_score: null, checked_in: 0 }]);
   }
-  // --- check-in (stateful so the console, stats and no-show panels can be exercised) ---
-  if (p === '/__checkin') { const q = Object.fromEntries(new URL(req.url, 'http://x').searchParams); if (q.window) ci.window = q.window; if (q.reset) ci.arrived = new Map(); return send(ci); }
+  // --- check-in (stateful: two sessions, person codes and team codes) ---
+  if (p === '/__checkin') { const q = Object.fromEntries(new URL(req.url, 'http://x').searchParams); if (q.window) ci.window = q.window; if (q.reset) { ci.arrived = new Map(); ci.lunch = new Map(); ci.batches = new Map(); ci.teamScans = 0; } if (q.single) ci.single = q.single === '1'; return send({ ...ci, arrived: [...ci.arrived.keys()], lunch: [...ci.lunch.keys()] }); }
+  if (/\/check-in\/sessions$/.test(p)) return send(ci.single ? sessionRows().slice(0, 1) : sessionRows());
+  if ((m = p.match(/\/check-in\/sessions\/(\d+)$/)) && req.method === 'PATCH') {
+    const row = ci.sessions.find((x) => x.id === Number(m[1])); const b = JSON.parse(raw || '{}');
+    if (b.opens_at && b.closes_at && b.closes_at <= b.opens_at) return send({ closes_at: ['Must be after the time check-in opens.'] }, 400);
+    Object.assign(row, ['name', 'scan_mode', 'needs_arrival', 'counts_for_certificate', 'is_active'].reduce((acc, k) => (k in b ? { ...acc, [k]: b[k] } : acc), {}));
+    return send(sessionRows().find((x) => x.id === row.id));
+  }
   if (/\/check-in\/stats$/.test(p)) {
-    const rows = [...ci.arrived.values()];
+    const sid = sidOf(new URL(req.url, 'http://x').searchParams.get('session'));
+    const rows = [...arrivals(sid).values()];
     const by = {}; rows.forEach((r) => { by[r.by] = (by[r.by] || 0) + 1; });
     const base0 = Math.floor(Date.now() / 9e5) * 9e5 - 3 * 9e5;
-    return send({ total: rows.length, overrides: rows.filter((r) => r.override).length, bucket_minutes: 15,
+    const via = {}; rows.forEach((r) => { via[r.via || 'MEMBER_QR'] = (via[r.via || 'MEMBER_QR'] || 0) + 1; });
+    return send({ total: rows.length, overrides: rows.filter((r) => r.override).length, bucket_minutes: 15, by_via: via, team_scans: ci.teamScans, session: sessionRows().find((x) => x.id === sid),
       volunteers: Object.entries(by).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
       timeline: rows.length ? [0, 1, 2, 3].map((i) => ({ at: new Date(base0 + i * 9e5).toISOString(), count: i === 1 ? rows.length : 0 })) : [] });
   }
   if (/\/check-in\/no-shows$/.test(p)) {
     if (req.method === 'POST') { const b = JSON.parse(raw || '{}'); return b.action === 'remind' ? send({ reminded: ci.people.filter((x) => !ci.arrived.has(x.user_id)).length }) : send({ withdrawn: (b.team_ids || []).length }); }
-    const missingTeams = [...new Set(ci.people.filter((x) => !ci.arrived.has(x.user_id)).map((x) => x.team_name))];
-    return send({ window: ci.window === 'OPEN' ? 'OPEN' : 'CLOSED', teams: missingTeams.map((n, i) => ({ team_id: i + 1, name: n, members: ci.people.filter((x) => x.team_name === n).length })),
-      absent_participants: ci.people.filter((x) => !ci.arrived.has(x.user_id)).length, waitlisted_teams: 2 });
+    const sid = sidOf(new URL(req.url, 'http://x').searchParams.get('session')); const there = arrivals(sid);
+    const missingTeams = [...new Set(ci.people.filter((x) => !there.has(x.user_id)).map((x) => x.team_name))];
+    return send({ window: ci.window === 'OPEN' ? 'OPEN' : 'CLOSED', session: sessionRows().find((x) => x.id === sid), teams: missingTeams.map((n, i) => ({ team_id: i + 1, name: n, members: ci.people.filter((x) => x.team_name === n).length })),
+      absent_participants: ci.people.filter((x) => !there.has(x.user_id)).length, waitlisted_teams: 2 });
   }
-  if ((m = p.match(/\/check-in\/(\d+)$/)) && req.method === 'DELETE') { ci.arrived.delete(Number(m[1])); return send({ deleted: true }); }
+  const checkInMember = (id, sid, how) => {
+    const person = ci.people.find((x) => x.user_id === id) || ci.held.find((x) => x.user_id === id);
+    if (!person) return { error: send.bind(null, { detail: 'That QR code is not valid.', code: 'INVALID_QR' }, 400) };
+    if (ci.held.includes(person) && !(how.override && how.reason)) return { error: send.bind(null, { detail: 'Fay Forming team is not registered (still forming or waitlisted).', code: 'TEAM_NOT_REGISTERED' }, 400) };
+    if (sid === 2 && !ci.arrived.has(id) && !how.override) return { error: send.bind(null, { detail: `${person.name} has not checked in on arrival yet.`, code: 'NOT_ARRIVED' }, 400) };
+    const created = !arrivals(sid).has(id);
+    if (created) arrivals(sid).set(id, { at: new Date().toISOString(), by: 'Vik Vol', override: Boolean(how.override), via: how.via || 'MEMBER_QR', batch: how.batch });
+    const row = arrivals(sid).get(id);
+    return { body: { kind: 'member', created, user_id: id, name: person.name, team_name: person.team_name, checked_in_at: row.at, checked_in_by: 'Vik Vol', session_id: sid, via: row.via } };
+  };
+  if (/\/check-in\/scan$/.test(p) && req.method === 'POST') {
+    const b = JSON.parse(raw || '{}'); const sid = sidOf(b.session);
+    if (ci.offline) { req.socket.destroy(); return; }
+    if (b.token === 'expired') return send({ detail: 'That QR code has expired. Ask the participant to reopen their code, or check them in from the list.', code: 'QR_EXPIRED' }, 400);
+    if (String(b.token).startsWith('team-')) {
+      const members = teamMembers(b.token, sid);
+      return send({ kind: 'team', team: { id: Number(String(b.token).replace('team-', '')), name: `Team ${String(b.token).replace('team-', '')}`, status: 'REGISTERED', placed: true, problem_code: 'PS-01', problem_title: 'Rural health' },
+        session: sessionRows().find((x) => x.id === sid), members, all_checked_in: members.every((x) => x.checked_in), can_override: true });
+    }
+    const out = checkInMember(Number(String(b.token).replace('person-', '')), sid, {});
+    return out.error ? out.error() : send(out.body);
+  }
+  if (/\/check-in\/team-batch$/.test(p) && req.method === 'POST') {
+    const b = JSON.parse(raw || '{}'); const sid = sidOf(b.session);
+    if (b.token === 'expired') return send({ detail: 'That QR code has expired. Ask the participant to reopen their code, or check them in from the list.', code: 'QR_EXPIRED' }, 400);
+    const batchId = `batch-${ci.batches.size + 1}`; const made = [];
+    const results = (b.user_ids || []).map((id) => {
+      const person = ci.people.find((x) => x.user_id === id);
+      const out = checkInMember(id, sid, { override: b.override, reason: b.reason, via: 'TEAM_QR', batch: batchId });
+      if (out.error) return { user_id: id, name: person?.name ?? null, status: 'refused', detail: 'Has not checked in on arrival yet' };
+      if (out.body.created) made.push(id);
+      return { user_id: id, name: person.name, status: out.body.created ? 'created' : 'already', checked_in_at: out.body.checked_in_at };
+    });
+    if (made.length) { ci.batches.set(batchId, { sid, ids: made }); ci.teamScans += 1; }
+    return send({ batch_id: made.length ? batchId : null, team: { id: 1, name: 'Team' }, session_id: sid, results,
+      created: results.filter((r) => r.status === 'created').length, already: results.filter((r) => r.status === 'already').length, refused: results.filter((r) => r.status === 'refused').length });
+  }
+  if ((m = p.match(/\/check-in\/batches\/([^/]+)$/)) && req.method === 'DELETE') {
+    const batch = ci.batches.get(m[1]); if (!batch) return send({ detail: 'Not found.' }, 404);
+    batch.ids.forEach((id) => arrivals(batch.sid).delete(id)); ci.batches.delete(m[1]);
+    return send({ removed: batch.ids.length });
+  }
+  if ((m = p.match(/\/check-in\/(\d+)$/)) && req.method === 'DELETE') { arrivals(sidOf(new URL(req.url, 'http://x').searchParams.get('session'))).delete(Number(m[1])); return send({ deleted: true }); }
   if (/\/check-in$/.test(p)) {
     const url = new URL(req.url, 'http://x'); const q = (url.searchParams.get('q') || '').toLowerCase(); const missing = url.searchParams.get('missing') === '1';
-    const limit = Number(url.searchParams.get('limit') || 100);
+    const limit = Number(url.searchParams.get('limit') || 100); const sid = sidOf(url.searchParams.get('session'));
     if (req.method === 'POST') {
       const b = JSON.parse(raw || '{}');
       if (ci.offline) { req.socket.destroy(); return; }
       if (b.token === 'expired') return send({ detail: 'That QR code has expired. Ask the participant to reopen their code, or check them in from the list.', code: 'QR_EXPIRED' }, 400);
-      const id = b.user_id ?? Number(String(b.token).replace('person-', ''));
-      const person = ci.people.find((x) => x.user_id === id) || ci.held.find((x) => x.user_id === id);
-      if (!person) return send({ detail: 'That QR code is not valid.', code: 'INVALID_QR' }, 400);
-      if (ci.held.includes(person) && !(b.override && b.reason)) return send({ detail: 'Fay Forming team is not registered (still forming or waitlisted).', code: 'TEAM_NOT_REGISTERED' }, 400);
-      const created = !ci.arrived.has(id);
-      if (created) ci.arrived.set(id, { at: new Date().toISOString(), by: 'Vik Vol', override: Boolean(b.override) });
-      return send({ created, user_id: id, name: person.name, team_name: person.team_name, checked_in_at: ci.arrived.get(id).at, checked_in_by: 'Vik Vol' });
+      if (String(b.token).startsWith('team-')) return send({ detail: 'That is a team code.', code: 'TEAM_CODE' }, 400);
+      const out = checkInMember(b.user_id ?? Number(String(b.token).replace('person-', '')), sidOf(b.session), { override: b.override, reason: b.reason });
+      return out.error ? out.error() : send(out.body);
     }
-    const rows = ci.people.filter((x) => (!missing || !ci.arrived.has(x.user_id)) && (!q || [x.name, x.email, x.team_name].some((t) => t.toLowerCase().includes(q))));
-    const held = q ? ci.held.filter((x) => !ci.arrived.has(x.user_id) && [x.name, x.email, x.team_name].some((t) => t.toLowerCase().includes(q))) : [];
-    return send({ participants: rows.slice(0, limit).map((x) => ({ ...x, team_id: 1, role: 'MEMBER', checked_in: ci.arrived.has(x.user_id), checked_in_at: ci.arrived.get(x.user_id)?.at ?? null, checked_in_by: ci.arrived.get(x.user_id)?.by ?? null })),
-      total: ci.people.length, checked_in: ci.people.filter((x) => ci.arrived.has(x.user_id)).length, count: rows.length, limit, offset: 0, held_back: held });
+    const there = arrivals(sid);
+    const rows = ci.people.filter((x) => (!missing || !there.has(x.user_id)) && (!q || [x.name, x.email, x.team_name].some((t) => t.toLowerCase().includes(q))));
+    const held = q ? ci.held.filter((x) => !there.has(x.user_id) && [x.name, x.email, x.team_name].some((t) => t.toLowerCase().includes(q))) : [];
+    return send({ participants: rows.slice(0, limit).map((x) => ({ ...x, team_id: 1, role: 'MEMBER', via: there.get(x.user_id)?.via ?? null, checked_in: there.has(x.user_id), checked_in_at: there.get(x.user_id)?.at ?? null, checked_in_by: there.get(x.user_id)?.by ?? null })),
+      total: ci.people.length, checked_in: ci.people.filter((x) => there.has(x.user_id)).length, count: rows.length, limit, offset: 0, held_back: held, session: sessionRows().find((x) => x.id === sid) });
   }
-  if (/\/my-check-in$/.test(p)) return send({ token: ci.window === 'OPEN' ? 'person-1' : '', checked_in: ci.arrived.has(1), checked_in_at: ci.arrived.get(1)?.at ?? null, window: ci.window, opens_at: iso(0, 2), closes_at: null });
+  if (/\/my-check-in$/.test(p)) {
+    const open = ci.window === 'OPEN';
+    return send({ token: open ? 'person-1' : '', team_token: open ? 'team-1' : '', team: { id: 1, name: 'Team 1' }, checked_in: ci.arrived.has(1), checked_in_at: ci.arrived.get(1)?.at ?? null, window: ci.window, opens_at: iso(0, 2), closes_at: null,
+      sessions: ci.single ? undefined : sessionRows().map((x) => ({ id: x.id, name: x.name, is_main: x.is_main, window: x.window, opens_at: x.opens_at, closes_at: x.closes_at, checked_in: arrivals(x.id).has(1), checked_in_at: arrivals(x.id).get(1)?.at ?? null })) });
+  }
   if (p === '/feature-flags') return send([{ key: 'hackathons', is_enabled: true }]);
   if (p === '/hackathons') return send(hackathons);
   if (p === '/hackathons/my-teams') return send([{ ...fullTeam, hackathon_title: 'HackOverflow 2026', is_leader: true }]);

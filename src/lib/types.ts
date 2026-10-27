@@ -188,6 +188,9 @@ export interface Hackathon {
   /** QR codes work from check_in_opens_at and scans stop after check_in_closes_at (empty = no limit). */
   check_in_opens_at?: string | null;
   check_in_closes_at?: string | null;
+  /** Days and slots per day people are checked in on; they generate the check-in sessions. */
+  check_in_days?: number;
+  check_in_slots_per_day?: number;
   idea_deadline?: string | null;
   /** Organizers must approve an idea before it counts. */
   idea_review_required?: boolean;
@@ -1454,6 +1457,31 @@ export interface ShowcaseProject {
   members: string[];
 }
 
+export type CheckInVia = 'MEMBER_QR' | 'TEAM_QR' | 'LIST' | 'OVERRIDE';
+export type CheckInScanMode = 'MEMBERS' | 'TEAMS' | 'BOTH';
+export type CheckInWindow = 'NOT_OPEN' | 'OPEN' | 'CLOSED';
+
+/** One scannable moment of the event: Day 2 Afternoon, Lunch, ... The main one is the arrival check-in. */
+export interface CheckInSessionInfo {
+  id: number;
+  name: string;
+  day_index: number;
+  slot: 'MORNING' | 'AFTERNOON' | 'EVENING';
+  date: string;
+  is_main: boolean;
+  needs_arrival: boolean;
+  counts_for_certificate: boolean;
+  scan_mode: CheckInScanMode;
+  is_active: boolean;
+  /** The schedule no longer has this day or slot; kept because people were checked in. */
+  outside_schedule: boolean;
+  opens_at: string | null;
+  closes_at: string | null;
+  window: CheckInWindow;
+  /** Only in the sessions list. */
+  checked_in?: number;
+}
+
 export interface CheckInParticipant {
   user_id: number;
   name: string;
@@ -1464,6 +1492,7 @@ export interface CheckInParticipant {
   checked_in: boolean;
   checked_in_at: string | null;
   checked_in_by: string | null;
+  via: CheckInVia | null;
 }
 
 /** Someone whose team is not registered (forming or waitlisted); only organizers see these and can let them in. */
@@ -1485,6 +1514,7 @@ export interface CheckInRoster {
   limit: number;
   offset: number;
   held_back: CheckInHeldBack[];
+  session: CheckInSessionInfo;
 }
 
 export interface CheckInStats {
@@ -1494,18 +1524,97 @@ export interface CheckInStats {
   /** 15 for a normal event, 60 once arrivals span more than two days. */
   bucket_minutes: number;
   timeline: { at: string; count: number }[];
+  /** How people were checked in: their own code, the team's code, ticked from the list, or let in by an organizer. */
+  by_via: Partial<Record<CheckInVia, number>>;
+  /** Team scans (one per batch). */
+  team_scans: number;
+  session: CheckInSessionInfo;
+}
+
+/** One member of a scanned team and where they stand in the session. */
+export interface TeamScanMember {
+  user_id: number;
+  name: string;
+  role: 'LEADER' | 'MEMBER';
+  checked_in: boolean;
+  checked_in_at: string | null;
+  checked_in_by: string | null;
+  via: CheckInVia | null;
+  /** Why they cannot be checked in without an organizer: they have not arrived yet. */
+  blocked: 'NOT_ARRIVED' | null;
+}
+
+/** What a team's code opens. Nobody is checked in until the volunteer picks the people who are there. */
+export interface TeamScanResult {
+  kind: 'team';
+  team: { id: number; name: string; status: HackathonTeamStatus; placed: boolean; problem_code: string | null; problem_title: string | null };
+  session: CheckInSessionInfo;
+  members: TeamScanMember[];
+  all_checked_in: boolean;
+  can_override: boolean;
+}
+
+export interface MemberScanResult {
+  kind: 'member';
+  created: boolean;
+  user_id: number;
+  name: string;
+  team_name: string;
+  checked_in_at: string;
+  checked_in_by: string | null;
+  session_id: number;
+  via: CheckInVia;
+}
+
+export interface TeamBatchPerson {
+  user_id: number;
+  name: string | null;
+  status: 'created' | 'already' | 'refused';
+  code?: string;
+  detail?: string;
+  checked_in_at?: string;
+}
+
+export interface TeamBatchResult {
+  /** Null when nobody new was checked in. */
+  batch_id: string | null;
+  team: { id: number; name: string };
+  session_id: number;
+  results: TeamBatchPerson[];
+  created: number;
+  already: number;
+  refused: number;
+}
+
+/** A participant's standing in one session. */
+export interface MyCheckInSession {
+  id: number;
+  name: string;
+  is_main: boolean;
+  date: string;
+  window: CheckInWindow;
+  opens_at: string | null;
+  closes_at: string | null;
+  checked_in: boolean;
+  checked_in_at: string | null;
 }
 
 export interface CheckInNoShows {
   window: 'NOT_OPEN' | 'OPEN' | 'CLOSED';
+  /** The session the numbers are about (the arrival check-in unless another was asked for). */
+  session?: CheckInSessionInfo;
   teams: { team_id: number; name: string; members: number }[];
   absent_participants: number;
   waitlisted_teams: number;
 }
 
 export interface MyCheckIn {
-  /** Empty unless the window is OPEN. */
+  /** Empty unless some session is open. */
   token: string;
+  /** The whole team's code (empty unless some session is open). */
+  team_token: string;
+  team: { id: number; name: string };
+  sessions: MyCheckInSession[];
   window: 'NOT_OPEN' | 'OPEN' | 'CLOSED';
   opens_at: string | null;
   closes_at: string | null;

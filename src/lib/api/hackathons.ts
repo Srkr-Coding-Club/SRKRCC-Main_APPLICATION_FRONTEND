@@ -6,7 +6,11 @@ import type {
   AdminSubmissionsPayload,
   CertificateVerification,
   CheckInNoShows,
+  CheckInSessionInfo,
   CheckInStats,
+  MemberScanResult,
+  TeamBatchResult,
+  TeamScanResult,
   CheckInRoster,
   FinderListing,
   Hackathon,
@@ -155,8 +159,9 @@ export const hackathonApi = {
       fetchApi<JudgeReview>(`/hackathons/${enc(slug)}/judging/${submissionId}/`, json(body)),
   },
   checkIn: {
-    roster: (slug: string, params: { q?: string; missing?: boolean; limit?: number; offset?: number } = {}) => {
+    roster: (slug: string, params: { q?: string; missing?: boolean; limit?: number; offset?: number; session?: number } = {}) => {
       const search = new URLSearchParams();
+      if (params.session) search.set('session', String(params.session));
       if (params.q) search.set('q', params.q);
       if (params.missing) search.set('missing', '1');
       if (params.limit) search.set('limit', String(params.limit));
@@ -164,18 +169,29 @@ export const hackathonApi = {
       const suffix = search.toString();
       return fetchApi<CheckInRoster>(`/hackathons/${enc(slug)}/check-in/${suffix ? `?${suffix}` : ''}`);
     },
-    stats: (slug: string) => fetchApi<CheckInStats>(`/hackathons/${enc(slug)}/check-in/stats/`),
-    noShows: (slug: string) => fetchApi<CheckInNoShows>(`/hackathons/${enc(slug)}/check-in/no-shows/`),
-    remindNoShows: (slug: string) =>
-      fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/check-in/no-shows/`, json({ action: 'remind' })),
+    stats: (slug: string, session?: number) => fetchApi<CheckInStats>(`/hackathons/${enc(slug)}/check-in/stats/${session ? `?session=${session}` : ''}`),
+    sessions: (slug: string) => fetchApi<CheckInSessionInfo[]>(`/hackathons/${enc(slug)}/check-in/sessions/`),
+    noShows: (slug: string, session?: number) => fetchApi<CheckInNoShows>(`/hackathons/${enc(slug)}/check-in/no-shows/${session ? `?session=${session}` : ''}`),
+    remindNoShows: (slug: string, session?: number) =>
+      fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/check-in/no-shows/`, json({ action: 'remind', ...(session ? { session } : {}) })),
     withdrawNoShows: (slug: string, teamIds: number[]) =>
       fetchApi<{ withdrawn: number }>(`/hackathons/${enc(slug)}/check-in/no-shows/`, json({ action: 'withdraw', team_ids: teamIds })),
-    checkIn: (slug: string, body: { user_id?: number; token?: string; scanned_at?: string; override?: boolean; reason?: string }) =>
-      fetchApi<{ created: boolean; user_id: number; name: string; team_name: string; checked_in_at: string; checked_in_by: string | null }>(
-        `/hackathons/${enc(slug)}/check-in/`, json(body),
-      ),
-    undo: (slug: string, userId: number) =>
-      fetchApi<{ deleted: true }>(`/hackathons/${enc(slug)}/check-in/${userId}/`, { method: 'DELETE' }),
+    checkIn: (slug: string, body: { user_id?: number; token?: string; scanned_at?: string; override?: boolean; reason?: string; session?: number }) =>
+      fetchApi<Omit<MemberScanResult, 'kind'>>(`/hackathons/${enc(slug)}/check-in/`, json(body)),
+    /** One scanner for both kinds of code: a person is checked in, a team's code opens its member list. */
+    scan: (slug: string, body: { token: string; session?: number; scanned_at?: string }) =>
+      fetchApi<MemberScanResult | TeamScanResult>(`/hackathons/${enc(slug)}/check-in/scan/`, json(body)),
+    teamBatch: (slug: string, body: { token: string; user_ids: number[]; session?: number; scanned_at?: string; override?: boolean; reason?: string }) =>
+      fetchApi<TeamBatchResult>(`/hackathons/${enc(slug)}/check-in/team-batch/`, json(body)),
+    undo: (slug: string, userId: number, options: { session?: number; cascade?: boolean } = {}) => {
+      const search = new URLSearchParams();
+      if (options.session) search.set('session', String(options.session));
+      if (options.cascade) search.set('cascade', '1');
+      const suffix = search.toString();
+      return fetchApi<{ deleted: true }>(`/hackathons/${enc(slug)}/check-in/${userId}/${suffix ? `?${suffix}` : ''}`, { method: 'DELETE' });
+    },
+    undoBatch: (slug: string, batchId: string, cascade = false) =>
+      fetchApi<{ removed: number }>(`/hackathons/${enc(slug)}/check-in/batches/${batchId}/${cascade ? '?cascade=1' : ''}`, { method: 'DELETE' }),
   },
   lookupUser: (slug: string, query: string, teamId?: number) => {
     const params = new URLSearchParams();
@@ -214,6 +230,10 @@ export const hackathonApi = {
 
   // --- admin ---
   admin: {
+    updateCheckInSession: (
+      slug: string, id: number,
+      body: Partial<Pick<CheckInSessionInfo, 'name' | 'opens_at' | 'closes_at' | 'needs_arrival' | 'counts_for_certificate' | 'scan_mode' | 'is_active'>>,
+    ) => fetchApi<CheckInSessionInfo>(`/hackathons/${enc(slug)}/check-in/sessions/${id}/`, patch(body)),
     withdrawals: (slug: string) => fetchApi<WithdrawalOverview>(`/hackathons/${enc(slug)}/withdrawals/`),
     decideWithdrawal: (slug: string, id: number, body: { approve: boolean; note?: string }) =>
       fetchApi<{ id: number; status: string }>(`/hackathons/${enc(slug)}/withdrawals/${id}/decide/`, json(body)),
