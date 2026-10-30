@@ -28,10 +28,21 @@ const exportsSeen = [];
 // Team withdrawal: solo = the only member; registered = the team holds a place (needs approval); request = what the dashboard shows.
 const wd = { solo: false, registered: false, request: null, posts: [], overview: null };
 const ci = {
-  window: 'OPEN', offline: false, arrived: new Map(),
+  window: 'OPEN', offline: false, arrived: new Map(), lunch: new Map(), batches: new Map(), teamScans: 0,
+  sessions: [
+    { id: 1, day_index: 0, slot: 'MORNING', date: '2026-11-01', name: 'Check-in', is_main: true, needs_arrival: false, counts_for_certificate: true, scan_mode: 'BOTH', is_active: true, outside_schedule: false },
+    { id: 2, day_index: 0, slot: 'AFTERNOON', date: '2026-11-01', name: 'Lunch', is_main: false, needs_arrival: true, counts_for_certificate: false, scan_mode: 'BOTH', is_active: true, outside_schedule: false },
+  ],
   people: Array.from({ length: 12 }, (_, i) => ({ user_id: i + 1, name: ['Asha Rao', 'Bo Li', 'Cy Doe', 'Dee Kay', 'Eli Sun', 'Fin Lee', 'Gia Ray', 'Hal Moe', 'Ian Fox', 'Joy Ng', 'Kai Oz', 'Lou Pak'][i], email: `p${i + 1}@x.io`, team_name: `Team ${Math.floor(i / 3) + 1}` })),
   held: [{ user_id: 99, name: 'Fay Forming', email: 'fay@x.io', team_name: 'Late Joiners', why: 'Team still forming' }],
 };
+const sidOf = (v) => (Number(v) === 2 ? 2 : 1);
+const arrivals = (sid) => (sid === 2 ? ci.lunch : ci.arrived);
+const sessionRows = () => ci.sessions.map((x) => ({ ...x, opens_at: x.is_main && ci.window === 'NOT_OPEN' ? iso(0, 2) : null, closes_at: null, window: x.is_main ? ci.window : 'OPEN', checked_in: arrivals(x.id).size }));
+const teamMembers = (token, sid) => ci.people.filter((x) => x.team_name === `Team ${String(token).replace('team-', '')}`).map((x) => ({
+  user_id: x.user_id, name: x.name, role: 'MEMBER', checked_in: arrivals(sid).has(x.user_id), checked_in_at: arrivals(sid).get(x.user_id)?.at ?? null,
+  checked_in_by: arrivals(sid).get(x.user_id)?.by ?? null, via: arrivals(sid).get(x.user_id)?.via ?? null, blocked: sid === 2 && !ci.arrived.has(x.user_id) ? 'NOT_ARRIVED' : null,
+}));
 const hackathons = [
   { ...base, id: 1, slug: 'hackoverflow-2026', title: 'HackOverflow 2026', theme: 'Build for Bharat', status: 'LIVE', is_registration_open: true,
     start_date: iso(14), end_date: iso(16), registration_opens_at: iso(-5), registration_closes_at: iso(10), submission_deadline: iso(16), idea_deadline: iso(7) },
@@ -66,6 +77,14 @@ const user = { id: 7, email: 'dana@srkr.ac.in', username: 'dana', first_name: 'D
 const admin = { id: 1, email: 'admin@srkr.ac.in', username: 'admin', first_name: 'Ada', last_name: 'Min', role: 'ADMIN', is_staff: true, is_email_verified: true };
 
 const log = [];
+// Registration payment: one team a leader created with its fee, and what an organizer does with it.
+const pay = { team: null };
+const PAY_STATUS = { PAYMENT_PENDING: 'PENDING', PAYMENT_REJECTED: 'REJECTED', REGISTERED: 'VERIFIED' };
+const QR_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#fff"/><rect x="20" y="20" width="60" height="60"/><rect x="120" y="20" width="60" height="60"/><rect x="20" y="120" width="60" height="60"/></svg>');
+const payTeam = () => ({ ...team, id: 21, name: pay.team.name, status: pay.team.status, leader_id: 7, member_count: 1, members: [team.members[0]], pending_invites: [], open_innovation: null, created_at: pay.team.at, updated_at: pay.team.at, looking_for_members: false, looking_for: '' });
+const payRow = () => ({ id: 1, team_id: 21, team_name: pay.team.name, team_status: pay.team.status, leader_name: 'Dana R', leader_email: 'dana@srkr.ac.in', leader_phone: '9000000000', members: 1, amount: 200, transaction_id: pay.team.tx,
+  status: PAY_STATUS[pay.team.status], reason: pay.team.reason, submitted_at: pay.team.at, reviewed_by: pay.team.by || null, reviewed_at: pay.team.by ? iso(0) : null,
+  screenshot: { id: 'f-1', name: 'pay.png', size: 70, type: 'image/png', state: 'ATTACHED' }, problem: 'PS-01' });
 function handle(req, res, raw) {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace(/^\/api/, '').replace(/\/$/, '');
@@ -76,6 +95,60 @@ function handle(req, res, raw) {
   const fullTeam = { ...team, leader_id: 7, member_count: 2, pending_invites: [], open_innovation: null, created_at: iso(-3), updated_at: iso(-1), looking_for_members: false, looking_for: '' };
   if (p === '/__log') return send(log);
   let m;
+  // --- registration payment ---
+  if (p === '/__pay') {
+    const q = Object.fromEntries(new URL(req.url, 'http://x').searchParams);
+    if (q.reset) pay.team = null;
+    if (q.stage) Object.assign(hackathons[0], q.stage === 'NONE'
+      ? { payment_stage: 'NONE', idea_fee_amount: 0, idea_payment_note: '', payment_qr_id: null, contacts: [] }
+      : { payment_stage: q.stage, idea_fee_amount: 200, idea_payment_note: 'UPI: club@upi', payment_qr_id: 'qr-1', contacts: [{ name: 'Ravi Kumar', role: 'Club lead', email: 'ravi@club.org', phone: '+91 90000 11111' }] });
+    return send({ team: pay.team, stage: hackathons[0].payment_stage });
+  }
+  if (/\/idea-qr\/link$/.test(p)) return send({ url: QR_SVG, expires_in: 60, inline: true });
+  if (req.method === 'POST' && /\/payment-files$/.test(p)) {
+    const b = JSON.parse(raw || '{}');
+    return send({ file: { id: 'f-1', name: b.name, size: b.size, type: 'image/png', state: 'PENDING' }, post: { url: 'http://localhost:8100/__upload', fields: {} }, max_bytes: 5242880 }, 201);
+  }
+  if (/\/payment-files\/[^/]+$/.test(p)) {
+    if (req.method === 'POST') return send({ file: { id: 'f-1', name: 'pay.png', size: 70, type: 'image/png', state: 'UPLOADED' } });
+    res.writeHead(204); return res.end();
+  }
+  if (req.method === 'POST' && /\/hackathons\/hackoverflow-2026\/teams$/.test(p) && hackathons[0].payment_stage === 'REGISTRATION') {
+    const b = JSON.parse(raw || '{}');
+    if (!String(b.transaction_id || '').trim()) return send({ field: 'transaction_id', detail: 'Enter the transaction ID of your payment.', code: 'INVALID' }, 400);
+    if (!b.payment_file_id) return send({ field: 'payment_file_id', detail: 'Upload the screenshot of your payment of \u20b9200.', code: 'INVALID' }, 400);
+    if (String(b.transaction_id).toLowerCase() === 'dup') return send({ field: 'transaction_id', detail: 'This transaction ID has already been used. Check it, or contact the club representatives.', code: 'TRANSACTION_REUSED' }, 400);
+    pay.team = { name: b.name, status: 'PAYMENT_PENDING', tx: String(b.transaction_id).trim(), at: new Date().toISOString(), reason: '', by: null };
+    return send(payTeam(), 201);
+  }
+  if (pay.team && /\/my-team$/.test(p)) {
+    return send({ hackathon: hackathons[0], profile_missing: [], team: payTeam(), payment: { id: 1, status: PAY_STATUS[pay.team.status], amount: 200, transaction_id: pay.team.tx, submitted_at: pay.team.at, reviewed_at: pay.team.by ? iso(0) : null },
+      is_leader: true, invites: [], rounds: [], registration: { rules_accepted: true, answers: {}, missing: [] } });
+  }
+  if (req.method === 'POST' && /\/teams\/21\/cancel-payment$/.test(p)) { pay.team = null; return send({ cancelled: true, hackathon_slug: 'hackoverflow-2026' }); }
+  if (/\/payments$/.test(p) && req.method === 'GET') {
+    const status = url.searchParams.get('status');
+    const rows = pay.team && (!status || PAY_STATUS[pay.team.status] === status) ? [payRow()] : [];
+    const counts = { PENDING: 0, VERIFIED: 0, REJECTED: 0 }; if (pay.team) counts[PAY_STATUS[pay.team.status]] += 1;
+    return send({ counts, fee_amount: hackathons[0].idea_fee_amount, stage: hackathons[0].payment_stage, payments: rows });
+  }
+  if (/\/payments\/1\/link$/.test(p)) return send({ url: QR_SVG, expires_in: 60, inline: true });
+  if ((m = p.match(/\/payments\/1\/(verify|reject|reopen|remove)$/)) && req.method === 'POST') {
+    if (!pay.team) return send({ detail: 'That payment was not found.', code: 'NOT_FOUND' }, 404);
+    const b = JSON.parse(raw || '{}');
+    const handled = (word) => send({ detail: `This payment was already ${word} by Ada Min.`, code: 'PAYMENT_ALREADY_HANDLED', payment_status: PAY_STATUS[pay.team.status] }, 409);
+    if (m[1] === 'verify' || m[1] === 'reject') {
+      if (pay.team.status !== 'PAYMENT_PENDING') return handled(PAY_STATUS[pay.team.status] === 'VERIFIED' ? 'verified' : 'rejected');
+      pay.team.status = m[1] === 'verify' ? 'REGISTERED' : 'PAYMENT_REJECTED'; pay.team.by = 'Ada Min'; pay.team.reason = m[1] === 'reject' ? String(b.reason || '') : '';
+    } else if (m[1] === 'reopen') {
+      if (pay.team.status !== 'PAYMENT_REJECTED') return send({ detail: 'Only a rejected payment can be reopened.', code: 'NOT_REJECTED' }, 409);
+      pay.team.status = 'PAYMENT_PENDING'; pay.team.by = null; pay.team.reason = '';
+    } else {
+      if (pay.team.status === 'REGISTERED') return send({ detail: 'This team is already placed.', code: 'ALREADY_PLACED' }, 409);
+      pay.team = null; return send({ removed: true });
+    }
+    return send({ payment: payRow() });
+  }
   // --- team withdrawal ---
   if (p === '/__withdraw') {
     const q = Object.fromEntries(new URL(req.url, 'http://x').searchParams);
@@ -147,44 +220,97 @@ function handle(req, res, raw) {
   if (/\/rounds\/1\/entries$/.test(p)) {
     return send([{ id: 1, team_id: 11, team_name: 'Null Pointers', team_status: 'REGISTERED', leader_email: 'dana@srkr.ac.in', member_count: 2, problem_statement: null, problem_code: 'PS-01', status: 'PENDING', admin_notes: '', feedback: '', decided_by_name: null, decided_at: null, details_response_id: null, idea_status: null, idea_score: null, has_project: false, project_score: null, checked_in: 0 }]);
   }
-  // --- check-in (stateful so the console, stats and no-show panels can be exercised) ---
-  if (p === '/__checkin') { const q = Object.fromEntries(new URL(req.url, 'http://x').searchParams); if (q.window) ci.window = q.window; if (q.reset) ci.arrived = new Map(); return send(ci); }
+  // --- check-in (stateful: two sessions, person codes and team codes) ---
+  if (p === '/__checkin') { const q = Object.fromEntries(new URL(req.url, 'http://x').searchParams); if (q.window) ci.window = q.window; if (q.reset) { ci.arrived = new Map(); ci.lunch = new Map(); ci.batches = new Map(); ci.teamScans = 0; } if (q.single) ci.single = q.single === '1'; return send({ ...ci, arrived: [...ci.arrived.keys()], lunch: [...ci.lunch.keys()] }); }
+  if (/\/check-in\/sessions$/.test(p)) return send(ci.single ? sessionRows().slice(0, 1) : sessionRows());
+  if ((m = p.match(/\/check-in\/sessions\/(\d+)$/)) && req.method === 'PATCH') {
+    const row = ci.sessions.find((x) => x.id === Number(m[1])); const b = JSON.parse(raw || '{}');
+    if (b.opens_at && b.closes_at && b.closes_at <= b.opens_at) return send({ closes_at: ['Must be after the time check-in opens.'] }, 400);
+    Object.assign(row, ['name', 'scan_mode', 'needs_arrival', 'counts_for_certificate', 'is_active'].reduce((acc, k) => (k in b ? { ...acc, [k]: b[k] } : acc), {}));
+    return send(sessionRows().find((x) => x.id === row.id));
+  }
   if (/\/check-in\/stats$/.test(p)) {
-    const rows = [...ci.arrived.values()];
+    const sid = sidOf(new URL(req.url, 'http://x').searchParams.get('session'));
+    const rows = [...arrivals(sid).values()];
     const by = {}; rows.forEach((r) => { by[r.by] = (by[r.by] || 0) + 1; });
     const base0 = Math.floor(Date.now() / 9e5) * 9e5 - 3 * 9e5;
-    return send({ total: rows.length, overrides: rows.filter((r) => r.override).length, bucket_minutes: 15,
+    const via = {}; rows.forEach((r) => { via[r.via || 'MEMBER_QR'] = (via[r.via || 'MEMBER_QR'] || 0) + 1; });
+    return send({ total: rows.length, overrides: rows.filter((r) => r.override).length, bucket_minutes: 15, by_via: via, team_scans: ci.teamScans, session: sessionRows().find((x) => x.id === sid),
       volunteers: Object.entries(by).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
       timeline: rows.length ? [0, 1, 2, 3].map((i) => ({ at: new Date(base0 + i * 9e5).toISOString(), count: i === 1 ? rows.length : 0 })) : [] });
   }
   if (/\/check-in\/no-shows$/.test(p)) {
     if (req.method === 'POST') { const b = JSON.parse(raw || '{}'); return b.action === 'remind' ? send({ reminded: ci.people.filter((x) => !ci.arrived.has(x.user_id)).length }) : send({ withdrawn: (b.team_ids || []).length }); }
-    const missingTeams = [...new Set(ci.people.filter((x) => !ci.arrived.has(x.user_id)).map((x) => x.team_name))];
-    return send({ window: ci.window === 'OPEN' ? 'OPEN' : 'CLOSED', teams: missingTeams.map((n, i) => ({ team_id: i + 1, name: n, members: ci.people.filter((x) => x.team_name === n).length })),
-      absent_participants: ci.people.filter((x) => !ci.arrived.has(x.user_id)).length, waitlisted_teams: 2 });
+    const sid = sidOf(new URL(req.url, 'http://x').searchParams.get('session')); const there = arrivals(sid);
+    const missingTeams = [...new Set(ci.people.filter((x) => !there.has(x.user_id)).map((x) => x.team_name))];
+    return send({ window: ci.window === 'OPEN' ? 'OPEN' : 'CLOSED', session: sessionRows().find((x) => x.id === sid), teams: missingTeams.map((n, i) => ({ team_id: i + 1, name: n, members: ci.people.filter((x) => x.team_name === n).length })),
+      absent_participants: ci.people.filter((x) => !there.has(x.user_id)).length, waitlisted_teams: 2 });
   }
-  if ((m = p.match(/\/check-in\/(\d+)$/)) && req.method === 'DELETE') { ci.arrived.delete(Number(m[1])); return send({ deleted: true }); }
+  const checkInMember = (id, sid, how) => {
+    const person = ci.people.find((x) => x.user_id === id) || ci.held.find((x) => x.user_id === id);
+    if (!person) return { error: send.bind(null, { detail: 'That QR code is not valid.', code: 'INVALID_QR' }, 400) };
+    if (ci.held.includes(person) && !(how.override && how.reason)) return { error: send.bind(null, { detail: 'Fay Forming team is not registered (still forming or waitlisted).', code: 'TEAM_NOT_REGISTERED' }, 400) };
+    if (sid === 2 && !ci.arrived.has(id) && !how.override) return { error: send.bind(null, { detail: `${person.name} has not checked in on arrival yet.`, code: 'NOT_ARRIVED' }, 400) };
+    const created = !arrivals(sid).has(id);
+    if (created) arrivals(sid).set(id, { at: new Date().toISOString(), by: 'Vik Vol', override: Boolean(how.override), via: how.via || 'MEMBER_QR', batch: how.batch });
+    const row = arrivals(sid).get(id);
+    return { body: { kind: 'member', created, user_id: id, name: person.name, team_name: person.team_name, checked_in_at: row.at, checked_in_by: 'Vik Vol', session_id: sid, via: row.via } };
+  };
+  if (/\/check-in\/scan$/.test(p) && req.method === 'POST') {
+    const b = JSON.parse(raw || '{}'); const sid = sidOf(b.session);
+    if (ci.offline) { req.socket.destroy(); return; }
+    if (b.token === 'expired') return send({ detail: 'That QR code has expired. Ask the participant to reopen their code, or check them in from the list.', code: 'QR_EXPIRED' }, 400);
+    if (String(b.token).startsWith('team-')) {
+      const members = teamMembers(b.token, sid);
+      return send({ kind: 'team', team: { id: Number(String(b.token).replace('team-', '')), name: `Team ${String(b.token).replace('team-', '')}`, status: 'REGISTERED', placed: true, problem_code: 'PS-01', problem_title: 'Rural health' },
+        session: sessionRows().find((x) => x.id === sid), members, all_checked_in: members.every((x) => x.checked_in), can_override: true });
+    }
+    const out = checkInMember(Number(String(b.token).replace('person-', '')), sid, {});
+    return out.error ? out.error() : send(out.body);
+  }
+  if (/\/check-in\/team-batch$/.test(p) && req.method === 'POST') {
+    const b = JSON.parse(raw || '{}'); const sid = sidOf(b.session);
+    if (b.token === 'expired') return send({ detail: 'That QR code has expired. Ask the participant to reopen their code, or check them in from the list.', code: 'QR_EXPIRED' }, 400);
+    const batchId = `batch-${ci.batches.size + 1}`; const made = [];
+    const results = (b.user_ids || []).map((id) => {
+      const person = ci.people.find((x) => x.user_id === id);
+      const out = checkInMember(id, sid, { override: b.override, reason: b.reason, via: 'TEAM_QR', batch: batchId });
+      if (out.error) return { user_id: id, name: person?.name ?? null, status: 'refused', detail: 'Has not checked in on arrival yet' };
+      if (out.body.created) made.push(id);
+      return { user_id: id, name: person.name, status: out.body.created ? 'created' : 'already', checked_in_at: out.body.checked_in_at };
+    });
+    if (made.length) { ci.batches.set(batchId, { sid, ids: made }); ci.teamScans += 1; }
+    return send({ batch_id: made.length ? batchId : null, team: { id: 1, name: 'Team' }, session_id: sid, results,
+      created: results.filter((r) => r.status === 'created').length, already: results.filter((r) => r.status === 'already').length, refused: results.filter((r) => r.status === 'refused').length });
+  }
+  if ((m = p.match(/\/check-in\/batches\/([^/]+)$/)) && req.method === 'DELETE') {
+    const batch = ci.batches.get(m[1]); if (!batch) return send({ detail: 'Not found.' }, 404);
+    batch.ids.forEach((id) => arrivals(batch.sid).delete(id)); ci.batches.delete(m[1]);
+    return send({ removed: batch.ids.length });
+  }
+  if ((m = p.match(/\/check-in\/(\d+)$/)) && req.method === 'DELETE') { arrivals(sidOf(new URL(req.url, 'http://x').searchParams.get('session'))).delete(Number(m[1])); return send({ deleted: true }); }
   if (/\/check-in$/.test(p)) {
     const url = new URL(req.url, 'http://x'); const q = (url.searchParams.get('q') || '').toLowerCase(); const missing = url.searchParams.get('missing') === '1';
-    const limit = Number(url.searchParams.get('limit') || 100);
+    const limit = Number(url.searchParams.get('limit') || 100); const sid = sidOf(url.searchParams.get('session'));
     if (req.method === 'POST') {
       const b = JSON.parse(raw || '{}');
       if (ci.offline) { req.socket.destroy(); return; }
       if (b.token === 'expired') return send({ detail: 'That QR code has expired. Ask the participant to reopen their code, or check them in from the list.', code: 'QR_EXPIRED' }, 400);
-      const id = b.user_id ?? Number(String(b.token).replace('person-', ''));
-      const person = ci.people.find((x) => x.user_id === id) || ci.held.find((x) => x.user_id === id);
-      if (!person) return send({ detail: 'That QR code is not valid.', code: 'INVALID_QR' }, 400);
-      if (ci.held.includes(person) && !(b.override && b.reason)) return send({ detail: 'Fay Forming team is not registered (still forming or waitlisted).', code: 'TEAM_NOT_REGISTERED' }, 400);
-      const created = !ci.arrived.has(id);
-      if (created) ci.arrived.set(id, { at: new Date().toISOString(), by: 'Vik Vol', override: Boolean(b.override) });
-      return send({ created, user_id: id, name: person.name, team_name: person.team_name, checked_in_at: ci.arrived.get(id).at, checked_in_by: 'Vik Vol' });
+      if (String(b.token).startsWith('team-')) return send({ detail: 'That is a team code.', code: 'TEAM_CODE' }, 400);
+      const out = checkInMember(b.user_id ?? Number(String(b.token).replace('person-', '')), sidOf(b.session), { override: b.override, reason: b.reason });
+      return out.error ? out.error() : send(out.body);
     }
-    const rows = ci.people.filter((x) => (!missing || !ci.arrived.has(x.user_id)) && (!q || [x.name, x.email, x.team_name].some((t) => t.toLowerCase().includes(q))));
-    const held = q ? ci.held.filter((x) => !ci.arrived.has(x.user_id) && [x.name, x.email, x.team_name].some((t) => t.toLowerCase().includes(q))) : [];
-    return send({ participants: rows.slice(0, limit).map((x) => ({ ...x, team_id: 1, role: 'MEMBER', checked_in: ci.arrived.has(x.user_id), checked_in_at: ci.arrived.get(x.user_id)?.at ?? null, checked_in_by: ci.arrived.get(x.user_id)?.by ?? null })),
-      total: ci.people.length, checked_in: ci.people.filter((x) => ci.arrived.has(x.user_id)).length, count: rows.length, limit, offset: 0, held_back: held });
+    const there = arrivals(sid);
+    const rows = ci.people.filter((x) => (!missing || !there.has(x.user_id)) && (!q || [x.name, x.email, x.team_name].some((t) => t.toLowerCase().includes(q))));
+    const held = q ? ci.held.filter((x) => !there.has(x.user_id) && [x.name, x.email, x.team_name].some((t) => t.toLowerCase().includes(q))) : [];
+    return send({ participants: rows.slice(0, limit).map((x) => ({ ...x, team_id: 1, role: 'MEMBER', via: there.get(x.user_id)?.via ?? null, checked_in: there.has(x.user_id), checked_in_at: there.get(x.user_id)?.at ?? null, checked_in_by: there.get(x.user_id)?.by ?? null })),
+      total: ci.people.length, checked_in: ci.people.filter((x) => there.has(x.user_id)).length, count: rows.length, limit, offset: 0, held_back: held, session: sessionRows().find((x) => x.id === sid) });
   }
-  if (/\/my-check-in$/.test(p)) return send({ token: ci.window === 'OPEN' ? 'person-1' : '', checked_in: ci.arrived.has(1), checked_in_at: ci.arrived.get(1)?.at ?? null, window: ci.window, opens_at: iso(0, 2), closes_at: null });
+  if (/\/my-check-in$/.test(p)) {
+    const open = ci.window === 'OPEN';
+    return send({ token: open ? 'person-1' : '', team_token: open ? 'team-1' : '', team: { id: 1, name: 'Team 1' }, checked_in: ci.arrived.has(1), checked_in_at: ci.arrived.get(1)?.at ?? null, window: ci.window, opens_at: iso(0, 2), closes_at: null,
+      sessions: ci.single ? undefined : sessionRows().map((x) => ({ id: x.id, name: x.name, is_main: x.is_main, window: x.window, opens_at: x.opens_at, closes_at: x.closes_at, checked_in: arrivals(x.id).has(1), checked_in_at: arrivals(x.id).get(1)?.at ?? null })) });
+  }
   if (p === '/feature-flags') return send([{ key: 'hackathons', is_enabled: true }]);
   if (p === '/hackathons') return send(hackathons);
   if (p === '/hackathons/my-teams') return send([{ ...fullTeam, hackathon_title: 'HackOverflow 2026', is_leader: true }]);
@@ -208,7 +334,7 @@ function handle(req, res, raw) {
   if (/\/judging\/ideas$/.test(p)) return send({ enabled: true, criteria: [], ideas: [], reviewed: 0, total: 0 });
   if (/\/staff$/.test(p)) return send([{ id: 1, role: 'ORGANIZER', user_id: 7, email: 'dana@srkr.ac.in', name: 'Dana R', permissions: ['settings', 'teams'] }]);
   if (/\/finder\/requests$/.test(p)) return send({ incoming: [], mine: [] });
-  if (/\/stats$/.test(p)) return send({ teams_by_status: { FORMING: 5, REGISTERED: 31, DISQUALIFIED: 0, WITHDRAWN: 0 }, teams_total: 36, participants: 128, pending_invites: 4, open_innovation_teams: 6,
+  if (/\/stats$/.test(p)) return send({ teams_by_status: { FORMING: 5, REGISTERED: 31, DISQUALIFIED: 0, WITHDRAWN: 0, PAYMENT_PENDING: pay.team && pay.team.status === 'PAYMENT_PENDING' ? 1 : 0, PAYMENT_REJECTED: 0 }, teams_total: 36, participants: 128, pending_invites: 4, open_innovation_teams: 6,
     problem_statements: problems.map((x) => ({ id: x.id, code: x.code, title: x.title, teams: x.team_count, max_teams: x.max_teams })), rounds: [], forming_teams: [{ id: 5, name: 'Half Team', leader_email: 'l@example.org', members: 1, needed: 1 }],
     min_team_size: 2, registration_closes_at: iso(10), is_registration_open: true });
   if (/\/finder$/.test(p)) return send({ seekers: [{ id: 8, name: 'Chandrasekhar Venkata Subrahmanyam', skills: 'React, Django, Figma, DevOps, Machine Learning', note: 'Looking for a team that wants to build for rural healthcare.', profile: 'CSE 3rd year', is_me: false, phone: '9000000001' }],
@@ -228,6 +354,12 @@ function handle(req, res, raw) {
   return req.method === 'GET' ? send([]) : send({});
 }
 const server = http.createServer((req, res) => {
+  // The browser sends the screenshot straight to "storage": accept it from the site's origin.
+  if (req.url.startsWith('/__upload')) {
+    res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS' });
+    req.resume();
+    return res.end();
+  }
   let raw = ''; req.on('data', (c) => { raw += c; });
   req.on('end', () => handle(req, res, raw));
 });

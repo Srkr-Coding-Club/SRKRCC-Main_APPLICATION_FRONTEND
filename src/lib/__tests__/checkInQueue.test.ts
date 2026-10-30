@@ -5,13 +5,32 @@ beforeEach(() => window.localStorage.clear());
 
 describe('checkInQueue', () => {
   it('keeps scans per hackathon, oldest first, without duplicates', () => {
-    enqueueScan('a', 'code-1', '2026-01-01T09:00:00Z');
-    enqueueScan('a', 'code-2', '2026-01-01T09:01:00Z');
-    enqueueScan('a', 'code-1', '2026-01-01T09:05:00Z');
+    enqueueScan('a', 'code-1', undefined, '2026-01-01T09:00:00Z');
+    enqueueScan('a', 'code-2', undefined, '2026-01-01T09:01:00Z');
+    enqueueScan('a', 'code-1', undefined, '2026-01-01T09:05:00Z');
     enqueueScan('b', 'code-9');
     expect(loadQueue('a').map((item) => item.code)).toEqual(['code-1', 'code-2']);
     expect(loadQueue('a')[0].scannedAt).toBe('2026-01-01T09:00:00Z');
     expect(loadQueue('b')).toHaveLength(1);
+  });
+
+  it('keeps the same code once per session, because a person checks in once to each', () => {
+    enqueueScan('a', 'code-1', 5, '2026-01-01T09:00:00Z');
+    enqueueScan('a', 'code-1', 6, '2026-01-01T09:01:00Z');
+    enqueueScan('a', 'code-1', 5, '2026-01-01T09:02:00Z');
+    expect(loadQueue('a').map((item) => item.session)).toEqual([5, 6]);
+  });
+
+  it('removes only the scan of the session that was sent', () => {
+    enqueueScan('a', 'code-1', 5);
+    enqueueScan('a', 'code-1', 6);
+    expect(dequeueScan('a', 'code-1', 5).map((item) => item.session)).toEqual([6]);
+  });
+
+  it('treats a scan saved before sessions existed as the main session', () => {
+    window.localStorage.setItem('hackathon-check-in-queue:a', JSON.stringify([{ code: 'old', scannedAt: 'x' }]));
+    expect(enqueueScan('a', 'old')).toHaveLength(1);
+    expect(dequeueScan('a', 'old')).toEqual([]);
   });
 
   it('removes a scan once it is sent and clears the key when empty', () => {

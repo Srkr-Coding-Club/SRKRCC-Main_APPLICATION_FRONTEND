@@ -36,16 +36,29 @@ await fetch(`${API.replace('/api', '')}/__checkin?reset=1&window=OPEN`);
 for (const [label, viewport] of [['desktop', { width: 1280, height: 900 }], ['phone', { width: 390, height: 844 }]]) {
   const { ctx, page, errors } = await session('admin', viewport);
   await page.goto(`${BASE}/admin/hackathons/hackoverflow-2026?tab=checkin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await page.getByText('Check-in window').waitFor({ timeout: 60000 });
+  await page.getByRole('heading', { name: 'Check-in sessions' }).waitFor({ timeout: 60000 });
+  await page.getByRole('form', { name: 'Settings for Lunch' }).waitFor({ timeout: 20000 });
   await page.getByText('Nobody has checked in yet').waitFor({ timeout: 20000 });
   await page.getByText('No-shows').first().waitFor();
-  check(`[${label}] admin check-in tab renders window, stats, no-shows and console`, true);
+  check(`[${label}] admin check-in tab renders sessions, stats, no-shows and console`, true);
   check(`[${label}] no horizontal scroll on the admin tab`, await noOverflow(page));
   await page.screenshot({ path: `${OUT}/admin-${label}.png`, fullPage: true });
 
-  // window form: closing before opening is reported by the server, here only the form wiring is checked
-  await page.getByLabel('Opens').fill('2026-11-01T09:00');
-  check(`[${label}] window inputs accept a date-time`, (await page.getByLabel('Opens').inputValue()) === '2026-11-01T09:00');
+  // session cards: closing before opening is reported by the server, here only the form wiring is checked
+  const main = page.getByRole('form', { name: 'Settings for Check-in' });
+  const lunchCard = page.getByRole('form', { name: 'Settings for Lunch' });
+  await main.getByLabel('Opens').fill('2026-11-01T09:00');
+  check(`[${label}] session inputs accept a date-time`, (await main.getByLabel('Opens').inputValue()) === '2026-11-01T09:00');
+  check(`[${label}] the arrival session has no on/off switches`, (await main.getByRole('switch').count()) === 0 && (await lunchCard.getByRole('switch').count()) === 3);
+  await lunchCard.getByLabel('Name').fill('Lunch break');
+  await lunchCard.getByRole('button', { name: 'Save session' }).click();
+  check(`[${label}] saving a session renames it`, await page.getByText('Lunch break saved').first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+  await page.getByRole('form', { name: 'Settings for Lunch break' }).getByLabel('Name').fill('Lunch');
+  await page.getByRole('form', { name: 'Settings for Lunch break' }).getByRole('button', { name: 'Save session' }).click();
+  await page.getByRole('form', { name: 'Settings for Lunch' }).waitFor({ timeout: 10000 });
+  await page.getByRole('button', { name: 'Match the event dates' }).click();
+  check(`[${label}] "Match the event dates" fills the days`, Number(await page.getByLabel('Days').inputValue()) >= 2);
+  await page.screenshot({ path: `${OUT}/admin-sessions-${label}.png` });
   check(`[${label}] no console errors on the admin tab`, errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
@@ -116,6 +129,38 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 900 }], ['ph
   check('queue is sent on reconnect', await page.getByText(/Eli Sun synced/).first().waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false));
   check('queue is empty afterwards', (await page.evaluate(() => localStorage.getItem('hackathon-check-in-queue:hackoverflow-2026'))) === null);
 
+  // sessions and team codes
+  check('session bar names the session being scanned', await page.getByRole('group', { name: 'Session being scanned' }).getByText('Check-in', { exact: true }).first().isVisible());
+  await page.getByRole('button', { name: /^Session:/ }).click();
+  await page.getByRole('option', { name: /Lunch/ }).click();
+  check('choosing Lunch shows it in large type', await page.getByRole('group', { name: 'Session being scanned' }).getByText('Lunch', { exact: true }).first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+  check('the choice is remembered on this phone', (await page.evaluate(() => localStorage.getItem('hackathon-check-in-session:hackoverflow-2026'))) === '2');
+  await page.waitForTimeout(4200);
+  await submitCode('team-1');
+  const sheet = page.getByRole('region', { name: 'Team check-in: Team 1' });
+  check('a team code opens the team list', await sheet.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+  check('nobody is pre-ticked in the team list', (await sheet.getByRole('checkbox', { checked: true }).count()) === 0);
+  check('people who have not arrived cannot be ticked', await sheet.getByLabel(/Cy Doe/).isDisabled() && (await sheet.getByText('Has not checked in on arrival yet').count()) >= 1);
+  check('an organizer sees the let-in-anyway switch', await sheet.getByLabel(/Let in people who have not arrived/).isVisible());
+  await page.screenshot({ path: `${OUT}/console-team-sheet.png` });
+  await sheet.getByLabel(/Bo Li/).check();
+  await sheet.getByRole('button', { name: 'Check in selected (1)' }).click();
+  check('team check-in reports each person', await sheet.getByText('Checked in', { exact: true }).waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+  await page.screenshot({ path: `${OUT}/console-team-result.png` });
+  await sheet.getByRole('button', { name: /Undo this check-in/ }).click();
+  check('the whole team check-in can be taken back and the list closes', await sheet.waitFor({ state: 'detached', timeout: 10000 }).then(() => true).catch(() => false));
+  await page.getByRole('button', { name: /^Session:/ }).click();
+  await page.getByRole('option', { name: /^Check-in/ }).first().click();
+  await page.waitForTimeout(4200);
+  await submitCode('team-3');
+  const arrival = page.getByRole('region', { name: 'Team check-in: Team 3' });
+  await arrival.waitFor({ timeout: 10000 });
+  await arrival.getByRole('button', { name: 'Select everyone present' }).click();
+  await arrival.getByRole('button', { name: /Check in selected \(\d+\)/ }).click();
+  check('a team is checked in to the arrival session in one go', await page.getByText(/Team 3: \d+ checked in/).first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+  await arrival.getByRole('button', { name: /Undo this check-in/ }).click();
+  await arrival.waitFor({ state: 'detached', timeout: 10000 });
+
   // camera path with a fake device
   await page.getByRole('button', { name: /Scan QR codes/ }).click();
   const cameraUp = await page.waitForSelector('#hackathon-check-in-scanner video', { timeout: 15000 }).then(() => true, () => false);
@@ -145,6 +190,16 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 900 }], ['ph
   await page.screenshot({ path: `${OUT}/admin-withdraw-confirm.png` });
   await page.getByRole('button', { name: 'Withdraw teams' }).click();
   check('withdraw reports the result', await page.getByText(/Withdrew 1 team/).waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+  const statsBox = page.locator('section', { hasText: 'Arrivals and volunteers' }).last();
+  await statsBox.getByRole('button', { name: /^Session:/ }).click();
+  await page.getByRole('option', { name: /Lunch/ }).click();
+  check('stats can be switched to another session', await statsBox.getByText(/Nobody has checked in yet/).waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+  const noShowBox = page.locator('section', { hasText: 'No-shows' }).last();
+  await noShowBox.getByRole('button', { name: /^Session:/ }).click();
+  await page.getByRole('option', { name: /Lunch/ }).click();
+  check('no-shows can be viewed for another session', await noShowBox.getByText(/not checked in to Lunch/).waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+  check('withdrawing is not offered for a non-arrival session', (await noShowBox.getByRole('button', { name: /Withdraw selected/ }).count()) === 0 && (await noShowBox.getByRole('button', { name: /Remind everyone/ }).count()) === 1);
+  await page.screenshot({ path: `${OUT}/admin-no-shows-session.png`, fullPage: true });
   check('no console errors on the admin tab after activity', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
@@ -159,7 +214,14 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 900 }], ['ph
     await page.waitForTimeout(2500);
     console.log('   card:', (await page.locator('section', { hasText: 'Event check-in' }).last().innerText()).split('\n').join(' | ').slice(0, 160));
     if (expected) check(`participant card (${windowState}) shows the right message`, await page.getByText(expected).waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
-    else check('participant card (OPEN) shows a QR code', await page.getByRole('img', { name: /check-in QR code/i }).waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+    else {
+      check('participant card (OPEN) shows a QR code', await page.getByRole('img', { name: /check-in QR code/i }).waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+      check('participant card lists every session', await page.getByRole('list', { name: 'Check-in sessions' }).getByText('Lunch').isVisible());
+      await page.getByRole('tab', { name: 'Team code' }).click();
+      check('participant can switch to the team code', await page.getByRole('img', { name: /Your team check-in QR code/i }).waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false));
+      await page.screenshot({ path: `${OUT}/participant-team-code.png` });
+      await page.getByRole('tab', { name: 'My code' }).click();
+    }
     await page.screenshot({ path: `${OUT}/participant-${windowState.toLowerCase()}.png` });
   }
   check('no horizontal scroll on the participant dashboard', await noOverflow(page));

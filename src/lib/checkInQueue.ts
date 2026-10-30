@@ -2,6 +2,8 @@
 export interface QueuedScan {
   code: string;
   scannedAt: string;
+  /** The session the scan was for; absent on scans saved before sessions existed, which mean the main session. */
+  session?: number;
 }
 
 const key = (slug: string) => `hackathon-check-in-queue:${slug}`;
@@ -24,16 +26,18 @@ function saveQueue(slug: string, queue: QueuedScan[]) {
   }
 }
 
-/** Adds a scan unless the same code is already waiting (a person is only checked in once). */
-export function enqueueScan(slug: string, code: string, scannedAt = new Date().toISOString()): QueuedScan[] {
+const same = (item: QueuedScan, code: string, session?: number) => item.code === code && (item.session ?? 0) === (session ?? 0);
+
+/** Adds a scan unless the same code is already waiting for the same session (a person is only checked in once per session). */
+export function enqueueScan(slug: string, code: string, session?: number, scannedAt = new Date().toISOString()): QueuedScan[] {
   const queue = loadQueue(slug);
-  if (!queue.some((item) => item.code === code)) queue.push({ code, scannedAt });
+  if (!queue.some((item) => same(item, code, session))) queue.push(session ? { code, scannedAt, session } : { code, scannedAt });
   saveQueue(slug, queue);
   return queue;
 }
 
-export function dequeueScan(slug: string, code: string): QueuedScan[] {
-  const queue = loadQueue(slug).filter((item) => item.code !== code);
+export function dequeueScan(slug: string, code: string, session?: number): QueuedScan[] {
+  const queue = loadQueue(slug).filter((item) => !same(item, code, session));
   saveQueue(slug, queue);
   return queue;
 }

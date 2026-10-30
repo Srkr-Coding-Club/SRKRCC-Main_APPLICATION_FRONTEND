@@ -18,6 +18,9 @@ import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { StatusPill, TEAM_STATUS_PILL } from '@/components/ui/StatusPill';
 import { TeamFormModal } from '@/components/hackathons/TeamFormModal';
+import { requestCelebrationCheck } from '@/lib/hooks/useCelebrations';
+import { TeamPaymentCard } from '@/components/hackathons/TeamPaymentCard';
+import type { PaymentTerms } from '@/components/hackathons/TeamPaymentStep';
 import { WithdrawTeamModal } from '@/components/hackathons/WithdrawTeamModal';
 import { WithdrawalNotice } from '@/components/hackathons/WithdrawalNotice';
 import { InviteMemberModal } from '@/components/hackathons/InviteMemberModal';
@@ -73,6 +76,7 @@ export default function HackathonDashboardPage() {
       setData(mine);
       setProblems(ps);
       setAnnouncements(ann);
+      requestCelebrationCheck();
     } catch (err: any) {
       setLoadError(err?.status === 404 ? 'This hackathon does not exist or is no longer visible.' : apiErrorMessage(err));
     } finally {
@@ -130,6 +134,11 @@ export default function HackathonDashboardPage() {
   const hackathon = data?.hackathon;
   const team = data?.team ?? null;
   const isLeader = !!data?.is_leader;
+  // A team whose registration fee is waiting for an organizer (or was turned down) holds no place and unlocks nothing yet.
+  const unpaid = !!team && (team.status === 'PAYMENT_PENDING' || team.status === 'PAYMENT_REJECTED');
+  const paymentTerms: PaymentTerms | undefined = hackathon && hackathon.payment_stage === 'REGISTRATION' && (hackathon.idea_fee_amount ?? 0) > 0
+    ? { fee: hackathon.idea_fee_amount ?? 0, note: hackathon.idea_payment_note ?? '', qrId: hackathon.payment_qr_id ?? null }
+    : undefined;
   const regOpen = !!hackathon?.is_registration_open;
   const locked = !!hackathon?.team_edits_locked;
   const canJoinOrCreate = regOpen && !locked;
@@ -285,6 +294,7 @@ export default function HackathonDashboardPage() {
                     <>
                       <p className="mx-auto max-w-md text-sm text-journey-muted">
                         Create a team and invite your teammates by email, or accept an invite from a team leader.
+                        {paymentTerms && ` Registering costs ₹${paymentTerms.fee}, paid once by the team leader when the team is created.`}
                       </p>
                       <button
                         onClick={() => setTeamModal('create')}
@@ -306,7 +316,25 @@ export default function HackathonDashboardPage() {
             )}
 
             {/* ---------------- Team ---------------- */}
-            {team && (
+            {team && unpaid && (
+              <TeamPaymentCard
+                hackathon={hackathon}
+                team={team}
+                payment={data.payment ?? null}
+                isLeader={isLeader}
+                busy={!!busyKey}
+                onCancel={async () => {
+                  const ok = await confirm({
+                    title: 'Cancel this registration?',
+                    message: 'Your team is deleted and nothing is placed. You can create it again with the right details. Your payment stays with the organizers: contact them if you need it sorted out.',
+                    confirmLabel: 'Cancel registration',
+                    danger: true,
+                  });
+                  if (ok) run('cancel-payment', () => hackathonApi.cancelPendingTeam(team.id), 'Registration cancelled');
+                }}
+              />
+            )}
+            {team && !unpaid && (
               <section className={`${PANEL} space-y-5`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className={H2}><Users className="h-4 w-4" /> Team members ({team.member_count}/{maxSize})</h2>
@@ -485,7 +513,7 @@ export default function HackathonDashboardPage() {
               </section>
             )}
 
-            {team && (hackathon.features?.ideas || hackathon.features?.submissions) && (team.status !== 'REGISTERED' || team.is_waitlisted) && (
+            {team && !unpaid && (hackathon.features?.ideas || hackathon.features?.submissions) && (team.status !== 'REGISTERED' || team.is_waitlisted) && (
               <section className={`${PANEL} space-y-2`} aria-label="Idea and project submission">
                 <h2 className={H2}><Lock className="h-4 w-4" /> {hackathon.features?.ideas ? 'Idea and project submission' : 'Project submission'}</h2>
                 <p role="status" className="text-sm text-journey-text/80">
@@ -497,10 +525,10 @@ export default function HackathonDashboardPage() {
                 </p>
               </section>
             )}
-            {team && hackathon.features?.ideas && team.status === 'REGISTERED' && !team.is_waitlisted && <IdeaPanel hackathon={hackathon} />}
-            {team && hackathon.features?.submissions && team.status === 'REGISTERED' && !team.is_waitlisted && <SubmissionPanel hackathon={hackathon} />}
+            {team && !unpaid && hackathon.features?.ideas && team.status === 'REGISTERED' && !team.is_waitlisted && <IdeaPanel hackathon={hackathon} />}
+            {team && !unpaid && hackathon.features?.submissions && team.status === 'REGISTERED' && !team.is_waitlisted && <SubmissionPanel hackathon={hackathon} />}
 
-            {team && (
+            {team && !unpaid && (
               <section className={`${PANEL} space-y-4`}>
                 <h2 className={H2}><Flag className="h-4 w-4" /> Rounds</h2>
                 <RoundsTimeline rounds={data.rounds} isLeader={isLeader} />
@@ -511,10 +539,10 @@ export default function HackathonDashboardPage() {
           {/* ---------------- Sidebar ---------------- */}
           <aside className="space-y-6">
             {hackathon.results_published && <ResultsNotice hackathon={hackathon} />}
-            {team && hackathon.features?.check_in && team.status === 'REGISTERED' && !team.is_waitlisted && <CheckInCard slug={slug} />}
-            {team && hackathon.features?.certificates && <CertificateCard hackathon={hackathon} />}
-            {team && isLeader && editable && hackathon.features?.team_finder && <RecruitingCard hackathon={hackathon} team={team} onSaved={() => load()} />}
-            {team && hackathon.features?.team_finder && <TeamFinderCard hackathon={hackathon} hasTeam isLeader={isLeader} />}
+            {team && !unpaid && hackathon.features?.check_in && team.status === 'REGISTERED' && !team.is_waitlisted && <CheckInCard slug={slug} />}
+            {team && !unpaid && hackathon.features?.certificates && <CertificateCard hackathon={hackathon} />}
+            {team && !unpaid && isLeader && editable && hackathon.features?.team_finder && <RecruitingCard hackathon={hackathon} team={team} onSaved={() => load()} />}
+            {team && !unpaid && hackathon.features?.team_finder && <TeamFinderCard hackathon={hackathon} hasTeam isLeader={isLeader} />}
 
             {team && (
               <section className={`${PANEL} space-y-3`}>
@@ -590,7 +618,8 @@ export default function HackathonDashboardPage() {
         initialProblemId={preselectedProblemId}
         problemLocked={problemLocked}
         registration={hackathon}
-        onSaved={() => load()}
+        payment={paymentTerms}
+        onSaved={() => { invalidateMyHackathonStatus(slug); load(); }}
       />
       {inviteToAccept && (
         <AcceptInviteModal
