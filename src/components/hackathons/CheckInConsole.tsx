@@ -2,15 +2,18 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { AlertTriangle, Camera, CameraOff, CheckCircle2, CloudOff, Flashlight, FlashlightOff, Keyboard, Maximize2, RotateCcw, Search, Undo2, X, XCircle } from 'lucide-react';
-import type { CheckInHeldBack as HeldBackPerson, CheckInParticipant, CheckInRoster } from '@/lib/types';
+import { AlertTriangle, Camera, CameraOff, CheckCircle2, CloudOff, Flashlight, FlashlightOff, Keyboard, Maximize2, RotateCcw, Search, Undo2, Users, X, XCircle } from 'lucide-react';
+import type { CheckInHeldBack as HeldBackPerson, CheckInParticipant, CheckInRoster, TeamBatchResult, TeamScanResult } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { dequeueScan, enqueueScan, isNetworkFailure, loadQueue } from '@/lib/checkInQueue';
+import { useCheckInSession } from '@/lib/hooks/useCheckInSession';
 import { playScanFeedback, type ScanTone } from '@/lib/scanFeedback';
 import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
 import { LoadError } from '@/components/admin/hackathon/LoadError';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import { CheckInHeldBack } from './CheckInHeldBack';
+import { CheckInSessionBar } from './CheckInSessionBar';
+import { TeamScanSheet } from './TeamScanSheet';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, PANEL } from '@/components/admin/hackathon/shared';
 
 const SCAN_REGION_ID = 'hackathon-check-in-scanner';
@@ -21,7 +24,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 const RECENT_LIMIT = 5;
 
-type ScanOutcome = { tone: ScanTone | 'queued'; message: string; detail?: string; userId?: number };
+type ScanOutcome = { tone: ScanTone | 'queued'; message: string; detail?: string; userId?: number; batchId?: string };
 
 const TONE_STYLE: Record<ScanOutcome['tone'], string> = {
   success: 'border-emerald-500/50 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
@@ -37,8 +40,10 @@ function describeCameraError(err: unknown): string {
   return 'The camera could not start. Use the list below.';
 }
 
-/** Scan participants' QR codes or tick them off a list. Used by organizers and by check-in volunteers. */
+/** Scan participants' or teams' QR codes, or tick people off a list. Used by organizers and by check-in volunteers. */
 export function CheckInConsole({ slug }: { slug: string }) {
+  const { sessions, session, select: selectSession, refresh: refreshSessions } = useCheckInSession(slug);
+  const sessionId = session?.id;
   const [roster, setRoster] = useState<CheckInRoster | null>(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
@@ -57,6 +62,7 @@ export function CheckInConsole({ slug }: { slug: string }) {
   const [queued, setQueued] = useState(0);
   const [online, setOnline] = useState(true);
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [teamScan, setTeamScan] = useState<{ result: TeamScanResult; token: string } | null>(null);
   const lastScan = useRef<{ code: string; at: number }>({ code: '', at: 0 });
 
   useEffect(() => {
@@ -64,12 +70,15 @@ export function CheckInConsole({ slug }: { slug: string }) {
     return () => window.clearTimeout(timer);
   }, [query]);
 
+  // A team opened for one session means nothing in another.
+  useEffect(() => { setTeamScan(null); }, [sessionId]);
+
   /** Filtering and paging happen on the server, so a big event never downloads its whole roster on every refresh. */
   const load = useCallback(() => {
-    hackathonApi.checkIn.roster(slug, { q: search, missing: onlyMissing, limit: pageSize })
+    hackathonApi.checkIn.roster(slug, { q: search, missing: onlyMissing, limit: pageSize, session: sessionId })
       .then((data) => { setRoster(data); setError(''); })
       .catch((err) => setError(apiErrorMessage(err, 'Could not load the roster.')));
-  }, [slug, search, onlyMissing, pageSize]);
+  }, [slug, search, onlyMissing, pageSize, sessionId]);
 
   useEffect(() => {
     load();
@@ -91,13 +100,17 @@ export function CheckInConsole({ slug }: { slug: string }) {
     try {
       for (const item of loadQueue(slug)) {
         try {
-          const result = await hackathonApi.checkIn.checkIn(slug, { token: item.code, scanned_at: item.scannedAt });
+          const result = await hackathonApi.checkIn.checkIn(slug, { token: item.code, scanned_at: item.scannedAt, session: item.session });
           report({ tone: result.created ? 'success' : 'repeat', message: `${result.name} ${result.created ? 'synced' : 'was already checked in'}`, detail: result.team_name, userId: result.created ? result.user_id : undefined });
         } catch (err) {
           if (isNetworkFailure(err)) break;
-          report({ tone: 'error', message: apiErrorMessage(err, 'A saved scan was refused.') });
+          const code = (err as { body?: { code?: string } })?.body?.code;
+          report({
+            tone: 'error',
+            message: code === 'TEAM_CODE' ? 'A team code was scanned while offline. Scan it again now that you are connected.' : apiErrorMessage(err, 'A saved scan was refused.'),
+          });
         }
-        dequeueScan(slug, item.code);
+        dequeueScan(slug, item.code, item.session);
       }
     } finally {
       flushing.current = false;
@@ -123,19 +136,29 @@ export function CheckInConsole({ slug }: { slug: string }) {
     if (lastScan.current.code === code && now - lastScan.current.at < SAME_CODE_COOLDOWN_MS) return;
     lastScan.current = { code, at: now };
     try {
-      const result = await hackathonApi.checkIn.checkIn(slug, { token: code });
+      const result = await hackathonApi.checkIn.scan(slug, { token: code, session: sessionId });
+      if (result.kind === 'team') {
+        setTeamScan({ result, token: code });
+        report({ tone: 'success', message: `${result.team.name}: pick who is here`, detail: result.all_checked_in ? 'Everyone is already checked in' : `${result.members.filter((m) => !m.checked_in).length} of ${result.members.length} still to check in` });
+        return;
+      }
       if (result.created) report({ tone: 'success', message: `${result.name} checked in`, detail: result.team_name, userId: result.user_id });
       else report({ tone: 'repeat', message: `${result.name} was already checked in`, detail: `${result.team_name} · ${formatDateTime(result.checked_in_at)}${result.checked_in_by ? ` by ${result.checked_in_by}` : ''}` });
+      // A person's own code scanned while their team is open ticks them off there too.
+      setTeamScan((open) => open && ({
+        ...open,
+        result: { ...open.result, members: open.result.members.map((m) => (m.user_id === result.user_id ? { ...m, checked_in: true, checked_in_at: result.checked_in_at, checked_in_by: result.checked_in_by, via: result.via } : m)) },
+      }));
       load();
     } catch (err) {
       if (isNetworkFailure(err)) {
-        setQueued(enqueueScan(slug, code).length);
-        report({ tone: 'queued', message: 'Saved on this phone', detail: 'No connection. It will be sent automatically when you are back online.' });
+        setQueued(enqueueScan(slug, code, sessionId).length);
+        report({ tone: 'queued', message: 'Saved on this phone', detail: 'No connection. It will be sent automatically when you are back online. A team code needs a connection: scan it again then.' });
       } else {
         report({ tone: 'error', message: apiErrorMessage(err, 'That code could not be checked in.') });
       }
     }
-  }, [slug, load, report]);
+  }, [slug, sessionId, load, report]);
 
   const handleCodeRef = useRef(handleCode);
   useEffect(() => { handleCodeRef.current = handleCode; }, [handleCode]);
@@ -173,8 +196,8 @@ export function CheckInConsole({ slug }: { slug: string }) {
   const toggle = async (person: CheckInParticipant) => {
     setPendingId(person.user_id);
     try {
-      if (person.checked_in) await hackathonApi.checkIn.undo(slug, person.user_id);
-      else await hackathonApi.checkIn.checkIn(slug, { user_id: person.user_id });
+      if (person.checked_in) await hackathonApi.checkIn.undo(slug, person.user_id, { session: sessionId });
+      else await hackathonApi.checkIn.checkIn(slug, { user_id: person.user_id, session: sessionId });
       load();
     } catch (err) {
       report({ tone: 'error', message: apiErrorMessage(err) });
@@ -184,14 +207,42 @@ export function CheckInConsole({ slug }: { slug: string }) {
   };
 
   const undoRecent = async (entry: ScanOutcome) => {
-    if (entry.userId === undefined) return;
+    if (entry.userId === undefined && !entry.batchId) return;
     try {
-      await hackathonApi.checkIn.undo(slug, entry.userId);
-      setRecent((list) => list.map((item) => (item === entry ? { ...item, userId: undefined, tone: 'repeat', message: `${entry.message} (undone)` } : item)));
+      if (entry.batchId) await hackathonApi.checkIn.undoBatch(slug, entry.batchId);
+      else await hackathonApi.checkIn.undo(slug, entry.userId as number, { session: sessionId });
+      setRecent((list) => list.map((item) => (item === entry ? { ...item, userId: undefined, batchId: undefined, tone: 'repeat', message: `${entry.message} (undone)` } : item)));
       load();
     } catch (err) {
       report({ tone: 'error', message: apiErrorMessage(err) });
     }
+  };
+
+  const checkInTeam = async ({ userIds, override, reason }: { userIds: number[]; override: boolean; reason: string }): Promise<TeamBatchResult> => {
+    if (!teamScan) throw new Error('Scan the team code again.');
+    const result = await hackathonApi.checkIn.teamBatch(slug, { token: teamScan.token, user_ids: userIds, session: sessionId, override, reason });
+    const teamName = teamScan.result.team.name;
+    report({
+      tone: result.created ? 'success' : 'repeat',
+      message: `${teamName}: ${result.created} checked in`,
+      detail: [result.already && `${result.already} already in`, result.refused && `${result.refused} not checked in`].filter(Boolean).join(' · ') || undefined,
+      batchId: result.batch_id ?? undefined,
+    });
+    // Keep the open team in step so a second look shows who is in now.
+    const done = new Map(result.results.filter((p) => p.status !== 'refused').map((p) => [p.user_id, p.checked_in_at ?? null]));
+    setTeamScan({
+      ...teamScan,
+      result: { ...teamScan.result, members: teamScan.result.members.map((m) => (done.has(m.user_id) ? { ...m, checked_in: true, checked_in_at: m.checked_in_at ?? done.get(m.user_id) ?? null } : m)) },
+    });
+    load();
+    return result;
+  };
+
+  const undoTeam = async (batchId: string) => {
+    await hackathonApi.checkIn.undoBatch(slug, batchId);
+    setRecent((list) => list.map((item) => (item.batchId === batchId ? { ...item, batchId: undefined, tone: 'repeat', message: `${item.message} (undone)` } : item)));
+    setTeamScan(null);
+    load();
   };
 
   const toggleTorch = async () => {
@@ -214,7 +265,7 @@ export function CheckInConsole({ slug }: { slug: string }) {
 
   const letIn = async (person: HeldBackPerson, reason: string) => {
     try {
-      const result = await hackathonApi.checkIn.checkIn(slug, { user_id: person.user_id, override: true, reason });
+      const result = await hackathonApi.checkIn.checkIn(slug, { user_id: person.user_id, override: true, reason, session: sessionId });
       report({ tone: 'success', message: `${result.name} checked in`, detail: `${result.team_name} · let in by an organizer`, userId: result.user_id });
       load();
     } catch (err) {
@@ -223,17 +274,19 @@ export function CheckInConsole({ slug }: { slug: string }) {
   };
 
   const visible = roster?.participants ?? [];
+  const sessionName = sessions.length > 1 ? session?.name : undefined;
 
   const percent = roster && roster.total ? Math.round((roster.checked_in / roster.total) * 100) : 0;
 
   return (
     <div className="space-y-6">
       {/* While offline the banner below already explains why the list is stale, so a red fetch error would only alarm. */}
-      {error && online && <LoadError message={error} onRetry={load} />}
+      {error && online && <LoadError message={error} onRetry={() => { load(); refreshSessions(); }} />}
 
       {bigScreen && (
         <div role="dialog" aria-modal="true" aria-label="Check-in progress" className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-[var(--background)] p-6 text-center">
           <button type="button" onClick={() => setBigScreen(false)} className={`${BTN_GHOST} absolute right-4 top-4`}><X className="h-4 w-4" /> Close</button>
+          {sessionName && <p className="text-2xl font-bold text-journey-accent">{sessionName}</p>}
           <p className="text-[clamp(4rem,18vw,12rem)] font-extrabold leading-none tabular-nums text-journey-text">{roster?.checked_in ?? 0}<span className="text-journey-muted"> / {roster?.total ?? 0}</span></p>
           <p className="text-xl font-semibold text-journey-muted">participants checked in ({percent}%)</p>
           <div className="h-4 w-full max-w-3xl overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"><div className="h-full bg-[#FF7A00] transition-all" style={{ width: `${percent}%` }} /></div>
@@ -241,17 +294,18 @@ export function CheckInConsole({ slug }: { slug: string }) {
       )}
 
       <section className={`${PANEL} space-y-3`}>
+        <CheckInSessionBar sessions={sessions} session={session} onSelect={selectSession} />
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <p className="text-3xl font-extrabold tabular-nums text-[#1A1A2E] dark:text-white">{roster?.checked_in ?? 0}<span className="text-lg text-slate-500 dark:text-slate-400"> / {roster?.total ?? 0}</span></p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">participants checked in ({percent}%)</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">participants checked in ({percent}%){sessionName ? ` to ${sessionName}` : ''}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setCameraOn((on) => !on)} className={cameraOn ? BTN_GHOST : BTN_PRIMARY}>
               {cameraOn ? <><CameraOff className="h-3.5 w-3.5" /> Stop camera</> : <><Camera className="h-3.5 w-3.5" /> Scan QR codes</>}
             </button>
             <button type="button" onClick={load} className={BTN_GHOST}><RotateCcw className="h-3.5 w-3.5" /> Refresh</button>
-            <ExportMenu subject="check-in list" disabled={!roster?.total} onExport={(format) => hackathonApi.exportFile(slug, 'check-in', format)} triggerClassName={BTN_GHOST} />
+            <ExportMenu subject="check-in list" disabled={!roster?.total} onExport={(format) => hackathonApi.exportFile(slug, 'check-in', format, sessions.length > 1 && sessionId ? { session: sessionId } : {})} triggerClassName={BTN_GHOST} />
             <button type="button" onClick={() => setBigScreen(true)} className={BTN_GHOST}><Maximize2 className="h-3.5 w-3.5" /> Big screen</button>
           </div>
         </div>
@@ -277,7 +331,7 @@ export function CheckInConsole({ slug }: { slug: string }) {
         {(!online || queued > 0) && (
           <p role="status" className="flex items-center gap-2 rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-800 dark:text-sky-200">
             <CloudOff className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {!online ? 'You are offline. Scans are saved on this phone and sent when you reconnect.' : 'Sending saved scans…'}
+            {!online ? 'You are offline. Scans are saved on this phone and sent when you reconnect. Team codes need a connection.' : 'Sending saved scans…'}
             {queued > 0 && <span className="ml-auto tabular-nums">{queued} waiting</span>}
           </p>
         )}
@@ -289,12 +343,15 @@ export function CheckInConsole({ slug }: { slug: string }) {
             </div>
           )}
         </div>
+        {teamScan && (
+          <TeamScanSheet scan={teamScan.result} onClose={() => setTeamScan(null)} onSubmit={checkInTeam} onUndo={undoTeam} />
+        )}
         {recent.length > 1 && (
           <ul aria-label="Recent scans" className="divide-y divide-slate-100 text-xs dark:divide-slate-800">
             {recent.slice(1).map((entry, index) => (
               <li key={`${index}-${entry.message}`} className="flex items-center justify-between gap-2 py-1.5 text-slate-600 dark:text-slate-300">
-                <span className="min-w-0 truncate"><strong>{entry.message}</strong>{entry.detail && <span className="opacity-70"> · {entry.detail}</span>}</span>
-                {entry.userId !== undefined && (
+                <span className="min-w-0 truncate">{entry.batchId && <Users className="mr-1 inline h-3 w-3" aria-hidden="true" />}<strong>{entry.message}</strong>{entry.detail && <span className="opacity-70"> · {entry.detail}</span>}</span>
+                {(entry.userId !== undefined || entry.batchId) && (
                   <button type="button" onClick={() => void undoRecent(entry)} className="inline-flex min-h-11 shrink-0 items-center gap-1 font-bold text-journey-accent sm:min-h-0"><Undo2 className="h-3.5 w-3.5" /> Undo</button>
                 )}
               </li>

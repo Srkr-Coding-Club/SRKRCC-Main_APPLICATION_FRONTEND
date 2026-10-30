@@ -13,6 +13,7 @@ import {
   EMPTY_REGISTRATION, RegistrationDetailsFields, needsRegistrationDetails, registrationErrors, toRegistrationInput,
   type RegistrationConfig, type RegistrationValue,
 } from './RegistrationDetailsFields';
+import { EMPTY_PAYMENT, TeamPaymentStep, type PaymentEntry, type PaymentTerms } from './TeamPaymentStep';
 
 type ProblemMode = 'statement' | 'open' | 'none';
 
@@ -34,19 +35,23 @@ interface TeamFormModalProps {
   problemLocked?: boolean;
   /** The organizers' rules and extra questions, asked when a team is created. */
   registration?: RegistrationConfig;
+  /** Present when the fee is paid with the registration: the team is created together with its payment. */
+  payment?: PaymentTerms;
   onSaved: (team: HackathonTeam) => void;
 }
 
 type FieldErrors = Partial<Record<
-  'name' | 'problem_statement' | 'open_innovation' | 'custom_problem_title' | 'custom_problem_description' | 'custom_problem_domain' | 'form',
+  'name' | 'problem_statement' | 'open_innovation' | 'custom_problem_title' | 'custom_problem_description' | 'custom_problem_domain' | 'transaction_id' | 'payment_file_id' | 'form',
   string
 >>;
 
-const STEP_LABELS = ['Team', 'Details'] as const;
+type StepKey = 'team' | 'details' | 'payment';
+const STEP_LABEL: Record<StepKey, string> = { team: 'Team', details: 'Details', payment: 'Payment' };
 const FORM_ID = 'team-form';
 
 const FIELD_KEYS: (keyof FieldErrors)[] = [
   'name', 'problem_statement', 'open_innovation', 'custom_problem_title', 'custom_problem_description', 'custom_problem_domain',
+  'transaction_id', 'payment_file_id',
 ];
 
 function ModeButton({ active, icon: Icon, children, onClick }: { active: boolean; icon: React.ElementType; children: React.ReactNode; onClick: () => void }) {
@@ -67,7 +72,7 @@ function ModeButton({ active, icon: Icon, children, onClick }: { active: boolean
   );
 }
 
-export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowOpenInnovation, team, initialProblemId, problemLocked = false, registration, onSaved }: TeamFormModalProps) {
+export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowOpenInnovation, team, initialProblemId, problemLocked = false, registration, payment, onSaved }: TeamFormModalProps) {
   const { toast } = useToast();
   const editing = Boolean(team);
   const lockedProblem = editing && problemLocked;
@@ -83,6 +88,9 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [entry, setEntry] = useState<PaymentEntry>(EMPTY_PAYMENT);
+  const [proofBusy, setProofBusy] = useState(false);
+  const [proofProblem, setProofProblem] = useState<string | null>(null);
 
   const active = useMemo(() => problemStatements.filter((p) => p.is_active), [problemStatements]);
   const domains = useMemo(() => [...new Set(active.map((p) => p.domain).filter(Boolean))], [active]);
@@ -101,6 +109,8 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
     setStep(1);
     setDetails(EMPTY_REGISTRATION);
     setDetailErrors({});
+    setEntry(EMPTY_PAYMENT);
+    setProofProblem(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, team, hasStatements, initialProblemId]);
 
@@ -121,7 +131,14 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
   }
 
   // Teams whose organizers ask for rules or extra answers fill those in on a second step, so a phone never shows one long form.
-  const totalSteps = !editing && registration && needsRegistrationDetails(registration) ? 2 : 1;
+  const stepKeys: StepKey[] = [
+    'team',
+    ...(!editing && registration && needsRegistrationDetails(registration) ? ['details' as const] : []),
+    ...(!editing && payment ? ['payment' as const] : []),
+  ];
+  const totalSteps = stepKeys.length;
+  const stepKey: StepKey = stepKeys[step - 1] ?? 'team';
+  const goTo = (key: StepKey) => setStep(stepKeys.indexOf(key) + 1);
 
   const validate = (): FieldErrors => {
     const next: FieldErrors = {};
@@ -154,32 +171,57 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
   };
 
   const goNext = () => {
-    const next = validate();
-    setErrors(next);
-    if (!Object.keys(next).length) setStep(2);
+    if (stepKey === 'team') {
+      const next = validate();
+      setErrors(next);
+      if (Object.keys(next).length) return;
+    }
+    if (stepKey === 'details' && registration) {
+      const missing = registrationErrors(registration, details);
+      setDetailErrors(missing);
+      if (Object.keys(missing).length) return;
+    }
+    setStep(step + 1);
+  };
+
+  const paymentErrors = (): FieldErrors => {
+    const missing: FieldErrors = {};
+    if (editing || !payment) return missing;
+    if (!entry.proof) missing.payment_file_id = proofProblem ?? 'Upload the screenshot of your payment.';
+    if (!entry.reference.trim()) missing.transaction_id = 'Enter the transaction ID of your payment.';
+    return missing;
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step === 1 && totalSteps === 2) {
+    if (proofBusy) return;
+    if (step < totalSteps) {
       goNext();
       return;
     }
     const next = validate();
-    setErrors(next);
     const missingDetails = !editing && registration ? registrationErrors(registration, details) : {};
+    const missingPayment = paymentErrors();
+    setErrors({ ...next, ...missingPayment });
     setDetailErrors(missingDetails);
     if (Object.keys(next).length) {
-      setStep(1);
+      goTo('team');
       return;
     }
-    if (Object.keys(missingDetails).length) return;
+    if (Object.keys(missingDetails).length) {
+      goTo('details');
+      return;
+    }
+    if (Object.keys(missingPayment).length) return;
 
     setBusy(true);
     try {
       const body = { name: name.trim(), ...problemBody() };
-      const saved = editing ? await hackathonApi.updateTeam(team!.id, body) : await hackathonApi.createTeam(slug, { ...body, ...toRegistrationInput(details) });
-      toast.success(editing ? 'Team updated' : 'Team created', editing ? undefined : 'Now invite your teammates by email.');
+      const paid = !editing && payment && entry.proof ? { transaction_id: entry.reference.trim(), payment_file_id: entry.proof.upload_id } : {};
+      const saved = editing ? await hackathonApi.updateTeam(team!.id, body) : await hackathonApi.createTeam(slug, { ...body, ...toRegistrationInput(details), ...paid });
+      if (editing) toast.success('Team updated');
+      else if (payment) toast.success('Payment received', 'Your team is registered once the organizers verify it.');
+      else toast.success('Team created', 'Now invite your teammates by email.');
       onSaved(saved);
       onClose();
     } catch (err: any) {
@@ -188,10 +230,14 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
       const detailField = field === 'accept_rules' || (registration?.registration_questions ?? []).some((question) => question.key === field);
       if (detailField && field) {
         setDetailErrors({ [field]: message });
-        setStep(2);
+        goTo('details');
+      } else if (field === 'transaction_id' || field === 'payment_file_id') {
+        setErrors({ [field]: message });
+        if (err?.body?.code === 'FILE_NOT_FOUND') setEntry((current) => ({ ...current, proof: null }));
+        goTo('payment');
       } else {
         setErrors(field && FIELD_KEYS.includes(field as keyof FieldErrors) ? { [field]: message } : { form: message });
-        if (field && FIELD_KEYS.includes(field as keyof FieldErrors)) setStep(1);
+        if (field && FIELD_KEYS.includes(field as keyof FieldErrors)) goTo('team');
       }
     } finally {
       setBusy(false);
@@ -200,23 +246,23 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
 
   const showModeSwitch = allowOpenInnovation && (hasStatements || !editing || mode === 'open');
 
-  const choosingStatement = step === 1 && mode === 'statement' && hasStatements && !lockedProblem;
+  const choosingStatement = stepKey === 'team' && mode === 'statement' && hasStatements && !lockedProblem;
   const lastStep = step === totalSteps;
 
   const footer = (
     <div className="flex justify-end gap-2">
-      {step === 2 ? (
-        <button type="button" onClick={() => setStep(1)} disabled={busy} className="min-h-11 rounded-lg px-4 py-2 text-sm font-bold text-journey-muted hover:text-journey-text sm:min-h-0">Back</button>
+      {step > 1 ? (
+        <button type="button" onClick={() => setStep(step - 1)} disabled={busy} className="min-h-11 rounded-lg px-4 py-2 text-sm font-bold text-journey-muted hover:text-journey-text sm:min-h-0">Back</button>
       ) : (
         <button type="button" onClick={onClose} disabled={busy} className="min-h-11 rounded-lg px-4 py-2 text-sm font-bold text-journey-muted hover:text-journey-text sm:min-h-0">Cancel</button>
       )}
       <button
         type="submit"
         form={FORM_ID}
-        disabled={busy}
+        disabled={busy || proofBusy}
         className="min-h-11 rounded-lg bg-journey-accent px-5 py-2 text-sm font-bold text-journey-on-accent shadow-sm transition hover:opacity-90 active:scale-95 disabled:opacity-60 sm:min-h-0"
       >
-        {busy ? 'Saving…' : !lastStep ? 'Next' : editing ? 'Save changes' : 'Create team'}
+        {busy ? 'Saving…' : proofBusy ? 'Uploading…' : !lastStep ? 'Next' : editing ? 'Save changes' : payment ? 'Pay and create team' : 'Create team'}
       </button>
     </div>
   );
@@ -232,19 +278,19 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
       footer={footer}
     >
       <form id={FORM_ID} onSubmit={submit} className="space-y-4" noValidate>
-        {totalSteps === 2 && (
+        {totalSteps > 1 && (
           <ol className="flex items-center gap-2 text-xs font-bold" aria-label="Progress">
-            {STEP_LABELS.map((label, index) => (
-              <li key={label} aria-current={step === index + 1 ? 'step' : undefined} className={`flex items-center gap-2 ${step === index + 1 ? 'text-journey-accent' : 'text-journey-muted'}`}>
+            {stepKeys.map((key, index) => (
+              <li key={key} aria-current={step === index + 1 ? 'step' : undefined} className={`flex items-center gap-2 ${step === index + 1 ? 'text-journey-accent' : 'text-journey-muted'}`}>
                 <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] ${step === index + 1 ? 'border-journey-accent bg-journey-accent/10' : 'border-journey-text/20'}`}>{index + 1}</span>
-                {label}
-                {index === 0 && <span className="h-px w-6 bg-journey-text/20" aria-hidden="true" />}
+                {STEP_LABEL[key]}
+                {index < totalSteps - 1 && <span className="h-px w-6 bg-journey-text/20" aria-hidden="true" />}
               </li>
             ))}
           </ol>
         )}
 
-        {step === 1 && (<>
+        {stepKey === 'team' && (<>
           <div className="space-y-1.5">
             <FieldLabel htmlFor="team-name" required>Team name</FieldLabel>
             <SpotlightInput
@@ -343,8 +389,20 @@ export function TeamFormModal({ isOpen, onClose, slug, problemStatements, allowO
           )}
         </>)}
 
-        {step === 2 && !editing && registration && (
+        {stepKey === 'details' && !editing && registration && (
           <RegistrationDetailsFields config={registration} value={details} onChange={setDetails} errors={detailErrors} />
+        )}
+
+        {stepKey === 'payment' && !editing && payment && (
+          <TeamPaymentStep
+            slug={slug}
+            terms={payment}
+            value={entry}
+            onChange={setEntry}
+            errors={{ transaction_id: errors.transaction_id, payment_file_id: errors.payment_file_id }}
+            onBusyChange={setProofBusy}
+            onProblem={setProofProblem}
+          />
         )}
 
         {step === totalSteps && !editing && (

@@ -264,6 +264,125 @@ def clear_cache(args):
     emit({'ok': True})
 
 
+def make_payment_hackathon(args):
+    """A live hackathon where the fee is paid when the team is created (or at another stage), with the club's contacts."""
+    from apps.hackathons.models import Hackathon
+    now = timezone.now()
+    hack, _ = Hackathon.objects.get_or_create(slug=args.slug, defaults=dict(
+        title=args.title, theme='Pay to play', description='d', start_date=now + timedelta(days=20), end_date=now + timedelta(days=21),
+        status='LIVE', min_team_size=args.min_team_size, max_team_size=3, features={'ideas': True}, mode='HYBRID', venue='SRKR Engineering College',
+        max_teams=args.max_teams or None, waitlist_enabled=args.waitlist, payment_stage=args.stage, idea_fee_amount=0 if args.stage == 'NONE' else args.fee,
+        idea_payment_note='Pay to UPI: club@upi and keep the screenshot.', idea_deadline=now + timedelta(days=10),
+        contacts=[{'name': 'Ravi Kumar', 'role': 'Club lead', 'email': 'ravi@club.org', 'phone': '+91 90000 11111'}],
+    ))
+    emit({'id': hack.pk})
+
+
+def fill_seats(args):
+    """Give a hackathon n registered teams, so a seat limit can be reached."""
+    from apps.hackathons.models import Hackathon, Team, TeamMember
+    hack = Hackathon.objects.get(slug=args.slug)
+    for number in range(args.count):
+        leader = User.objects.create_user(username=f'filler{number}-{User.objects.count()}', email=f'filler{number}.{User.objects.count()}@example.org', password='x', branch='CSE', year=2)
+        team = Team.objects.create(hackathon=hack, name=f'Seat holder {number + 1}', leader=leader, status='REGISTERED')
+        TeamMember.objects.create(team=team, hackathon=hack, user=leader, role='LEADER')
+    emit({'made': args.count})
+
+
+def payments_state(args):
+    """Every payment of a hackathon as the database holds it, and how many seats are taken."""
+    from apps.hackathons.models import Hackathon
+    from apps.hackathons import registration
+    hack = Hackathon.objects.get(slug=args.slug)
+    rows = []
+    for payment in hack.team_payments.select_related('team', 'reviewed_by').order_by('id'):
+        rows.append({
+            'team': payment.team_name, 'team_exists': payment.team_id is not None, 'team_status': payment.team.status if payment.team_id else None,
+            'waitlisted': payment.team.is_waitlisted if payment.team_id else None, 'status': payment.status, 'reason': payment.reason, 'amount': payment.amount,
+            'txn': payment.transaction_id, 'leader_email': payment.leader_email, 'reviewed_by': payment.reviewed_by.email if payment.reviewed_by_id else None,
+            'screenshot': payment.screenshot.state if payment.screenshot_id else None, 'reminded': payment.organizer_reminded_at is not None,
+        })
+    emit({'payments': rows, 'placed_teams': registration.placed_teams(hack).count(), 'teams': hack.teams.count()})
+
+
+def team_status(args):
+    from apps.hackathons.models import Team
+    team = Team.objects.filter(hackathon__slug=args.slug, name=args.name).first()
+    emit({'exists': team is not None, 'status': team.status if team else None, 'waitlisted': team.is_waitlisted if team else None,
+          'members': team.memberships.count() if team else 0})
+
+
+def notifications(args):
+    from apps.notifications.models import Notification
+    rows = Notification.objects.filter(recipient__email__iexact=args.email).order_by('id')
+    emit([{'title': n.title, 'message': n.message} for n in rows])
+
+
+def age_payments(args):
+    from apps.hackathons.models import TeamPayment
+    TeamPayment.objects.filter(hackathon__slug=args.slug).update(created_at=timezone.now() - timedelta(hours=args.hours))
+    emit({'ok': True})
+
+
+def run_reminders(args):
+    from apps.hackathons import payments
+    emit({'mentioned': payments.remind_organizers()})
+
+
+def staff_user(args):
+    """Give someone the teams permission on a hackathon (an organizer who reviews payments)."""
+    from apps.hackathons.models import Hackathon, HackathonStaff
+    HackathonStaff.objects.get_or_create(
+        hackathon=Hackathon.objects.get(slug=args.slug), user=User.objects.get(email__iexact=args.email),
+        defaults=dict(role='ORGANIZER', permissions=['teams', 'settings']),
+    )
+    emit({'ok': True})
+
+
+def celebrations_of(args):
+    from apps.celebrations.models import Celebration
+    rows = Celebration.objects.filter(user__email__iexact=args.email).order_by('id')
+    emit([{'kind': c.kind, 'size': c.size, 'title': c.title, 'seen': c.seen_at is not None, 'key': c.key} for c in rows])
+
+
+def award_celebration(args):
+    """Raise a celebration by hand, to line several up at once."""
+    from apps.celebrations import services
+    context = dict(pair.split('=', 1) for pair in args.context)
+    made = services.award(User.objects.get(email__iexact=args.email), args.kind, args.key, link_url=args.link or '', **context)
+    emit({'made': made is not None})
+
+
+def expire_celebrations(args):
+    from apps.celebrations.models import Celebration
+    Celebration.objects.filter(user__email__iexact=args.email).update(expires_at=timezone.now() - timedelta(days=1))
+    emit({'ok': True})
+
+
+def shortlist(args):
+    """A round with the given teams shortlisted and others not, published, as an organizer would."""
+    from apps.hackathons.models import EntryStatus, Hackathon, Round, RoundEntry, Team
+    from apps.hackathons.services import RoundService
+    hack = Hackathon.objects.get(slug=args.slug)
+    admin = User.objects.filter(role='ADMIN').first()
+    round_obj, _ = Round.objects.get_or_create(hackathon=hack, order=1, defaults=dict(name='Round 1', kind='GENERAL'))
+    for name, status in [(n, EntryStatus.SHORTLISTED) for n in args.team] + [(n, EntryStatus.REJECTED) for n in args.reject]:
+        team = Team.objects.get(hackathon=hack, name=name)
+        RoundEntry.objects.update_or_create(round=round_obj, team=team, defaults={'status': status})
+    if not round_obj.results_published:
+        RoundService.publish_results(round_obj, admin)
+    emit({'round': round_obj.pk})
+
+
+def make_winner(args):
+    from apps.hackathons.models import Hackathon, HackathonWinner, Team
+    from apps.hackathons.judging import ResultsService
+    hack = Hackathon.objects.get(slug=args.slug)
+    HackathonWinner.objects.get_or_create(hackathon=hack, team=Team.objects.get(hackathon=hack, name=args.team), title=args.title, defaults={'rank': 1})
+    ResultsService.publish(hack, User.objects.filter(role='ADMIN').first())
+    emit({'ok': True})
+
+
 parser = argparse.ArgumentParser()
 sub = parser.add_subparsers(dest='command', required=True)
 p = sub.add_parser('create_user'); p.set_defaults(fn=create_user)
@@ -287,7 +406,22 @@ p = sub.add_parser('make_finder_hackathon'); p.set_defaults(fn=make_finder_hacka
 p = sub.add_parser('make_listing_hackathon'); p.set_defaults(fn=make_listing_hackathon); p.add_argument('slug'); p.add_argument('--description', required=True)
 p.add_argument('--title', default='Card Check'); p.add_argument('--theme', default='Futuristic'); p.add_argument('--prize', default='₹60,000')
 p = sub.add_parser('team_state'); p.set_defaults(fn=team_state); p.add_argument('slug')
-for name, fn in (('mailbox', mailbox), ('clear_mailbox', clear_mailbox), ('clear_cache', clear_cache)):
+p = sub.add_parser('make_payment_hackathon'); p.set_defaults(fn=make_payment_hackathon); p.add_argument('slug')
+p.add_argument('--title', default='Pay To Play'); p.add_argument('--stage', default='REGISTRATION'); p.add_argument('--fee', type=int, default=200)
+p.add_argument('--max-teams', type=int, default=0); p.add_argument('--waitlist', action='store_true'); p.add_argument('--min-team-size', type=int, default=1)
+p = sub.add_parser('fill_seats'); p.set_defaults(fn=fill_seats); p.add_argument('slug'); p.add_argument('--count', type=int, required=True)
+p = sub.add_parser('payments_state'); p.set_defaults(fn=payments_state); p.add_argument('slug')
+p = sub.add_parser('team_status'); p.set_defaults(fn=team_status); p.add_argument('slug'); p.add_argument('name')
+p = sub.add_parser('notifications'); p.set_defaults(fn=notifications); p.add_argument('email')
+p = sub.add_parser('age_payments'); p.set_defaults(fn=age_payments); p.add_argument('slug'); p.add_argument('--hours', type=float, required=True)
+p = sub.add_parser('staff_user'); p.set_defaults(fn=staff_user); p.add_argument('slug'); p.add_argument('email')
+p = sub.add_parser('celebrations_of'); p.set_defaults(fn=celebrations_of); p.add_argument('email')
+p = sub.add_parser('award_celebration'); p.set_defaults(fn=award_celebration); p.add_argument('email'); p.add_argument('kind'); p.add_argument('key')
+p.add_argument('--link', default=''); p.add_argument('--context', nargs='*', default=[])
+p = sub.add_parser('expire_celebrations'); p.set_defaults(fn=expire_celebrations); p.add_argument('email')
+p = sub.add_parser('shortlist'); p.set_defaults(fn=shortlist); p.add_argument('slug'); p.add_argument('--team', nargs='*', default=[]); p.add_argument('--reject', nargs='*', default=[])
+p = sub.add_parser('make_winner'); p.set_defaults(fn=make_winner); p.add_argument('slug'); p.add_argument('team'); p.add_argument('--title', default='Winner')
+for name, fn in (('mailbox', mailbox), ('clear_mailbox', clear_mailbox), ('clear_cache', clear_cache), ('run_reminders', run_reminders)):
     sub.add_parser(name).set_defaults(fn=fn)
 
 arguments = parser.parse_args()

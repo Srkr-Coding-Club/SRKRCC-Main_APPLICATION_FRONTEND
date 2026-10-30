@@ -14,10 +14,7 @@ import { LoadError } from './LoadError';
 import { SubmissionPhases } from './SubmissionPhases';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInput } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
-import FileUploadField from '@/components/forms/FileUploadField';
-import { PaymentQr } from '@/components/hackathons/PaymentQr';
 import { IdeaFileActions } from '@/components/hackathons/IdeaFileActions';
-import { IDEA_FILE_RULES, uploadIdeaQr } from '@/lib/ideaUpload';
 
 const STATUS_PILL: Record<IdeaStatus, { tone: PillTone; label: string }> = {
   SUBMITTED: { tone: 'amber', label: 'Waiting for review' },
@@ -45,14 +42,10 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
   const [deadline, setDeadline] = useState(toLocalInput(hackathon.idea_deadline));
   const [reviewRequired, setReviewRequired] = useState(hackathon.idea_review_required ?? true);
   const [gate, setGate] = useState(Boolean(hackathon.project_requires_approved_idea));
-  const [fee, setFee] = useState(String(hackathon.idea_fee_amount ?? 0));
-  const [paymentNote, setPaymentNote] = useState(hackathon.idea_payment_note ?? '');
   const [deckRequired, setDeckRequired] = useState(Boolean(hackathon.idea_deck_required));
   const [linkedinRequired, setLinkedinRequired] = useState(Boolean(hackathon.idea_linkedin_required));
   const [editsEnabled, setEditsEnabled] = useState(hackathon.idea_edits_enabled ?? true);
   const [editsUntil, setEditsUntil] = useState(toLocalInput(hackathon.idea_edits_until));
-  // The payment QR code is saved the moment it is uploaded (not with the Save button), so it has its own state.
-  const [qr, setQr] = useState<{ id: string; name: string } | null>(null);
   const [data, setData] = useState<AdminIdeasPayload | null>(null);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<IdeaStatus | ''>('');
@@ -63,22 +56,12 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
 
   const load = useCallback(() => {
     setError('');
-    hackathonApi.admin.ideas(slug).then((payload) => { setData(payload); setQr(payload.config.payment_qr); }).catch((err) => setError(apiErrorMessage(err, 'Could not load ideas.')));
+    hackathonApi.admin.ideas(slug).then((payload) => { setData(payload); }).catch((err) => setError(apiErrorMessage(err, 'Could not load ideas.')));
   }, [slug]);
 
   useEffect(() => {
     if (enabled) load();
   }, [enabled, load]);
-
-  const uploadQr = useMemo(() => async (file: File, progress: (f: number) => void, signal: AbortSignal) => {
-    const saved = await uploadIdeaQr(slug, file, progress, signal);
-    setQr({ id: saved.upload_id, name: saved.name });
-    return saved;
-  }, [slug]);
-  const removeQr = useCallback(async () => {
-    await hackathonApi.ideaQrRemove(slug);
-    setQr(null);
-  }, [slug]);
 
   const rows = useMemo(() => (data?.rows ?? []).filter((row) => !filter || row.status === filter), [data, filter]);
 
@@ -89,7 +72,6 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
     await save({
       idea_opens_at: fromLocalInput(opensAt), idea_deadline: fromLocalInput(deadline),
       idea_review_required: reviewRequired, project_requires_approved_idea: gate,
-      idea_fee_amount: Math.max(0, Math.floor(Number(fee) || 0)), idea_payment_note: paymentNote,
       idea_deck_required: deckRequired, idea_linkedin_required: linkedinRequired,
       idea_edits_enabled: editsEnabled, idea_edits_until: editsEnabled ? fromLocalInput(editsUntil) : null,
     }, 'Idea phase saved');
@@ -145,44 +127,14 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
           <Switch label="Presentation file required" description="The team uploads a .ppt, .pptx or .pdf with its idea." checked={deckRequired} onChange={setDeckRequired} />
           {errors.idea_deck_required && <p className="text-[11px] text-rose-600 dark:text-rose-400">{errors.idea_deck_required}</p>}
           <Switch label="LinkedIn post link required" description="The link of the team's LinkedIn post about the hackathon." checked={linkedinRequired} onChange={setLinkedinRequired} />
-          <div className="space-y-2">
-            <p className={LABEL}>Payment QR code</p>
-            <div className="flex flex-wrap items-start gap-4">
-              {qr && <PaymentQr slug={slug} version={qr.id} size={160} />}
-              <div className="min-w-[14rem] flex-1 space-y-2">
-                <FileUploadField
-                  inputId="idea-qr-file"
-                  uploadWith={uploadQr}
-                  discardWith={removeQr}
-                  multiple={false}
-                  rules={IDEA_FILE_RULES.PAYMENT}
-                  defaultMb={IDEA_FILE_RULES.PAYMENT.maxFileSizeMB}
-                  value={null}
-                  onChange={() => undefined}
-                  onBusyChange={() => undefined}
-                  onProblem={(message) => message && toast.error('QR code', message)}
-                />
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Teams see this image on the idea form and scan it to pay. It is saved as soon as it uploads. Only registered teams and organizers can see it.</p>
-                {qr && (
-                  <button type="button" onClick={() => removeQr().then(() => toast.success('QR code removed')).catch((err) => toast.error('Could not remove it', apiErrorMessage(err)))} className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline">
-                    Remove the QR code
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="idea-fee" className={LABEL}>Payment (₹)</label>
-              <input id="idea-fee" type="number" inputMode="numeric" min={0} step={1} value={fee} onChange={(e) => setFee(e.target.value)} className={INPUT} />
-              {errors.idea_fee_amount ? <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.idea_fee_amount}</p> : <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">0 = no payment. Above 0, teams must upload a payment screenshot, which only organizers can see.</p>}
-            </div>
-            <div>
-              <label htmlFor="idea-payment-note" className={LABEL}>How to pay</label>
-              <textarea id="idea-payment-note" rows={3} maxLength={1000} value={paymentNote} onChange={(e) => setPaymentNote(e.target.value)} className={INPUT} placeholder="UPI ID, QR instructions, account name…" />
-              {errors.idea_payment_note && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.idea_payment_note}</p>}
-            </div>
-          </div>
+          <p className="rounded-lg bg-slate-500/10 px-3 py-2 text-xs text-slate-600 dark:text-slate-300">
+            {hackathon.payment_stage === 'IDEA' && (hackathon.idea_fee_amount ?? 0) > 0
+              ? `Teams pay ₹${hackathon.idea_fee_amount} with their idea and attach a payment screenshot. `
+              : hackathon.payment_stage === 'REGISTRATION'
+                ? 'The fee is paid when the team is created, so the idea form asks for no payment. '
+                : 'No payment is asked with the idea. '}
+            The fee, QR code and payment note are set in the Payments tab.
+          </p>
         </div>
         <div className="space-y-4 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
           <Switch

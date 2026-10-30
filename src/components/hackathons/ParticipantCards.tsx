@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { QRCodeSVG } from 'qrcode.react';
-import { Award, CalendarPlus, CheckCircle2, ClipboardList, QrCode, Search, Share2, Trophy } from 'lucide-react';
-import type { Hackathon, HackathonTeam, MyCheckIn, MyTeamPayload } from '@/lib/types';
+import { Award, CalendarPlus, ClipboardList, Search, Share2, Trophy } from 'lucide-react';
+import type { Hackathon, HackathonTeam, MyTeamPayload } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { downloadHackathonCalendar } from '@/lib/calendar';
 import { useToast } from '@/context/ToastContext';
@@ -12,7 +11,6 @@ import { Switch } from '@/components/ui/Switch';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { SpotlightInput } from '@/components/ui/InputField';
 import { BTN_ACCENT, BTN_QUIET, H2, PANEL } from './dashboardStyles';
-import { formatDateTime } from './HackathonAnnouncementsFeed';
 import {
   RegistrationDetailsFields, registrationErrors, toRegistrationInput, type RegistrationValue,
 } from './RegistrationDetailsFields';
@@ -56,45 +54,7 @@ export function MyRegistrationCard({ hackathon, registration, onSaved }: { hacka
   );
 }
 
-/** Your personal QR code for the organizers to scan at the venue. */
-export function CheckInCard({ slug }: { slug: string }) {
-  const [state, setState] = useState<MyCheckIn | null>(null);
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    hackathonApi.myCheckIn(slug).then(setState).catch((err) => setMessage(apiErrorMessage(err)));
-    const refresh = window.setInterval(() => hackathonApi.myCheckIn(slug).then(setState).catch(() => undefined), 20000);
-    return () => window.clearInterval(refresh);
-  }, [slug]);
-
-  return (
-    <section className={`${PANEL} space-y-3 text-center`}>
-      <h2 className={`${H2} justify-center`}><QrCode className="h-4 w-4" /> Event check-in</h2>
-      {state ? (
-        state.checked_in ? (
-          <div className="space-y-1 py-4">
-            <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" aria-hidden="true" />
-            <p className="font-bold text-journey-text">You are checked in</p>
-            <p className="text-xs text-journey-muted">{formatDateTime(state.checked_in_at)}</p>
-          </div>
-        ) : state.window !== 'OPEN' ? (
-          <p className="py-4 text-sm text-journey-muted">
-            {state.window === 'NOT_OPEN'
-              ? `Check-in opens ${formatDateTime(state.opens_at)}. Your QR code will appear here.`
-              : 'Check-in has closed. Please ask a volunteer at the desk for help.'}
-          </p>
-        ) : (
-          <>
-            <div className="mx-auto w-fit rounded-xl bg-white p-3"><QRCodeSVG value={state.token} size={192} level="M" role="img" title="Your check-in QR code" aria-label="Your check-in QR code. Show it at the desk." /></div>
-            <p className="text-xs text-journey-muted">Show this code at the entrance. It is personal, so do not share it.</p>
-          </>
-        )
-      ) : (
-        <p className="text-sm text-journey-muted">{message || 'Loading…'}</p>
-      )}
-    </section>
-  );
-}
+export { CheckInCard } from './CheckInCard';
 
 /** A link to the printable certificate once the organizers release it. */
 export function CertificateCard({ hackathon }: { hackathon: Hackathon }) {

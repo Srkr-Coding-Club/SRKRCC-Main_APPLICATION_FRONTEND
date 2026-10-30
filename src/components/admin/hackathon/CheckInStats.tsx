@@ -2,8 +2,9 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
-import type { CheckInStats as Stats } from '@/lib/types';
+import type { CheckInSessionInfo, CheckInStats as Stats } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
+import { FormSelect } from '@/components/ui/FormSelect';
 import { LoadError } from './LoadError';
 import { BTN_GHOST, PANEL } from './shared';
 
@@ -20,16 +21,29 @@ function slotLabel(iso: string, bucketMinutes: number): string {
 export function CheckInStats({ slug }: { slug: string }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState('');
+  const [sessions, setSessions] = useState<CheckInSessionInfo[]>([]);
+  const [sessionId, setSessionId] = useState<number | null>(null);
+
+  useEffect(() => {
+    hackathonApi.checkIn.sessions(slug).then(setSessions).catch(() => undefined);
+  }, [slug]);
 
   const load = useCallback(() => {
-    hackathonApi.checkIn.stats(slug).then((data) => { setStats(data); setError(''); }).catch((err) => setError(apiErrorMessage(err, 'Could not load the check-in numbers.')));
-  }, [slug]);
+    hackathonApi.checkIn.stats(slug, sessionId ?? undefined).then((data) => { setStats(data); setError(''); }).catch((err) => setError(apiErrorMessage(err, 'Could not load the check-in numbers.')));
+  }, [slug, sessionId]);
 
   useEffect(() => {
     load();
     const timer = window.setInterval(load, REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  const sessionOptions = sessions.map((item) => ({ value: String(item.id), label: item.name, hint: item.is_main ? 'Arrival' : undefined }));
+  const viaNote = stats?.by_via ? [
+    stats.by_via.MEMBER_QR ? `${stats.by_via.MEMBER_QR} by their own code` : '',
+    stats.by_via.TEAM_QR ? `${stats.by_via.TEAM_QR} through a team code (${stats.team_scans} scan${stats.team_scans === 1 ? '' : 's'})` : '',
+    stats.by_via.LIST ? `${stats.by_via.LIST} ticked from the list` : '',
+  ].filter(Boolean).join(', ') : '';
 
   const peak = Math.max(1, ...(stats?.timeline ?? []).map((slot) => slot.count));
   const busiest = Math.max(1, ...(stats?.volunteers ?? []).map((volunteer) => volunteer.count));
@@ -40,12 +54,23 @@ export function CheckInStats({ slug }: { slug: string }) {
         <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><BarChart3 className="h-4 w-4 text-journey-accent" /> Arrivals and volunteers</h3>
         <button type="button" onClick={load} className={BTN_GHOST}>Refresh</button>
       </div>
+      {sessions.length > 1 && (
+        <FormSelect
+          value={sessionId === null ? '' : String(sessionId)}
+          options={sessionOptions}
+          placeholder="Arrival (main session)"
+          allowClear
+          onChange={(value) => setSessionId(value ? Number(value) : null)}
+          aria-label="Session"
+        />
+      )}
       {error && <LoadError message={error} onRetry={load} />}
       {stats && stats.total === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">Nobody has checked in yet. Numbers appear as people arrive.</p>}
       {stats && stats.total > 0 && (
         <>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {stats.total} checked in{stats.overrides > 0 && `, ${stats.overrides} let in by an organizer`}. Each bar is {stats.bucket_minutes === 60 ? 'an hour' : `${stats.bucket_minutes} minutes`} (IST).
+            {viaNote && ` ${viaNote}.`}
           </p>
           <div role="img" aria-label={`Arrivals over time, busiest slot ${peak} people`} className="overflow-x-auto">
             <ul className="flex h-32 min-w-full items-end gap-1">

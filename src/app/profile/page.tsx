@@ -37,6 +37,7 @@ import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated } from 
 import { fetchApi } from '@/lib/api-client';
 import { EditProfileModal } from '@/components/EditProfileModal';
 import { EmailVerificationCard } from '@/components/verification/EmailVerificationCard';
+import { CelebrationSettingsCard } from '@/components/celebrations/CelebrationSettingsCard';
 import { College, displayCollegeName } from '@/lib/colleges';
 import { MyHackathonsPanel } from '@/components/hackathons/MyHackathonsPanel';
 import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
@@ -907,6 +908,8 @@ function ProfileContent() {
             />
 
             <EmailVerificationCard />
+
+            <CelebrationSettingsCard />
 
             {(isStaff || canScan) && (
               <div className="flex flex-wrap gap-2.5">

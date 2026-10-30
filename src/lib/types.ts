@@ -188,11 +188,17 @@ export interface Hackathon {
   /** QR codes work from check_in_opens_at and scans stop after check_in_closes_at (empty = no limit). */
   check_in_opens_at?: string | null;
   check_in_closes_at?: string | null;
+  /** Days and slots per day people are checked in on; they generate the check-in sessions. */
+  check_in_days?: number;
+  check_in_slots_per_day?: number;
   idea_deadline?: string | null;
   /** Organizers must approve an idea before it counts. */
   idea_review_required?: boolean;
   /** Rupees a team pays with its idea (0 = free); the payment screenshot is then required. */
   idea_fee_amount?: number;
+  payment_stage?: PaymentStage;
+  /** Which QR code image teams pay to (its id), or null when none was uploaded. */
+  payment_qr_id?: string | null;
   idea_payment_note?: string;
   idea_deck_required?: boolean;
   idea_linkedin_required?: boolean;
@@ -262,7 +268,10 @@ export interface CertificateConfig {
 // (apps/hackathons on the backend)
 // ---------------------------------------------------------------------------
 
-export type HackathonTeamStatus = 'FORMING' | 'REGISTERED' | 'DISQUALIFIED' | 'WITHDRAWN';
+export type HackathonTeamStatus = 'FORMING' | 'REGISTERED' | 'DISQUALIFIED' | 'WITHDRAWN' | 'PAYMENT_PENDING' | 'PAYMENT_REJECTED';
+/** When the fee is paid: with the registration (team creation), with the idea, or never. */
+export type PaymentStage = 'NONE' | 'REGISTRATION' | 'IDEA';
+export type PaymentStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 export type TeamInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
 export type RoundStatus = 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
 export type RoundEntryStatus = 'PENDING' | 'SHORTLISTED' | 'REJECTED';
@@ -441,10 +450,21 @@ export interface WithdrawalOverview {
   limits: { max_teams: number; cooldown_minutes: number };
 }
 
+/** What the team's own members see of the fee paid at registration. The organizers' reason is never part of it. */
+export interface TeamPaymentSummary {
+  id: number;
+  status: PaymentStatus;
+  amount: number;
+  transaction_id: string;
+  submitted_at: string;
+  reviewed_at: string | null;
+}
+
 export interface MyTeamPayload {
   hackathon: Hackathon;
   profile_missing: string[];
   team: HackathonTeam | null;
+  payment?: TeamPaymentSummary | null;
   /** The latest withdrawal request on the team (pending or decided), if any. */
   withdrawal_request?: MyWithdrawalRequest | null;
   /** What one person may do: teams they can create, and the wait after withdrawing one. */
@@ -588,6 +608,35 @@ export interface TeamEmailSettingsPayload {
   emails: TeamEmailSetting[];
   placeholders: { key: string; description: string }[];
 }
+
+export interface PaymentRow {
+  id: number;
+  team_id: number;
+  team_name: string;
+  team_status: HackathonTeamStatus;
+  leader_name: string;
+  leader_email: string;
+  leader_phone: string;
+  members: number;
+  amount: number;
+  transaction_id: string;
+  status: PaymentStatus;
+  reason: string;
+  submitted_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  screenshot: { id: string; name: string; size: number; type: string; state: string } | null;
+  problem: string;
+}
+
+export interface PaymentQueue {
+  counts: Record<PaymentStatus, number>;
+  fee_amount: number;
+  stage: PaymentStage;
+  payments: PaymentRow[];
+}
+
+export type PaymentAction = 'verify' | 'reject' | 'reopen' | 'remove';
 
 export interface HackathonStats {
   teams_by_status: Record<HackathonTeamStatus, number>;
@@ -1454,6 +1503,31 @@ export interface ShowcaseProject {
   members: string[];
 }
 
+export type CheckInVia = 'MEMBER_QR' | 'TEAM_QR' | 'LIST' | 'OVERRIDE';
+export type CheckInScanMode = 'MEMBERS' | 'TEAMS' | 'BOTH';
+export type CheckInWindow = 'NOT_OPEN' | 'OPEN' | 'CLOSED';
+
+/** One scannable moment of the event: Day 2 Afternoon, Lunch, ... The main one is the arrival check-in. */
+export interface CheckInSessionInfo {
+  id: number;
+  name: string;
+  day_index: number;
+  slot: 'MORNING' | 'AFTERNOON' | 'EVENING';
+  date: string;
+  is_main: boolean;
+  needs_arrival: boolean;
+  counts_for_certificate: boolean;
+  scan_mode: CheckInScanMode;
+  is_active: boolean;
+  /** The schedule no longer has this day or slot; kept because people were checked in. */
+  outside_schedule: boolean;
+  opens_at: string | null;
+  closes_at: string | null;
+  window: CheckInWindow;
+  /** Only in the sessions list. */
+  checked_in?: number;
+}
+
 export interface CheckInParticipant {
   user_id: number;
   name: string;
@@ -1464,6 +1538,7 @@ export interface CheckInParticipant {
   checked_in: boolean;
   checked_in_at: string | null;
   checked_in_by: string | null;
+  via: CheckInVia | null;
 }
 
 /** Someone whose team is not registered (forming or waitlisted); only organizers see these and can let them in. */
@@ -1485,6 +1560,7 @@ export interface CheckInRoster {
   limit: number;
   offset: number;
   held_back: CheckInHeldBack[];
+  session: CheckInSessionInfo;
 }
 
 export interface CheckInStats {
@@ -1494,18 +1570,97 @@ export interface CheckInStats {
   /** 15 for a normal event, 60 once arrivals span more than two days. */
   bucket_minutes: number;
   timeline: { at: string; count: number }[];
+  /** How people were checked in: their own code, the team's code, ticked from the list, or let in by an organizer. */
+  by_via: Partial<Record<CheckInVia, number>>;
+  /** Team scans (one per batch). */
+  team_scans: number;
+  session: CheckInSessionInfo;
+}
+
+/** One member of a scanned team and where they stand in the session. */
+export interface TeamScanMember {
+  user_id: number;
+  name: string;
+  role: 'LEADER' | 'MEMBER';
+  checked_in: boolean;
+  checked_in_at: string | null;
+  checked_in_by: string | null;
+  via: CheckInVia | null;
+  /** Why they cannot be checked in without an organizer: they have not arrived yet. */
+  blocked: 'NOT_ARRIVED' | null;
+}
+
+/** What a team's code opens. Nobody is checked in until the volunteer picks the people who are there. */
+export interface TeamScanResult {
+  kind: 'team';
+  team: { id: number; name: string; status: HackathonTeamStatus; placed: boolean; problem_code: string | null; problem_title: string | null };
+  session: CheckInSessionInfo;
+  members: TeamScanMember[];
+  all_checked_in: boolean;
+  can_override: boolean;
+}
+
+export interface MemberScanResult {
+  kind: 'member';
+  created: boolean;
+  user_id: number;
+  name: string;
+  team_name: string;
+  checked_in_at: string;
+  checked_in_by: string | null;
+  session_id: number;
+  via: CheckInVia;
+}
+
+export interface TeamBatchPerson {
+  user_id: number;
+  name: string | null;
+  status: 'created' | 'already' | 'refused';
+  code?: string;
+  detail?: string;
+  checked_in_at?: string;
+}
+
+export interface TeamBatchResult {
+  /** Null when nobody new was checked in. */
+  batch_id: string | null;
+  team: { id: number; name: string };
+  session_id: number;
+  results: TeamBatchPerson[];
+  created: number;
+  already: number;
+  refused: number;
+}
+
+/** A participant's standing in one session. */
+export interface MyCheckInSession {
+  id: number;
+  name: string;
+  is_main: boolean;
+  date: string;
+  window: CheckInWindow;
+  opens_at: string | null;
+  closes_at: string | null;
+  checked_in: boolean;
+  checked_in_at: string | null;
 }
 
 export interface CheckInNoShows {
   window: 'NOT_OPEN' | 'OPEN' | 'CLOSED';
+  /** The session the numbers are about (the arrival check-in unless another was asked for). */
+  session?: CheckInSessionInfo;
   teams: { team_id: number; name: string; members: number }[];
   absent_participants: number;
   waitlisted_teams: number;
 }
 
 export interface MyCheckIn {
-  /** Empty unless the window is OPEN. */
+  /** Empty unless some session is open. */
   token: string;
+  /** The whole team's code (empty unless some session is open). */
+  team_token: string;
+  team: { id: number; name: string };
+  sessions: MyCheckInSession[];
   window: 'NOT_OPEN' | 'OPEN' | 'CLOSED';
   opens_at: string | null;
   closes_at: string | null;
@@ -1736,4 +1891,18 @@ export interface JudgingIdeasPayload {
   ideas: JudgingIdea[];
   reviewed: number;
   total: number;
+}
+
+/** One happy moment to show a person (a team registered, a welcome, a shortlisting...). Kept on their account until seen. */
+export type CelebrationSize = 'SMALL' | 'MEDIUM' | 'BIG';
+
+export interface Celebration {
+  id: number;
+  kind: string;
+  size: CelebrationSize;
+  title: string;
+  message: string;
+  link_url: string;
+  payload: Record<string, string | number | boolean>;
+  created_at: string;
 }

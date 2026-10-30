@@ -9,15 +9,18 @@ import { FilePreviewDialog } from './FilePreviewDialog';
 
 interface IdeaFileActionsProps {
   slug: string;
-  ideaId: number;
-  kind: 'deck' | 'payment';
+  ideaId?: number;
+  kind?: 'deck' | 'payment';
+  /** For files that are not an idea's (a registration payment): fetches the link instead of the idea's file link. */
+  link?: (inline: boolean) => Promise<{ url: string }>;
   file: { name: string; size: number; type: string };
   /** Shown before the name, e.g. "Payment screenshot". */
   label?: string;
 }
 
 /** A saved idea file: the name with Preview (PDF, images) and Download. The links are fetched when used and expire in a minute. */
-export function IdeaFileActions({ slug, ideaId, kind, file, label }: IdeaFileActionsProps) {
+export function IdeaFileActions({ slug, ideaId, kind, link, file, label }: IdeaFileActionsProps) {
+  const fetchLink = (inline: boolean) => (link ? link(inline) : hackathonApi.ideaFileLink(slug, ideaId as number, kind as 'deck' | 'payment', inline));
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState('');
   const canPreview = previewKindOf(file.type, file.name) !== null;
@@ -25,13 +28,12 @@ export function IdeaFileActions({ slug, ideaId, kind, file, label }: IdeaFileAct
   const download = async () => {
     setError('');
     try {
-      const link = await hackathonApi.ideaFileLink(slug, ideaId, kind, false);
-      window.location.assign(link.url);
+      window.location.assign((await fetchLink(false)).url);
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not download the file.'));
     }
   };
-  const loadPreview = async () => (await hackathonApi.ideaFileLink(slug, ideaId, kind, true)).url;
+  const loadPreview = async () => (await fetchLink(true)).url;
   const button = 'inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-journey-text/15 px-3 text-xs font-semibold text-journey-text hover:bg-journey-text/5 dark:border-slate-700';
 
   return (

@@ -15,6 +15,7 @@
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
+    "canvas-confetti": "1.9.3",
     "clsx": "^2.1.1",
     "framer-motion": "^13.1.0",
     "gsap": "^3.15.0",
@@ -33,6 +34,7 @@
     "@playwright/test": "1.47.2",
     "@testing-library/dom": "10.4.0",
     "@testing-library/react": "16.1.0",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.13.4",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.0.10",
