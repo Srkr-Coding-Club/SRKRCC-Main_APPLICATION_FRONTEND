@@ -1737,6 +1737,69 @@ export interface JoinRequestsPayload {
   mine: JoinRequestRow[];
 }
 
+/** What organizers see in the team finder tab (apps/hackathons/finder_admin.py). */
+export interface FinderAdminSeeker {
+  id: number;
+  user_id: number;
+  name: string;
+  email: string;
+  phone: string;
+  profile: string;
+  skills: string;
+  note: string;
+  listed_at: string;
+  status: 'WAITING' | 'MATCHED' | 'WITHDRAWN';
+  team: string;
+  pending_requests: number;
+}
+
+export interface FinderAdminTeam {
+  id: number;
+  name: string;
+  status: HackathonTeamStatus;
+  looking_for: string;
+  members: number;
+  max_members: number;
+  seats_open: number;
+  problem: string;
+  leader: string;
+  leader_email: string;
+  leader_phone: string;
+  pending_requests: number;
+}
+
+export interface FinderAdminRequest {
+  id: number;
+  team_id: number;
+  team_name: string;
+  user_id: number;
+  name: string;
+  email: string;
+  phone: string;
+  profile: string;
+  status: JoinRequestStatus;
+  message: string;
+  created_at: string;
+  decided_at: string | null;
+  decided_by: string;
+  stuck: boolean;
+}
+
+export interface FinderAdminPayload {
+  enabled: boolean;
+  stats: {
+    seekers_waiting: number;
+    teams_recruiting: number;
+    requests_pending: number;
+    requests_stuck: number;
+    matched: number;
+    median_hours_to_match: number | null;
+  };
+  seekers: FinderAdminSeeker[];
+  teams: FinderAdminTeam[];
+  requests: FinderAdminRequest[];
+}
+
 export interface FinderListing {
   seekers: FinderSeeker[];
   teams: FinderTeam[];

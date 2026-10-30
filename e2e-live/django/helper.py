@@ -339,6 +339,38 @@ def staff_user(args):
     emit({'ok': True})
 
 
+def list_seeker(args):
+    """List a person in the team finder, as if they had done it `days` days ago."""
+    from apps.hackathons.models import Hackathon, TeamSeeker
+    seeker, _ = TeamSeeker.objects.update_or_create(
+        hackathon=Hackathon.objects.get(slug=args.slug), user=User.objects.get(email__iexact=args.email),
+        defaults=dict(skills=args.skills, note=args.note, is_active=True),
+    )
+    TeamSeeker.objects.filter(pk=seeker.pk).update(created_at=timezone.now() - timedelta(days=args.days))
+    emit({'id': seeker.pk})
+
+
+def ask_to_join(args):
+    """A person's request to the team named Open Door, sent `hours` hours ago and still waiting."""
+    from apps.hackathons.models import Team, TeamJoinRequest
+    team = Team.objects.get(hackathon__slug=args.slug, name='Open Door')
+    join = TeamJoinRequest.objects.create(hackathon=team.hackathon, team=team, user=User.objects.get(email__iexact=args.email), message=args.message)
+    TeamJoinRequest.objects.filter(pk=join.pk).update(created_at=timezone.now() - timedelta(hours=args.hours))
+    emit({'id': join.pk})
+
+
+def finder_state(args):
+    from apps.hackathons.models import Team, TeamJoinRequest, TeamSeeker
+    team = Team.objects.filter(hackathon__slug=args.slug, name='Open Door').first()
+    emit({
+        'members': sorted(m.user.email for m in team.memberships.select_related('user')) if team else [],
+        'status': team.status if team else None,
+        'recruiting': team.looking_for_members if team else None,
+        'seekers': {s.user.email: {'active': s.is_active, 'skills': s.skills, 'note': s.note} for s in TeamSeeker.objects.filter(hackathon__slug=args.slug).select_related('user')},
+        'requests': {r.user.email: r.status for r in TeamJoinRequest.objects.filter(hackathon__slug=args.slug).select_related('user')},
+    })
+
+
 def celebrations_of(args):
     from apps.celebrations.models import Celebration
     rows = Celebration.objects.filter(user__email__iexact=args.email).order_by('id')
@@ -415,6 +447,10 @@ p = sub.add_parser('team_status'); p.set_defaults(fn=team_status); p.add_argumen
 p = sub.add_parser('notifications'); p.set_defaults(fn=notifications); p.add_argument('email')
 p = sub.add_parser('age_payments'); p.set_defaults(fn=age_payments); p.add_argument('slug'); p.add_argument('--hours', type=float, required=True)
 p = sub.add_parser('staff_user'); p.set_defaults(fn=staff_user); p.add_argument('slug'); p.add_argument('email')
+p = sub.add_parser('list_seeker'); p.set_defaults(fn=list_seeker); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--days', type=float, default=0)
+p.add_argument('--skills', default='React'); p.add_argument('--note', default='')
+p = sub.add_parser('ask_to_join'); p.set_defaults(fn=ask_to_join); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--hours', type=float, default=1); p.add_argument('--message', default='Please take me in')
+p = sub.add_parser('finder_state'); p.set_defaults(fn=finder_state); p.add_argument('slug')
 p = sub.add_parser('celebrations_of'); p.set_defaults(fn=celebrations_of); p.add_argument('email')
 p = sub.add_parser('award_celebration'); p.set_defaults(fn=award_celebration); p.add_argument('email'); p.add_argument('kind'); p.add_argument('key')
 p.add_argument('--link', default=''); p.add_argument('--context', nargs='*', default=[])

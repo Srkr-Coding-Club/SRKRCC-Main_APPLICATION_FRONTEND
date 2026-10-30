@@ -85,6 +85,51 @@ const payTeam = () => ({ ...team, id: 21, name: pay.team.name, status: pay.team.
 const payRow = () => ({ id: 1, team_id: 21, team_name: pay.team.name, team_status: pay.team.status, leader_name: 'Dana R', leader_email: 'dana@srkr.ac.in', leader_phone: '9000000000', members: 1, amount: 200, transaction_id: pay.team.tx,
   status: PAY_STATUS[pay.team.status], reason: pay.team.reason, submitted_at: pay.team.at, reviewed_by: pay.team.by || null, reviewed_at: pay.team.by ? iso(0) : null,
   screenshot: { id: 'f-1', name: 'pay.png', size: 70, type: 'image/png', state: 'ATTACHED' }, problem: 'PS-01' });
+// --- organizer team finder (stateful: remove / stop / close / place change what the next GET returns) ---
+const makeFin = () => ({
+  seekers: [
+    { id: 1, user_id: 31, name: 'Chandrasekhar Venkata Subrahmanyam', email: 'chandra@srkr.ac.in', phone: '9000000001', profile: 'CSE · Year 3 · SRKR Engineering College', skills: 'React, Django, Figma, DevOps', note: 'Looking for a team that wants to build for rural healthcare.', listed_at: iso(-5), status: 'WAITING', team: '', pending_requests: 1 },
+    { id: 2, user_id: 32, name: 'Meena K', email: 'meena@srkr.ac.in', phone: '9000000002', profile: 'IT · Year 2', skills: 'Python, ML', note: '', listed_at: iso(-1), status: 'WAITING', team: '', pending_requests: 0 },
+    { id: 3, user_id: 33, name: 'Ravi T', email: 'ravi@srkr.ac.in', phone: '', profile: 'ECE · Year 4', skills: 'Embedded', note: 'IoT is my thing', listed_at: iso(-6), status: 'MATCHED', team: 'Segmentation Faults', pending_requests: 0 },
+  ],
+  teams: [
+    { id: 12, name: 'Segmentation Faults', status: 'FORMING', looking_for: 'A designer and a backend developer', members: 2, max_members: 4, seats_open: 2, problem: 'PS-01', leader: 'Ravi K', leader_email: 'ravik@srkr.ac.in', leader_phone: '9000000009', pending_requests: 1 },
+    { id: 13, name: 'Null Pointers', status: 'REGISTERED', looking_for: '', members: 4, max_members: 4, seats_open: 0, problem: 'Open innovation', leader: 'Dana R', leader_email: 'dana@srkr.ac.in', leader_phone: '', pending_requests: 0 },
+  ],
+  requests: [
+    { id: 1, team_id: 12, team_name: 'Segmentation Faults', user_id: 31, name: 'Chandrasekhar Venkata Subrahmanyam', email: 'chandra@srkr.ac.in', phone: '9000000001', profile: 'CSE · Year 3', status: 'PENDING', message: 'I can build the whole frontend and I have shipped two hackathon projects before.', created_at: iso(-3), decided_at: null, decided_by: '', stuck: true },
+    { id: 2, team_id: 12, team_name: 'Segmentation Faults', user_id: 33, name: 'Ravi T', email: 'ravi@srkr.ac.in', phone: '', profile: 'ECE · Year 4', status: 'ACCEPTED', message: '', created_at: iso(-6), decided_at: iso(-5), decided_by: 'Ravi K', stuck: false },
+  ],
+});
+let fin = makeFin();
+const finStats = () => ({
+  seekers_waiting: fin.seekers.filter((x) => x.status === 'WAITING').length, teams_recruiting: fin.teams.filter((x) => x.seats_open > 0).length,
+  requests_pending: fin.requests.filter((x) => x.status === 'PENDING').length, requests_stuck: fin.requests.filter((x) => x.stuck && x.status === 'PENDING').length,
+  matched: fin.seekers.filter((x) => x.status === 'MATCHED').length, median_hours_to_match: 30.5,
+});
+function finderAdmin(req, p, send, raw) {
+  let m;
+  if (/\/finder\/admin$/.test(p) && req.method === 'GET') return send({ enabled: true, stats: finStats(), ...fin });
+  const body = (() => { try { return JSON.parse(raw || '{}'); } catch { return {}; } })();
+  fin.posts = fin.posts || [];
+  if ((m = p.match(/\/finder\/admin\/seekers\/(\d+)\/remove$/)) && req.method === 'POST') {
+    const x = fin.seekers.find((s) => s.id === Number(m[1])); if (x) { x.status = 'WITHDRAWN'; x.skills = ''; x.note = ''; }
+    fin.posts.push('remove ' + m[1] + ' ' + (body.reason || '')); return send({ removed: true, id: Number(m[1]) });
+  }
+  if ((m = p.match(/\/finder\/admin\/teams\/(\d+)\/stop-recruiting$/)) && req.method === 'POST') {
+    fin.teams = fin.teams.filter((t) => t.id !== Number(m[1])); fin.posts.push('stop ' + m[1]); return send({ stopped: true, requests_closed: 1 });
+  }
+  if ((m = p.match(/\/finder\/admin\/requests\/(\d+)\/cancel$/)) && req.method === 'POST') {
+    const r = fin.requests.find((x) => x.id === Number(m[1])); if (r) { r.status = 'CANCELLED'; r.stuck = false; r.decided_by = 'Ada Min'; r.decided_at = iso(0); }
+    fin.posts.push('cancel ' + m[1]); return send({ request: r });
+  }
+  if (/\/finder\/admin\/place$/.test(p) && req.method === 'POST') {
+    const x = fin.seekers.find((s) => s.id === body.seeker_id); if (x) { x.status = 'MATCHED'; x.team = 'Segmentation Faults'; x.pending_requests = 0; }
+    fin.posts.push('place ' + body.seeker_id + '>' + body.team_id); return send({ placed: true, team_id: body.team_id });
+  }
+  if (/\/finder\/admin\/remind$/.test(p) && req.method === 'POST') { fin.posts.push('remind ' + body.audience); return send({ reminded: 2 }); }
+  return null;
+}
 function handle(req, res, raw) {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace(/^\/api/, '').replace(/\/$/, '');
@@ -94,6 +139,9 @@ function handle(req, res, raw) {
   log.push(`${req.method} ${p}`);
   const fullTeam = { ...team, leader_id: 7, member_count: 2, pending_invites: [], open_innovation: null, created_at: iso(-3), updated_at: iso(-1), looking_for_members: false, looking_for: '' };
   if (p === '/__log') return send(log);
+  if (p === '/__finlog') return send(fin.posts || []);
+  if (p === '/__finreset') { fin = makeFin(); return send({ ok: true }); }
+  if (/\/finder\/admin(\/|$)/.test(p)) { const done = finderAdmin(req, p, send, raw); if (done !== null) return done; }
   let m;
   // --- registration payment ---
   if (p === '/__pay') {
@@ -335,7 +383,7 @@ function handle(req, res, raw) {
   if (/\/staff$/.test(p)) return send([{ id: 1, role: 'ORGANIZER', user_id: 7, email: 'dana@srkr.ac.in', name: 'Dana R', permissions: ['settings', 'teams'] }]);
   if (/\/finder\/requests$/.test(p)) return send({ incoming: [], mine: [] });
   if (/\/stats$/.test(p)) return send({ teams_by_status: { FORMING: 5, REGISTERED: 31, DISQUALIFIED: 0, WITHDRAWN: 0, PAYMENT_PENDING: pay.team && pay.team.status === 'PAYMENT_PENDING' ? 1 : 0, PAYMENT_REJECTED: 0 }, teams_total: 36, participants: 128, pending_invites: 4, open_innovation_teams: 6,
-    problem_statements: problems.map((x) => ({ id: x.id, code: x.code, title: x.title, teams: x.team_count, max_teams: x.max_teams })), rounds: [], forming_teams: [{ id: 5, name: 'Half Team', leader_email: 'l@example.org', members: 1, needed: 1 }],
+    problem_statements: problems.map((x) => ({ id: x.id, code: x.code, title: x.title, teams: x.team_count, max_teams: x.max_teams })), rounds: [{ id: 1, order: 1, name: 'Idea review', results_published: true, total: 36, details_submitted: 36, SHORTLISTED: 20, REJECTED: 10, PENDING: 6 }, { id: 2, order: 2, name: 'Final Hackathon - Hackoverflow2k26', results_published: false, total: 20, details_submitted: 0, SHORTLISTED: 0, REJECTED: 0, PENDING: 20 }], forming_teams: [{ id: 5, name: 'Half Team', leader_email: 'l@example.org', members: 1, needed: 1 }],
     min_team_size: 2, registration_closes_at: iso(10), is_registration_open: true });
   if (/\/finder$/.test(p)) return send({ seekers: [{ id: 8, name: 'Chandrasekhar Venkata Subrahmanyam', skills: 'React, Django, Figma, DevOps, Machine Learning', note: 'Looking for a team that wants to build for rural healthcare.', profile: 'CSE 3rd year', is_me: false, phone: '9000000001' }],
     teams: [{ id: 12, name: 'Segmentation Faults', looking_for: 'A designer and a backend developer', members: 2, max_members: 4, problem: 'PS-01', leader: 'Ravi K' }], my_profile: null, my_requests: [] });

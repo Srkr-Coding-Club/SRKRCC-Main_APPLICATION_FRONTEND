@@ -309,9 +309,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
             <PageSectionCard id="details" title={`All that you need to know about ${hackathon.title}`}>
               {hackathon.description?.trim() ? (
-                <div className="prose max-w-none text-sm leading-relaxed text-journey-text/80 dark:prose-invert sm:text-base">
-                  <MarkdownRenderer content={hackathon.description} />
-                </div>
+                <MarkdownRenderer content={hackathon.description} variant="article" />
               ) : (
                 <p className="rounded-xl border border-dashed border-journey-text/10 p-6 text-center text-sm text-journey-muted">
                   The organizing committee will publish the official overview shortly.
@@ -377,9 +375,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
             {rules && (
               <PageSectionCard id="rules" title="Rules and code of conduct">
-                <div className="prose max-w-none text-sm leading-relaxed text-journey-text/80 dark:prose-invert">
-                  <MarkdownRenderer content={rules} />
-                </div>
+                <MarkdownRenderer content={rules} variant="article" />
               </PageSectionCard>
             )}
 
