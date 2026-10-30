@@ -25,6 +25,8 @@ import {
   Code,
   Megaphone,
   Flag,
+  KeyRound,
+  FileSpreadsheet,
   Wrench,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -95,6 +97,8 @@ const navItems: NavItem[] = [
     hasDropdown: true,
     children: [
       { label: 'Members', shortLabel: 'Members', href: '/admin/members', desc: 'Club member directory', icon: UserCheck },
+      { label: 'Club IDs', shortLabel: 'Club IDs', href: '/admin/club-ids', desc: 'Look up, reserve, assign & count', icon: KeyRound },
+      { label: 'Past Members', shortLabel: 'Past', href: '/admin/reconcile', desc: 'Compare an old sheet with accounts', icon: FileSpreadsheet },
       { label: 'Events & Workshops', shortLabel: 'Events', href: '/admin/events', desc: 'Workshops & Workshop Management', icon: Trophy },
       { label: 'Hackathon Management', shortLabel: 'Hackathons', href: '/admin/hackathons', desc: 'Teams, rounds, shortlisting & notices', icon: Flag },
       { label: 'Content Hub', shortLabel: 'Content', href: '/admin/content', desc: 'Blogs & career postings', icon: BookOpen },

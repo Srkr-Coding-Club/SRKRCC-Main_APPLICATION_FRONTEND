@@ -30,6 +30,17 @@ def create_user(args):
         username=args.email.split('@')[0] + str(User.objects.count()), email=args.email, password=args.password,
         first_name=args.first_name, role=args.role, branch='CSE', year=2, phone_number=args.phone or None,
     )
+    extra = {}
+    if args.complete:
+        extra.update(last_name=args.last_name or 'Tester', roll_number=f'LIVE{user.pk:06d}', other_college_name='SRKR Engineering College', phone_number=args.phone or '9000000000')
+    elif args.last_name:
+        extra['last_name'] = args.last_name
+    if args.club_id:
+        extra['club_id'] = args.club_id
+    if extra:
+        for key, value in extra.items():
+            setattr(user, key, value)
+        user.save()
     if args.verified:
         user.email_verified_at = timezone.now()
         user.save(update_fields=['email_verified_at'])
@@ -37,6 +48,56 @@ def create_user(args):
         user.is_staff = True
         user.save(update_fields=['is_staff'])
     emit({'id': user.pk})
+
+
+def set_verification(args):
+    """Put a person into one email state: verified, unverified (still in the grace period), overdue or disputed."""
+    now = timezone.now()
+    fields = {
+        'verified': dict(email_verified_at=now, email_disputed_at=None),
+        'unverified': dict(email_verified_at=None, email_disputed_at=None, email_verify_deadline=now + timedelta(days=5)),
+        'overdue': dict(email_verified_at=None, email_disputed_at=None, email_verify_deadline=now - timedelta(days=2)),
+        'disputed': dict(email_verified_at=None, email_disputed_at=now, email_verify_deadline=now + timedelta(days=5)),
+    }[args.state]
+    User.objects.filter(email__iexact=args.email).update(**fields)
+    emit({'ok': True})
+
+
+def user_state(args):
+    user = User.objects.filter(email__iexact=args.email).first()
+    if user is None:
+        emit(None)
+        return
+    emit({
+        'club_id': user.club_id, 'role': user.role, 'membership_status': user.membership_status, 'verified': bool(user.email_verified_at),
+        'days_left': round((user.email_verify_deadline - timezone.now()).total_seconds() / 86400, 1) if user.email_verify_deadline else None,
+    })
+
+
+def club_id_state(args):
+    from apps.accounts.models import ClubIdEvent, ClubIdReservation
+    holder = User.objects.filter(club_id__iexact=args.club_id).first()
+    reservation = ClubIdReservation.objects.filter(club_id__iexact=args.club_id).order_by('-id').first()
+    emit({
+        'holder': holder.email if holder else None, 'reservation': {'email': reservation.reserved_for_email, 'status': reservation.status} if reservation else None,
+        'events': list(ClubIdEvent.objects.filter(club_id__iexact=args.club_id).order_by('id').values_list('kind', flat=True)),
+    })
+
+
+def make_sheet(args):
+    """Write a real .xlsx with two sheets (the second is the one with the data) for the past-member upload."""
+    import openpyxl
+    rows = json.loads(args.rows)
+    book = openpyxl.Workbook()
+    notes = book.active
+    notes.title = 'Notes'
+    notes.append(['Old register', 'ignore this sheet'])
+    sheet = book.create_sheet('2023 members')
+    sheet.append(['Student Name', 'E-mail', 'Affiliate ID', 'Remarks'])
+    for row in rows:
+        sheet.append(row + [''])
+    book.save(args.path)
+    emit({'path': args.path, 'rows': len(rows)})
 
 
 def set_deadline(args):
@@ -420,6 +481,7 @@ sub = parser.add_subparsers(dest='command', required=True)
 p = sub.add_parser('create_user'); p.set_defaults(fn=create_user)
 p.add_argument('email'); p.add_argument('--password', default='Live!Pass123'); p.add_argument('--first-name', default='Dee')
 p.add_argument('--role', default='NON_AFFILIATE'); p.add_argument('--verified', action='store_true'); p.add_argument('--staff', action='store_true'); p.add_argument('--phone', default='')
+p.add_argument('--last-name', default=''); p.add_argument('--complete', action='store_true'); p.add_argument('--club-id', default='')
 p = sub.add_parser('set_deadline'); p.set_defaults(fn=set_deadline); p.add_argument('email'); p.add_argument('--days', type=float, required=True)
 p = sub.add_parser('get_user'); p.set_defaults(fn=get_user); p.add_argument('email')
 p = sub.add_parser('count_users'); p.set_defaults(fn=count_users); p.add_argument('email')
@@ -447,6 +509,10 @@ p = sub.add_parser('team_status'); p.set_defaults(fn=team_status); p.add_argumen
 p = sub.add_parser('notifications'); p.set_defaults(fn=notifications); p.add_argument('email')
 p = sub.add_parser('age_payments'); p.set_defaults(fn=age_payments); p.add_argument('slug'); p.add_argument('--hours', type=float, required=True)
 p = sub.add_parser('staff_user'); p.set_defaults(fn=staff_user); p.add_argument('slug'); p.add_argument('email')
+p = sub.add_parser('set_verification'); p.set_defaults(fn=set_verification); p.add_argument('email'); p.add_argument('--state', required=True, choices=['verified', 'unverified', 'overdue', 'disputed'])
+p = sub.add_parser('user_state'); p.set_defaults(fn=user_state); p.add_argument('email')
+p = sub.add_parser('club_id_state'); p.set_defaults(fn=club_id_state); p.add_argument('club_id')
+p = sub.add_parser('make_sheet'); p.set_defaults(fn=make_sheet); p.add_argument('path'); p.add_argument('--rows', required=True)
 p = sub.add_parser('list_seeker'); p.set_defaults(fn=list_seeker); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--days', type=float, default=0)
 p.add_argument('--skills', default='React'); p.add_argument('--note', default='')
 p = sub.add_parser('ask_to_join'); p.set_defaults(fn=ask_to_join); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--hours', type=float, default=1); p.add_argument('--message', default='Please take me in')
