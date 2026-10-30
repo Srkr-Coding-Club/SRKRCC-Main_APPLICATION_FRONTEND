@@ -23,6 +23,13 @@ const STATUS_OPTIONS = [
   { value: 'WITHDRAWN', label: 'Withdrawn' },
 ];
 
+/** The list filter also finds teams whose registration fee has not been verified; those are handled from the Payments tab, not the status control. */
+const FILTER_OPTIONS = [
+  ...STATUS_OPTIONS,
+  { value: 'PAYMENT_PENDING', label: 'Payment pending' },
+  { value: 'PAYMENT_REJECTED', label: 'Payment rejected' },
+];
+
 const OPEN_INNOVATION = 'open_innovation';
 
 /** The ID a team's problem is known by: PS-001, or OI-<id> for open innovation. */
@@ -306,7 +313,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
             className={`${INPUT} pl-9`}
           />
         </div>
-        <FormSelect className="w-44" value={status} onChange={setStatus} options={STATUS_OPTIONS} placeholder="All statuses" />
+        <FormSelect className="w-44" value={status} onChange={setStatus} options={FILTER_OPTIONS} placeholder="All statuses" />
         <FormSelect
           className="w-56"
           value={ps}
@@ -697,6 +704,11 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
               {/* Team Status setting */}
               <div className="space-y-2">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Team status</p>
+                {selected.status === 'PAYMENT_PENDING' || selected.status === 'PAYMENT_REJECTED' ? (
+                  <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-200">
+                    This team has not been placed: its registration payment is {selected.status === 'PAYMENT_PENDING' ? 'waiting to be checked' : 'rejected'}. Verify, reject or reopen it from the Payments tab.
+                  </p>
+                ) : (<>
                 <input
                   value={statusReason}
                   onChange={(e) => setStatusReason(e.target.value)}
@@ -713,6 +725,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
                   placeholder="Status"
                   disabled={busy}
                 />
+                </>)}
               </div>
 
               {/* Round History */}

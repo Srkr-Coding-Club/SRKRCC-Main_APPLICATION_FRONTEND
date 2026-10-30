@@ -36,6 +36,33 @@ export async function uploadIdeaFile(
   }
 }
 
+/** The screenshot of the fee paid to register: sent to storage before the team exists, then used when the team is created. */
+export async function uploadRegistrationPayment(
+  slug: string,
+  file: File,
+  onProgress: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<UploadedFile> {
+  let grant;
+  try {
+    grant = await hackathonApi.paymentFileUpload(slug, { name: file.name, size: file.size });
+  } catch (error) {
+    throw asUploadError(error, 'Could not start the upload.');
+  }
+  try {
+    await sendToStorage({ upload: { id: grant.file.id }, post: grant.post, max_bytes: grant.max_bytes }, file, onProgress, signal);
+  } catch (error) {
+    await hackathonApi.paymentFileDiscard(slug, grant.file.id).catch(() => undefined);
+    throw asUploadError(error, 'The upload failed.');
+  }
+  try {
+    const done = await hackathonApi.paymentFileComplete(slug, grant.file.id);
+    return { upload_id: done.file.id, name: done.file.name, size: done.file.size, type: done.file.type };
+  } catch (error) {
+    throw asUploadError(error, 'We could not confirm the upload.');
+  }
+}
+
 /** A saved file as the picker shows it. */
 export const asUploaded = (file: { id: string; name: string; size: number; type: string } | null | undefined): UploadedFile | null =>
   file ? { upload_id: file.id, name: file.name, size: file.size, type: file.type } : null;

@@ -26,6 +26,8 @@ export const TEAM_STATUS_PILL: Record<string, { tone: PillTone; label: string }>
   REGISTERED: { tone: 'green', label: 'Registered' },
   DISQUALIFIED: { tone: 'red', label: 'Disqualified' },
   WITHDRAWN: { tone: 'slate', label: 'Withdrawn' },
+  PAYMENT_PENDING: { tone: 'amber', label: 'Payment pending' },
+  PAYMENT_REJECTED: { tone: 'red', label: 'Payment rejected' },
 };
 
 export const ENTRY_STATUS_PILL: Record<string, { tone: PillTone; label: string }> = {

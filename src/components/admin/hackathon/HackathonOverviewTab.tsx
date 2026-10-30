@@ -13,7 +13,7 @@ import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFe
 import { StatusPill } from '@/components/ui/StatusPill';
 import { PANEL } from './shared';
 
-type Tab = 'overview' | 'settings' | 'problems' | 'teams' | 'rounds' | 'announcements';
+type Tab = 'overview' | 'settings' | 'problems' | 'teams' | 'payments' | 'rounds' | 'announcements';
 
 function Tile({ icon: Icon, label, value, sub, onClick }: { icon: React.ElementType; label: string; value: React.ReactNode; sub?: string; onClick?: () => void }) {
   return (
@@ -74,6 +74,14 @@ export function HackathonOverviewTab({ slug, onNavigate }: { slug: string; onNav
       </div>
 
       {confirmDialog}
+      {(s.PAYMENT_PENDING ?? 0) > 0 && (
+        <section className={`${PANEL} flex flex-wrap items-center justify-between gap-3 border-amber-500/30`} aria-label="Payments waiting">
+          <p className="text-sm font-semibold text-[#1A1A2E] dark:text-white">
+            {s.PAYMENT_PENDING} {s.PAYMENT_PENDING === 1 ? 'team is' : 'teams are'} waiting for their registration payment to be checked.
+          </p>
+          <button type="button" onClick={() => onNavigate('payments')} className="rounded-lg bg-journey-accent px-3 py-2 text-xs font-bold text-journey-on-accent hover:opacity-90">Check payments</button>
+        </section>
+      )}
       {stats.forming_teams.length > 0 && (
         <section className={`${PANEL} space-y-3 border-amber-500/30`}>
           <div className="flex flex-wrap items-center justify-between gap-3">

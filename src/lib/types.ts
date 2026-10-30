@@ -196,6 +196,9 @@ export interface Hackathon {
   idea_review_required?: boolean;
   /** Rupees a team pays with its idea (0 = free); the payment screenshot is then required. */
   idea_fee_amount?: number;
+  payment_stage?: PaymentStage;
+  /** Which QR code image teams pay to (its id), or null when none was uploaded. */
+  payment_qr_id?: string | null;
   idea_payment_note?: string;
   idea_deck_required?: boolean;
   idea_linkedin_required?: boolean;
@@ -265,7 +268,10 @@ export interface CertificateConfig {
 // (apps/hackathons on the backend)
 // ---------------------------------------------------------------------------
 
-export type HackathonTeamStatus = 'FORMING' | 'REGISTERED' | 'DISQUALIFIED' | 'WITHDRAWN';
+export type HackathonTeamStatus = 'FORMING' | 'REGISTERED' | 'DISQUALIFIED' | 'WITHDRAWN' | 'PAYMENT_PENDING' | 'PAYMENT_REJECTED';
+/** When the fee is paid: with the registration (team creation), with the idea, or never. */
+export type PaymentStage = 'NONE' | 'REGISTRATION' | 'IDEA';
+export type PaymentStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 export type TeamInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
 export type RoundStatus = 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
 export type RoundEntryStatus = 'PENDING' | 'SHORTLISTED' | 'REJECTED';
@@ -444,10 +450,21 @@ export interface WithdrawalOverview {
   limits: { max_teams: number; cooldown_minutes: number };
 }
 
+/** What the team's own members see of the fee paid at registration. The organizers' reason is never part of it. */
+export interface TeamPaymentSummary {
+  id: number;
+  status: PaymentStatus;
+  amount: number;
+  transaction_id: string;
+  submitted_at: string;
+  reviewed_at: string | null;
+}
+
 export interface MyTeamPayload {
   hackathon: Hackathon;
   profile_missing: string[];
   team: HackathonTeam | null;
+  payment?: TeamPaymentSummary | null;
   /** The latest withdrawal request on the team (pending or decided), if any. */
   withdrawal_request?: MyWithdrawalRequest | null;
   /** What one person may do: teams they can create, and the wait after withdrawing one. */
@@ -591,6 +608,35 @@ export interface TeamEmailSettingsPayload {
   emails: TeamEmailSetting[];
   placeholders: { key: string; description: string }[];
 }
+
+export interface PaymentRow {
+  id: number;
+  team_id: number;
+  team_name: string;
+  team_status: HackathonTeamStatus;
+  leader_name: string;
+  leader_email: string;
+  leader_phone: string;
+  members: number;
+  amount: number;
+  transaction_id: string;
+  status: PaymentStatus;
+  reason: string;
+  submitted_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  screenshot: { id: string; name: string; size: number; type: string; state: string } | null;
+  problem: string;
+}
+
+export interface PaymentQueue {
+  counts: Record<PaymentStatus, number>;
+  fee_amount: number;
+  stage: PaymentStage;
+  payments: PaymentRow[];
+}
+
+export type PaymentAction = 'verify' | 'reject' | 'reopen' | 'remove';
 
 export interface HackathonStats {
   teams_by_status: Record<HackathonTeamStatus, number>;
@@ -1845,4 +1891,18 @@ export interface JudgingIdeasPayload {
   ideas: JudgingIdea[];
   reviewed: number;
   total: number;
+}
+
+/** One happy moment to show a person (a team registered, a welcome, a shortlisting...). Kept on their account until seen. */
+export type CelebrationSize = 'SMALL' | 'MEDIUM' | 'BIG';
+
+export interface Celebration {
+  id: number;
+  kind: string;
+  size: CelebrationSize;
+  title: string;
+  message: string;
+  link_url: string;
+  payload: Record<string, string | number | boolean>;
+  created_at: string;
 }

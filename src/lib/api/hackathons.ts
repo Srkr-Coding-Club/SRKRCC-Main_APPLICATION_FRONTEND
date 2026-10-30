@@ -9,6 +9,10 @@ import type {
   CheckInSessionInfo,
   CheckInStats,
   MemberScanResult,
+  PaymentAction,
+  PaymentQueue,
+  PaymentRow,
+  PaymentStatus,
   TeamBatchResult,
   TeamScanResult,
   CheckInRoster,
@@ -84,7 +88,7 @@ const patch = (body: unknown): RequestInit => ({ method: 'PATCH', body: JSON.str
 const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) });
 
 /** The downloads the server renders for one hackathon (apps/hackathons/exports.py). */
-export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in';
+export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in' | 'payments';
 
 /** Typed wrappers for /api/hackathons/* (see apps/hackathons/urls.py). */
 export const hackathonApi = {
@@ -98,8 +102,21 @@ export const hackathonApi = {
   myTeam: (slug: string) => fetchApi<MyTeamPayload>(`/hackathons/${enc(slug)}/my-team/`),
   myTeams: () => fetchApi<HackathonTeam[]>('/hackathons/my-teams/'),
   myInvites: () => fetchApi<HackathonTeamInvite[]>('/hackathons/my-invites/'),
-  createTeam: (slug: string, body: TeamProblemBody & RegistrationInput & { name: string }) =>
+  createTeam: (slug: string, body: TeamProblemBody & RegistrationInput & { name: string; transaction_id?: string; payment_file_id?: string }) =>
     fetchApi<HackathonTeam>(`/hackathons/${enc(slug)}/teams/`, json(body)),
+  /** The screenshot of the fee paid to register, uploaded before the team exists. */
+  paymentFileUpload: (slug: string, body: { name: string; size: number }) =>
+    fetchApi<{ file: IdeaFileInfo; post: { url: string; fields: Record<string, string> }; max_bytes: number }>(`/hackathons/${enc(slug)}/payment-files/`, json(body)),
+  paymentFileComplete: (slug: string, fileId: string) =>
+    fetchApi<{ file: IdeaFileInfo }>(`/hackathons/${enc(slug)}/payment-files/${fileId}/`, { method: 'POST' }),
+  paymentFileDiscard: (slug: string, fileId: string) =>
+    fetchApi<null>(`/hackathons/${enc(slug)}/payment-files/${fileId}/`, { method: 'DELETE' }),
+  /** The leader withdraws a team still waiting for its payment check: it is deleted. */
+  cancelPendingTeam: (teamId: number) =>
+    fetchApi<{ cancelled: true; hackathon_slug: string }>(`/hackathons/teams/${teamId}/cancel-payment/`, { method: 'POST' }),
+  /** A 60-second link to a payment screenshot (organizers, and the team's own leader). */
+  paymentLink: (slug: string, paymentId: number, inline = false) =>
+    fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/payments/${paymentId}/link/${inline ? '?inline=1' : ''}`),
   saveMyRegistration: (slug: string, body: RegistrationInput) =>
     fetchApi<{ rules_accepted_at: string | null; answers: Record<string, string | boolean>; missing: string[] }>(
       `/hackathons/${enc(slug)}/my-registration/`, patch(body),
@@ -340,6 +357,15 @@ export const hackathonApi = {
       const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
       return fetchApi<HackathonTeam[]>(`/hackathons/${enc(slug)}/teams/${qs ? `?${qs}` : ''}`);
     },
+    payments: (slug: string, params: { status?: PaymentStatus; search?: string } = {}) => {
+      const search = new URLSearchParams();
+      if (params.status) search.set('status', params.status);
+      if (params.search) search.set('search', params.search);
+      const suffix = search.toString();
+      return fetchApi<PaymentQueue>(`/hackathons/${enc(slug)}/payments/${suffix ? `?${suffix}` : ''}`);
+    },
+    paymentAction: (slug: string, paymentId: number, action: PaymentAction, body: { reason?: string } = {}) =>
+      fetchApi<{ payment?: PaymentRow; removed?: true }>(`/hackathons/${enc(slug)}/payments/${paymentId}/${action}/`, json(body)),
     createTeam: (slug: string, body: TeamProblemBody & { name: string; leader_email?: string }) =>
       fetchApi<HackathonTeam>(`/hackathons/${enc(slug)}/teams/`, json(body)),
     deleteTeam: (id: number) =>

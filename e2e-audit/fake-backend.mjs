@@ -77,6 +77,14 @@ const user = { id: 7, email: 'dana@srkr.ac.in', username: 'dana', first_name: 'D
 const admin = { id: 1, email: 'admin@srkr.ac.in', username: 'admin', first_name: 'Ada', last_name: 'Min', role: 'ADMIN', is_staff: true, is_email_verified: true };
 
 const log = [];
+// Registration payment: one team a leader created with its fee, and what an organizer does with it.
+const pay = { team: null };
+const PAY_STATUS = { PAYMENT_PENDING: 'PENDING', PAYMENT_REJECTED: 'REJECTED', REGISTERED: 'VERIFIED' };
+const QR_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#fff"/><rect x="20" y="20" width="60" height="60"/><rect x="120" y="20" width="60" height="60"/><rect x="20" y="120" width="60" height="60"/></svg>');
+const payTeam = () => ({ ...team, id: 21, name: pay.team.name, status: pay.team.status, leader_id: 7, member_count: 1, members: [team.members[0]], pending_invites: [], open_innovation: null, created_at: pay.team.at, updated_at: pay.team.at, looking_for_members: false, looking_for: '' });
+const payRow = () => ({ id: 1, team_id: 21, team_name: pay.team.name, team_status: pay.team.status, leader_name: 'Dana R', leader_email: 'dana@srkr.ac.in', leader_phone: '9000000000', members: 1, amount: 200, transaction_id: pay.team.tx,
+  status: PAY_STATUS[pay.team.status], reason: pay.team.reason, submitted_at: pay.team.at, reviewed_by: pay.team.by || null, reviewed_at: pay.team.by ? iso(0) : null,
+  screenshot: { id: 'f-1', name: 'pay.png', size: 70, type: 'image/png', state: 'ATTACHED' }, problem: 'PS-01' });
 function handle(req, res, raw) {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace(/^\/api/, '').replace(/\/$/, '');
@@ -87,6 +95,60 @@ function handle(req, res, raw) {
   const fullTeam = { ...team, leader_id: 7, member_count: 2, pending_invites: [], open_innovation: null, created_at: iso(-3), updated_at: iso(-1), looking_for_members: false, looking_for: '' };
   if (p === '/__log') return send(log);
   let m;
+  // --- registration payment ---
+  if (p === '/__pay') {
+    const q = Object.fromEntries(new URL(req.url, 'http://x').searchParams);
+    if (q.reset) pay.team = null;
+    if (q.stage) Object.assign(hackathons[0], q.stage === 'NONE'
+      ? { payment_stage: 'NONE', idea_fee_amount: 0, idea_payment_note: '', payment_qr_id: null, contacts: [] }
+      : { payment_stage: q.stage, idea_fee_amount: 200, idea_payment_note: 'UPI: club@upi', payment_qr_id: 'qr-1', contacts: [{ name: 'Ravi Kumar', role: 'Club lead', email: 'ravi@club.org', phone: '+91 90000 11111' }] });
+    return send({ team: pay.team, stage: hackathons[0].payment_stage });
+  }
+  if (/\/idea-qr\/link$/.test(p)) return send({ url: QR_SVG, expires_in: 60, inline: true });
+  if (req.method === 'POST' && /\/payment-files$/.test(p)) {
+    const b = JSON.parse(raw || '{}');
+    return send({ file: { id: 'f-1', name: b.name, size: b.size, type: 'image/png', state: 'PENDING' }, post: { url: 'http://localhost:8100/__upload', fields: {} }, max_bytes: 5242880 }, 201);
+  }
+  if (/\/payment-files\/[^/]+$/.test(p)) {
+    if (req.method === 'POST') return send({ file: { id: 'f-1', name: 'pay.png', size: 70, type: 'image/png', state: 'UPLOADED' } });
+    res.writeHead(204); return res.end();
+  }
+  if (req.method === 'POST' && /\/hackathons\/hackoverflow-2026\/teams$/.test(p) && hackathons[0].payment_stage === 'REGISTRATION') {
+    const b = JSON.parse(raw || '{}');
+    if (!String(b.transaction_id || '').trim()) return send({ field: 'transaction_id', detail: 'Enter the transaction ID of your payment.', code: 'INVALID' }, 400);
+    if (!b.payment_file_id) return send({ field: 'payment_file_id', detail: 'Upload the screenshot of your payment of \u20b9200.', code: 'INVALID' }, 400);
+    if (String(b.transaction_id).toLowerCase() === 'dup') return send({ field: 'transaction_id', detail: 'This transaction ID has already been used. Check it, or contact the club representatives.', code: 'TRANSACTION_REUSED' }, 400);
+    pay.team = { name: b.name, status: 'PAYMENT_PENDING', tx: String(b.transaction_id).trim(), at: new Date().toISOString(), reason: '', by: null };
+    return send(payTeam(), 201);
+  }
+  if (pay.team && /\/my-team$/.test(p)) {
+    return send({ hackathon: hackathons[0], profile_missing: [], team: payTeam(), payment: { id: 1, status: PAY_STATUS[pay.team.status], amount: 200, transaction_id: pay.team.tx, submitted_at: pay.team.at, reviewed_at: pay.team.by ? iso(0) : null },
+      is_leader: true, invites: [], rounds: [], registration: { rules_accepted: true, answers: {}, missing: [] } });
+  }
+  if (req.method === 'POST' && /\/teams\/21\/cancel-payment$/.test(p)) { pay.team = null; return send({ cancelled: true, hackathon_slug: 'hackoverflow-2026' }); }
+  if (/\/payments$/.test(p) && req.method === 'GET') {
+    const status = url.searchParams.get('status');
+    const rows = pay.team && (!status || PAY_STATUS[pay.team.status] === status) ? [payRow()] : [];
+    const counts = { PENDING: 0, VERIFIED: 0, REJECTED: 0 }; if (pay.team) counts[PAY_STATUS[pay.team.status]] += 1;
+    return send({ counts, fee_amount: hackathons[0].idea_fee_amount, stage: hackathons[0].payment_stage, payments: rows });
+  }
+  if (/\/payments\/1\/link$/.test(p)) return send({ url: QR_SVG, expires_in: 60, inline: true });
+  if ((m = p.match(/\/payments\/1\/(verify|reject|reopen|remove)$/)) && req.method === 'POST') {
+    if (!pay.team) return send({ detail: 'That payment was not found.', code: 'NOT_FOUND' }, 404);
+    const b = JSON.parse(raw || '{}');
+    const handled = (word) => send({ detail: `This payment was already ${word} by Ada Min.`, code: 'PAYMENT_ALREADY_HANDLED', payment_status: PAY_STATUS[pay.team.status] }, 409);
+    if (m[1] === 'verify' || m[1] === 'reject') {
+      if (pay.team.status !== 'PAYMENT_PENDING') return handled(PAY_STATUS[pay.team.status] === 'VERIFIED' ? 'verified' : 'rejected');
+      pay.team.status = m[1] === 'verify' ? 'REGISTERED' : 'PAYMENT_REJECTED'; pay.team.by = 'Ada Min'; pay.team.reason = m[1] === 'reject' ? String(b.reason || '') : '';
+    } else if (m[1] === 'reopen') {
+      if (pay.team.status !== 'PAYMENT_REJECTED') return send({ detail: 'Only a rejected payment can be reopened.', code: 'NOT_REJECTED' }, 409);
+      pay.team.status = 'PAYMENT_PENDING'; pay.team.by = null; pay.team.reason = '';
+    } else {
+      if (pay.team.status === 'REGISTERED') return send({ detail: 'This team is already placed.', code: 'ALREADY_PLACED' }, 409);
+      pay.team = null; return send({ removed: true });
+    }
+    return send({ payment: payRow() });
+  }
   // --- team withdrawal ---
   if (p === '/__withdraw') {
     const q = Object.fromEntries(new URL(req.url, 'http://x').searchParams);
@@ -272,7 +334,7 @@ function handle(req, res, raw) {
   if (/\/judging\/ideas$/.test(p)) return send({ enabled: true, criteria: [], ideas: [], reviewed: 0, total: 0 });
   if (/\/staff$/.test(p)) return send([{ id: 1, role: 'ORGANIZER', user_id: 7, email: 'dana@srkr.ac.in', name: 'Dana R', permissions: ['settings', 'teams'] }]);
   if (/\/finder\/requests$/.test(p)) return send({ incoming: [], mine: [] });
-  if (/\/stats$/.test(p)) return send({ teams_by_status: { FORMING: 5, REGISTERED: 31, DISQUALIFIED: 0, WITHDRAWN: 0 }, teams_total: 36, participants: 128, pending_invites: 4, open_innovation_teams: 6,
+  if (/\/stats$/.test(p)) return send({ teams_by_status: { FORMING: 5, REGISTERED: 31, DISQUALIFIED: 0, WITHDRAWN: 0, PAYMENT_PENDING: pay.team && pay.team.status === 'PAYMENT_PENDING' ? 1 : 0, PAYMENT_REJECTED: 0 }, teams_total: 36, participants: 128, pending_invites: 4, open_innovation_teams: 6,
     problem_statements: problems.map((x) => ({ id: x.id, code: x.code, title: x.title, teams: x.team_count, max_teams: x.max_teams })), rounds: [], forming_teams: [{ id: 5, name: 'Half Team', leader_email: 'l@example.org', members: 1, needed: 1 }],
     min_team_size: 2, registration_closes_at: iso(10), is_registration_open: true });
   if (/\/finder$/.test(p)) return send({ seekers: [{ id: 8, name: 'Chandrasekhar Venkata Subrahmanyam', skills: 'React, Django, Figma, DevOps, Machine Learning', note: 'Looking for a team that wants to build for rural healthcare.', profile: 'CSE 3rd year', is_me: false, phone: '9000000001' }],
@@ -292,6 +354,12 @@ function handle(req, res, raw) {
   return req.method === 'GET' ? send([]) : send({});
 }
 const server = http.createServer((req, res) => {
+  // The browser sends the screenshot straight to "storage": accept it from the site's origin.
+  if (req.url.startsWith('/__upload')) {
+    res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS' });
+    req.resume();
+    return res.end();
+  }
   let raw = ''; req.on('data', (c) => { raw += c; });
   req.on('end', () => handle(req, res, raw));
 });

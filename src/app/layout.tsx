@@ -91,6 +91,7 @@ import { VerificationBanner } from '@/components/verification/VerificationBanner
 import { VerificationGate } from '@/components/verification/VerificationGate';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import BackendHeartbeat from '@/components/BackendHeartbeat';
+import { CelebrationHost } from '@/components/celebrations/CelebrationHost';
 
 export default async function RootLayout({
   children,
@@ -129,6 +130,7 @@ export default async function RootLayout({
             </main>
             <Footer />
             <ToastContainer />
+            <CelebrationHost />
           </EmailVerificationProvider>
         </ToastProvider>
       </body>

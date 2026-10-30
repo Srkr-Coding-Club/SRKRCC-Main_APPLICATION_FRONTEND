@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, BarChart3, Copy, ExternalLink, FileUp, Flag, GitBranch, Globe, Gavel, Lightbulb, Mail, Megaphone, ScanLine,
-  Settings, ShieldCheck, SlidersHorizontal, Target, Trophy, Users,
+  IndianRupee, Settings, ShieldCheck, SlidersHorizontal, Target, Trophy, Users,
 } from 'lucide-react';
 import type { Hackathon, HackathonFeatureKey, HackathonPermissionKey, MyHackathonPermissions } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
@@ -20,6 +20,7 @@ import { RoundsAdminTab } from './RoundsAdminTab';
 import { HackathonAnnouncementsAdminTab } from './HackathonAnnouncementsAdminTab';
 import { RegistrationControlsTab } from './RegistrationControlsTab';
 import { IdeasAdminTab } from './IdeasAdminTab';
+import { PaymentsAdminTab } from './PaymentsAdminTab';
 import { SubmissionsAdminTab } from './SubmissionsAdminTab';
 import { JudgingAdminTab } from './JudgingAdminTab';
 import { ResultsAdminTab } from './ResultsAdminTab';
@@ -38,6 +39,7 @@ interface TabSpec {
   feature?: HackathonFeatureKey;
 }
 
+
 const TABS: TabSpec[] = [
   { key: 'overview', label: 'Overview', icon: BarChart3, permission: 'insights' },
   { key: 'settings', label: 'Settings & Details', icon: Settings, permission: 'settings' },
@@ -45,6 +47,7 @@ const TABS: TabSpec[] = [
   { key: 'team', label: 'Team & roles', icon: ShieldCheck, permission: 'staff' },
   { key: 'problems', label: 'Problem Statements', icon: Target, permission: 'content' },
   { key: 'teams', label: 'Teams', icon: Users, permission: 'teams' },
+  { key: 'payments', label: 'Payments', icon: IndianRupee, permission: 'teams' },
   { key: 'emails', label: 'Team Emails', icon: Mail, permission: 'content' },
   { key: 'timeline', label: 'Public Timeline', icon: GitBranch, permission: 'content' },
   { key: 'rounds', label: 'Rounds & Shortlisting', icon: Flag, permission: 'rounds' },
@@ -189,6 +192,7 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
                 {active.key === 'team' && <RolesAdminTab hackathon={hackathon} />}
                 {active.key === 'problems' && <ProblemStatementsAdminTab slug={slug} />}
                 {active.key === 'teams' && <TeamsAdminTab hackathon={hackathon} />}
+                {active.key === 'payments' && <PaymentsAdminTab hackathon={hackathon} onSaved={setHackathon} canEditSettings={Boolean(me?.permissions.includes('settings'))} />}
                 {active.key === 'emails' && <TeamEmailsAdminTab slug={slug} />}
                 {active.key === 'timeline' && <TimelineAdminTab slug={slug} />}
                 {active.key === 'rounds' && <RoundsAdminTab slug={slug} features={hackathon.features ?? {}} />}
