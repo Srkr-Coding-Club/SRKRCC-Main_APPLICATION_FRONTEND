@@ -6,7 +6,71 @@ import { isSafeHref } from '@/lib/urlSafety';
 interface MarkdownRendererProps {
   content: string;
   className?: string;
+  /**
+   * `compact` (default) is the small, neutral rendering used in cards, previews and editors.
+   * `article` is for long-form pages (a hackathon's overview or rules): a clear heading hierarchy, readable line
+   * length, accent bullets and numbered steps, all on the journey-* theme tokens.
+   */
+  variant?: 'compact' | 'article';
 }
+
+/** Class names for every element, per variant. */
+const STYLES = {
+  compact: {
+    root: 'space-y-1',
+    h1: 'text-xl font-black text-slate-900 dark:text-white mt-4 mb-2',
+    h2: 'text-lg font-black text-slate-900 dark:text-white mt-4 mb-1.5',
+    h3: 'text-base font-bold text-slate-900 dark:text-white mt-3 mb-1',
+    h4: 'text-sm font-bold text-slate-900 dark:text-white mt-2 mb-1',
+    p: 'text-sm leading-relaxed text-slate-600 dark:text-slate-300 my-1',
+    ul: 'list-disc list-inside space-y-1 my-2 text-slate-600 dark:text-slate-300 pl-2',
+    ol: 'list-decimal list-inside space-y-1 my-2 text-slate-600 dark:text-slate-300 pl-2',
+    li: 'text-sm leading-relaxed',
+    strong: 'font-extrabold text-slate-900 dark:text-white',
+    em: 'italic text-slate-700 dark:text-slate-200',
+    code: 'px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-orange-600 dark:text-orange-400 font-mono text-xs border border-slate-200 dark:border-slate-700',
+    link: 'text-orange-500 hover:text-orange-600 underline font-semibold transition',
+    img: 'max-w-full h-auto rounded-lg my-2 border border-slate-200 dark:border-slate-800',
+    quote: 'border-l-4 border-orange-500 pl-3 py-1 my-2 italic text-slate-600 dark:text-slate-400 bg-orange-500/5 rounded-r-lg text-sm',
+    hr: 'my-4 border-slate-200 dark:border-slate-800',
+    pre: 'p-3 my-3 rounded-xl bg-slate-900 text-slate-200 font-mono text-xs overflow-x-auto border border-slate-800',
+    tableWrap: 'my-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800',
+    table: 'min-w-full text-sm border-collapse',
+    thead: 'bg-slate-50 dark:bg-slate-900/60',
+    th: 'px-3 py-2 text-left font-bold text-slate-900 dark:text-white border-b-2 border-slate-200 dark:border-slate-700 whitespace-nowrap',
+    tr: 'border-b border-slate-100 dark:border-slate-800 last:border-0 even:bg-slate-50/50 dark:even:bg-slate-900/30',
+    td: 'px-3 py-2 text-slate-600 dark:text-slate-300 align-top',
+  },
+  article: {
+    root: 'max-w-[78ch]',
+    h1: 'mt-10 mb-3 text-2xl font-black tracking-tight text-journey-text first:mt-0 sm:text-3xl',
+    h2: 'mt-10 mb-3 flex items-center gap-3 border-t border-journey-text/10 pt-6 text-xl font-extrabold tracking-tight text-journey-text first:mt-0 first:border-0 first:pt-0 [h1+&]:mt-3 [h1+&]:border-0 [h1+&]:pt-0 [hr+&]:mt-0 [hr+&]:border-0 [hr+&]:pt-0 sm:text-2xl',
+    h3: 'mt-7 mb-1.5 text-base font-bold text-journey-text sm:text-lg',
+    h4: 'mt-5 mb-1 text-xs font-bold uppercase tracking-wider text-journey-accent',
+    p: 'my-3 break-words text-[15px] leading-7 text-journey-text/80 sm:text-base sm:leading-8',
+    ul: 'my-4 space-y-2.5',
+    ol: 'my-4 space-y-3 [counter-reset:step]',
+    li: 'relative break-words text-[15px] leading-7 text-journey-text/80 sm:text-base sm:leading-8',
+    strong: 'font-bold text-journey-text',
+    em: 'italic text-journey-text/90',
+    code: 'rounded-md border border-journey-text/10 bg-journey-text/5 px-1.5 py-0.5 font-mono text-[0.85em] text-journey-accent',
+    link: 'font-semibold text-journey-accent underline decoration-journey-accent/40 underline-offset-4 transition hover:decoration-journey-accent',
+    img: 'my-4 h-auto max-w-full rounded-xl border border-journey-text/10',
+    quote: 'my-5 rounded-r-xl border-l-4 border-journey-accent bg-journey-accent/5 px-4 py-3 text-[15px] leading-7 text-journey-text/85 sm:text-base',
+    hr: 'my-6 border-journey-text/10',
+    pre: 'my-4 overflow-x-auto rounded-xl border border-journey-text/10 bg-journey-text/5 p-4 font-mono text-xs leading-6 text-journey-text',
+    tableWrap: 'my-5 overflow-x-auto rounded-xl border border-journey-text/10',
+    table: 'min-w-full border-collapse text-sm',
+    thead: 'bg-journey-text/5',
+    th: 'whitespace-nowrap border-b border-journey-text/15 px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-journey-text',
+    tr: 'border-b border-journey-text/10 last:border-0 even:bg-journey-text/[0.03]',
+    td: 'px-4 py-2.5 align-top text-journey-text/80',
+  },
+} as const;
+
+/** Marker drawn in front of each list item in the article variant (an accent dot, or a numbered badge). */
+const ARTICLE_BULLET = "pl-6 before:absolute before:left-0.5 before:top-[0.75em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-journey-accent before:content-[''] sm:before:top-[1em]";
+const ARTICLE_STEP = 'pl-10 [counter-increment:step] before:absolute before:left-0 before:top-0.5 before:grid before:h-7 before:w-7 before:place-items-center before:rounded-full before:bg-journey-accent/15 before:text-xs before:font-bold before:text-journey-accent before:content-[counter(step)]';
 
 /** True if `line` looks like a GFM table separator row, e.g. `| --- | :---: | ---: |`. */
 function isTableSeparatorRow(line: string): boolean {
@@ -25,8 +89,11 @@ function splitTableRow(line: string): string[] {
   return s.split('|').map((c) => c.trim());
 }
 
-export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, className = '', variant = 'compact' }: MarkdownRendererProps) {
   if (!content || !content.trim()) return null;
+
+  const st = STYLES[variant];
+  const article = variant === 'article';
 
   const lines = content.split('\n');
   const elements: React.ReactNode[] = [];
@@ -39,17 +106,17 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     if (currentList) {
       if (currentList.type === 'ul') {
         elements.push(
-          <ul key={`ul-${elements.length}`} className="list-disc list-inside space-y-1 my-2 text-slate-600 dark:text-slate-300 pl-2">
+          <ul key={`ul-${elements.length}`} className={st.ul}>
             {currentList.items.map((item, idx) => (
-              <li key={idx} className="text-sm leading-relaxed">{item}</li>
+              <li key={idx} className={`${st.li} ${article ? ARTICLE_BULLET : ''}`}>{item}</li>
             ))}
           </ul>
         );
       } else {
         elements.push(
-          <ol key={`ol-${elements.length}`} className="list-decimal list-inside space-y-1 my-2 text-slate-600 dark:text-slate-300 pl-2">
+          <ol key={`ol-${elements.length}`} className={st.ol}>
             {currentList.items.map((item, idx) => (
-              <li key={idx} className="text-sm leading-relaxed">{item}</li>
+              <li key={idx} className={`${st.li} ${article ? ARTICLE_STEP : ''}`}>{item}</li>
             ))}
           </ol>
         );
@@ -69,7 +136,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       const codeMatch = remaining.match(/^`([^`]+)`/);
       if (codeMatch) {
         tokens.push(
-          <code key={keyIdx++} className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-orange-600 dark:text-orange-400 font-mono text-xs border border-slate-200 dark:border-slate-700">
+          <code key={keyIdx++} className={st.code}>
             {codeMatch[1]}
           </code>
         );
@@ -92,7 +159,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
               src={src}
               alt={alt}
               loading="lazy"
-              className="max-w-full h-auto rounded-lg my-2 border border-slate-200 dark:border-slate-800"
+              className={st.img}
             />
           ) : (
             <span key={keyIdx++} className="text-rose-600 dark:text-rose-400 text-xs italic">[blocked image: unsafe URL]</span>
@@ -112,7 +179,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
               href={linkMatch[2]}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-orange-500 hover:text-orange-600 underline font-semibold transition"
+              className={st.link}
             >
               {linkMatch[1]}
             </a>
@@ -128,7 +195,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       const boldMatch = remaining.match(/^(\*\*|__)(.*?)\1/);
       if (boldMatch) {
         tokens.push(
-          <strong key={keyIdx++} className="font-extrabold text-slate-900 dark:text-white">
+          <strong key={keyIdx++} className={st.strong}>
             {renderInline(boldMatch[2])}
           </strong>
         );
@@ -140,7 +207,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       const italicMatch = remaining.match(/^(\*|_)(.*?)\1/);
       if (italicMatch) {
         tokens.push(
-          <em key={keyIdx++} className="italic text-slate-700 dark:text-slate-200">
+          <em key={keyIdx++} className={st.em}>
             {renderInline(italicMatch[2])}
           </em>
         );
@@ -180,7 +247,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       if (inCodeBlock) {
         flushList();
         elements.push(
-          <pre key={`code-${i}`} className="p-3 my-3 rounded-xl bg-slate-900 text-slate-200 font-mono text-xs overflow-x-auto border border-slate-800">
+          <pre key={`code-${i}`} className={st.pre}>
             <code>{codeBlockLines.join('\n')}</code>
           </pre>
         );
@@ -201,7 +268,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     // Horizontal Rule
     if (/^(\*\*\*|---|___)$/.test(trimmed)) {
       flushList();
-      elements.push(<hr key={`hr-${i}`} className="my-4 border-slate-200 dark:border-slate-800" />);
+      elements.push(<hr key={`hr-${i}`} className={st.hr} />);
       continue;
     }
 
@@ -218,14 +285,14 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
         cursor++;
       }
       elements.push(
-        <div key={`table-${i}`} className="my-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-          <table className="min-w-full text-sm border-collapse">
+        <div key={`table-${i}`} className={st.tableWrap}>
+          <table className={st.table}>
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-900/60">
+              <tr className={st.thead}>
                 {headerCells.map((cell, ci) => (
                   <th
                     key={ci}
-                    className="px-3 py-2 text-left font-bold text-slate-900 dark:text-white border-b-2 border-slate-200 dark:border-slate-700 whitespace-nowrap"
+                    className={st.th}
                   >
                     {renderInline(cell)}
                   </th>
@@ -234,9 +301,9 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
             </thead>
             <tbody>
               {bodyRows.map((row, ri) => (
-                <tr key={ri} className="border-b border-slate-100 dark:border-slate-800 last:border-0 even:bg-slate-50/50 dark:even:bg-slate-900/30">
+                <tr key={ri} className={st.tr}>
                   {row.map((cell, ci) => (
-                    <td key={ci} className="px-3 py-2 text-slate-600 dark:text-slate-300 align-top">
+                    <td key={ci} className={st.td}>
                       {renderInline(cell)}
                     </td>
                   ))}
@@ -250,32 +317,22 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       continue;
     }
 
-    // Headings
-    if (trimmed.startsWith('### ')) {
+    // Headings (#### down to #)
+    const heading = trimmed.match(/^(#{1,4})\s+(.*)/);
+    if (heading) {
       flushList();
-      elements.push(
-        <h3 key={`h3-${i}`} className="text-base font-bold text-slate-900 dark:text-white mt-3 mb-1">
-          {renderInline(trimmed.slice(4))}
-        </h3>
-      );
-      continue;
-    }
-    if (trimmed.startsWith('## ')) {
-      flushList();
-      elements.push(
-        <h2 key={`h2-${i}`} className="text-lg font-black text-slate-900 dark:text-white mt-4 mb-1.5">
-          {renderInline(trimmed.slice(3))}
-        </h2>
-      );
-      continue;
-    }
-    if (trimmed.startsWith('# ')) {
-      flushList();
-      elements.push(
-        <h1 key={`h1-${i}`} className="text-xl font-black text-slate-900 dark:text-white mt-4 mb-2">
-          {renderInline(trimmed.slice(2))}
-        </h1>
-      );
+      const level = heading[1].length;
+      const body = renderInline(heading[2]);
+      if (level === 1) elements.push(<h1 key={`h1-${i}`} className={st.h1}>{body}</h1>);
+      else if (level === 2) {
+        elements.push(
+          <h2 key={`h2-${i}`} className={st.h2}>
+            {article && <span aria-hidden="true" className="h-6 w-1 shrink-0 rounded-full bg-journey-accent" />}
+            <span>{body}</span>
+          </h2>
+        );
+      } else if (level === 3) elements.push(<h3 key={`h3-${i}`} className={st.h3}>{body}</h3>);
+      else elements.push(<h4 key={`h4-${i}`} className={st.h4}>{body}</h4>);
       continue;
     }
 
@@ -283,7 +340,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     if (trimmed.startsWith('> ')) {
       flushList();
       elements.push(
-        <blockquote key={`quote-${i}`} className="border-l-4 border-orange-500 pl-3 py-1 my-2 italic text-slate-600 dark:text-slate-400 bg-orange-500/5 rounded-r-lg text-sm">
+        <blockquote key={`quote-${i}`} className={st.quote}>
           {renderInline(trimmed.slice(2))}
         </blockquote>
       );
@@ -321,7 +378,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     // Standard Paragraph Line
     flushList();
     elements.push(
-      <p key={`p-${i}`} className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 my-1">
+      <p key={`p-${i}`} className={st.p}>
         {renderInline(rawLine)}
       </p>
     );
@@ -329,5 +386,5 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
 
   flushList();
 
-  return <div className={`space-y-1 ${className}`}>{elements}</div>;
+  return <div className={`${st.root} ${className}`}>{elements}</div>;
 }

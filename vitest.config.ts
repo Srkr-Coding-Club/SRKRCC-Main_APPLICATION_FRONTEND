@@ -9,5 +9,8 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./vitest.setup.ts'],
+    // Every file runs in its own jsdom: more workers than the machine has memory for make the slowest tests miss their waits.
+    poolOptions: { forks: { maxForks: 6, minForks: 1 } },
+    testTimeout: 15_000,
   },
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -12,6 +12,11 @@ import {
   Calendar,
   Laptop,
   Award,
+  Home,
+  BookOpen,
+  FileText,
+  Shield,
+  LogOut,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
@@ -19,6 +24,14 @@ import PillButton from './PillButton';
 import ThemeToggle from './ThemeToggle';
 import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 import { NotificationBell } from './notifications/NotificationBell';
+import { MobileDrawer, type DrawerItem } from './nav/MobileDrawer';
+import { ThemeSegmented } from './nav/ThemeSegmented';
+import { Avatar } from './nav/Avatar';
+import { AccountMenu } from './nav/AccountMenu';
+import { NextUpCard, pickNextUp } from './nav/NextUpCard';
+import { useSignOut } from './nav/useSignOut';
+import { fetchApi } from '@/lib/api-client';
+import type { Hackathon } from '@/lib/types';
 
 interface NavChild {
   label: string;
@@ -63,8 +76,12 @@ interface NavbarProps {
   moduleFlags?: Record<string, boolean>;
 }
 
+// A route belongs to a tab when it is that page or sits under it (/hackathons/some-event is still "Hackathons"); "/" matches only itself.
+const routeIs = (pathname: string, href: string) => (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`));
+
 export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const pathname = usePathname();
+  const signOut = useSignOut();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuth, setIsAuth] = useState(false);
 
@@ -124,6 +141,17 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [nextUp, setNextUp] = useState<Hackathon | null>(null);
+  const nextUpAsked = useRef(false);
+
+  // The "Next up" card in the Events menu: one request, the first time the menu is opened, and only when hackathons are on.
+  useEffect(() => {
+    if (!(dropdownOpen && hovered === 'Events') || nextUpAsked.current || moduleFlags.hackathons === false) return;
+    nextUpAsked.current = true;
+    fetchApi<Hackathon[]>('/hackathons/')
+      .then((list) => setNextUp(pickNextUp(list, new Date())))
+      .catch(() => undefined);
+  }, [dropdownOpen, hovered, moduleFlags.hackathons]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -131,6 +159,36 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  const navRef = useRef<HTMLElement>(null);
+
+  // Escape closes whatever is open; a press outside the bar closes a dropdown opened by touch or keyboard; leaving the page closes both.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setDropdownOpen(false);
+      setHovered(null);
+      setMobileMenuOpen(false);
+    };
+    const onPress = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+        setHovered(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onPress);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onPress);
+    };
+  }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setDropdownOpen(false);
+    setHovered(null);
+  }, [pathname]);
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
@@ -140,13 +198,29 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   }, [mobileMenuOpen]);
 
   const activeNavItem = visibleNavItems.find(
-    (item) => pathname === item.href || (item.children?.some((c) => pathname === c.href) ?? false),
+    (item) => routeIs(pathname, item.href) || (item.children?.some((c) => routeIs(pathname, c.href)) ?? false),
   );
   // The sliding pill sits under the hovered tab, or the active tab when nothing
   // is hovered - so ONLY that tab gets white text. Previously the active tab
   // stayed white after the pill slid away to a hovered sibling, making its
   // label read as invisible on the light bar.
   const pillLabel = hovered ?? activeNavItem?.label ?? null;
+
+  const ICONS: Record<string, React.ElementType> = { Home, Events: Calendar, Forms: FileText, Blogs: BookOpen };
+  const drawerItems: DrawerItem[] = [
+    ...visibleNavItems.map((item) => ({
+      key: item.label,
+      label: item.label,
+      href: item.href,
+      icon: ICONS[item.label] ?? Home,
+      current: activeNavItem?.label === item.label,
+      defaultOpen: item.label === 'Events',
+      children: item.children?.map((child) => ({ label: child.label, href: child.href, desc: child.desc, current: routeIs(pathname, child.href) })),
+    })),
+    ...(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD'
+      ? [{ key: 'admin', label: 'Admin Room', href: '/admin', icon: Shield, accent: true } as DrawerItem]
+      : []),
+  ];
 
   return (
     <>
@@ -170,7 +244,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         {/* A fixed height: a bar that shrinks on scroll shortens the page, which can scroll the person back above the
             threshold and make it grow again, so on a page barely taller than the window the bar shakes. */}
-        <div className="flex h-[72px] items-center justify-between">
+        <div className="flex h-14 items-center justify-between lg:h-[72px]">
           {/* Logo - CODING CLUB leads, in the landing page's own shimmering title
               treatment (.ember-text); SRKR rides above it as a small label, not
               the other way round. */}
@@ -190,6 +264,8 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
 
           {/* Center - segmented sliding-pill nav, a different silhouette than an underline */}
           <nav
+            ref={navRef}
+            aria-label="Main"
             className="hidden lg:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
             onMouseLeave={() => setHovered(null)}
           >
@@ -208,7 +284,26 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 >
                   <Link
                     href={item.href}
-                    className={`relative z-10 flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold transition duration-200 active:scale-95 ${
+                    // A dropdown tab opens on hover, on keyboard focus, and on the first tap of a touch screen (a second tap goes to the page).
+                    onFocus={() => {
+                      if (item.hasDropdown) {
+                        setHovered(item.label);
+                        setDropdownOpen(true);
+                      }
+                    }}
+                    onClick={(event) => {
+                      if (!item.hasDropdown) return;
+                      const touch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+                      if (touch && !(dropdownOpen && hovered === item.label)) {
+                        event.preventDefault();
+                        setHovered(item.label);
+                        setDropdownOpen(true);
+                      }
+                    }}
+                    aria-haspopup={item.hasDropdown ? 'true' : undefined}
+                    aria-expanded={item.hasDropdown ? dropdownOpen && isHovered : undefined}
+                    aria-current={activeNavItem?.label === item.label ? 'page' : undefined}
+                    className={`relative z-10 flex min-h-10 items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold transition duration-200 active:scale-95 ${
                       hasPill
                         ? 'text-white'
                         : 'text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white'
@@ -245,16 +340,18 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 4, scale: 0.98 }}
                           transition={{ duration: 0.18 }}
-                          className="absolute left-1/2 -translate-x-1/2 top-full pt-3 w-72 z-50"
+                          className={`absolute left-1/2 -translate-x-1/2 top-full pt-3 z-50 ${item.label === 'Events' && nextUp ? 'w-[560px]' : 'w-72'}`}
                         >
-                          <div className="p-1.5 rounded-2xl bg-[var(--card-bg)] border border-black/[0.08] dark:border-white/[0.1] shadow-2xl flex flex-col gap-0.5">
+                          <div className="p-1.5 rounded-2xl bg-[var(--card-bg)] border border-black/[0.08] dark:border-white/[0.1] shadow-2xl flex gap-1.5">
+                            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                             {item.children?.map((child) => {
                               const Icon = child.icon;
                               return (
                                 <Link
                                   key={child.label}
                                   href={child.href}
-                                  className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] active:bg-black/[0.06] dark:active:bg-white/[0.08] transition-colors"
+                                  aria-current={routeIs(pathname, child.href) ? 'page' : undefined}
+                                  className={`group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] active:bg-black/[0.06] dark:active:bg-white/[0.08] transition-colors ${routeIs(pathname, child.href) ? 'bg-orange-500/10' : ''}`}
                                 >
                                   {Icon && (
                                     <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-journey-accent transition-colors">
@@ -274,6 +371,8 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                                 </Link>
                               );
                             })}
+                            </div>
+                            {item.label === 'Events' && nextUp && <NextUpCard hackathon={nextUp} now={new Date()} signedIn={isAuth} onNavigate={() => { setDropdownOpen(false); setHovered(null); }} />}
                           </div>
                         </motion.div>
                       )}
@@ -289,57 +388,50 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             {isAuth ? (
               <>
                 <NotificationBell />
-
-                {(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD') && (
-                  <Link
-                    href="/admin"
-                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border border-orange-500/30 transition active:scale-95 duration-100"
-                  >
-                    Admin Room
-                  </Link>
-                )}
-
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#1A1A2E] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] transition shadow-sm active:scale-95 duration-100"
-                  aria-label="User Profile"
-                >
-                  <User className="w-3.5 h-3.5 text-journey-accent" />
-                  <span>{currentUser?.first_name || currentUser?.username || 'Profile'}</span>
-                  {currentUser?.club_id && (
-                    <span className="px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-[10px]">
-                      {currentUser.club_id}
-                    </span>
-                  )}
-                </Link>
+                <AccountMenu
+                  user={currentUser}
+                  onSignOut={signOut}
+                  links={[
+                    { label: 'My profile', href: '/profile', icon: User },
+                    ...(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD' ? [{ label: 'Admin Room', href: '/admin', icon: Shield, accent: true }] : []),
+                  ]}
+                />
               </>
             ) : (
               <>
                 <Link
                   href="/login"
-                  className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-flex min-h-8 items-center"
+                  className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-flex min-h-10 items-center px-1"
                 >
                   Login
                 </Link>
 
-                <PillButton href="/signup" variant="solid" size="sm">
+                <PillButton href="/signup" variant="solid" size="sm" className="min-h-10">
                   Join the Club
                 </PillButton>
               </>
             )}
 
-            <ThemeToggle />
+            {!isAuth && <ThemeToggle />}
           </div>
 
-          {/* Mobile trigger */}
-          <div className="flex lg:hidden items-center gap-2">
+          {/* Mobile trigger: bell and avatar when signed in, the menu always. The theme switch sits in the menu too. */}
+          <div className="flex lg:hidden items-center gap-1.5">
             {isAuth && <NotificationBell />}
-            <ThemeToggle />
+            {isAuth && (
+              <Link href="/profile" aria-label="My profile" className="hidden h-11 w-11 items-center justify-center rounded-full transition active:scale-95 min-[360px]:flex">
+                <Avatar user={currentUser} size={34} />
+              </Link>
+            )}
+            <div className={isAuth ? 'hidden sm:block' : ''}>
+              <ThemeToggle />
+            </div>
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
-              className="w-11 h-11 sm:w-9 sm:h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
+              className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
+              aria-controls="site-mobile-menu"
             >
               <motion.span animate={mobileMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }} className="w-4 h-[1.5px] bg-[#1A1A2E] dark:bg-white" />
               <motion.span animate={mobileMenuOpen ? { opacity: 0 } : { opacity: 1 }} className="w-4 h-[1.5px] bg-[#1A1A2E] dark:bg-white" />
@@ -350,101 +442,62 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
       </div>
     </header>
 
-      {/* Fullscreen mobile menu - rendered as a sibling of <header>, not a       */}
-      {/* descendant, because the header's backdrop-blur creates a new           */}
-      {/* containing block for fixed-position children (per the CSS spec, any    */}
-      {/* ancestor with backdrop-filter/filter/transform does this), which would */}
-      {/* otherwise squash this fixed overlay into the header's own small box    */}
-      {/* instead of the full viewport.                                         */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="lg:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col p-6 pt-24 overflow-y-auto"
-          >
-            <div className="flex flex-col gap-1">
-              {visibleNavItems.map((item, i) => (
-                <motion.div
-                  key={item.label}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.05 * i, duration: 0.3 }}
-                  className="border-b border-black/[0.06] dark:border-white/[0.08] py-3"
+      <MobileDrawer
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        id="site-mobile-menu"
+        label="Site menu"
+        items={drawerItems}
+        identity={
+          isAuth ? (
+            <Link
+              href="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex min-h-[60px] items-center gap-3 rounded-2xl border border-black/[0.08] bg-black/[0.03] px-3 py-2.5 transition active:scale-[0.98] dark:border-white/[0.1] dark:bg-white/[0.05]"
+            >
+              <Avatar user={currentUser} size={42} />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-[15px] font-bold text-[#1A1A2E] dark:text-white">{currentUser?.first_name || currentUser?.username || 'My profile'}</span>
+                {currentUser?.club_id && <span className="font-mono text-xs text-orange-600 dark:text-orange-300">{currentUser.club_id}</span>}
+              </span>
+              <User className="h-4 w-4 shrink-0 text-[#1A1A2E]/55 dark:text-white/55" aria-hidden="true" />
+            </Link>
+          ) : null
+        }
+        footer={
+          <>
+            <ThemeSegmented />
+            {isAuth ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  signOut();
+                }}
+                className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-black/[0.12] text-sm font-semibold text-rose-600 transition active:scale-[0.98] dark:border-white/[0.14] dark:text-rose-300"
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                Sign out
+              </button>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex min-h-12 flex-1 items-center justify-center rounded-full border border-black/[0.12] text-sm font-semibold text-[#1A1A2E] transition active:scale-95 dark:border-white/[0.14] dark:text-white"
                 >
-                  <Link
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="font-poppins font-bold text-2xl text-[#1A1A2E] dark:text-white inline-block transition-transform duration-100 active:scale-95"
-                  >
-                    {item.label}
-                  </Link>
-                  {item.hasDropdown && item.children && (
-                    <div className="mt-3 flex flex-col gap-2.5 pl-1">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.label}
-                          href={child.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center gap-2 text-sm font-medium text-[#1A1A2E]/55 dark:text-white/45 transition-transform duration-100 active:scale-95"
-                        >
-                          <span className="w-1 h-1 rounded-full bg-[#FF7A00]" />
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mt-8 pt-6 border-t border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-3">
-              {isAuth ? (
-                <>
-                  <div className="flex items-center gap-3">
-                    <Link
-                      href="/profile"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white flex items-center justify-center gap-2 transition-transform duration-100 active:scale-95"
-                    >
-                      <User className="w-4 h-4 text-journey-accent" />
-                      <span>{currentUser?.first_name || currentUser?.username || 'My Profile'}</span>
-                    </Link>
-                    {(currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD') && (
-                      <Link
-                        href="/admin"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex-1 text-center py-3 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md transition active:scale-95"
-                      >
-                        Admin Room
-                      </Link>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <Link
-                    href="/login"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex-1 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white transition-transform duration-100 active:scale-95"
-                  >
-                    Login
-                  </Link>
-                  <div className="flex-1">
-                    <PillButton href="/signup" variant="solid" onClick={() => setMobileMenuOpen(false)} className="w-full justify-center">
-                      Join the Club
-                    </PillButton>
-                  </div>
+                  Login
+                </Link>
+                <div className="flex-1">
+                  <PillButton href="/signup" variant="solid" onClick={() => setMobileMenuOpen(false)} className="min-h-12 w-full justify-center">
+                    Join the Club
+                  </PillButton>
                 </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </div>
+            )}
+          </>
+        }
+      />
 
     </>
   );
