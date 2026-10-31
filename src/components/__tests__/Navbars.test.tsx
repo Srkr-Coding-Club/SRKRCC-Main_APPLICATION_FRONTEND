@@ -306,7 +306,7 @@ describe('next-up card in the Events menu', () => {
     const card = await screen.findByRole('link', { name: /HackOverflow 2026/ });
     expect(card.getAttribute('href')).toBe('/hackathons/ho26');
     expect(card.textContent).toMatch(/Register now/);
-    expect(card.textContent).toMatch(/36 teams so far/);
+    expect(card.textContent).not.toMatch(/36|teams? so far/);   // no count of registered teams
     expect(card.textContent).toMatch(/Registration closes in \d+ days?/);
     fireEvent.keyDown(window, { key: 'Escape' });
     fireEvent.focus(events);

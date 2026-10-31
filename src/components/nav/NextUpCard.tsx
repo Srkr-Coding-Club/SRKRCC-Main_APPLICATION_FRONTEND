@@ -40,12 +40,6 @@ export function NextUpCard({ hackathon, now, signedIn = true, onNavigate }: { ha
           {istText(starts)}
           <br />
           {line}
-          {typeof hackathon.team_count === 'number' && hackathon.team_count > 0 && (
-            <>
-              <br />
-              {hackathon.team_count} {hackathon.team_count === 1 ? 'team' : 'teams'} so far
-            </>
-          )}
         </span>
       </span>
       <span className="flex items-center gap-1.5 text-[13px] font-bold">

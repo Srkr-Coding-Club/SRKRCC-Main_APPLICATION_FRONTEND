@@ -37,7 +37,8 @@ describe('HackathonCard', () => {
     expect(screen.getByText('Registration open')).toBeTruthy();
     expect(screen.getByText('Nov 10, 2026')).toBeTruthy();
     expect(screen.getByText('Nov 12, 2026')).toBeTruthy();
-    expect(screen.getByText('3 teams registered')).toBeTruthy();
+    expect(screen.queryByText(/teams? registered/i)).toBeNull();   // how many teams there are is not shown
+    expect(screen.getByText(/^Registration (closes|is open)/)).toBeTruthy();
   });
 
   it('offers Register Team only while registration is open', () => {
@@ -72,5 +73,17 @@ describe('HackathonCard', () => {
     push.mockReset();
     fireEvent.click(screen.getByRole('link', { name: /View details/ }));
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it('says when registration closes, opens or is over, and shows no team count in any of them', () => {
+    const { container } = render(<HackathonCard hackathon={hackathon({ is_registration_open: true, registration_closes_at: '2026-11-30T18:29:00Z', team_count: 41, registered_team_count: 38 })} />);
+    expect(screen.getByText('Registration closes 30 Nov 2026')).toBeTruthy();
+    expect(container.textContent).not.toMatch(/\b(41|38)\b/);
+    cleanup();
+    render(<HackathonCard hackathon={hackathon({ is_registration_open: false, registration_opens_at: '2999-01-01T00:00:00Z' })} />);
+    expect(screen.getByText('Registration opens 1 Jan 2999')).toBeTruthy();
+    cleanup();
+    render(<HackathonCard hackathon={hackathon({ status: 'CLOSED', is_registration_open: false })} />);
+    expect(screen.getByText('Registration closed')).toBeTruthy();
   });
 });
