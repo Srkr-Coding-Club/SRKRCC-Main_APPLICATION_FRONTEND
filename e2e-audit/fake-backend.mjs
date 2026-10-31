@@ -74,7 +74,7 @@ const team = { id: 11, name: 'Null Pointers', status: 'REGISTERED', hackathon_sl
   { user_id: 7, name: 'Dana R', email: 'dana@srkr.ac.in', club_id: 'SRKRCC-001', role: 'LEADER', joined_at: iso(-3), phone_number: '9000000000' },
   { user_id: 8, name: 'Chandrasekhar Venkata Subrahmanyam', email: 'chandrasekhar.venkata.subrahmanyam@srkrec.edu.in', club_id: null, role: 'MEMBER', joined_at: iso(-2) }], problem_statement: null, is_open_innovation: false };
 const user = { id: 7, email: 'dana@srkr.ac.in', username: 'dana', first_name: 'Dana', last_name: 'R', role: 'NON_AFFILIATE', is_email_verified: true };
-const admin = { id: 1, email: 'admin@srkr.ac.in', username: 'admin', first_name: 'Ada', last_name: 'Min', role: 'ADMIN', is_staff: true, is_email_verified: true };
+const admin = { id: 1, email: 'admin@srkr.ac.in', username: 'admin', first_name: 'Ada', last_name: 'Min', role: 'ADMIN', is_staff: true, is_email_verified: true, club_id: '26SCC014' };
 
 const log = [];
 // Registration payment: one team a leader created with its fee, and what an organizer does with it.

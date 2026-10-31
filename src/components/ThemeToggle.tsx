@@ -14,8 +14,13 @@ export default function ThemeToggle({ className = '' }: ThemeToggleProps) {
   // for a returning visitor who previously chose light.
   const [isDarkMode, setIsDarkMode] = useState(true);
 
+  // The class on <html> is the truth: the phone menu's Light/Dark switch changes it too.
   useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains('dark'));
+    const read = () => setIsDarkMode(document.documentElement.classList.contains('dark'));
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => watch.disconnect();
   }, []);
 
   const toggleDarkMode = () => {
@@ -34,8 +39,9 @@ export default function ThemeToggle({ className = '' }: ThemeToggleProps) {
   return (
     <button
       onClick={toggleDarkMode}
-      className={`relative w-11 h-11 sm:w-9 sm:h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-[#1A1A2E]/65 dark:text-white/55 hover:text-journey-accent hover:border-[#FF7A00]/40 transition active:scale-95 duration-100 ${className}`}
+      className={`relative w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-[#1A1A2E]/65 dark:text-white/55 hover:text-journey-accent hover:border-[#FF7A00]/40 transition active:scale-95 duration-100 ${className}`}
       aria-label="Toggle theme"
+      aria-pressed={isDarkMode}
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
