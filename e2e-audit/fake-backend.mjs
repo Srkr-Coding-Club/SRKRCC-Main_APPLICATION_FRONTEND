@@ -74,7 +74,7 @@ const team = { id: 11, name: 'Null Pointers', status: 'REGISTERED', hackathon_sl
   { user_id: 7, name: 'Dana R', email: 'dana@srkr.ac.in', club_id: 'SRKRCC-001', role: 'LEADER', joined_at: iso(-3), phone_number: '9000000000' },
   { user_id: 8, name: 'Chandrasekhar Venkata Subrahmanyam', email: 'chandrasekhar.venkata.subrahmanyam@srkrec.edu.in', club_id: null, role: 'MEMBER', joined_at: iso(-2) }], problem_statement: null, is_open_innovation: false };
 const user = { id: 7, email: 'dana@srkr.ac.in', username: 'dana', first_name: 'Dana', last_name: 'R', role: 'NON_AFFILIATE', is_email_verified: true };
-const admin = { id: 1, email: 'admin@srkr.ac.in', username: 'admin', first_name: 'Ada', last_name: 'Min', role: 'ADMIN', is_staff: true, is_email_verified: true };
+const admin = { id: 1, email: 'admin@srkr.ac.in', username: 'admin', first_name: 'Ada', last_name: 'Min', role: 'ADMIN', is_staff: true, is_email_verified: true, club_id: '26SCC014' };
 
 const log = [];
 // Registration payment: one team a leader created with its fee, and what an organizer does with it.
@@ -85,15 +85,363 @@ const payTeam = () => ({ ...team, id: 21, name: pay.team.name, status: pay.team.
 const payRow = () => ({ id: 1, team_id: 21, team_name: pay.team.name, team_status: pay.team.status, leader_name: 'Dana R', leader_email: 'dana@srkr.ac.in', leader_phone: '9000000000', members: 1, amount: 200, transaction_id: pay.team.tx,
   status: PAY_STATUS[pay.team.status], reason: pay.team.reason, submitted_at: pay.team.at, reviewed_by: pay.team.by || null, reviewed_at: pay.team.by ? iso(0) : null,
   screenshot: { id: 'f-1', name: 'pay.png', size: 70, type: 'image/png', state: 'ATTACHED' }, problem: 'PS-01' });
+// --- organizer team finder (stateful: remove / stop / close / place change what the next GET returns) ---
+const makeFin = () => ({
+  seekers: [
+    { id: 1, user_id: 31, name: 'Chandrasekhar Venkata Subrahmanyam', email: 'chandra@srkr.ac.in', phone: '9000000001', profile: 'CSE · Year 3 · SRKR Engineering College', skills: 'React, Django, Figma, DevOps', note: 'Looking for a team that wants to build for rural healthcare.', listed_at: iso(-5), status: 'WAITING', team: '', pending_requests: 1 },
+    { id: 2, user_id: 32, name: 'Meena K', email: 'meena@srkr.ac.in', phone: '9000000002', profile: 'IT · Year 2', skills: 'Python, ML', note: '', listed_at: iso(-1), status: 'WAITING', team: '', pending_requests: 0 },
+    { id: 3, user_id: 33, name: 'Ravi T', email: 'ravi@srkr.ac.in', phone: '', profile: 'ECE · Year 4', skills: 'Embedded', note: 'IoT is my thing', listed_at: iso(-6), status: 'MATCHED', team: 'Segmentation Faults', pending_requests: 0 },
+  ],
+  teams: [
+    { id: 12, name: 'Segmentation Faults', status: 'FORMING', looking_for: 'A designer and a backend developer', members: 2, max_members: 4, seats_open: 2, problem: 'PS-01', leader: 'Ravi K', leader_email: 'ravik@srkr.ac.in', leader_phone: '9000000009', pending_requests: 1 },
+    { id: 13, name: 'Null Pointers', status: 'REGISTERED', looking_for: '', members: 4, max_members: 4, seats_open: 0, problem: 'Open innovation', leader: 'Dana R', leader_email: 'dana@srkr.ac.in', leader_phone: '', pending_requests: 0 },
+  ],
+  requests: [
+    { id: 1, team_id: 12, team_name: 'Segmentation Faults', user_id: 31, name: 'Chandrasekhar Venkata Subrahmanyam', email: 'chandra@srkr.ac.in', phone: '9000000001', profile: 'CSE · Year 3', status: 'PENDING', message: 'I can build the whole frontend and I have shipped two hackathon projects before.', created_at: iso(-3), decided_at: null, decided_by: '', stuck: true },
+    { id: 2, team_id: 12, team_name: 'Segmentation Faults', user_id: 33, name: 'Ravi T', email: 'ravi@srkr.ac.in', phone: '', profile: 'ECE · Year 4', status: 'ACCEPTED', message: '', created_at: iso(-6), decided_at: iso(-5), decided_by: 'Ravi K', stuck: false },
+  ],
+});
+let fin = makeFin();
+const finStats = () => ({
+  seekers_waiting: fin.seekers.filter((x) => x.status === 'WAITING').length, teams_recruiting: fin.teams.filter((x) => x.seats_open > 0).length,
+  requests_pending: fin.requests.filter((x) => x.status === 'PENDING').length, requests_stuck: fin.requests.filter((x) => x.stuck && x.status === 'PENDING').length,
+  matched: fin.seekers.filter((x) => x.status === 'MATCHED').length, median_hours_to_match: 30.5,
+});
+function finderAdmin(req, p, send, raw) {
+  let m;
+  if (/\/finder\/admin$/.test(p) && req.method === 'GET') return send({ enabled: true, stats: finStats(), ...fin });
+  const body = (() => { try { return JSON.parse(raw || '{}'); } catch { return {}; } })();
+  fin.posts = fin.posts || [];
+  if ((m = p.match(/\/finder\/admin\/seekers\/(\d+)\/remove$/)) && req.method === 'POST') {
+    const x = fin.seekers.find((s) => s.id === Number(m[1])); if (x) { x.status = 'WITHDRAWN'; x.skills = ''; x.note = ''; }
+    fin.posts.push('remove ' + m[1] + ' ' + (body.reason || '')); return send({ removed: true, id: Number(m[1]) });
+  }
+  if ((m = p.match(/\/finder\/admin\/teams\/(\d+)\/stop-recruiting$/)) && req.method === 'POST') {
+    fin.teams = fin.teams.filter((t) => t.id !== Number(m[1])); fin.posts.push('stop ' + m[1]); return send({ stopped: true, requests_closed: 1 });
+  }
+  if ((m = p.match(/\/finder\/admin\/requests\/(\d+)\/cancel$/)) && req.method === 'POST') {
+    const r = fin.requests.find((x) => x.id === Number(m[1])); if (r) { r.status = 'CANCELLED'; r.stuck = false; r.decided_by = 'Ada Min'; r.decided_at = iso(0); }
+    fin.posts.push('cancel ' + m[1]); return send({ request: r });
+  }
+  if (/\/finder\/admin\/place$/.test(p) && req.method === 'POST') {
+    const x = fin.seekers.find((s) => s.id === body.seeker_id); if (x) { x.status = 'MATCHED'; x.team = 'Segmentation Faults'; x.pending_requests = 0; }
+    fin.posts.push('place ' + body.seeker_id + '>' + body.team_id); return send({ placed: true, team_id: body.team_id });
+  }
+  if (/\/finder\/admin\/remind$/.test(p) && req.method === 'POST') { fin.posts.push('remind ' + body.audience); return send({ reminded: 2 }); }
+  return null;
+}
+// --- admin user directory (Users and Members pages): 63 people, server-side filters, paging and the verification actions ---
+const NAMES = ['Sita Rao', 'Meena Kumari', 'Omar Zaid', 'Ravi Teja', 'Nila Priya', 'Chandrasekhar Venkata Subrahmanyam', 'Asha Devi', 'Kiran Babu', 'Lakshmi N', 'Dev Anand'];
+const dirDays = (n) => new Date(Date.now() + n * 86400000).toISOString();
+const makeDirectory = () => Array.from({ length: 63 }, (_, i) => {
+  const name = NAMES[i % NAMES.length] + (i >= NAMES.length ? ` ${Math.floor(i / NAMES.length)}` : '');
+  const member = i % 3 === 0;
+  const verified = i % 4 !== 1;
+  const overdue = !verified && i % 5 === 1;
+  const [first, ...rest] = name.split(' ');
+  return {
+    id: 500 + i, email: `${first.toLowerCase()}${i}@srkr.ac.in`, first_name: first, last_name: rest.join(' '), full_name: name,
+    role: i === 0 ? 'ADMIN' : member ? 'AFFILIATE' : 'NON_AFFILIATE', club_id: member ? `25SCC${String(i + 1).padStart(3, '0')}` : null,
+    membership_status: member && i % 6 === 0 ? 'ALUMNI' : 'ACTIVE', roll_number: i % 7 === 0 ? null : `R${1000 + i}`, college: i % 2 ? { id: 1, code: 'SRKR', name: 'SRKR Engineering College', district: 'West Godavari', state: 'AP' } : null,
+    other_college_name: i % 2 ? '' : 'Some Other Institute of Technology and Research', branch: ['CSE', 'IT', 'ECE', 'AIML'][i % 4], year: (i % 4) + 1,
+    phone_number: i % 5 ? `90000${String(i).padStart(5, '0')}` : null, github_profile: null, linkedin_profile: null, registered_at: null,
+    created_from: i % 9 === 0 ? 'LEGACY_IMPORT' : 'SELF_REGISTRATION', created_at: dirDays(-i), last_login: i % 3 ? dirDays(-i / 2) : null, is_active: true,
+    password_status: i % 9 === 0 ? 'NEEDS_SETUP' : 'ACTIVE', email_verified_at: verified ? dirDays(-i + 1) : null, email_disputed_at: i === 6 ? dirDays(-2) : null,
+    email_state: verified ? 'VERIFIED' : i === 6 ? 'DISPUTED' : overdue ? 'OVERDUE' : 'UNVERIFIED', email_days_left: verified || overdue ? null : (i % 6) + 1,
+    email_deadline: verified ? null : dirDays(overdue ? -2 : (i % 6) + 1), referred_by_display: i % 8 === 0 ? 'Ravi Teja' : '',
+  };
+});
+let directory = makeDirectory();
+const dirLog = [];
+function directoryRoutes(req, p, send, raw) {
+  let m;
+  const url = new URL(req.url, 'http://x');
+  const q = Object.fromEntries(url.searchParams);
+  const base = () => directory.filter((u) => q.scope !== 'members' || u.club_id);
+  const filtered = () => {
+    let rows = base();
+    if (q.q) { const words = q.q.toLowerCase().split(/\s+/); rows = rows.filter((u) => words.every((w) => `${u.full_name} ${u.email} ${u.club_id || ''} ${u.roll_number || ''} ${u.phone_number || ''}`.toLowerCase().includes(w))); }
+    if (q.role) rows = rows.filter((u) => q.role.split(',').includes(u.role));
+    if (q.membership_status) rows = rows.filter((u) => q.membership_status.split(',').includes(u.membership_status));
+    if (q.email) rows = rows.filter((u) => q.email.split(',').some((s) => (s === 'verified' ? u.email_state === 'VERIFIED' : s === 'unverified' ? u.email_state !== 'VERIFIED' : s === 'overdue' ? u.email_state === 'OVERDUE' : u.email_state === 'DISPUTED')));
+    if (q.member === 'yes') rows = rows.filter((u) => u.club_id);
+    if (q.member === 'no') rows = rows.filter((u) => !u.club_id);
+    if (q.branch) rows = rows.filter((u) => u.branch === q.branch);
+    if (q.year) rows = rows.filter((u) => String(u.year) === q.year);
+    if (q.club_id_prefix) rows = rows.filter((u) => (u.club_id || '').startsWith(q.club_id_prefix.toUpperCase()));
+    if (q.ordering === 'club_id') rows = [...rows].sort((a, b) => String(a.club_id).localeCompare(String(b.club_id)));
+    return rows;
+  };
+  if (/\/auth\/users\/directory$/.test(p) && req.method === 'GET') {
+    const rows = filtered();
+    const size = Math.min(Number(q.page_size) || 25, 100); const page = Math.max(1, Number(q.page) || 1);
+    return send({ count: rows.length, next: page * size < rows.length ? 'x' : null, previous: page > 1 ? 'x' : null, results: rows.slice((page - 1) * size, page * size) });
+  }
+  if (/\/auth\/users\/directory\/summary$/.test(p)) {
+    const rows = base();
+    const count = (fn) => rows.filter(fn).length;
+    return send({
+      total: rows.length, verified: count((u) => u.email_state === 'VERIFIED'), unverified: count((u) => u.email_state !== 'VERIFIED'), overdue: count((u) => u.email_state === 'OVERDUE'),
+      disputed: count((u) => u.email_state === 'DISPUTED'), members: count((u) => u.club_id), needs_password: count((u) => u.password_status === 'NEEDS_SETUP'),
+      by_role: { AFFILIATE: count((u) => u.role === 'AFFILIATE'), NON_AFFILIATE: count((u) => u.role === 'NON_AFFILIATE'), VOLUNTEER: 0, JUDGE: 0, CLUB_LEAD: 0, ADMIN: count((u) => u.role === 'ADMIN') },
+      by_membership_status: { ACTIVE: count((u) => u.membership_status === 'ACTIVE'), INACTIVE: 0, SUSPENDED: 0, ALUMNI: count((u) => u.membership_status === 'ALUMNI'), PENDING: 0 },
+    });
+  }
+  if (/\/auth\/users\/directory\/recipients$/.test(p)) { const rows = filtered(); return send({ recipients: rows.map((u) => ({ id: u.id, email: u.email })), truncated: false, limit: 5000 }); }
+  if (p === '/__dirlog') return send(dirLog);
+  if (p === '/__dirreset') { directory = makeDirectory(); dirLog.length = 0; return send({ ok: true }); }
+  if ((m = p.match(/\/auth\/users\/(\d+)\/verify-email$/)) && req.method === 'POST') {
+    const u = directory.find((x) => x.id === Number(m[1])); if (u) { u.email_state = 'VERIFIED'; u.email_verified_at = dirDays(0); u.email_days_left = null; u.email_deadline = null; }
+    dirLog.push('verify ' + m[1]); return send({ verified: true, changed: true });
+  }
+  if ((m = p.match(/\/auth\/users\/(\d+)\/verification\/extend$/)) && req.method === 'POST') {
+    const body = JSON.parse(raw || '{}'); const u = directory.find((x) => x.id === Number(m[1]));
+    if (u) { u.email_state = 'UNVERIFIED'; u.email_days_left = body.days; u.email_deadline = dirDays(body.days); }
+    dirLog.push('extend ' + m[1] + ' ' + body.days); return send({ deadline: dirDays(body.days) });
+  }
+  if ((m = p.match(/\/auth\/users\/(\d+)\/verification\/resend$/)) && req.method === 'POST') { dirLog.push('resend ' + m[1]); return send({ sent: true, email_masked: 'm***@srkr.ac.in' }); }
+  if ((m = p.match(/\/auth\/users\/(\d+)$/)) && req.method === 'PATCH') {
+    const body = JSON.parse(raw || '{}'); const u = directory.find((x) => x.id === Number(m[1]));
+    if (u) Object.assign(u, body);
+    dirLog.push('patch ' + m[1] + ' ' + JSON.stringify(body)); return send(u || {});
+  }
+  return null;
+}
+// --- Club ID control panel: held ids come from the directory above; reservations, events and counters are kept here ---
+let idState = { reservations: [], events: [], counterFrom: 0, nextRes: 1, nextEvent: 1 };
+const idEvent = (kind, label, club_id, extra = {}) => idState.events.unshift({ id: idState.nextEvent++, club_id, kind, kind_label: label, user_email: '', other_email: '', actor_email: 'admin@srkr.ac.in', reason: '', details: {}, created_at: new Date().toISOString(), ...extra });
+const idPerson = (u) => ({ id: u.id, name: u.full_name, email: u.email, role: u.role, membership_status: u.membership_status, club_id: u.club_id, email_verified: u.email_state === 'VERIFIED' });
+const reservedIds = () => idState.reservations.filter((r) => r.status === 'RESERVED');
+function clubIdRoutes(req, p, send, raw) {
+  let m;
+  const body = (() => { try { return JSON.parse(raw || '{}'); } catch { return {}; } })();
+  const held = () => directory.filter((u) => u.club_id);
+  if (/\/auth\/club-ids\/overview$/.test(p)) {
+    const ids = held().map((u) => u.club_id).concat(reservedIds().map((r) => r.club_id));
+    const seqs = ids.filter((i) => /^26SCC\d+$/.test(i)).map((i) => Number(i.slice(5)));
+    const highest = seqs.length ? Math.max(...seqs) : 0;
+    const next = Math.max(highest + 1, idState.counterFrom || 1);
+    return send({
+      counters: [{ prefix: 'SCC', year: 2026, next_sequence: next, next_id: `26SCC${String(next).padStart(3, '0')}`, in_use: seqs.length, highest, gaps: Math.max(highest - seqs.length, 0), has_counter: true, editable: true },
+        { prefix: 'SCC', year: 2025, next_sequence: 300, next_id: '25SCC300', in_use: 21, highest: 277, gaps: 3, has_counter: true, editable: true }],
+      totals: { holders: held().length, reserved: reservedIds().length, retired: idState.events.filter((e) => e.kind === 'CLEARED').length },
+    });
+  }
+  if (/\/auth\/club-ids\/lookup$/.test(p)) {
+    const q = (url0(req).searchParams.get('q') || '').trim();
+    if (/^\d{2}[A-Za-z]{3}\d{3,}$/.test(q)) {
+      const id = q.toUpperCase(); const holder = directory.find((u) => u.club_id === id);
+      return send({ kind: 'id', club_id: id, holder: holder ? idPerson(holder) : null, reservation: reservedIds().find((r) => r.club_id === id) || null, retired: idState.events.some((e) => e.club_id === id && e.kind === 'CLEARED'), events: idState.events.filter((e) => e.club_id === id) });
+    }
+    const people = directory.filter((u) => `${u.full_name} ${u.email}`.toLowerCase().includes(q.toLowerCase())).slice(0, 10).map(idPerson);
+    return send({ kind: 'person', people, reservations: reservedIds().filter((r) => r.email.includes(q.toLowerCase())) });
+  }
+  if (/\/auth\/club-ids\/events$/.test(p)) {
+    const sp = url0(req).searchParams; const kinds = (sp.get('kind') || '').split(',').filter(Boolean); const text = (sp.get('q') || '').toLowerCase();
+    let rows = idState.events.filter((e) => (!kinds.length || kinds.includes(e.kind)) && (!text || `${e.club_id} ${e.user_email} ${e.other_email}`.toLowerCase().includes(text)));
+    const page = Number(sp.get('page')) || 1; const size = Number(sp.get('page_size')) || 25;
+    return send({ count: rows.length, next: null, previous: null, results: rows.slice((page - 1) * size, page * size) });
+  }
+  if (/\/auth\/club-ids\/reservations$/.test(p) && req.method === 'GET') {
+    const wanted = (url0(req).searchParams.get('status') || '').split(',').filter(Boolean);
+    return send({ results: idState.reservations.filter((r) => !wanted.length || wanted.includes(r.status)) });
+  }
+  if (/\/auth\/club-ids\/reservations$/.test(p) && req.method === 'POST') {
+    const email = (body.email || '').toLowerCase(); const id = (body.club_id || '').toUpperCase() || `26SCC${String(850 + idState.nextRes).padStart(3, '0')}`;
+    if (directory.some((u) => u.club_id === id) || reservedIds().some((r) => r.club_id === id)) return send({ detail: `Club ID '${id}' is already assigned to someone.`, code: 'CLUB_ID_UNAVAILABLE' }, 409);
+    const row = { id: idState.nextRes++, club_id: id, email, reason: body.reason || '', source: 'MANUAL', status: 'RESERVED', created_at: new Date().toISOString(), created_by: 'admin@srkr.ac.in', claimed_at: null, claimed_by: '', released_at: null };
+    idState.reservations.unshift(row); idEvent('RESERVED', 'Reserved', id, { reason: row.reason, other_email: email });
+    return send(row, 201);
+  }
+  if ((m = p.match(/\/auth\/club-ids\/reservations\/(\d+)\/release$/)) && req.method === 'POST') {
+    const row = idState.reservations.find((r) => r.id === Number(m[1])); if (row) { row.status = 'RELEASED'; idEvent('RESERVATION_RELEASED', 'Reservation released', row.club_id); }
+    return send(row || {});
+  }
+  if (/\/auth\/club-ids\/allocate$/.test(p) && req.method === 'POST') {
+    const u = directory.find((x) => x.id === body.user_id); const id = `26SCC${String(900 + idState.nextEvent).padStart(3, '0')}`;
+    if (u) { u.club_id = id; idEvent('ISSUED', 'Issued (next number)', id, { user_email: u.email, reason: body.reason }); }
+    return send({ person: idPerson(u) });
+  }
+  if (/\/auth\/club-ids\/assign$/.test(p) && req.method === 'POST') {
+    const u = directory.find((x) => x.id === body.user_id); const id = (body.club_id || '').toUpperCase();
+    if (directory.some((x) => x.club_id === id)) return send({ detail: `Club ID '${id}' is already assigned to someone.`, code: 'CLUB_ID_UNAVAILABLE' }, 409);
+    if (u) { u.club_id = id; idEvent('ASSIGNED', 'Assigned', id, { user_email: u.email, reason: body.reason }); }
+    return send({ person: idPerson(u) });
+  }
+  if (/\/auth\/club-ids\/reassign$/.test(p) && req.method === 'POST') {
+    const from = directory.find((x) => x.club_id === body.club_id); const to = directory.find((x) => x.id === body.to_user_id);
+    if (String(body.confirm).toUpperCase() !== body.club_id) return send({ detail: 'Type the Club ID again to confirm.', code: 'CONFIRM_MISMATCH' }, 400);
+    if (from && to) { from.club_id = null; to.club_id = body.club_id; idEvent('REASSIGNED_OUT', 'Moved away', body.club_id, { user_email: from.email, other_email: to.email, reason: body.reason }); idEvent('REASSIGNED_IN', 'Moved to', body.club_id, { user_email: to.email, other_email: from.email, reason: body.reason }); }
+    return send({ from: idPerson(from), to: idPerson(to), holder_demoted: false });
+  }
+  if (/\/auth\/club-ids\/clear$/.test(p) && req.method === 'POST') {
+    const u = directory.find((x) => x.id === body.user_id);
+    if (!u || String(body.confirm).toUpperCase() !== u.club_id) return send({ detail: 'Type the Club ID again to confirm.', code: 'CONFIRM_MISMATCH' }, 400);
+    const id = u.club_id; u.club_id = null; idEvent('CLEARED', 'Cleared (retired)', id, { user_email: u.email, reason: body.reason });
+    return send({ person: idPerson(u), club_id: id, demoted: false });
+  }
+  if (/\/auth\/club-ids\/counters$/.test(p) && req.method === 'POST') {
+    if (body.next_sequence <= 50) return send({ detail: 'The counter is already past that. It only moves forward.', code: 'NOT_FORWARD' }, 409);
+    idState.counterFrom = body.next_sequence; idEvent('COUNTER_SET', 'Counter moved', `26SCC${String(body.next_sequence).padStart(3, '0')}`, { reason: body.reason });
+    return send({ prefix: 'SCC', year: body.year, next_sequence: body.next_sequence });
+  }
+  return null;
+}
+const url0 = (req) => new URL(req.url, 'http://x');
+// --- past-member reconciliation: one stored run of 12 rows, with the same rules the server applies to the actions ---
+const OUTCOME_LABEL = { MATCH: 'Matches', NAME_DIFFERS: 'Matches, name differs', ID_MISSING_IN_APP: 'Account has no Club ID', ID_MISMATCH: 'Different Club ID in the app', EMAIL_MISMATCH: 'Club ID is under another email', ID_RETIRED: 'Club ID was retired', NO_ACCOUNT: 'No account', NO_ACCOUNT_NO_ID: 'No account and no Club ID', INVALID: 'Cannot be read', DUPLICATE: 'Repeated in the sheet' };
+const RES_LABEL = { PENDING: 'Open', LINKED: 'Club ID linked', KEPT_APP: 'Kept the app value', USED_SHEET: 'Used the sheet value', FOLLOW_UP: 'Marked for follow-up', INVITED: 'Invited', DISMISSED: 'Dismissed' };
+const GROUP_OF = { matched: ['MATCH', 'NAME_DIFFERS'], link: ['ID_MISSING_IN_APP'], mismatch: ['ID_MISMATCH', 'ID_HELD_BY_OTHER', 'EMAIL_MISMATCH', 'ID_RESERVED', 'ID_RETIRED'], no_account: ['NO_ACCOUNT', 'NO_ACCOUNT_NO_ID'], sheet: ['INVALID', 'DUPLICATE', 'NO_ID_IN_SHEET'] };
+const RUN_ID = '11111111-2222-3333-4444-555555555555';
+const person = (name, email, club_id) => ({ id: 900 + Math.abs(email.length), name, email, club_id, role: club_id ? 'AFFILIATE' : 'NON_AFFILIATE' });
+const makeRecon = () => ({ deleted: false, posts: [], rows: [
+  [2, 'Sita Rao', 'sita0@srkr.ac.in', '25SCC001', 'MATCH', 'Email and Club ID agree with the account.', person('Sita Rao', 'sita0@srkr.ac.in', '25SCC001')],
+  [3, 'Omar Z', 'omar12@srkr.ac.in', '25SCC013', 'NAME_DIFFERS', "Email and Club ID agree, but the sheet says 'Omar Z' and the account is 'Omar Zaid'.", person('Omar Zaid', 'omar12@srkr.ac.in', '25SCC013')],
+  [4, 'Meena Kumari', 'meena@example.org', '25SCC080', 'ID_MISSING_IN_APP', 'The account exists and has no Club ID; 25SCC080 is free, so it can be linked.', person('Meena Kumari', 'meena@example.org', null)],
+  [5, 'Second Student', 'second@example.org', '25SCC081', 'ID_MISSING_IN_APP', 'The account exists and has no Club ID; 25SCC081 is free, so it can be linked.', person('Second Student', 'second@example.org', null)],
+  [6, 'Hana Hussain', 'hana@example.org', '25SCC090', 'ID_MISMATCH', 'The account has Club ID 25SCC010; the sheet says 25SCC090.', person('Hana Hussain', 'hana@example.org', '25SCC010')],
+  [7, 'Old Hand', '', '25SCC016', 'EMAIL_MISMATCH', '25SCC016 is held by chandrasekhar15@srkr.ac.in (no email in the sheet). It may be the same person with a new email.', null, person('Chandrasekhar Venkata Subrahmanyam 1', 'chandrasekhar15@srkr.ac.in', '25SCC016')],
+  [8, 'New Person', 'new.person@example.org', '25SCC100', 'NO_ACCOUNT', 'No account uses this email and nobody holds 25SCC100.', null],
+  [9, 'Newer Person', 'newer.person@example.org', '25SCC101', 'NO_ACCOUNT', 'No account uses this email and nobody holds 25SCC101.', null],
+  [10, 'No Id Person', 'noid@example.org', '', 'NO_ACCOUNT_NO_ID', 'No account uses this email, and the sheet gives no Club ID.', null],
+  [11, 'Bad Email', 'not-an-email', '25SCC102', 'INVALID', "'not-an-email' is not an email address.", null],
+  [12, 'Sita Again', 'sita0@srkr.ac.in', '', 'DUPLICATE', 'The same email or Club ID is already on row 2.', null],
+  [13, 'Retired Holder', 'retired@example.org', '25SCC060', 'ID_RETIRED', '25SCC060 was cleared from a member earlier and retired. An admin can still link it on purpose.', person('Retired Holder', 'retired@example.org', null)],
+].map(([row_number, name, email, club_id, outcome, detail, matched_user, other_user = null]) => ({
+  id: 1000 + row_number, row_number, name, email, club_id, outcome, outcome_label: OUTCOME_LABEL[outcome], detail, resolution: 'PENDING', resolution_label: 'Open', note: '',
+  matched_user, other_user, resolved_by: '', resolved_at: null, invited_at: null, actions: [],
+})) });
+let recon = makeRecon();
+const reconActions = (r) => {
+  if (r.resolution !== 'PENDING') return [];
+  if (r.outcome === 'ID_MISSING_IN_APP') return ['link', 'follow_up', 'dismiss'];
+  if (r.outcome === 'ID_RETIRED') return ['link_retired', 'follow_up', 'dismiss'];
+  if (r.outcome === 'ID_MISMATCH') return ['use_sheet', 'keep_app', 'follow_up', 'dismiss'];
+  if (r.outcome === 'NO_ACCOUNT' && r.email && r.club_id && !r.invited_at) return ['invite', 'follow_up', 'dismiss'];
+  if (['EMAIL_MISMATCH', 'NO_ACCOUNT', 'NO_ACCOUNT_NO_ID', 'ID_HELD_BY_OTHER', 'ID_RESERVED'].includes(r.outcome)) return ['keep_app', 'follow_up', 'dismiss'];
+  return [];
+};
+const NEEDS = ['ID_MISSING_IN_APP', 'ID_MISMATCH', 'ID_HELD_BY_OTHER', 'EMAIL_MISMATCH', 'ID_RESERVED', 'ID_RETIRED', 'NO_ACCOUNT', 'NO_ACCOUNT_NO_ID'];
+const reconSummary = () => {
+  const by_outcome = Object.fromEntries(['MATCH', 'NAME_DIFFERS', 'ID_MISSING_IN_APP', 'ID_MISMATCH', 'ID_HELD_BY_OTHER', 'EMAIL_MISMATCH', 'ID_RESERVED', 'ID_RETIRED', 'NO_ACCOUNT', 'NO_ACCOUNT_NO_ID', 'NO_ID_IN_SHEET', 'INVALID', 'DUPLICATE'].map((k) => [k, recon.rows.filter((r) => r.outcome === k).length]));
+  const by_resolution = Object.fromEntries(Object.keys(RES_LABEL).map((k) => [k, recon.rows.filter((r) => r.resolution === k).length]));
+  return { id: RUN_ID, filename: 'past-members-2023.xlsx', sheet: '2023', mapping: { name: 'Name', email: 'Email', club_id: 'Affiliate ID' }, total: recon.rows.length, created_at: new Date().toISOString(), created_by: 'admin@srkr.ac.in', by_outcome, by_resolution, open: recon.rows.filter((r) => NEEDS.includes(r.outcome) && r.resolution === 'PENDING').length };
+};
+function reconRoutes(req, p, send, raw) {
+  let m;
+  const body = (() => { try { return JSON.parse(raw || '{}'); } catch { return {}; } })();
+  const sp = url0(req).searchParams;
+  recon.rows.forEach((r) => { r.actions = reconActions(r); });
+  const done = (r, resolution, note = '', extra = {}) => { Object.assign(r, { resolution, resolution_label: RES_LABEL[resolution], note, resolved_by: 'admin@srkr.ac.in', resolved_at: new Date().toISOString(), ...extra }); r.actions = reconActions(r); return r; };
+  if (/\/auth\/reconciliation\/inspect$/.test(p)) return send({ sheets: [{ name: '2023', rows: 12 }, { name: '2024', rows: 40 }], sheet: sp.get('sheet') || '2023', headers: ['Name', 'Email', 'Affiliate ID', 'Remarks'], suggested: { name: 'Name', email: 'Email', club_id: 'Affiliate ID' }, total_rows: 12, sample: [{ Name: 'Sita Rao', Email: 'sita0@srkr.ac.in', 'Affiliate ID': '25SCC001', Remarks: '' }, { Name: 'Meena Kumari', Email: 'meena@example.org', 'Affiliate ID': '25SCC080', Remarks: 'new' }] });
+  if (/\/auth\/reconciliation\/runs$/.test(p) && req.method === 'POST') { recon = makeRecon(); recon.posts.push('create'); return send(reconSummary(), 201); }
+  if (/\/auth\/reconciliation\/runs$/.test(p)) return send({ results: recon.deleted ? [] : [reconSummary()] });
+  if (!p.includes(RUN_ID)) return null;
+  if (/\/runs\/[^/]+$/.test(p) && req.method === 'DELETE') { recon.deleted = true; recon.posts.push('delete'); return send({ deleted: true }); }
+  if (/\/runs\/[^/]+$/.test(p)) return send(reconSummary());
+  if (/\/recheck$/.test(p)) return send({ changed: 0, summary: reconSummary() });
+  if (/\/missing$/.test(p)) { const rows = directory.filter((u) => u.club_id).slice(0, 7); return send({ count: rows.length, next: null, previous: null, results: rows }); }
+  if (/\/export$/.test(p)) { recon.posts.push('export ' + (sp.get('kind') || 'report') + ' ' + (sp.get('export_format') || 'csv')); res0(req, 'text/csv', 'attachment; filename="members-report-20261030_120000.csv"', '\ufeffSheet Row\n2\n'); return undefined; }
+  if (/\/rows$/.test(p) && req.method === 'GET') {
+    let rows = recon.rows;
+    if (sp.get('group')) rows = rows.filter((r) => GROUP_OF[sp.get('group')].includes(r.outcome));
+    if (sp.get('outcome')) rows = rows.filter((r) => sp.get('outcome').split(',').includes(r.outcome));
+    if (sp.get('open') === '1') rows = rows.filter((r) => r.resolution === 'PENDING' && NEEDS.includes(r.outcome));
+    const q = (sp.get('q') || '').toLowerCase(); if (q) rows = rows.filter((r) => `${r.name} ${r.email} ${r.club_id}`.toLowerCase().includes(q));
+    return send({ count: rows.length, next: null, previous: null, results: rows });
+  }
+  if ((m = p.match(/\/rows\/(\d+)\/(link|use-sheet|decide|invite)$/)) && req.method === 'POST') {
+    const r = recon.rows.find((x) => x.id === Number(m[1])); if (!r) return send({ detail: 'That row was not found.', code: 'NOT_FOUND' }, 404);
+    recon.posts.push(`${m[2]} ${r.row_number}`);
+    if (m[2] === 'link') { if (!['ID_MISSING_IN_APP', 'ID_RETIRED'].includes(r.outcome)) return send({ detail: 'This row is out of date.', code: 'NOT_APPLICABLE' }, 409); r.matched_user.club_id = r.club_id; r.outcome = 'MATCH'; r.outcome_label = OUTCOME_LABEL.MATCH; r.detail = 'Email and Club ID agree with the account.'; return send(done(r, 'LINKED')); }
+    if (m[2] === 'use-sheet') { if (!(body.note || '').trim()) return send({ detail: 'Say why the sheet is right: it is kept in the history.', code: 'REASON_REQUIRED' }, 400); r.matched_user.club_id = r.club_id; r.outcome = 'MATCH'; r.outcome_label = OUTCOME_LABEL.MATCH; return send(done(r, 'USED_SHEET', body.note)); }
+    if (m[2] === 'invite') return send(done(r, 'INVITED', '', { invited_at: new Date().toISOString() }));
+    const choice = { KEEP_APP: 'KEPT_APP', FOLLOW_UP: 'FOLLOW_UP', DISMISS: 'DISMISSED' }[body.choice]; return send(done(r, choice, body.note || ''));
+  }
+  if (/\/bulk$/.test(p) && req.method === 'POST') {
+    const wanted = body.outcome; const open = recon.rows.filter((r) => r.outcome === wanted && r.resolution === 'PENDING');
+    if (open.length !== body.expected) return send({ detail: `The list changed: ${open.length} rows are open now, not ${body.expected}. Reload and check again.`, code: 'STALE', open: open.length }, 409);
+    recon.posts.push(`bulk ${body.action} ${open.length}`);
+    open.forEach((r) => { if (body.action === 'link') { r.matched_user.club_id = r.club_id; r.outcome = 'MATCH'; r.outcome_label = OUTCOME_LABEL.MATCH; done(r, 'LINKED'); } else done(r, 'INVITED', '', { invited_at: new Date().toISOString() }); });
+    return send({ done: open.length, failed: [] });
+  }
+  return null;
+}
+const res0 = (req, type, disposition, text) => { reconRes.writeHead(200, { 'content-type': type, 'content-disposition': disposition }); reconRes.end(text); };
+let reconRes = null;
+// --- club membership requests: a queue of 6 for organizers, and the signed-in person's own request ---
+const STATUS_LABEL = { PENDING: 'Waiting for an organizer', APPROVED: 'Approved', REJECTED: 'Not approved', CANCELLED: 'Withdrawn' };
+const makeMembership = () => ({
+  mine: null, nextId: 20, posts: [], sequence: 900,
+  rows: [
+    ['Asha Devi', 'asha.devi@example.org', true, 'R2201', 'CSE', 2, 'SRKR Engineering College', 'I attended the Git workshop and want to join.'],
+    ['Kiran Babu', 'kiran.b@example.org', true, 'R2202', 'IT', 3, 'SRKR Engineering College', ''],
+    ['Lakshmi N', 'lakshmi@example.org', false, 'R2203', 'ECE', 1, 'Some Other Institute of Technology and Research', 'Please add me, my friends are members.'],
+    ['Dev Anand', 'dev.anand@example.org', true, 'R2204', 'AIML', 4, 'SRKR Engineering College', 'Final year, want to mentor juniors.'],
+    ['Meena Kumari', 'meena.k@example.org', true, 'R2205', 'CSE', 2, 'SRKR Engineering College', ''],
+  ].map(([name, email, verified, roll, branch, year, college, message], i) => ({
+    id: 10 + i, status: 'PENDING', status_label: STATUS_LABEL.PENDING, message, note: '', club_id: '', created_at: new Date(Date.now() - (5 - i) * 86400000).toISOString(), decided_at: null, decided_by: '',
+    person: { id: 700 + i, name, email, email_verified: verified, phone: `9000000${i}00`, roll_number: roll, branch, year, college, role: 'NON_AFFILIATE', membership_status: 'ACTIVE', club_id: null, joined: new Date(Date.now() - 40 * 86400000).toISOString() },
+  })).concat([{ id: 15, status: 'REJECTED', status_label: STATUS_LABEL.REJECTED, message: '', note: 'Please attend one workshop first', club_id: '', created_at: new Date(Date.now() - 9 * 86400000).toISOString(), decided_at: new Date(Date.now() - 8 * 86400000).toISOString(), decided_by: 'admin@srkr.ac.in',
+    person: { id: 710, name: 'Old Request', email: 'old@example.org', email_verified: true, phone: '', roll_number: 'R2100', branch: 'CSE', year: 2, college: 'SRKR', role: 'NON_AFFILIATE', membership_status: 'ACTIVE', club_id: null, joined: new Date(Date.now() - 80 * 86400000).toISOString() } }]),
+});
+let membership = makeMembership();
+const memberCounts = () => Object.fromEntries(Object.keys(STATUS_LABEL).map((k) => [k, membership.rows.filter((r) => r.status === k).length]));
+function membershipRoutes(req, p, send, raw) {
+  let m;
+  const body = (() => { try { return JSON.parse(raw || '{}'); } catch { return {}; } })();
+  const sp = url0(req).searchParams;
+  if (/\/club-membership\/me$/.test(p)) {
+    const r = membership.mine;
+    return send({ club_id: null, role: 'NON_AFFILIATE', request: r, can_request: !r || r.status === 'CANCELLED', blockers: r && r.status === 'PENDING' ? [{ code: 'PENDING', message: 'Your request is waiting for an organizer.' }] : [] });
+  }
+  if (/\/club-membership\/request$/.test(p) && req.method === 'POST') { membership.mine = { id: 99, status: 'PENDING', status_label: STATUS_LABEL.PENDING, message: body.message || '', note: '', club_id: '', created_at: new Date().toISOString(), decided_at: null }; membership.posts.push('request'); return send({ request: membership.mine, auto_approved: false }, 201); }
+  if (/\/club-membership\/cancel$/.test(p) && req.method === 'POST') { membership.mine = { ...membership.mine, status: 'CANCELLED' }; membership.posts.push('cancel'); return send({ request: membership.mine }); }
+  if (/\/club-membership\/requests$/.test(p) && req.method === 'GET') {
+    const wanted = (sp.get('status') || '').split(',').filter(Boolean); const q = (sp.get('q') || '').toLowerCase();
+    const rows = membership.rows.filter((r) => (!wanted.length || wanted.includes(r.status)) && (!q || `${r.person.name} ${r.person.email} ${r.person.roll_number}`.toLowerCase().includes(q)));
+    return send({ count: rows.length, next: null, previous: null, results: rows, counts: memberCounts() });
+  }
+  const decide = (r, status, extra) => Object.assign(r, { status, status_label: STATUS_LABEL[status], decided_at: new Date().toISOString(), decided_by: 'admin@srkr.ac.in', ...extra });
+  if (/\/club-membership\/requests\/bulk-approve$/.test(p) && req.method === 'POST') {
+    let done = 0; const failed = [];
+    (body.ids || []).forEach((id) => { const r = membership.rows.find((x) => x.id === id); if (r && r.status === 'PENDING') { decide(r, 'APPROVED', { club_id: `26SCC${++membership.sequence}` }); done++; } else failed.push({ id, error: 'This request was already approved.', code: 'NOT_PENDING' }); });
+    membership.posts.push(`bulk ${done}`); return send({ done, failed });
+  }
+  if ((m = p.match(/\/club-membership\/requests\/(\d+)\/(approve|reject)$/)) && req.method === 'POST') {
+    const r = membership.rows.find((x) => x.id === Number(m[1])); if (!r) return send({ detail: 'That request was not found.', code: 'NOT_FOUND' }, 404);
+    if (r.status !== 'PENDING') return send({ detail: `This request was already ${r.status_label.toLowerCase()}.`, code: 'NOT_PENDING', status_now: r.status }, 409);
+    if (m[2] === 'reject') { if (!(body.reason || '').trim()) return send({ detail: 'Give the person a reason: they are shown it.', code: 'REASON_REQUIRED' }, 400); decide(r, 'REJECTED', { note: body.reason }); membership.posts.push(`reject ${r.id}`); return send(r); }
+    decide(r, 'APPROVED', { club_id: `26SCC${++membership.sequence}` }); membership.posts.push(`approve ${r.id}`); return send(r);
+  }
+  return null;
+}
 function handle(req, res, raw) {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace(/^\/api/, '').replace(/\/$/, '');
   const noTeam = /Bearer user-noteam/.test(req.headers.authorization || '');
-  const who = /Bearer admin/.test(req.headers.authorization || '') ? admin : user;
+  const who = /Bearer admin/.test(req.headers.authorization || '') ? admin : /Bearer lead/.test(req.headers.authorization || '') ? { ...admin, role: 'CLUB_LEAD', is_staff: false, is_superuser: false } : user;
   const send = (body, status = 200) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
   log.push(`${req.method} ${p}`);
   const fullTeam = { ...team, leader_id: 7, member_count: 2, pending_invites: [], open_innovation: null, created_at: iso(-3), updated_at: iso(-1), looking_for_members: false, looking_for: '' };
   if (p === '/__log') return send(log);
+  if (p.startsWith('/auth/reconciliation/') || p === '/__reconlog' || p === '/__reconreset') {
+    reconRes = res;
+    if (p === '/__reconlog') return send(recon.posts);
+    if (p === '/__reconreset') { recon = makeRecon(); return send({ ok: true }); }
+    const handled = reconRoutes(req, p, send, raw); if (handled !== null) return handled === undefined ? undefined : handled;
+  }
+  if (p.startsWith('/auth/club-membership/') || p === '/__memlog' || p === '/__memreset') {
+    if (p === '/__memlog') return send(membership.posts);
+    if (p === '/__memreset') { membership = makeMembership(); return send({ ok: true }); }
+    const handled = membershipRoutes(req, p, send, raw); if (handled !== null) return handled;
+  }
+  if (p.startsWith('/auth/club-ids/')) { const done = clubIdRoutes(req, p, send, raw); if (done !== null) return done; }
+  if (p === '/__idreset') { idState = { reservations: [], events: [], counterFrom: 0, nextRes: 1, nextEvent: 1 }; directory = makeDirectory(); return send({ ok: true }); }
+  if (p.startsWith('/auth/users/') || p.startsWith('/__dir')) { const done = directoryRoutes(req, p, send, raw); if (done !== null) return done; }
+  if (p === '/__finlog') return send(fin.posts || []);
+  if (p === '/__finreset') { fin = makeFin(); return send({ ok: true }); }
+  if (/\/finder\/admin(\/|$)/.test(p)) { const done = finderAdmin(req, p, send, raw); if (done !== null) return done; }
   let m;
   // --- registration payment ---
   if (p === '/__pay') {
@@ -335,7 +683,7 @@ function handle(req, res, raw) {
   if (/\/staff$/.test(p)) return send([{ id: 1, role: 'ORGANIZER', user_id: 7, email: 'dana@srkr.ac.in', name: 'Dana R', permissions: ['settings', 'teams'] }]);
   if (/\/finder\/requests$/.test(p)) return send({ incoming: [], mine: [] });
   if (/\/stats$/.test(p)) return send({ teams_by_status: { FORMING: 5, REGISTERED: 31, DISQUALIFIED: 0, WITHDRAWN: 0, PAYMENT_PENDING: pay.team && pay.team.status === 'PAYMENT_PENDING' ? 1 : 0, PAYMENT_REJECTED: 0 }, teams_total: 36, participants: 128, pending_invites: 4, open_innovation_teams: 6,
-    problem_statements: problems.map((x) => ({ id: x.id, code: x.code, title: x.title, teams: x.team_count, max_teams: x.max_teams })), rounds: [], forming_teams: [{ id: 5, name: 'Half Team', leader_email: 'l@example.org', members: 1, needed: 1 }],
+    problem_statements: problems.map((x) => ({ id: x.id, code: x.code, title: x.title, domain: x.domain, teams: x.team_count, max_teams: x.max_teams })), rounds: [{ id: 1, order: 1, name: 'Idea review', results_published: true, total: 36, details_submitted: 36, SHORTLISTED: 20, REJECTED: 10, PENDING: 6 }, { id: 2, order: 2, name: 'Final Hackathon - Hackoverflow2k26', results_published: false, total: 20, details_submitted: 0, SHORTLISTED: 0, REJECTED: 0, PENDING: 20 }], forming_teams: [{ id: 5, name: 'Half Team', leader_email: 'l@example.org', members: 1, needed: 1 }],
     min_team_size: 2, registration_closes_at: iso(10), is_registration_open: true });
   if (/\/finder$/.test(p)) return send({ seekers: [{ id: 8, name: 'Chandrasekhar Venkata Subrahmanyam', skills: 'React, Django, Figma, DevOps, Machine Learning', note: 'Looking for a team that wants to build for rural healthcare.', profile: 'CSE 3rd year', is_me: false, phone: '9000000001' }],
     teams: [{ id: 12, name: 'Segmentation Faults', looking_for: 'A designer and a backend developer', members: 2, max_members: 4, problem: 'PS-01', leader: 'Ravi K' }], my_profile: null, my_requests: [] });
@@ -343,7 +691,7 @@ function handle(req, res, raw) {
   if (/\/check-in$/.test(p)) return send({ participants: team.members.map((mm) => ({ user_id: mm.user_id, name: mm.name, email: mm.email, team_id: 11, team_name: 'Null Pointers', role: mm.role, checked_in: false, checked_in_at: null })), total: 2, checked_in: 0 });
   if (/\/my-check-in$/.test(p)) return send({ token: 'abc123', checked_in: false, checked_in_at: null });
   if (/\/my-certificate$/.test(p)) return send({ kind: 'PARTICIPATION', title: 'Certificate of Participation', body: 'for participating in HackOverflow 2026', name: 'Dana R', team: 'Null Pointers', hackathon: 'HackOverflow 2026', organizer: 'SRKR Coding Club', date: iso(16), signatory_name: 'A. Lead', signatory_title: 'President', code: 'CERT-123' });
-  if (/\/analytics$/.test(p)) return send({ funnel: [{ key: 'registered', label: 'Registered', count: 128 }, { key: 'teams', label: 'Teams', count: 36 }], checked_in: 0, waitlisted_teams: 0, by_branch: [{ label: 'CSE', count: 80 }, { label: 'IT', count: 48 }], by_year: [{ label: '3', count: 70 }], by_college: [{ label: 'SRKR', count: 128 }], joined_per_day: [{ date: '2026-10-20', count: 12 }, { date: '2026-10-21', count: 30 }], capacity: { max_teams: 60, max_participants: 240, placed_teams: 36, placed_participants: 128 } });
+  if (/\/analytics$/.test(p)) return send({ funnel: [{ key: 'participants', label: 'Participants joined a team', count: 128 }, { key: 'teams', label: 'Teams created', count: 36 }, { key: 'registered', label: 'Teams registered', count: 31 }, { key: 'ideas', label: 'Teams submitted an idea', count: 24 }, { key: 'ideas_approved', label: 'Teams with an approved idea', count: 18 }, { key: 'submitted', label: 'Teams submitted a project', count: 0 }, { key: 'scored', label: 'Projects scored by a judge', count: 0 }, { key: 'shortlisted', label: 'Teams shortlisted in a round', count: 0 }, { key: 'winners', label: 'Teams with an award', count: 0 }], checked_in: 0, waitlisted_teams: 0, by_branch: [{ label: 'CSE', count: 80 }, { label: 'IT', count: 48 }], by_year: [{ label: '3', count: 70 }], by_college: [{ label: 'SRKR', count: 128 }], joined_per_day: [{ date: '2026-10-20', count: 12 }, { date: '2026-10-21', count: 30 }], capacity: { max_teams: 60, max_participants: 240, placed_teams: 36, placed_participants: 128 } });
   if (/\/my-idea$/.test(p)) return send({ state: 'OPEN', opens_at: iso(-2), deadline: iso(7), review_required: true, project_requires_idea: false, idea: null, can_edit: true, edit_blocked_reason: '', config: { fee_amount: 0, payment_note: '', deck_required: false, linkedin_required: false, files_available: false, payment_qr: null, edits_enabled: true, edits_until: null } });
   if (/\/my-submission$/.test(p)) return send({ state: 'NOT_OPEN', gate: { required: false, satisfied: true, reason: '' }, opens_at: iso(14), deadline: iso(16), submission: null, can_edit: false });
   if (/\/my-registration$/.test(p)) return send({ rules_accepted: true, answers: {}, missing: [] });
@@ -359,6 +707,23 @@ const server = http.createServer((req, res) => {
     res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS' });
     req.resume();
     return res.end();
+  }
+  // GET /hackathons/<slug>/overview: composed from the stand-in's own part endpoints, the way the real server does it.
+  const overviewMatch = /^\/api\/hackathons\/([^/]+)\/overview\/?$/.exec(req.url.split('?')[0]);
+  if (overviewMatch) {
+    const base = `http://127.0.0.1:${PORT}/api/hackathons/${overviewMatch[1]}`;
+    const headers = { authorization: req.headers.authorization || '' };
+    const get = (path) => fetch(base + path, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))));
+    const hidden = []; const errors = {};
+    const part = (name, path, shape = (v) => v) => get(path).then(shape).catch(() => { errors[name] = 'Could not load this part.'; return null; });
+    return Promise.all([get('/stats'), get('/analytics'), part('ideas', '/ideas', (v) => ({ counts: v.counts, missing: v.missing })), part('payments', '/payments'), part('finder', '/finder/admin'), part('withdrawals', '/withdrawals', (v) => ({ pending: v.pending.length }))])
+      .then(([stats, analytics, ideas, payments, finder, withdrawals]) => {
+        if (payments && payments.stage === 'NONE') { payments = null; hidden.push('payments'); }
+        if (finder && !finder.enabled) { finder = null; hidden.push('finder'); }
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ stats, analytics, ideas, payments, finder, withdrawals, hidden, errors }));
+      })
+      .catch(() => { res.writeHead(500, { 'content-type': 'application/json' }); res.end('{}'); });
   }
   let raw = ''; req.on('data', (c) => { raw += c; });
   req.on('end', () => handle(req, res, raw));

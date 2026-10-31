@@ -3,9 +3,10 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Calendar, ArrowRight, ArrowUpRight, Trophy, Users } from 'lucide-react';
+import { Calendar, ArrowRight, ArrowUpRight, Clock, Trophy } from 'lucide-react';
 import { Hackathon } from '@/lib/types';
 import { markdownToPreview } from '@/lib/utils';
+import { registrationLine } from '@/lib/eventDates';
 import BannerImage from '@/components/ui/BannerImage';
 import { useScrollEntrance } from '@/lib/hooks/useScrollEntrance';
 import { coverWipe, drawTimeline, fadeIn, footerRise, popIn, riseFromMask } from '@/lib/entranceMotion';
@@ -40,8 +41,9 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
   const registrationOpen = hackathon.is_registration_open ?? !closed;
   const opensAt = hackathon.registration_opens_at ? new Date(hackathon.registration_opens_at) : null;
   const notYetOpen = !registrationOpen && !closed && !!opensAt && opensAt > new Date();
-  const registeredTeams = hackathon.registered_team_count ?? hackathon.team_count;
   const status = registrationChip(closed, registrationOpen, notYetOpen);
+  // When registration closes or opens: useful to someone deciding, and says nothing about how many teams there are.
+  const registration = registrationLine({ closed, open: registrationOpen, opensAt: hackathon.registration_opens_at, closesAt: hackathon.registration_closes_at });
   const description = markdownToPreview(hackathon.description);
 
   useScrollEntrance(
@@ -136,12 +138,10 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
               <Trophy className="h-4 w-4 shrink-0" style={{ color: accent }} aria-hidden="true" />
               Prize pool: {hackathon.prize_pool}
             </p>
-            {typeof registeredTeams === 'number' && (
-              <p className="flex items-center gap-2 font-medium">
-                <Users className="h-4 w-4 shrink-0" style={{ color: accent }} aria-hidden="true" />
-                {registeredTeams} team{registeredTeams === 1 ? '' : 's'} registered
-              </p>
-            )}
+            <p className="flex items-center gap-2 font-medium">
+              <Clock className="h-4 w-4 shrink-0" style={{ color: accent }} aria-hidden="true" />
+              {registration}
+            </p>
           </div>
 
           <div className="hc-footer mt-auto flex flex-wrap items-stretch gap-2 pt-5">

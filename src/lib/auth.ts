@@ -221,6 +221,9 @@ export async function fetchAndSyncCurrentUser(): Promise<AuthUser | null> {
         first_name: data.first_name,
         last_name: data.last_name,
         role: data.role,
+        // The server's own answer carries these; leaving them out wiped the club ID from the signed-in bar after every sync.
+        club_id: data.club_id,
+        membership_status: data.membership_status,
         roll_number: data.roll_number,
         college: data.college,
         other_college_name: data.other_college_name,

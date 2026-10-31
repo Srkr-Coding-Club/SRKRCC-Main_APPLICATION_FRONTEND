@@ -18,6 +18,11 @@ node e2e-audit/contrast.mjs <light|dark> <base> <anon|user|admin> <route...>    
 node e2e-audit/tabs.mjs <label> <base> <WxH> [theme]            # all 16 admin hackathon tabs
 node e2e-audit/flows.mjs <base> <label>                          # keyboard / structure checks (exit 1 on any failure)
 node e2e-audit/check-in-flow.mjs <base> [outDir]                # check-in console, admin panels, participant card (56 checks: sessions, team codes, stateful stand-in routes)
+node e2e-audit/membership-flow.mjs <base> [outDir]             # club membership: organizers' Requests tab (approve, decline with a reason, approve several, Club Lead read-only) and the member's own card (42 checks)
+node e2e-audit/reconcile-flow.mjs <base> [outDir]              # admin Past Members page: upload and column choice, groups, link one/all, mismatches, invite, missing members, export, delete, Club Lead read-only (66 checks)
+node e2e-audit/club-id-flow.mjs <base> [outDir]               # admin Club ID panel: look-up, assign, reserve/release, move, clear (typed confirmation), counters, history, Club Lead read-only (48 checks)
+node e2e-audit/directory-flow.mjs <base> [outDir]              # admin Users and Members pages: server-side filters in the address, verification badges and actions, paging, broadcast (42 checks)
+node e2e-audit/finder-flow.mjs <base> [outDir]                 # organizer Team Finder tab: people / teams / requests, remove, place, stop, close, remind (46 checks)
 node e2e-audit/payment-flow.mjs <base> [outDir]                # fee paid at registration: payment step, pending / rejected cards, organizer queue (66 checks)
 node e2e-audit/team-modal.mjs <base> [outDir]                  # create-team modal at 7 sizes + light/dark (130 checks)
 node e2e-audit/export-flow.mjs <base>                             # every Export control: file name, requested URL, formats, phone menu (47 checks)

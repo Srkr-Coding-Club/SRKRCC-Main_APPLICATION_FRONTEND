@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, BarChart3, Copy, ExternalLink, FileUp, Flag, GitBranch, Globe, Gavel, Lightbulb, Mail, Megaphone, ScanLine,
-  IndianRupee, Settings, ShieldCheck, SlidersHorizontal, Target, Trophy, Users,
+  IndianRupee, Settings, ShieldCheck, SlidersHorizontal, Target, Trophy, UserSearch, Users,
 } from 'lucide-react';
 import type { Hackathon, HackathonFeatureKey, HackathonPermissionKey, MyHackathonPermissions } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
@@ -21,6 +21,7 @@ import { HackathonAnnouncementsAdminTab } from './HackathonAnnouncementsAdminTab
 import { RegistrationControlsTab } from './RegistrationControlsTab';
 import { IdeasAdminTab } from './IdeasAdminTab';
 import { PaymentsAdminTab } from './PaymentsAdminTab';
+import { FinderAdminTab } from './FinderAdminTab';
 import { SubmissionsAdminTab } from './SubmissionsAdminTab';
 import { JudgingAdminTab } from './JudgingAdminTab';
 import { ResultsAdminTab } from './ResultsAdminTab';
@@ -47,6 +48,7 @@ const TABS: TabSpec[] = [
   { key: 'team', label: 'Team & roles', icon: ShieldCheck, permission: 'staff' },
   { key: 'problems', label: 'Problem Statements', icon: Target, permission: 'content' },
   { key: 'teams', label: 'Teams', icon: Users, permission: 'teams' },
+  { key: 'finder', label: 'Team Finder', icon: UserSearch, permission: 'teams', feature: 'team_finder' },
   { key: 'payments', label: 'Payments', icon: IndianRupee, permission: 'teams' },
   { key: 'emails', label: 'Team Emails', icon: Mail, permission: 'content' },
   { key: 'timeline', label: 'Public Timeline', icon: GitBranch, permission: 'content' },
@@ -186,12 +188,13 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
 
                 <div id="hackathon-tabpanel" role="tabpanel" aria-labelledby={`hackathon-tab-${active.key}`} className="space-y-6">
                 <h2 className="sr-only">{active.label}</h2>
-                {active.key === 'overview' && <HackathonOverviewTab slug={slug} onNavigate={setTab} />}
+                {active.key === 'overview' && <HackathonOverviewTab slug={slug} hackathon={hackathon} onNavigate={setTab} />}
                 {active.key === 'settings' && <HackathonSettingsTab hackathon={hackathon} onSaved={setHackathon} />}
                 {active.key === 'registration' && <RegistrationControlsTab hackathon={hackathon} onSaved={setHackathon} />}
                 {active.key === 'team' && <RolesAdminTab hackathon={hackathon} />}
                 {active.key === 'problems' && <ProblemStatementsAdminTab slug={slug} />}
                 {active.key === 'teams' && <TeamsAdminTab hackathon={hackathon} />}
+                {active.key === 'finder' && <FinderAdminTab hackathon={hackathon} />}
                 {active.key === 'payments' && <PaymentsAdminTab hackathon={hackathon} onSaved={setHackathon} canEditSettings={Boolean(me?.permissions.includes('settings'))} />}
                 {active.key === 'emails' && <TeamEmailsAdminTab slug={slug} />}
                 {active.key === 'timeline' && <TimelineAdminTab slug={slug} />}

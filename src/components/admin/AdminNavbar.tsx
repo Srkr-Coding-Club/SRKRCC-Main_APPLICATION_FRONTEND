@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -25,13 +25,28 @@ import {
   Code,
   Megaphone,
   Flag,
+  KeyRound,
+  FileSpreadsheet,
   Wrench,
+  Search,
+  User,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from '../BrainLogo';
 import ThemeToggle from '../ThemeToggle';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { getStoredUser, AuthUser } from '@/lib/auth';
+import { MobileDrawer, type DrawerItem } from '../nav/MobileDrawer';
+import { ThemeSegmented } from '../nav/ThemeSegmented';
+import { Avatar } from '../nav/Avatar';
+import { AccountMenu } from '../nav/AccountMenu';
+import { useSignOut } from '../nav/useSignOut';
+import { AdminCommandPalette, hackathonEntries, type PaletteEntry } from './AdminCommandPalette';
+import { fetchApi } from '@/lib/api-client';
+import type { Hackathon } from '@/lib/types';
+import { useLiveSection } from '@/lib/hooks/useLiveSection';
+import { membershipApi } from '@/lib/clubMembership';
+import { LogOut } from 'lucide-react';
 import { useMaintenanceAttention } from '@/lib/maintenance';
 
 interface NavChild {
@@ -62,9 +77,9 @@ const navItems: NavItem[] = [
   { label: 'User Control', shortLabel: 'Users', href: '/admin/users', icon: Users },
   {
     label: 'Data Center',
-    shortLabel: 'Data Center ',
+    shortLabel: 'Data Center',
     href: '/admin/responses',
-    icon: LayoutGrid,
+    icon: Database,
     hasDropdown: true,
     children: [
       { label: 'Data Management Center', shortLabel: 'DMC', href: '/admin/data-management', desc: 'Explore & export all platform data', icon: Database },
@@ -79,7 +94,7 @@ const navItems: NavItem[] = [
     label: 'Forms',
     shortLabel: 'Forms',
     href: '/admin/builder',
-    icon: LayoutGrid,
+    icon: FileText,
     hasDropdown: true,
     children: [
       { label: 'Forms Builder', shortLabel: 'Builder', href: '/admin/builder', desc: 'Drag & drop form canvas', icon: Plus },
@@ -95,6 +110,8 @@ const navItems: NavItem[] = [
     hasDropdown: true,
     children: [
       { label: 'Members', shortLabel: 'Members', href: '/admin/members', desc: 'Club member directory', icon: UserCheck },
+      { label: 'Club IDs', shortLabel: 'Club IDs', href: '/admin/club-ids', desc: 'Look up, reserve, assign & count', icon: KeyRound },
+      { label: 'Past Members', shortLabel: 'Past', href: '/admin/reconcile', desc: 'Compare an old sheet with accounts', icon: FileSpreadsheet },
       { label: 'Events & Workshops', shortLabel: 'Events', href: '/admin/events', desc: 'Workshops & Workshop Management', icon: Trophy },
       { label: 'Hackathon Management', shortLabel: 'Hackathons', href: '/admin/hackathons', desc: 'Teams, rounds, shortlisting & notices', icon: Flag },
       { label: 'Content Hub', shortLabel: 'Content', href: '/admin/content', desc: 'Blogs & career postings', icon: BookOpen },
@@ -103,11 +120,16 @@ const navItems: NavItem[] = [
     ],
   },
   { label: 'Audit Logs', shortLabel: 'Audit', href: '/admin/audit-logs', icon: History },
-    {label:'CodeQuest',shortLabel:'CodeQuest',href:'/admin/codequest',icon:Code},
+  { label: 'CodeQuest', shortLabel: 'CodeQuest', href: '/admin/codequest', icon: Code },
 ];
 
 export default function AdminNavbar() {
   const pathname = usePathname();
+  const signOut = useSignOut();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [hackathonResults, setHackathonResults] = useState<PaletteEntry[]>([]);
+  const hackathonsAsked = useRef(false);
+  const [isMac, setIsMac] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -120,9 +142,29 @@ export default function AdminNavbar() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   // Only administrators can see the Maintenance page, so only they ask what needs running.
   const maintenanceAttention = useMaintenanceAttention(currentUser?.role === 'ADMIN');
+  // Club membership requests waiting for an answer: checked every minute while the tab is visible, quietly nothing when not allowed.
+  const memberships = useLiveSection(() => membershipApi.queue({ status: 'PENDING' }), {
+    interval: 60_000,
+    enabled: currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD',
+  });
+  const pendingMembers = memberships.data?.counts.PENDING ?? 0;
+  const waitingFor = (href: string) => (href === '/admin/maintenance' ? maintenanceAttention : href === '/admin/club-ids' ? pendingMembers : 0);
 
   useEffect(() => {
     setCurrentUser(getStoredUser());
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
+  }, []);
+
+  // Ctrl K (Cmd K on a Mac) opens the jump menu from anywhere in the admin area.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   useEffect(() => {
@@ -131,6 +173,24 @@ export default function AdminNavbar() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Escape closes an open dropdown and the phone menu; moving to another page closes both.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setClickedDropdown(null);
+      setHovered(null);
+      setDropdownOpen(false);
+      setMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setClickedDropdown(null);
+  }, [pathname]);
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
@@ -164,13 +224,50 @@ export default function AdminNavbar() {
   // on the dashboard root or any path that doesn't map onto a known section.
   const activeChild = activeNavItem?.children?.find((c) => matchesChild(pathname, c.href));
 
+  const drawerItems: DrawerItem[] = navItems.map((item) => ({
+    key: item.label,
+    label: item.label,
+    href: item.href,
+    icon: item.icon,
+    current: activeNavItem?.label === item.label,
+    children: item.children?.map((child) => ({
+      label: child.label,
+      href: child.href,
+      desc: child.desc,
+      current: matchesChild(pathname, child.href),
+      badge: waitingFor(child.href) || undefined,
+    })),
+  }));
+
+  // The hackathons are asked for once, the first time the jump menu opens; a failure just leaves the pages.
+  useEffect(() => {
+    if (!paletteOpen || hackathonsAsked.current) return;
+    hackathonsAsked.current = true;
+    fetchApi<Hackathon[]>('/hackathons/')
+      .then((list) => setHackathonResults(hackathonEntries(list)))
+      .catch(() => undefined);
+  }, [paletteOpen]);
+
+  const paletteEntries = useMemo<PaletteEntry[]>(
+    () => [
+      ...navItems.flatMap((item) =>
+        item.children
+          ? item.children.map((child) => ({ key: child.href, label: child.label, href: child.href, section: item.label, desc: child.desc, icon: child.icon, badge: waitingFor(child.href) || undefined }))
+          : [{ key: item.href, label: item.label, href: item.href, section: 'Admin', icon: item.icon }],
+      ),
+      ...hackathonResults,
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [maintenanceAttention, pendingMembers, hackathonResults],
+  );
+
   return (
     <>
     <header
       className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
         scrolled
-          ? 'bg-[var(--background)]/90 backdrop-blur-xl border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_0_rgba(0,0,0,0.02)]'
-          : 'bg-[var(--background)]/40 backdrop-blur-md border-transparent'
+          ? 'bg-journey-bg/90 backdrop-blur-xl border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_0_rgba(0,0,0,0.02)]'
+          : 'bg-journey-bg/70 backdrop-blur-md border-transparent'
       }`}
     >
       {/* persistent signature gradient hairline */}
@@ -178,7 +275,7 @@ export default function AdminNavbar() {
 
       <div className="max-w-[1600px] mx-auto px-5 sm:px-8">
         {/* A fixed height, so scrolling never changes the page height (see Navbar.tsx). */}
-        <div className="flex h-[72px] items-center justify-between gap-4">
+        <div className="flex h-14 items-center justify-between gap-4 lg:h-[72px]">
           {/* Logo - sits directly on the bar, no card wrapper */}
           <Link href="/admin" className="group flex items-center gap-2.5 flex-shrink-0" aria-label="Admin Control Room Home">
             <motion.div whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
@@ -197,7 +294,8 @@ export default function AdminNavbar() {
           {/* Center - segmented sliding-pill nav, mirrors the public navbar's silhouette */}
           <nav
             ref={navRef}
-            className="hidden xl:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
+            aria-label="Admin"
+            className="hidden lg:flex items-center gap-1 relative rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-1"
             onMouseLeave={() => setHovered(null)}
           >
             {navItems.map((item) => {
@@ -227,19 +325,22 @@ export default function AdminNavbar() {
                     }}
                     aria-haspopup={item.hasDropdown ? 'true' : undefined}
                     aria-expanded={item.hasDropdown ? isDropdownOpen : undefined}
-                    className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition duration-200 active:scale-95 ${
+                    aria-current={activeNavItem?.label === item.label ? 'page' : undefined}
+                    aria-label={item.label}
+                    title={item.label}
+                    className={`relative z-10 flex min-h-10 min-w-10 justify-center items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition duration-200 active:scale-95 ${
                       hasPill
                         ? 'text-white'
                         : 'text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
-                    {item.shortLabel}
-                    {maintenanceAttention > 0 && item.children?.some((c) => c.href === '/admin/maintenance') && (
-                      <span className="h-2 w-2 rounded-full bg-amber-500" role="img" aria-label={`${maintenanceAttention} maintenance task${maintenanceAttention === 1 ? '' : 's'} need running`} />
+                    <span className={activeNavItem?.label === item.label ? 'inline' : 'hidden xl:inline'}>{item.shortLabel}</span>
+                    {(item.children?.reduce((sum, c) => sum + waitingFor(c.href), 0) ?? 0) > 0 && (
+                      <span className="h-2 w-2 rounded-full bg-amber-500" role="img" aria-label="something here needs attention" />
                     )}
                     {item.hasDropdown && (
-                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`hidden xl:block w-3 h-3 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                     )}
                   </Link>
 
@@ -274,7 +375,8 @@ export default function AdminNavbar() {
                                   key={child.label}
                                   href={child.href}
                                   onClick={() => setClickedDropdown(null)}
-                                  className="group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition active:scale-[0.97]"
+                                  aria-current={matchesChild(pathname, child.href) ? 'page' : undefined}
+                                  className={`group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition active:scale-[0.97] ${matchesChild(pathname, child.href) ? 'bg-orange-500/10' : ''}`}
                                 >
                                   <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#1A1A2E]/60 dark:text-white/50 group-hover/item:text-journey-accent transition-colors">
                                     <ChildIcon className="w-4 h-4" />
@@ -282,8 +384,8 @@ export default function AdminNavbar() {
                                   <div className="flex flex-col">
                                     <span className="flex items-center gap-2 text-[13px] font-semibold text-[#1A1A2E] dark:text-white group-hover/item:text-journey-accent transition-colors">
                                       {child.label}
-                                      {child.href === '/admin/maintenance' && maintenanceAttention > 0 && (
-                                        <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-black" aria-label={`${maintenanceAttention} need running`}>{maintenanceAttention}</span>
+                                      {waitingFor(child.href) > 0 && (
+                                        <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-black" aria-label={`${waitingFor(child.href)} need attention`}>{waitingFor(child.href)}</span>
                                       )}
                                     </span>
                                     <span className="text-[11px] text-[#1A1A2E]/50 dark:text-white/40 leading-snug mt-0.5">
@@ -303,42 +405,42 @@ export default function AdminNavbar() {
             })}
           </nav>
 
-          {/* Right cluster */}
-          <div className="hidden xl:flex items-center gap-3 flex-shrink-0">
+          {/* Right cluster: the jump menu, the bell and one account menu (name, role, profile, main site, theme, sign out). */}
+          <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label={`Jump to a page, press ${isMac ? 'Command' : 'Control'} K`}
+              aria-haspopup="dialog"
+              className="flex min-h-11 items-center gap-2 rounded-full border border-black/[0.08] px-3.5 text-xs font-medium text-[#1A1A2E]/75 transition hover:bg-black/[0.04] hover:text-[#1A1A2E] active:scale-95 dark:border-white/[0.12] dark:text-white/75 dark:hover:bg-white/[0.06] dark:hover:text-white"
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+              <kbd className="hidden font-mono text-[11px] xl:inline">{isMac ? '⌘ K' : 'Ctrl K'}</kbd>
+            </button>
             <NotificationBell />
-
-            <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#8B2E3B] text-white whitespace-nowrap">
-              {currentUser?.role || 'ADMIN'}
-            </span>
-
-            <Link
-              href="/profile"
-              className="text-[12px] font-semibold text-[#1A1A2E]/70 dark:text-white/60 hover:text-journey-accent transition truncate max-w-[140px] active:scale-95 inline-block py-1.5 -my-1.5"
-              title={currentUser?.email}
-            >
-              {currentUser?.first_name || currentUser?.username || currentUser?.email?.split('@')[0] || 'Profile'}
-            </Link>
-
-            <Link
-              href="/"
-              className="flex min-h-8 items-center gap-1.5 text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Main Site
-            </Link>
-
-            <ThemeToggle />
+            <AccountMenu
+              user={currentUser}
+              onSignOut={signOut}
+              nameClassName="hidden 2xl:inline"
+              links={[
+                { label: 'My profile', href: '/profile', icon: User },
+                { label: 'Main site', href: '/', icon: ArrowLeft },
+              ]}
+            />
           </div>
 
-          {/* Mobile trigger */}
-          <div className="flex xl:hidden items-center gap-2">
+          {/* Mobile trigger: bell and the menu; the theme switch is in the menu, and stays here from tablet width up. */}
+          <div className="flex lg:hidden items-center gap-1.5">
             <NotificationBell />
-            <ThemeToggle />
+            <div className="hidden sm:block">
+              <ThemeToggle />
+            </div>
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
-              className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
+              className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
+              aria-controls="admin-mobile-menu"
             >
               <motion.span animate={mobileMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }} className="w-4 h-[1.5px] bg-[#1A1A2E] dark:bg-white" />
               <motion.span animate={mobileMenuOpen ? { opacity: 0 } : { opacity: 1 }} className="w-4 h-[1.5px] bg-[#1A1A2E] dark:bg-white" />
@@ -352,7 +454,7 @@ export default function AdminNavbar() {
       {/* Breadcrumb strip - derived from navItems, hidden on the dashboard root  */}
       {/* and on any path that doesn't map onto a known top-level section.       */}
       {activeNavItem && pathname !== '/admin' && (
-        <div className="w-full border-b border-black/[0.04] dark:border-white/[0.06] bg-[var(--background)]/60">
+        <div className="w-full border-b border-black/[0.04] dark:border-white/[0.06] bg-journey-bg/80">
           <div className="max-w-[1600px] mx-auto px-5 sm:px-8 py-2">
             <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-[#1A1A2E]/70 dark:text-white/65">
               <Link href="/admin" className="inline-flex min-h-6 items-center hover:text-journey-accent transition active:scale-95">
@@ -375,79 +477,52 @@ export default function AdminNavbar() {
         </div>
       )}
 
-      {/* Fullscreen mobile menu - rendered as a sibling of <header>, not a       */}
-      {/* descendant, for the same backdrop-filter containing-block reason       */}
-      {/* documented in the public Navbar.                                      */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="xl:hidden fixed inset-0 top-0 bg-[var(--background)]/98 backdrop-blur-2xl z-40 flex flex-col justify-between p-6 pt-24 overflow-y-auto"
-          >
-            <div className="flex flex-col gap-1">
-              {navItems.map((item, i) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href || (item.children?.some((c) => matchesChild(pathname, c.href)) ?? false);
-                return (
-                  <motion.div
-                    key={item.label}
-                    initial={{ opacity: 0, x: -16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.04 * i, duration: 0.3 }}
-                    className="border-b border-black/[0.06] dark:border-white/[0.08] py-3"
-                  >
-                    <Link
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 font-poppins font-bold text-xl transition-transform duration-100 active:scale-95 ${
-                        isActive ? 'text-journey-accent' : 'text-[#1A1A2E] dark:text-white'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      {item.label}
-                    </Link>
-                    {item.hasDropdown && item.children && (
-                      <div className="mt-3 flex flex-col gap-2.5 pl-1">
-                        {item.children.map((child) => (
-                          <Link
-                            key={child.label}
-                            href={child.href}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="flex items-center gap-2 text-sm font-medium text-[#1A1A2E]/55 dark:text-white/45 transition-transform duration-100 active:scale-95"
-                          >
-                            <span className="w-1 h-1 rounded-full bg-[#FF7A00]" />
-                            {child.label}
-                            {child.href === '/admin/maintenance' && maintenanceAttention > 0 && (
-                              <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-black" aria-label={`${maintenanceAttention} need running`}>{maintenanceAttention}</span>
-                            )}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </div>
+      <AdminCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} entries={paletteEntries} />
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="pt-6 flex items-center gap-4">
-              <span className="px-3 py-1 rounded-md text-xs font-bold bg-[#8B2E3B] text-white">
-                ADMIN
-              </span>
+      <MobileDrawer
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        id="admin-mobile-menu"
+        label="Admin menu"
+        items={drawerItems}
+        identity={
+          <div className="flex min-h-[60px] items-center gap-3 rounded-2xl border border-black/[0.08] bg-black/[0.03] px-3 py-2.5 dark:border-white/[0.1] dark:bg-white/[0.05]">
+            <Avatar user={currentUser} size={42} />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-[15px] font-bold text-[#1A1A2E] dark:text-white">{currentUser?.first_name || currentUser?.username || 'Admin'}</span>
+              <span className="truncate text-xs text-[#1A1A2E]/65 dark:text-white/65">{currentUser?.email}</span>
+            </span>
+            <span className="shrink-0 rounded-md bg-[#8B2E3B] px-2 py-1 text-[10px] font-bold text-white">{currentUser?.role || 'ADMIN'}</span>
+          </div>
+        }
+        footer={
+          <>
+            <ThemeSegmented />
+            <div className="flex items-center gap-2.5">
               <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex-1 flex items-center justify-center gap-2 text-center py-3 rounded-full border border-black/[0.1] dark:border-white/[0.12] font-semibold text-sm text-[#1A1A2E] dark:text-white transition-transform duration-100 active:scale-95"
+                className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-black/[0.12] text-sm font-semibold text-[#1A1A2E] transition active:scale-[0.98] dark:border-white/[0.14] dark:text-white"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                 Back to Main Site
               </Link>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  signOut();
+                }}
+                aria-label="Sign out"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-black/[0.12] text-rose-600 transition active:scale-95 dark:border-white/[0.14] dark:text-rose-300"
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          </>
+        }
+      />
+
     </>
   );
 }

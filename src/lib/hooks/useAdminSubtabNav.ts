@@ -10,6 +10,7 @@ const SUBTAB_ROUTES: Record<string, string> = {
   responses: '/admin/responses',
   csv: '/admin/csv-ingestion',
   members: '/admin/members',
+  'club-ids': '/admin/club-ids',
   users: '/admin/users',
   events: '/admin/events',
   content: '/admin/content',

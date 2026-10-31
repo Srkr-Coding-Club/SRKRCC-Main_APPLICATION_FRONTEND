@@ -16,9 +16,11 @@ import type {
   TeamBatchResult,
   TeamScanResult,
   CheckInRoster,
+  FinderAdminPayload,
   FinderListing,
   Hackathon,
   HackathonAnalytics,
+  OverviewPayload,
   HackathonAward,
   AutoShortlistResult,
   WithdrawalOverview,
@@ -88,7 +90,7 @@ const patch = (body: unknown): RequestInit => ({ method: 'PATCH', body: JSON.str
 const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) });
 
 /** The downloads the server renders for one hackathon (apps/hackathons/exports.py). */
-export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in' | 'payments';
+export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in' | 'payments' | 'finder-seekers' | 'finder-teams';
 
 /** Typed wrappers for /api/hackathons/* (see apps/hackathons/urls.py). */
 export const hackathonApi = {
@@ -262,6 +264,7 @@ export const hackathonApi = {
     clone: (slug: string, body: { title: string; slug?: string; start_date: string; copy_problem_statements?: boolean }) =>
       fetchApi<{ slug: string; title: string }>(`/hackathons/${enc(slug)}/clone/`, json(body)),
     analytics: (slug: string) => fetchApi<HackathonAnalytics>(`/hackathons/${enc(slug)}/analytics/`),
+    overview: (slug: string) => fetchApi<OverviewPayload>(`/hackathons/${enc(slug)}/overview/`),
     submissions: (slug: string) => fetchApi<AdminSubmissionsPayload>(`/hackathons/${enc(slug)}/submissions/`),
     remindMissingSubmissions: (slug: string) =>
       fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/submissions/remind/`, json({})),
@@ -364,6 +367,17 @@ export const hackathonApi = {
       const suffix = search.toString();
       return fetchApi<PaymentQueue>(`/hackathons/${enc(slug)}/payments/${suffix ? `?${suffix}` : ''}`);
     },
+    finder: (slug: string) => fetchApi<FinderAdminPayload>(`/hackathons/${enc(slug)}/finder/admin/`),
+    finderRemoveSeeker: (slug: string, seekerId: number, reason = '') =>
+      fetchApi<{ removed: true }>(`/hackathons/${enc(slug)}/finder/admin/seekers/${seekerId}/remove/`, json({ reason })),
+    finderStopRecruiting: (slug: string, teamId: number, reason = '') =>
+      fetchApi<{ stopped: true; requests_closed: number }>(`/hackathons/${enc(slug)}/finder/admin/teams/${teamId}/stop-recruiting/`, json({ reason })),
+    finderCancelRequest: (slug: string, requestId: number) =>
+      fetchApi<{ request: unknown }>(`/hackathons/${enc(slug)}/finder/admin/requests/${requestId}/cancel/`, json({})),
+    finderPlace: (slug: string, seekerId: number, teamId: number) =>
+      fetchApi<{ placed: true; team_id: number }>(`/hackathons/${enc(slug)}/finder/admin/place/`, json({ seeker_id: seekerId, team_id: teamId })),
+    finderRemind: (slug: string, audience: 'seekers' | 'teams') =>
+      fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/finder/admin/remind/`, json({ audience })),
     paymentAction: (slug: string, paymentId: number, action: PaymentAction, body: { reason?: string } = {}) =>
       fetchApi<{ payment?: PaymentRow; removed?: true }>(`/hackathons/${enc(slug)}/payments/${paymentId}/${action}/`, json(body)),
     createTeam: (slug: string, body: TeamProblemBody & { name: string; leader_email?: string }) =>

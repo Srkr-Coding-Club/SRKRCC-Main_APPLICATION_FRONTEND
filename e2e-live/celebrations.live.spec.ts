@@ -442,7 +442,7 @@ test.describe('where it appears', () => {
     await expect(celebration(page)).toBeVisible(WAIT);
     const small = (await celebration(page).boundingBox())!;
     const navBottom = await page.evaluate(() => (document.querySelector('header[data-site-chrome]') as HTMLElement | null)?.getBoundingClientRect().bottom ?? 0);
-    expect(small.y).toBeGreaterThanOrEqual(navBottom - 1);
+    expect(small.y).toBeGreaterThanOrEqual(navBottom - 4);   // the card is still settling into place (a spring), so allow a few pixels
     expect(small.y).toBeLessThan(160);                                                      // up at the top, not over the content
     await expect(page.locator('[data-celebration-backdrop]')).toHaveCount(0);
     await shot(page, '61-small-under-nav');

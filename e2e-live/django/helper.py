@@ -30,6 +30,17 @@ def create_user(args):
         username=args.email.split('@')[0] + str(User.objects.count()), email=args.email, password=args.password,
         first_name=args.first_name, role=args.role, branch='CSE', year=2, phone_number=args.phone or None,
     )
+    extra = {}
+    if args.complete:
+        extra.update(last_name=args.last_name or 'Tester', roll_number=f'LIVE{user.pk:06d}', other_college_name='SRKR Engineering College', phone_number=args.phone or '9000000000')
+    elif args.last_name:
+        extra['last_name'] = args.last_name
+    if args.club_id:
+        extra['club_id'] = args.club_id
+    if extra:
+        for key, value in extra.items():
+            setattr(user, key, value)
+        user.save()
     if args.verified:
         user.email_verified_at = timezone.now()
         user.save(update_fields=['email_verified_at'])
@@ -37,6 +48,56 @@ def create_user(args):
         user.is_staff = True
         user.save(update_fields=['is_staff'])
     emit({'id': user.pk})
+
+
+def set_verification(args):
+    """Put a person into one email state: verified, unverified (still in the grace period), overdue or disputed."""
+    now = timezone.now()
+    fields = {
+        'verified': dict(email_verified_at=now, email_disputed_at=None),
+        'unverified': dict(email_verified_at=None, email_disputed_at=None, email_verify_deadline=now + timedelta(days=5)),
+        'overdue': dict(email_verified_at=None, email_disputed_at=None, email_verify_deadline=now - timedelta(days=2)),
+        'disputed': dict(email_verified_at=None, email_disputed_at=now, email_verify_deadline=now + timedelta(days=5)),
+    }[args.state]
+    User.objects.filter(email__iexact=args.email).update(**fields)
+    emit({'ok': True})
+
+
+def user_state(args):
+    user = User.objects.filter(email__iexact=args.email).first()
+    if user is None:
+        emit(None)
+        return
+    emit({
+        'club_id': user.club_id, 'role': user.role, 'membership_status': user.membership_status, 'verified': bool(user.email_verified_at),
+        'days_left': round((user.email_verify_deadline - timezone.now()).total_seconds() / 86400, 1) if user.email_verify_deadline else None,
+    })
+
+
+def club_id_state(args):
+    from apps.accounts.models import ClubIdEvent, ClubIdReservation
+    holder = User.objects.filter(club_id__iexact=args.club_id).first()
+    reservation = ClubIdReservation.objects.filter(club_id__iexact=args.club_id).order_by('-id').first()
+    emit({
+        'holder': holder.email if holder else None, 'reservation': {'email': reservation.reserved_for_email, 'status': reservation.status} if reservation else None,
+        'events': list(ClubIdEvent.objects.filter(club_id__iexact=args.club_id).order_by('id').values_list('kind', flat=True)),
+    })
+
+
+def make_sheet(args):
+    """Write a real .xlsx with two sheets (the second is the one with the data) for the past-member upload."""
+    import openpyxl
+    rows = json.loads(args.rows)
+    book = openpyxl.Workbook()
+    notes = book.active
+    notes.title = 'Notes'
+    notes.append(['Old register', 'ignore this sheet'])
+    sheet = book.create_sheet('2023 members')
+    sheet.append(['Student Name', 'E-mail', 'Affiliate ID', 'Remarks'])
+    for row in rows:
+        sheet.append(row + [''])
+    book.save(args.path)
+    emit({'path': args.path, 'rows': len(rows)})
 
 
 def set_deadline(args):
@@ -339,6 +400,38 @@ def staff_user(args):
     emit({'ok': True})
 
 
+def list_seeker(args):
+    """List a person in the team finder, as if they had done it `days` days ago."""
+    from apps.hackathons.models import Hackathon, TeamSeeker
+    seeker, _ = TeamSeeker.objects.update_or_create(
+        hackathon=Hackathon.objects.get(slug=args.slug), user=User.objects.get(email__iexact=args.email),
+        defaults=dict(skills=args.skills, note=args.note, is_active=True),
+    )
+    TeamSeeker.objects.filter(pk=seeker.pk).update(created_at=timezone.now() - timedelta(days=args.days))
+    emit({'id': seeker.pk})
+
+
+def ask_to_join(args):
+    """A person's request to the team named Open Door, sent `hours` hours ago and still waiting."""
+    from apps.hackathons.models import Team, TeamJoinRequest
+    team = Team.objects.get(hackathon__slug=args.slug, name='Open Door')
+    join = TeamJoinRequest.objects.create(hackathon=team.hackathon, team=team, user=User.objects.get(email__iexact=args.email), message=args.message)
+    TeamJoinRequest.objects.filter(pk=join.pk).update(created_at=timezone.now() - timedelta(hours=args.hours))
+    emit({'id': join.pk})
+
+
+def finder_state(args):
+    from apps.hackathons.models import Team, TeamJoinRequest, TeamSeeker
+    team = Team.objects.filter(hackathon__slug=args.slug, name='Open Door').first()
+    emit({
+        'members': sorted(m.user.email for m in team.memberships.select_related('user')) if team else [],
+        'status': team.status if team else None,
+        'recruiting': team.looking_for_members if team else None,
+        'seekers': {s.user.email: {'active': s.is_active, 'skills': s.skills, 'note': s.note} for s in TeamSeeker.objects.filter(hackathon__slug=args.slug).select_related('user')},
+        'requests': {r.user.email: r.status for r in TeamJoinRequest.objects.filter(hackathon__slug=args.slug).select_related('user')},
+    })
+
+
 def celebrations_of(args):
     from apps.celebrations.models import Celebration
     rows = Celebration.objects.filter(user__email__iexact=args.email).order_by('id')
@@ -383,11 +476,161 @@ def make_winner(args):
     emit({'ok': True})
 
 
+# ---- Organizer Overview ------------------------------------------------------------------------------------------------
+
+_STAGE_DAYS = {
+    # registration opens, closes, ideas due, event starts, event ends (days from now)
+    'registration': (-7, 5, 9, 14, 15),
+    'ideas': (-20, -3, 2, 10, 11),
+    'selection': (-30, -10, -5, 4, 5),
+    'results': (-40, -25, -20, -4, -3),
+}
+
+
+def _stage_dates(stage):
+    now = timezone.now()
+    if stage == 'event':
+        return dict(
+            registration_opens_at=now - timedelta(days=20), registration_closes_at=now - timedelta(days=6), idea_deadline=now - timedelta(days=8),
+            start_date=now - timedelta(hours=3), end_date=now + timedelta(hours=20),
+            check_in_opens_at=now - timedelta(hours=2), check_in_closes_at=now + timedelta(hours=10),
+        )
+    opens, closes, ideas, start, end = _STAGE_DAYS[stage]
+    return dict(
+        registration_opens_at=now + timedelta(days=opens), registration_closes_at=now + timedelta(days=closes), idea_deadline=now + timedelta(days=ideas),
+        start_date=now + timedelta(days=start), end_date=now + timedelta(days=end), check_in_opens_at=None, check_in_closes_at=None,
+    )
+
+
+def _people(count, tag):
+    made = []
+    for number in range(count):
+        key = f'{tag}{number}-{User.objects.count()}'
+        made.append(User.objects.create_user(username=key, email=f'{key}@example.org', password='x', branch='CSE', year=3, first_name=tag.title(), last_name=str(number)))
+    return made
+
+
+def _fill_teams(hack, count, status, first_day, spread, tag, members=2):
+    """`count` teams with `members` people each, joined on days spread over `spread` days from first_day."""
+    from apps.hackathons.models import Team, TeamMember
+    for number in range(count):
+        people = _people(members, f'{tag}{number}x')
+        team = Team.objects.create(hackathon=hack, name=f'{tag.title()} team {number + 1}', leader=people[0], status=status)
+        joined = first_day + timedelta(days=(number * spread) // max(count, 1), hours=2)
+        Team.objects.filter(pk=team.pk).update(created_at=joined)
+        for index, person in enumerate(people):
+            member = TeamMember.objects.create(team=team, hackathon=hack, user=person, role='LEADER' if index == 0 else 'MEMBER')
+            TeamMember.objects.filter(pk=member.pk).update(joined_at=joined)
+
+
+def make_overview_hackathon(args):
+    """A hackathon in a given stage with registered and forming teams spread over time, optional fees, limits and an earlier edition."""
+    from apps.hackathons.models import Hackathon
+    if Hackathon.objects.filter(slug=args.slug).exists():   # a restarted test worker seeds again: keep what is there
+        return emit({'id': Hackathon.objects.get(slug=args.slug).pk, 'previous': None, 'existing': True})
+    now = timezone.now()
+    dates = _stage_dates(args.stage)
+    base = dict(
+        theme='t', description='d', status='LIVE', min_team_size=2, max_team_size=3, features={'ideas': True, 'team_finder': True, 'check_in': True},
+        payment_stage='REGISTRATION' if args.fee else 'NONE', idea_fee_amount=args.fee, max_teams=args.max_teams or None,
+        max_participants=args.max_participants or None, idea_review_required=True,
+    )
+    previous = None
+    if args.previous:
+        shift = timedelta(days=365)
+        previous = Hackathon.objects.create(slug=f'{args.slug}-prev', title=f'{args.title} (last year)', **{**base, **{k: (v - shift if v else v) for k, v in dates.items()}})
+        window = (previous.registration_closes_at - previous.registration_opens_at).days or 1
+        _fill_teams(previous, args.previous, 'REGISTERED', previous.registration_opens_at, window, 'old')
+    hack = Hackathon.objects.create(slug=args.slug, title=args.title, cloned_from=previous, **{**base, **dates})
+    window = max(((hack.registration_closes_at or now) - hack.registration_opens_at).days, 1)
+    span = min(window, max((now - hack.registration_opens_at).days, 1))
+    _fill_teams(hack, args.teams, 'REGISTERED', hack.registration_opens_at, span, 'reg')
+    _fill_teams(hack, args.forming, 'FORMING', now - timedelta(days=1), 1, 'form', members=1)
+    if args.statements:
+        from apps.hackathons.models import ProblemStatement
+        domains = ['HealthTech', 'AgriTech', 'EdTech']
+        for number in range(args.statements):
+            ProblemStatement.objects.create(
+                hackathon=hack, code=f'PS-{number + 1:02d}', title=f'Statement {number + 1}', domain=domains[number % len(domains)],
+                max_teams=1 if number == 0 else None, order=number,
+            )
+        # Statement 1 is full: its one team picked it. Statement 2 has a team; the rest nobody has picked.
+        picked = list(hack.teams.filter(status='REGISTERED').order_by('id')[:2])
+        for team, code in zip(picked, ['PS-01', 'PS-02']):
+            team.problem_statement = ProblemStatement.objects.get(hackathon=hack, code=code)
+            team.save(update_fields=['problem_statement'])
+    emit({'id': hack.pk, 'previous': previous.slug if previous else None})
+
+
+def set_stage(args):
+    from apps.hackathons.models import Hackathon
+    Hackathon.objects.filter(slug=args.slug).update(**_stage_dates(args.stage))
+    emit({'ok': True})
+
+
+def add_payment(args):
+    """Teams with a fee payment in the given state, submitted `--hours` ago."""
+    from apps.hackathons.models import Hackathon, PaymentStatus, Team, TeamMember, TeamPayment
+    hack = Hackathon.objects.get(slug=args.slug)
+    team_status = {'PENDING': 'PAYMENT_PENDING', 'VERIFIED': 'REGISTERED', 'REJECTED': 'PAYMENT_REJECTED'}[args.status]
+    if args.team_status:
+        team_status = args.team_status
+    for number in range(args.count):
+        leader = _people(1, 'payer')[0]
+        team = Team.objects.create(hackathon=hack, name=f'Payer {Team.objects.count()}', leader=leader, status=team_status)
+        TeamMember.objects.create(team=team, hackathon=hack, user=leader, role='LEADER')
+        txn = f'TX{Team.objects.count()}{number}'
+        payment = TeamPayment.objects.create(
+            hackathon=hack, team=team, team_name=team.name, leader_name=leader.first_name, leader_email=leader.email, amount=hack.idea_fee_amount,
+            transaction_id=txn, transaction_key=txn.lower(), status=getattr(PaymentStatus, args.status),
+        )
+        TeamPayment.objects.filter(pk=payment.pk).update(created_at=timezone.now() - timedelta(hours=args.hours))
+    emit({'made': args.count})
+
+
+def add_ideas(args):
+    """An idea in the given state for the first `--count` registered teams that have none."""
+    from apps.hackathons.models import Hackathon, IdeaSubmission
+    hack = Hackathon.objects.get(slug=args.slug)
+    teams = list(hack.teams.filter(status='REGISTERED', idea__isnull=True).order_by('id')[:args.count])
+    for team in teams:
+        IdeaSubmission.objects.create(team=team, title=f'{team.name} idea', problem='p', solution='s', status=args.status, submitted_by=team.leader)
+    emit({'made': len(teams)})
+
+
+def add_withdrawal(args):
+    from apps.hackathons.models import Hackathon, WithdrawalRequest
+    team = Hackathon.objects.get(slug=args.slug).teams.filter(status='REGISTERED').order_by('id')[args.index]
+    WithdrawalRequest.objects.get_or_create(team=team, status='PENDING', defaults=dict(requested_by=team.leader, reason='Our laptop broke'))
+    emit({'team': team.name})
+
+
+def arrive(args):
+    """Check the first `--count` people of registered teams in at the arrival session."""
+    from apps.hackathons.models import CheckIn, Hackathon, TeamMember
+    hack = Hackathon.objects.get(slug=args.slug)
+    main = hack.main_check_in_session()
+    members = list(TeamMember.objects.filter(hackathon=hack, team__status='REGISTERED').select_related('team').order_by('id')[:args.count])
+    for member in members:
+        CheckIn.objects.get_or_create(hackathon=hack, session=main, user=member.user, defaults=dict(team=member.team))
+    emit({'arrived': len(members)})
+
+
+def staff_perms(args):
+    """Give someone a hackathon staff role with exactly these permissions."""
+    from apps.hackathons.models import Hackathon, HackathonStaff
+    HackathonStaff.objects.update_or_create(
+        hackathon=Hackathon.objects.get(slug=args.slug), user=User.objects.get(email__iexact=args.email), defaults={'role': 'VOLUNTEER', 'permissions': args.perms},
+    )
+    emit({'ok': True})
+
+
 parser = argparse.ArgumentParser()
 sub = parser.add_subparsers(dest='command', required=True)
 p = sub.add_parser('create_user'); p.set_defaults(fn=create_user)
 p.add_argument('email'); p.add_argument('--password', default='Live!Pass123'); p.add_argument('--first-name', default='Dee')
 p.add_argument('--role', default='NON_AFFILIATE'); p.add_argument('--verified', action='store_true'); p.add_argument('--staff', action='store_true'); p.add_argument('--phone', default='')
+p.add_argument('--last-name', default=''); p.add_argument('--complete', action='store_true'); p.add_argument('--club-id', default='')
 p = sub.add_parser('set_deadline'); p.set_defaults(fn=set_deadline); p.add_argument('email'); p.add_argument('--days', type=float, required=True)
 p = sub.add_parser('get_user'); p.set_defaults(fn=get_user); p.add_argument('email')
 p = sub.add_parser('count_users'); p.set_defaults(fn=count_users); p.add_argument('email')
@@ -415,12 +658,29 @@ p = sub.add_parser('team_status'); p.set_defaults(fn=team_status); p.add_argumen
 p = sub.add_parser('notifications'); p.set_defaults(fn=notifications); p.add_argument('email')
 p = sub.add_parser('age_payments'); p.set_defaults(fn=age_payments); p.add_argument('slug'); p.add_argument('--hours', type=float, required=True)
 p = sub.add_parser('staff_user'); p.set_defaults(fn=staff_user); p.add_argument('slug'); p.add_argument('email')
+p = sub.add_parser('set_verification'); p.set_defaults(fn=set_verification); p.add_argument('email'); p.add_argument('--state', required=True, choices=['verified', 'unverified', 'overdue', 'disputed'])
+p = sub.add_parser('user_state'); p.set_defaults(fn=user_state); p.add_argument('email')
+p = sub.add_parser('club_id_state'); p.set_defaults(fn=club_id_state); p.add_argument('club_id')
+p = sub.add_parser('make_sheet'); p.set_defaults(fn=make_sheet); p.add_argument('path'); p.add_argument('--rows', required=True)
+p = sub.add_parser('list_seeker'); p.set_defaults(fn=list_seeker); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--days', type=float, default=0)
+p.add_argument('--skills', default='React'); p.add_argument('--note', default='')
+p = sub.add_parser('ask_to_join'); p.set_defaults(fn=ask_to_join); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--hours', type=float, default=1); p.add_argument('--message', default='Please take me in')
+p = sub.add_parser('finder_state'); p.set_defaults(fn=finder_state); p.add_argument('slug')
 p = sub.add_parser('celebrations_of'); p.set_defaults(fn=celebrations_of); p.add_argument('email')
 p = sub.add_parser('award_celebration'); p.set_defaults(fn=award_celebration); p.add_argument('email'); p.add_argument('kind'); p.add_argument('key')
 p.add_argument('--link', default=''); p.add_argument('--context', nargs='*', default=[])
 p = sub.add_parser('expire_celebrations'); p.set_defaults(fn=expire_celebrations); p.add_argument('email')
 p = sub.add_parser('shortlist'); p.set_defaults(fn=shortlist); p.add_argument('slug'); p.add_argument('--team', nargs='*', default=[]); p.add_argument('--reject', nargs='*', default=[])
 p = sub.add_parser('make_winner'); p.set_defaults(fn=make_winner); p.add_argument('slug'); p.add_argument('team'); p.add_argument('--title', default='Winner')
+p = sub.add_parser('make_overview_hackathon'); p.set_defaults(fn=make_overview_hackathon); p.add_argument('slug'); p.add_argument('--title', default='Overview Fest')
+p.add_argument('--stage', default='registration', choices=['registration', 'ideas', 'selection', 'event', 'results']); p.add_argument('--teams', type=int, default=0); p.add_argument('--forming', type=int, default=0)
+p.add_argument('--fee', type=int, default=0); p.add_argument('--max-teams', type=int, default=0); p.add_argument('--max-participants', type=int, default=0); p.add_argument('--previous', type=int, default=0); p.add_argument('--statements', type=int, default=0)
+p = sub.add_parser('set_stage'); p.set_defaults(fn=set_stage); p.add_argument('slug'); p.add_argument('--stage', required=True, choices=['registration', 'ideas', 'selection', 'event', 'results'])
+p = sub.add_parser('add_payment'); p.set_defaults(fn=add_payment); p.add_argument('slug'); p.add_argument('--status', default='PENDING', choices=['PENDING', 'VERIFIED', 'REJECTED']); p.add_argument('--hours', type=float, default=1); p.add_argument('--count', type=int, default=1); p.add_argument('--team-status', default='')
+p = sub.add_parser('add_ideas'); p.set_defaults(fn=add_ideas); p.add_argument('slug'); p.add_argument('--count', type=int, default=1); p.add_argument('--status', default='SUBMITTED')
+p = sub.add_parser('add_withdrawal'); p.set_defaults(fn=add_withdrawal); p.add_argument('slug'); p.add_argument('--index', type=int, default=0)
+p = sub.add_parser('arrive'); p.set_defaults(fn=arrive); p.add_argument('slug'); p.add_argument('--count', type=int, default=1)
+p = sub.add_parser('staff_perms'); p.set_defaults(fn=staff_perms); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--perms', nargs='+', required=True)
 for name, fn in (('mailbox', mailbox), ('clear_mailbox', clear_mailbox), ('clear_cache', clear_cache), ('run_reminders', run_reminders)):
     sub.add_parser(name).set_defaults(fn=fn)
 

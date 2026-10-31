@@ -262,11 +262,11 @@ describe('CheckInConsole sessions and team codes', () => {
     await startScanning();
     onScan('team-code');
     const sheet = await screen.findByRole('region', { name: 'Team check-in: Alpha' });
-    const boxes = within(sheet).getAllByRole('checkbox') as HTMLInputElement[];
+    const boxes = (await within(sheet).findAllByRole('checkbox')) as HTMLInputElement[];
     expect(boxes.map((box) => box.checked)).toEqual([false, false]);
-    expect((within(sheet).getByRole('button', { name: /Check in selected/ }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.click(within(sheet).getByLabelText(/Bo Li/));
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Check in selected (1)' }));
+    expect(((await within(sheet).findByRole('button', { name: /Check in selected/ })) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(await within(sheet).findByLabelText(/Bo Li/));
+    fireEvent.click(await within(sheet).findByRole('button', { name: 'Check in selected (1)' }));
     await waitFor(() => expect(api.teamBatch).toHaveBeenCalledWith('demo', expect.objectContaining({ token: 'team-code', user_ids: [8], override: false })));
     expect(await within(sheet).findByText('Checked in')).toBeTruthy();
     expect(screen.getByText('Alpha: 1 checked in')).toBeTruthy();
@@ -279,8 +279,8 @@ describe('CheckInConsole sessions and team codes', () => {
     await startScanning();
     onScan('team-code');
     const sheet = await screen.findByRole('region', { name: 'Team check-in: Alpha' });
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Select everyone present' }));
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Check in selected (2)' }));
+    fireEvent.click(await within(sheet).findByRole('button', { name: 'Select everyone present' }));
+    fireEvent.click(await within(sheet).findByRole('button', { name: 'Check in selected (2)' }));
     fireEvent.click(await within(sheet).findByRole('button', { name: /Undo this check-in/ }));
     await waitFor(() => expect(api.undoBatch).toHaveBeenCalledWith('demo', 'batch-1'));
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Team check-in: Alpha' })).toBeNull());

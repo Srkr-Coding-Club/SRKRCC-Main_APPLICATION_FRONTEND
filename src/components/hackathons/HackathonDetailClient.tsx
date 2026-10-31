@@ -1,5 +1,6 @@
 'use client';
 
+import { formatEventDates } from '@/lib/eventDates';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -104,7 +105,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
   const showVenue = mode !== 'ONLINE' && !!hackathon.venue;
   const minSize = hackathon.min_team_size ?? 1;
   const maxSize = hackathon.max_team_size ?? minSize;
-  const teams = hackathon.registered_team_count ?? hackathon.team_count ?? 0;
+  const eventDates = formatEventDates(hackathon.start_date, hackathon.end_date);
   const tags = hackathon.tags ?? [];
   const hasPrizes = (hackathon.prizes?.length ?? 0) > 0 || !!hackathon.prize_pool?.trim();
   const dateRows = useMemo(() => buildDateRows(hackathon, stages), [hackathon, stages]);
@@ -266,7 +267,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
                 <Fact icon={UsersRound} label="Team size" value={minSize === maxSize ? `${maxSize} ${maxSize === 1 ? 'Member' : 'Members'}` : `${minSize}–${maxSize} Members`} />
                 <Fact icon={Calendar} label="Registration deadline" value={deadline} />
                 {showVenue && <Fact icon={MapPin} label="Venue" value={hackathon.venue} />}
-                {teams > 0 && <Fact icon={UsersRound} label="Teams registered" value={`${teams} ${teams === 1 ? 'team' : 'teams'}`} />}
+                {eventDates && <Fact icon={Calendar} label="Event dates" value={eventDates} />}
                 {hackathon.max_teams ? (
                   <Fact
                     icon={UsersRound}
@@ -309,9 +310,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
             <PageSectionCard id="details" title={`All that you need to know about ${hackathon.title}`}>
               {hackathon.description?.trim() ? (
-                <div className="prose max-w-none text-sm leading-relaxed text-journey-text/80 dark:prose-invert sm:text-base">
-                  <MarkdownRenderer content={hackathon.description} />
-                </div>
+                <MarkdownRenderer content={hackathon.description} variant="article" />
               ) : (
                 <p className="rounded-xl border border-dashed border-journey-text/10 p-6 text-center text-sm text-journey-muted">
                   The organizing committee will publish the official overview shortly.
@@ -377,9 +376,7 @@ export function HackathonDetailClient({ hackathon, problems, announcements, stag
 
             {rules && (
               <PageSectionCard id="rules" title="Rules and code of conduct">
-                <div className="prose max-w-none text-sm leading-relaxed text-journey-text/80 dark:prose-invert">
-                  <MarkdownRenderer content={rules} />
-                </div>
+                <MarkdownRenderer content={rules} variant="article" />
               </PageSectionCard>
             )}
 
