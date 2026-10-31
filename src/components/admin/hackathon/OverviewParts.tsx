@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, Flag, Search, Target } from 'lucide-react';
 import type { HackathonStats } from '@/lib/types';
 import { StatusPill } from '@/components/ui/StatusPill';
+import { problemBalance } from '@/lib/hackathonOverview';
 import { PANEL } from './shared';
 
 /** "1 team", "3 teams". */
@@ -89,6 +90,9 @@ const SHOWN = 8;
 export function ProblemUptake({ stats, onManage }: { stats: HackathonStats; onManage?: () => void }) {
   const [all, setAll] = useState(false);
   const [query, setQuery] = useState('');
+  const [view, setView] = useState<'busiest' | 'domain'>('busiest');
+  const balance = useMemo(() => problemBalance(stats.problem_statements), [stats.problem_statements]);
+  const hasDomains = balance.some((group) => group.domain !== 'No domain');
   const sorted = useMemo(() => [...stats.problem_statements].sort((a, b) => b.teams - a.teams || a.code.localeCompare(b.code, undefined, { numeric: true })), [stats.problem_statements]);
   const needle = query.trim().toLowerCase();
   const rows = needle ? sorted.filter((p) => `${p.code} ${p.title}`.toLowerCase().includes(needle)) : all ? sorted : sorted.slice(0, SHOWN);
@@ -109,6 +113,34 @@ export function ProblemUptake({ stats, onManage }: { stats: HackathonStats; onMa
         <p className="text-sm text-journey-muted">No problem statements yet.</p>
       ) : (
         <>
+          {hasDomains && (
+            <div role="tablist" aria-label="How to list problem statements" className="inline-flex self-start rounded-lg border border-journey-text/10 p-0.5">
+              {([['busiest', 'Busiest first'], ['domain', 'By domain']] as const).map(([key, label]) => (
+                <button key={key} type="button" role="tab" aria-selected={view === key} onClick={() => setView(key)} className={`min-h-9 rounded-md px-3 text-xs font-bold transition ${view === key ? 'bg-journey-accent text-journey-on-accent' : 'text-journey-muted hover:text-journey-text'}`}>{label}</button>
+              ))}
+            </div>
+          )}
+          {view === 'domain' && hasDomains ? (
+            <ul className="space-y-2.5" aria-label="Problem statements by domain">
+              {balance.map((group) => (
+                <li key={group.domain} className="space-y-1">
+                  <div className="flex items-baseline justify-between gap-3 text-xs">
+                    <span className="min-w-0 truncate font-semibold text-journey-text">{group.domain}</span>
+                    <span className="shrink-0 tabular-nums text-journey-muted">{group.picked} of {group.total} picked · {plural(group.teams, 'team')}</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-journey-text/10" aria-hidden="true"><div className="h-full rounded-full bg-journey-accent" style={{ width: `${(group.picked / group.total) * 100}%` }} /></div>
+                  {(group.untouched > 0 || group.full > 0) && (
+                    <p className="text-[11px] text-journey-muted">
+                      {group.untouched > 0 && <span className="font-semibold text-amber-600 dark:text-amber-400">{group.untouched} nobody picked</span>}
+                      {group.untouched > 0 && group.full > 0 && ' · '}
+                      {group.full > 0 && <span className="font-semibold text-rose-600 dark:text-rose-400">{group.full} full</span>}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+          <>
           {(all || sorted.length > SHOWN) && (
             <label className="relative block">
               <span className="sr-only">Search problem statements</span>
@@ -143,6 +175,8 @@ export function ProblemUptake({ stats, onManage }: { stats: HackathonStats; onMa
             <button type="button" onClick={() => setAll((value) => !value)} className="inline-flex min-h-10 items-center gap-1 self-start text-xs font-bold text-journey-accent hover:underline">
               {all ? <>Show the top {SHOWN} <ChevronUp className="h-3.5 w-3.5" /></> : <>Show all {sorted.length} <ChevronDown className="h-3.5 w-3.5" /></>}
             </button>
+          )}
+          </>
           )}
         </>
       )}

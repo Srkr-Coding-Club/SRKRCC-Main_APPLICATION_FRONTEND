@@ -26,7 +26,7 @@ function Bars({ rows }: { rows: { label: string; count: number }[] }) {
   );
 }
 
-/** Participation funnel, who the participants are, and the participants export. */
+/** Who the participants are, and the participants export. */
 const BREAKDOWNS = [
   { key: 'branch', label: 'Branch' },
   { key: 'year', label: 'Year' },
@@ -53,9 +53,6 @@ export function AnalyticsPanel({ slug, data: provided }: { slug: string; data?: 
   if (!data) return own ? <div className="h-40 animate-pulse rounded-xl bg-journey-text/10" /> : null;
   const rows = { branch: data.by_branch, year: data.by_year, college: data.by_college }[view];
 
-  const top = Math.max(1, data.funnel[0]?.count ?? 1);
-  const perDay = data.joined_per_day.slice(-30);
-  const dayPeak = Math.max(1, ...perDay.map((day) => day.count));
 
   return (
     <section className={`${PANEL} space-y-5`}>
@@ -64,14 +61,6 @@ export function AnalyticsPanel({ slug, data: provided }: { slug: string; data?: 
         <ExportMenu subject="participants" onExport={(format) => hackathonApi.exportFile(slug, 'participants', format)} />
       </div>
 
-      <ol className="space-y-2">
-        {data.funnel.map((step) => (
-          <li key={step.key} className="text-sm">
-            <div className="flex justify-between gap-2"><span>{step.label}</span><span className="font-bold tabular-nums">{step.count}</span></div>
-            <div className="mt-1 h-2 overflow-hidden rounded-full bg-journey-text/10"><div className="h-full rounded-full bg-gradient-to-r from-journey-live to-journey-accent" style={{ width: `${Math.min(100, (step.count / top) * 100)}%` }} /></div>
-          </li>
-        ))}
-      </ol>
       <p className="text-xs text-journey-muted">
         {data.checked_in} checked in · {data.waitlisted_teams} on the waitlist
         {data.capacity.max_teams ? ` · ${data.capacity.placed_teams}/${data.capacity.max_teams} team places used` : ''}
@@ -95,17 +84,6 @@ export function AnalyticsPanel({ slug, data: provided }: { slug: string; data?: 
         </div>
         <div className={rows.length > 8 ? 'max-h-72 overflow-y-auto pr-1' : ''}><Bars rows={rows} /></div>
       </div>
-
-      {perDay.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-journey-muted">People joining teams, per day (last {perDay.length} days with activity)</p>
-          <div className="flex h-24 items-end gap-1" role="img" aria-label={`Daily sign-ups, peak ${dayPeak}`}>
-            {perDay.map((day) => (
-              <div key={day.date} title={`${day.date}: ${day.count}`} className="max-w-12 flex-1 rounded-t bg-journey-accent/80" style={{ height: `${Math.max(6, (day.count / dayPeak) * 100)}%` }} />
-            ))}
-          </div>
-        </div>
-      )}
     </section>
   );
 }

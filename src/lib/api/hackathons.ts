@@ -20,6 +20,7 @@ import type {
   FinderListing,
   Hackathon,
   HackathonAnalytics,
+  OverviewPayload,
   HackathonAward,
   AutoShortlistResult,
   WithdrawalOverview,
@@ -263,6 +264,7 @@ export const hackathonApi = {
     clone: (slug: string, body: { title: string; slug?: string; start_date: string; copy_problem_statements?: boolean }) =>
       fetchApi<{ slug: string; title: string }>(`/hackathons/${enc(slug)}/clone/`, json(body)),
     analytics: (slug: string) => fetchApi<HackathonAnalytics>(`/hackathons/${enc(slug)}/analytics/`),
+    overview: (slug: string) => fetchApi<OverviewPayload>(`/hackathons/${enc(slug)}/overview/`),
     submissions: (slug: string) => fetchApi<AdminSubmissionsPayload>(`/hackathons/${enc(slug)}/submissions/`),
     remindMissingSubmissions: (slug: string) =>
       fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/submissions/remind/`, json({})),

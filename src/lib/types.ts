@@ -644,7 +644,7 @@ export interface HackathonStats {
   participants: number;
   pending_invites: number;
   open_innovation_teams: number;
-  problem_statements: { id: number; code: string; title: string; teams: number; max_teams: number | null }[];
+  problem_statements: { id: number; code: string; title: string; domain?: string; teams: number; max_teams: number | null }[];
   rounds: ({ id: number; order: number; name: string; results_published: boolean; total: number; details_submitted: number } & Record<RoundEntryStatus, number>)[];
   forming_teams: { id: number; name: string; leader_email: string | null; members: number; needed: number }[];
   min_team_size: number;
@@ -1816,6 +1816,30 @@ export interface HackathonAnalytics {
   by_college: { label: string; count: number }[];
   joined_per_day: { date: string; count: number }[];
   capacity: { max_teams: number | null; max_participants: number | null; placed_teams: number; placed_participants: number };
+  /** The edition this one was cloned from, at the same point of its registration; null when there is none to compare with. */
+  previous_edition?: PreviousEdition | null;
+}
+
+/** GET /overview/: the organizer Overview in one response. A part is null when it is off or not for this person (named in `hidden`), or failed (named in `errors`). */
+export interface OverviewPayload {
+  stats: HackathonStats;
+  analytics: HackathonAnalytics;
+  ideas: { counts: Record<IdeaStatus, number>; missing: { id: number; name: string }[] } | null;
+  payments: { counts: Record<PaymentStatus, number>; fee_amount: number; stage: PaymentStage; payments: Pick<PaymentRow, 'status' | 'amount' | 'team_status' | 'submitted_at'>[] } | null;
+  finder: FinderAdminPayload | null;
+  withdrawals: { pending: number } | null;
+  hidden: string[];
+  errors: Record<string, string>;
+}
+
+export interface PreviousEdition {
+  title: string;
+  slug: string;
+  point: string;
+  teams_then: number;
+  participants_then: number;
+  teams_final: number;
+  participants_final: number;
 }
 
 // Phase 1 of submissions: the idea (plan), reviewed before the project (implementation) phase.

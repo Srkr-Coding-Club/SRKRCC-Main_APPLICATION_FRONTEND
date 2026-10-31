@@ -188,7 +188,7 @@ export function HackathonManager({ slug, basePath, backHref, backLabel }: Hackat
 
                 <div id="hackathon-tabpanel" role="tabpanel" aria-labelledby={`hackathon-tab-${active.key}`} className="space-y-6">
                 <h2 className="sr-only">{active.label}</h2>
-                {active.key === 'overview' && <HackathonOverviewTab slug={slug} onNavigate={setTab} />}
+                {active.key === 'overview' && <HackathonOverviewTab slug={slug} hackathon={hackathon} onNavigate={setTab} />}
                 {active.key === 'settings' && <HackathonSettingsTab hackathon={hackathon} onSaved={setHackathon} />}
                 {active.key === 'registration' && <RegistrationControlsTab hackathon={hackathon} onSaved={setHackathon} />}
                 {active.key === 'team' && <RolesAdminTab hackathon={hackathon} />}

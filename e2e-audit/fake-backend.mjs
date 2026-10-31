@@ -683,7 +683,7 @@ function handle(req, res, raw) {
   if (/\/staff$/.test(p)) return send([{ id: 1, role: 'ORGANIZER', user_id: 7, email: 'dana@srkr.ac.in', name: 'Dana R', permissions: ['settings', 'teams'] }]);
   if (/\/finder\/requests$/.test(p)) return send({ incoming: [], mine: [] });
   if (/\/stats$/.test(p)) return send({ teams_by_status: { FORMING: 5, REGISTERED: 31, DISQUALIFIED: 0, WITHDRAWN: 0, PAYMENT_PENDING: pay.team && pay.team.status === 'PAYMENT_PENDING' ? 1 : 0, PAYMENT_REJECTED: 0 }, teams_total: 36, participants: 128, pending_invites: 4, open_innovation_teams: 6,
-    problem_statements: problems.map((x) => ({ id: x.id, code: x.code, title: x.title, teams: x.team_count, max_teams: x.max_teams })), rounds: [{ id: 1, order: 1, name: 'Idea review', results_published: true, total: 36, details_submitted: 36, SHORTLISTED: 20, REJECTED: 10, PENDING: 6 }, { id: 2, order: 2, name: 'Final Hackathon - Hackoverflow2k26', results_published: false, total: 20, details_submitted: 0, SHORTLISTED: 0, REJECTED: 0, PENDING: 20 }], forming_teams: [{ id: 5, name: 'Half Team', leader_email: 'l@example.org', members: 1, needed: 1 }],
+    problem_statements: problems.map((x) => ({ id: x.id, code: x.code, title: x.title, domain: x.domain, teams: x.team_count, max_teams: x.max_teams })), rounds: [{ id: 1, order: 1, name: 'Idea review', results_published: true, total: 36, details_submitted: 36, SHORTLISTED: 20, REJECTED: 10, PENDING: 6 }, { id: 2, order: 2, name: 'Final Hackathon - Hackoverflow2k26', results_published: false, total: 20, details_submitted: 0, SHORTLISTED: 0, REJECTED: 0, PENDING: 20 }], forming_teams: [{ id: 5, name: 'Half Team', leader_email: 'l@example.org', members: 1, needed: 1 }],
     min_team_size: 2, registration_closes_at: iso(10), is_registration_open: true });
   if (/\/finder$/.test(p)) return send({ seekers: [{ id: 8, name: 'Chandrasekhar Venkata Subrahmanyam', skills: 'React, Django, Figma, DevOps, Machine Learning', note: 'Looking for a team that wants to build for rural healthcare.', profile: 'CSE 3rd year', is_me: false, phone: '9000000001' }],
     teams: [{ id: 12, name: 'Segmentation Faults', looking_for: 'A designer and a backend developer', members: 2, max_members: 4, problem: 'PS-01', leader: 'Ravi K' }], my_profile: null, my_requests: [] });
@@ -691,7 +691,7 @@ function handle(req, res, raw) {
   if (/\/check-in$/.test(p)) return send({ participants: team.members.map((mm) => ({ user_id: mm.user_id, name: mm.name, email: mm.email, team_id: 11, team_name: 'Null Pointers', role: mm.role, checked_in: false, checked_in_at: null })), total: 2, checked_in: 0 });
   if (/\/my-check-in$/.test(p)) return send({ token: 'abc123', checked_in: false, checked_in_at: null });
   if (/\/my-certificate$/.test(p)) return send({ kind: 'PARTICIPATION', title: 'Certificate of Participation', body: 'for participating in HackOverflow 2026', name: 'Dana R', team: 'Null Pointers', hackathon: 'HackOverflow 2026', organizer: 'SRKR Coding Club', date: iso(16), signatory_name: 'A. Lead', signatory_title: 'President', code: 'CERT-123' });
-  if (/\/analytics$/.test(p)) return send({ funnel: [{ key: 'registered', label: 'Registered', count: 128 }, { key: 'teams', label: 'Teams', count: 36 }], checked_in: 0, waitlisted_teams: 0, by_branch: [{ label: 'CSE', count: 80 }, { label: 'IT', count: 48 }], by_year: [{ label: '3', count: 70 }], by_college: [{ label: 'SRKR', count: 128 }], joined_per_day: [{ date: '2026-10-20', count: 12 }, { date: '2026-10-21', count: 30 }], capacity: { max_teams: 60, max_participants: 240, placed_teams: 36, placed_participants: 128 } });
+  if (/\/analytics$/.test(p)) return send({ funnel: [{ key: 'participants', label: 'Participants joined a team', count: 128 }, { key: 'teams', label: 'Teams created', count: 36 }, { key: 'registered', label: 'Teams registered', count: 31 }, { key: 'ideas', label: 'Teams submitted an idea', count: 24 }, { key: 'ideas_approved', label: 'Teams with an approved idea', count: 18 }, { key: 'submitted', label: 'Teams submitted a project', count: 0 }, { key: 'scored', label: 'Projects scored by a judge', count: 0 }, { key: 'shortlisted', label: 'Teams shortlisted in a round', count: 0 }, { key: 'winners', label: 'Teams with an award', count: 0 }], checked_in: 0, waitlisted_teams: 0, by_branch: [{ label: 'CSE', count: 80 }, { label: 'IT', count: 48 }], by_year: [{ label: '3', count: 70 }], by_college: [{ label: 'SRKR', count: 128 }], joined_per_day: [{ date: '2026-10-20', count: 12 }, { date: '2026-10-21', count: 30 }], capacity: { max_teams: 60, max_participants: 240, placed_teams: 36, placed_participants: 128 } });
   if (/\/my-idea$/.test(p)) return send({ state: 'OPEN', opens_at: iso(-2), deadline: iso(7), review_required: true, project_requires_idea: false, idea: null, can_edit: true, edit_blocked_reason: '', config: { fee_amount: 0, payment_note: '', deck_required: false, linkedin_required: false, files_available: false, payment_qr: null, edits_enabled: true, edits_until: null } });
   if (/\/my-submission$/.test(p)) return send({ state: 'NOT_OPEN', gate: { required: false, satisfied: true, reason: '' }, opens_at: iso(14), deadline: iso(16), submission: null, can_edit: false });
   if (/\/my-registration$/.test(p)) return send({ rules_accepted: true, answers: {}, missing: [] });
@@ -707,6 +707,23 @@ const server = http.createServer((req, res) => {
     res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS' });
     req.resume();
     return res.end();
+  }
+  // GET /hackathons/<slug>/overview: composed from the stand-in's own part endpoints, the way the real server does it.
+  const overviewMatch = /^\/api\/hackathons\/([^/]+)\/overview\/?$/.exec(req.url.split('?')[0]);
+  if (overviewMatch) {
+    const base = `http://127.0.0.1:${PORT}/api/hackathons/${overviewMatch[1]}`;
+    const headers = { authorization: req.headers.authorization || '' };
+    const get = (path) => fetch(base + path, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))));
+    const hidden = []; const errors = {};
+    const part = (name, path, shape = (v) => v) => get(path).then(shape).catch(() => { errors[name] = 'Could not load this part.'; return null; });
+    return Promise.all([get('/stats'), get('/analytics'), part('ideas', '/ideas', (v) => ({ counts: v.counts, missing: v.missing })), part('payments', '/payments'), part('finder', '/finder/admin'), part('withdrawals', '/withdrawals', (v) => ({ pending: v.pending.length }))])
+      .then(([stats, analytics, ideas, payments, finder, withdrawals]) => {
+        if (payments && payments.stage === 'NONE') { payments = null; hidden.push('payments'); }
+        if (finder && !finder.enabled) { finder = null; hidden.push('finder'); }
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ stats, analytics, ideas, payments, finder, withdrawals, hidden, errors }));
+      })
+      .catch(() => { res.writeHead(500, { 'content-type': 'application/json' }); res.end('{}'); });
   }
   let raw = ''; req.on('data', (c) => { raw += c; });
   req.on('end', () => handle(req, res, raw));
