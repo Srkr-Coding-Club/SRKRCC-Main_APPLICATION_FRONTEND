@@ -561,3 +561,15 @@ input[type="reset"] {
     margin: 0;
   }
 }
+
+/* The theme lamp: the new theme spreads out from the bulb (see lib/theme.ts). The browser's own cross-fade is switched off so
+   only the circle shows; people who ask for less motion get no transition at all. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  ::view-transition-old(root) { z-index: 1; }
+  ::view-transition-new(root) { z-index: 2; }
+}
