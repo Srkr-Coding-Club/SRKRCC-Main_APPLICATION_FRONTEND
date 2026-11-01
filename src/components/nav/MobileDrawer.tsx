@@ -35,6 +35,8 @@ interface MobileDrawerProps {
   label: string;
   /** Who is signed in, shown above the list. */
   identity?: React.ReactNode;
+  /** A lamp (or anything playful) hung from the top edge of the panel, with room under it for its cord. */
+  lamp?: React.ReactNode;
   items: DrawerItem[];
   /** Pinned under the list: theme, sign in or out, back to the other site. */
   footer: React.ReactNode;
@@ -45,7 +47,7 @@ interface MobileDrawerProps {
  * icons, the current page marked, sections that expand in place, and a footer that stays put while the list scrolls.
  * Escape and the page-change close are handled by the bar that owns it.
  */
-export function MobileDrawer({ open, onClose, id, label, identity, items, footer }: MobileDrawerProps) {
+export function MobileDrawer({ open, onClose, id, label, identity, lamp, items, footer }: MobileDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, open);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -101,6 +103,15 @@ export function MobileDrawer({ open, onClose, id, label, identity, items, footer
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
+
+            {lamp && (
+              <div className="relative mb-2 h-[108px] shrink-0 border-b border-black/[0.07] dark:border-white/[0.07]">
+                <span className="absolute left-5 top-3.5 font-mono text-[11px] font-medium uppercase leading-relaxed tracking-[0.14em] text-[#1A1A2E]/75 dark:text-white/75">
+                  Pull<br />to switch<br />the lights
+                </span>
+                <div className="absolute left-[176px] top-[-56px] z-10">{lamp}</div>
+              </div>
+            )}
 
             {identity && <div className="shrink-0 px-3.5 pb-3">{identity}</div>}
 

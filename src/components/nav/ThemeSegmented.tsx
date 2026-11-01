@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
+import { isDarkTheme, setTheme } from '@/lib/theme';
 
 /** Light and Dark side by side, for places with room to say which is on (the phone menus). Same storage as the round toggle. */
 export function ThemeSegmented() {
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
-    const read = () => setDark(document.documentElement.classList.contains('dark'));
+    const read = () => setDark(isDarkTheme());
     read();
     const watch = new MutationObserver(read);
     watch.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
@@ -16,12 +17,7 @@ export function ThemeSegmented() {
   }, []);
 
   const choose = (next: boolean) => {
-    document.documentElement.classList.toggle('dark', next);
-    try {
-      localStorage.setItem('theme', next ? 'dark' : 'light');
-    } catch {
-      // Storage blocked: the choice just will not persist.
-    }
+    setTheme(next);
     setDark(next);
   };
 

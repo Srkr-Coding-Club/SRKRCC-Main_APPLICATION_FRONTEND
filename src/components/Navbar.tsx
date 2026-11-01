@@ -21,11 +21,11 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import BrainLogo from './BrainLogo';
 import PillButton from './PillButton';
-import ThemeToggle from './ThemeToggle';
 import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 import { NotificationBell } from './notifications/NotificationBell';
 import { MobileDrawer, type DrawerItem } from './nav/MobileDrawer';
 import { ThemeSegmented } from './nav/ThemeSegmented';
+import { LampSwitch } from './nav/LampSwitch';
 import { Avatar } from './nav/Avatar';
 import { AccountMenu } from './nav/AccountMenu';
 import { NextUpCard, pickNextUp } from './nav/NextUpCard';
@@ -248,7 +248,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
           {/* Logo - CODING CLUB leads, in the landing page's own shimmering title
               treatment (.ember-text); SRKR rides above it as a small label, not
               the other way round. */}
-          <Link href="/" className="group flex items-center gap-3" aria-label="SRKR Coding Club Home">
+          <Link href="/" className="group flex shrink-0 items-center gap-2.5 sm:gap-3" aria-label="SRKR Coding Club Home">
             <motion.div whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
               <BrainLogo size={36} showRays animated />
             </motion.div>
@@ -256,7 +256,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.32em] text-[#1A1A2E]/70 dark:text-white/60">
                 SRKR
               </span>
-              <span className="ember-text font-poppins text-xl sm:text-2xl font-extrabold leading-[1.1] tracking-tight">
+              <span className="ember-text font-poppins whitespace-nowrap text-lg min-[420px]:text-xl sm:text-2xl font-extrabold leading-[1.1] tracking-tight">
                 Coding Club
               </span>
             </div>
@@ -412,20 +412,23 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               </>
             )}
 
-            {!isAuth && <ThemeToggle />}
+            {/* The lamp hangs from the top edge of the bar; its bead hangs a little below it. */}
+            <div className="relative h-10 w-[68px] shrink-0">
+              <LampSwitch size="desk" hint className="absolute left-0 -top-[18px]" />
+            </div>
           </div>
 
           {/* Mobile trigger: bell and avatar when signed in, the menu always. The theme switch sits in the menu too. */}
-          <div className="flex lg:hidden items-center gap-1.5">
+          <div className="flex lg:hidden items-center gap-1">
+            <div className="relative hidden h-10 w-[52px] shrink-0 min-[390px]:block">
+              <LampSwitch size="bar" className="absolute left-0 -top-[10px]" />
+            </div>
             {isAuth && <NotificationBell />}
             {isAuth && (
               <Link href="/profile" aria-label="My profile" className="hidden h-11 w-11 items-center justify-center rounded-full transition active:scale-95 min-[360px]:flex">
                 <Avatar user={currentUser} size={34} />
               </Link>
             )}
-            <div className={isAuth ? 'hidden sm:block' : ''}>
-              <ThemeToggle />
-            </div>
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
               className="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.1] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
@@ -447,6 +450,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
         onClose={() => setMobileMenuOpen(false)}
         id="site-mobile-menu"
         label="Site menu"
+        lamp={<LampSwitch size="drawer" />}
         items={drawerItems}
         identity={
           isAuth ? (
