@@ -6,6 +6,7 @@ import type { Hackathon, HackathonContact, HackathonSponsor, PublicPerson } from
 import { ObjectListEditor, type ListField } from './ObjectListEditor';
 import { BTN_PRIMARY, INPUT, LABEL, PANEL } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 type CommunityLink = { label: string; url: string };
 
@@ -43,7 +44,7 @@ interface PublicPageAdminTabProps {
 
 /** Who and what appears on the public hackathon page beyond the basics: people, sponsors, contacts, links, venue map. */
 export function PublicPageAdminTab({ hackathon, onSaved }: PublicPageAdminTabProps) {
-  const { busy, errors, save } = useHackathonPatch(hackathon, onSaved);
+  const { busy, errors, save, saved, clearSaved } = useHackathonPatch(hackathon, onSaved);
   const [mentors, setMentors] = useState<PublicPerson[]>([]);
   const [judges, setJudges] = useState<PublicPerson[]>([]);
   const [sponsors, setSponsors] = useState<HackathonSponsor[]>([]);
@@ -109,7 +110,7 @@ export function PublicPageAdminTab({ hackathon, onSaved }: PublicPageAdminTabPro
       </section>
 
       <div className="flex justify-end">
-        <button type="submit" disabled={busy} className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save public page details'}</button>
+        <ActionButton type="submit" pending={busy} success={saved} onSuccessShown={clearSaved} successLabel="Saved" className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {'Save public page details'}</ActionButton>
       </div>
     </form>
   );

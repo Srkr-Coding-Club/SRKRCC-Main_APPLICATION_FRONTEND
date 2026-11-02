@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import AuthLayout from '@/components/AuthLayout';
 import { useToast } from '@/context/ToastContext';
-import { getPasswordRules, validatePassword } from '@/lib/validation/auth';
+import { getPasswordRules, validatePassword } from '@/lib/validation/auth';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 function SetupPasswordContent() {
   const router = useRouter();
@@ -54,7 +55,7 @@ function SetupPasswordContent() {
     e.preventDefault();
     const code = codeInput.trim();
     if (!code) return;
-    router.push(`/account/setup-password?token=${encodeURIComponent(code)}`);
+    pushWithProgress(router, `/account/setup-password?token=${encodeURIComponent(code)}`);
   };
 
   // Validate token on mount if provided
@@ -234,7 +235,7 @@ function SetupPasswordContent() {
             <p>Setup tokens are single-use and expire within 24 hours for security. Please request a fresh link below.</p>
             <button
               type="button"
-              onClick={() => router.push('/account/setup-password')}
+              onClick={() => pushWithProgress(router, '/account/setup-password')}
               className="w-full py-2.5 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-xs transition active:scale-[0.98] shadow-sm"
             >
               Request a New Setup Link

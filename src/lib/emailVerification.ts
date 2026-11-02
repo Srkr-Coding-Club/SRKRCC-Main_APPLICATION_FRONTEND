@@ -59,10 +59,12 @@ export function urgency(state: EmailVerificationState): 'calm' | 'urgent' {
  */
 const PRIVATE_PREFIXES = ['/profile', '/admin', '/attendance'];
 const PRIVATE_HACKATHON_PAGE = /^\/hackathons\/[^/]+\/(dashboard|manage|check-in|finder|judging|certificate)(\/|$)/;
+/** An event's certificate is the signed-in person's own. */
+const PRIVATE_EVENT_PAGE = /^\/events\/[^/]+\/certificate(\/|$)/;
 
 export function isPrivateRoute(pathname: string): boolean {
   const path = pathname.split('?')[0] || '/';
-  return PRIVATE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`)) || PRIVATE_HACKATHON_PAGE.test(path);
+  return PRIVATE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`)) || PRIVATE_HACKATHON_PAGE.test(path) || PRIVATE_EVENT_PAGE.test(path);
 }
 
 /** Pages where a banner would only be noise (the person is verifying, or signing in or up). */

@@ -35,7 +35,8 @@ import {
   CalendarShareCard, CertificateCard, CheckInCard, MyRegistrationCard, RecruitingCard, ResultsNotice, WaitlistNotice,
 } from '@/components/hackathons/ParticipantCards';
 import { needsRegistrationDetails } from '@/components/hackathons/RegistrationDetailsFields';
-import { BTN, H2, PANEL } from '@/components/hackathons/dashboardStyles';
+import { BTN, H2, PANEL } from '@/components/hackathons/dashboardStyles';
+import { replaceWithProgress } from '@/lib/routeProgress';
 
 const DASHBOARD_REFRESH_MS = 15_000;
 
@@ -58,6 +59,7 @@ export default function HackathonDashboardPage() {
   const [preselectedProblemId, setPreselectedProblemId] = useState('');
 
   const me = getStoredUser();
+  const withdrawal = data?.withdrawal_window ?? null;
 
   // Every panel (and the header) rises into view, including ones that only render once their data has loaded.
   const pageRef = useRef<HTMLDivElement>(null);
@@ -86,7 +88,7 @@ export default function HackathonDashboardPage() {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.replace(`/login?next=${encodeURIComponent(`/hackathons/${slug}/dashboard`)}`);
+      replaceWithProgress(router, `/login?next=${encodeURIComponent(`/hackathons/${slug}/dashboard`)}`);
       return;
     }
     load();
@@ -489,8 +491,14 @@ export default function HackathonDashboardPage() {
                     {isLeader && team.member_count > 1 && (
                       <p className="mr-auto text-xs text-journey-muted">Transfer leadership to a teammate before you can leave.</p>
                     )}
+                    {isLeader && team.member_count <= 1 && withdrawal && !withdrawal.open && (
+                      <p role="note" className="mr-auto text-xs text-journey-muted">{withdrawal.message}</p>
+                    )}
+                    {isLeader && team.member_count <= 1 && withdrawal?.open && withdrawal.closes_at && (
+                      <p className="mr-auto text-xs text-journey-muted">Withdrawals close {formatDateTime(withdrawal.closes_at)}.</p>
+                    )}
                     <button
-                      disabled={!!busyKey || (isLeader && team.member_count > 1) || data?.withdrawal_request?.status === 'PENDING'}
+                      disabled={!!busyKey || (isLeader && team.member_count > 1) || (isLeader && !!withdrawal && !withdrawal.open) || data?.withdrawal_request?.status === 'PENDING'}
                       onClick={async () => {
                         if (isLeader) {
                           setWithdrawOpen(true);
@@ -587,7 +595,7 @@ export default function HackathonDashboardPage() {
               {hackathon.submission_deadline && hackathon.features?.submissions && (
                 <p className="text-journey-text/80"><span className="font-semibold">Submission deadline:</span> {formatDateTime(hackathon.submission_deadline)}</p>
               )}
-              <div className="pt-2"><CalendarShareCard hackathon={hackathon} /></div>
+              <div className="pt-2"><CalendarShareCard hackathon={hackathon} rounds={data?.rounds} /></div>
             </section>
           </aside>
         </div>
@@ -597,7 +605,7 @@ export default function HackathonDashboardPage() {
         <WithdrawTeamModal
           isOpen={withdrawOpen}
           onClose={() => setWithdrawOpen(false)}
-          needsApproval={(team.status === 'REGISTERED' && !team.is_waitlisted) || (data?.rounds ?? []).some((round) => round.entry !== null)}
+          needsApproval={withdrawal?.needs_approval ?? ((team.status === 'REGISTERED' && !team.is_waitlisted) || (data?.rounds ?? []).some((round) => round.entry !== null))}
           maxTeams={data?.team_limits?.max_teams}
           onSubmit={async (reason) => {
             const result = await hackathonApi.leaveTeam(team.id, reason);

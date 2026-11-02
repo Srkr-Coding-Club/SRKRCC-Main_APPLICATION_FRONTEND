@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, LogIn, ArrowLeft, Loader2, RefreshCw, UserCheck, Home, LogOut } from 'lucide-react';
 import { getStoredUser, fetchAndSyncCurrentUser, subscribeToAuthResync, clearAuthSession, AuthUser } from '@/lib/auth';
-import AdminNavbar from './AdminNavbar';
+import AdminNavbar from './AdminNavbar';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
   const handleSwitchAccount = () => {
     clearAuthSession();
-    router.push('/login?next=/admin');
+    pushWithProgress(router, '/login?next=/admin');
   };
 
   if (!mounted || checkingServer) {

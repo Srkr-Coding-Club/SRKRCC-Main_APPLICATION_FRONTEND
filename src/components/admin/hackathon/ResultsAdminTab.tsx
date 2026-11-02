@@ -12,6 +12,7 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { ObjectListEditor, type ListField } from './ObjectListEditor';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 interface AwardDraft {
   team_id: string;
@@ -39,7 +40,7 @@ interface ResultsAdminTabProps {
 export function ResultsAdminTab({ hackathon, onSaved, onEnable }: ResultsAdminTabProps) {
   const { toast } = useToast();
   const slug = hackathon.slug;
-  const { busy: patching, save } = useHackathonPatch(hackathon, onSaved);
+  const { busy: patching, save, saved, clearSaved } = useHackathonPatch(hackathon, onSaved);
   const [teams, setTeams] = useState<HackathonTeam[]>([]);
   const [awards, setAwards] = useState<AwardDraft[]>([]);
   const [board, setBoard] = useState<LeaderboardRow[]>([]);
@@ -210,7 +211,7 @@ export function ResultsAdminTab({ hackathon, onSaved, onEnable }: ResultsAdminTa
               </div>
             </div>
             <Switch label="Release certificates" description="Participants can download theirs, and are notified, as soon as you save with this on." checked={released} onChange={setReleased} />
-            <button type="submit" disabled={patching} className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {patching ? 'Saving…' : 'Save certificate settings'}</button>
+            <ActionButton type="submit" pending={patching} success={saved} onSuccessShown={clearSaved} successLabel="Saved" className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {'Save certificate settings'}</ActionButton>
             {preview && (
               <div className="space-y-2">
                 <p className={LABEL}>Preview (saved wording, your name)</p>

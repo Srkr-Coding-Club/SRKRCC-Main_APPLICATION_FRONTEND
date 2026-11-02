@@ -16,10 +16,14 @@ const HINT_DELAY = 2500;
 const HINT_FOR = 7000;
 export const HINT_KEY = 'lamp-hint-seen';
 
+/** The lit lamp's beam as a polygon in drawing units: long where the page can take it, cut short in the phone bar so it ends inside the bar. */
+const LONG_BEAM = '26,52 42,52 96,260 -28,260';
+const BAR_BEAM = '26,52 42,52 48,74 20,74';
+
 const SIZES = {
-  bar: { width: 52, height: 76, viewBox: '0 0 68 100', cord: 76, bead: 5.5, scale: 52 / 68 },
-  desk: { width: 68, height: 100, viewBox: '0 0 68 100', cord: 76, bead: 5.5, scale: 1 },
-  drawer: { width: 92, height: 173, viewBox: '0 0 68 128', cord: 100, bead: 6.5, scale: 92 / 68 },
+  bar: { width: 52, height: 76, viewBox: '0 0 68 100', cord: 64, bead: 5.5, scale: 52 / 68, beam: BAR_BEAM },
+  desk: { width: 68, height: 100, viewBox: '0 0 68 100', cord: 76, bead: 5.5, scale: 1, beam: LONG_BEAM },
+  drawer: { width: 92, height: 173, viewBox: '0 0 68 128', cord: 100, bead: 6.5, scale: 92 / 68, beam: LONG_BEAM },
 } as const;
 
 interface LampSwitchProps {
@@ -176,7 +180,7 @@ export function LampSwitch({ size = 'bar', hint = false, className = '' }: LampS
 
         {/* light on: a soft cone down the page and a glow around the bulb */}
         <g style={{ ...fade, opacity: dark ? 0 : 1 }}>
-          <polygon points="26,52 42,52 96,260 -28,260" fill={`url(#${id('cone')})`} />
+          <polygon points={spec.beam} fill={`url(#${id('cone')})`} />
           <circle cx="34" cy="46" r="32" fill={`url(#${id('glow')})`} />
         </g>
 

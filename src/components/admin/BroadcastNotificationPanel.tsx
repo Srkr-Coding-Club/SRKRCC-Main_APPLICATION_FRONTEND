@@ -29,7 +29,8 @@ import type {
   BroadcastPayload,
   Hackathon,
 } from '@/lib/types';
-import { BTN_PRIMARY, BTN_GHOST, INPUT, LABEL, PANEL } from './hackathon/shared';
+import { BTN_PRIMARY, BTN_GHOST, INPUT, LABEL, PANEL } from './hackathon/shared';
+import { TableRowsSkeleton, ListRowsSkeleton } from '@/components/ui/Skeleton';
 
 const NOTIF_TYPES: { value: AnnouncementType; label: string }[] = [
   { value: 'INFO', label: 'Info (Blue)' },
@@ -203,10 +204,7 @@ export function BroadcastNotificationPanel() {
         </div>
 
         {historyLoading ? (
-          <div className="flex items-center justify-center p-8 text-xs text-slate-400 gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-journey-accent" />
-            <span>Loading history…</span>
-          </div>
+          <div role="status" aria-busy="true" aria-label="Loading history" className="p-4"><ListRowsSkeleton rows={3} /></div>
         ) : history.length === 0 ? (
           <div className="text-center p-8 text-xs text-slate-400">
             No broadcast campaigns sent yet. Click &quot;New Broadcast&quot; above to compose your first notification.

@@ -5,7 +5,8 @@ import { fetchApi } from '@/lib/api-client';
 import { Announcement, AnnouncementType } from '@/lib/types';
 import { Megaphone, Plus, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
-import { AnnouncementFormPanel } from './AnnouncementFormPanel';
+import { AnnouncementFormPanel } from './AnnouncementFormPanel';
+import { TableRowsSkeleton } from '@/components/ui/Skeleton';
 
 const TYPE_BADGE: Record<AnnouncementType, string> = {
   INFO: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800',
@@ -108,7 +109,7 @@ export function AnnouncementsTab() {
       )}
 
       {loading ? (
-        <div className="text-center py-6 text-xs text-slate-400">Loading announcements from backend...</div>
+        <div role="status" aria-busy="true" aria-label="Loading announcements"><TableRowsSkeleton rows={3} columns={3} /></div>
       ) : announcements.length === 0 ? (
         <div className="text-center py-10 text-xs text-slate-400">
           No announcements yet. Create one to show it on the landing page.

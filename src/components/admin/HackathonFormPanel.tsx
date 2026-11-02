@@ -13,6 +13,7 @@ import { apiErrorMessage } from '@/lib/api/hackathons';
 import { isGoogleDriveUrl, normalizeImageUrl } from '@/lib/imageUrl';
 import { firstFieldErrors } from '@/components/admin/hackathon/shared';
 import { ImageUploadField } from '@/components/admin/hackathon/ImageUploadField';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 interface HackathonFormPanelProps {
   isOpen: boolean;
@@ -328,13 +329,9 @@ export function HackathonFormPanel({ isOpen, hackathon, onClose, onSaved }: Hack
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60"
-            >
-              {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Hackathon'}
-            </button>
+            <ActionButton type="submit" pending={isSubmitting} className="px-4 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60">
+              {isEditMode ? 'Save Changes' : 'Create Hackathon'}
+            </ActionButton>
           </div>
         </form>
       </div>

@@ -15,6 +15,7 @@ import { SubmissionPhases } from './SubmissionPhases';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInput } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
 import { IdeaFileActions } from '@/components/hackathons/IdeaFileActions';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 const STATUS_PILL: Record<IdeaStatus, { tone: PillTone; label: string }> = {
   SUBMITTED: { tone: 'amber', label: 'Waiting for review' },
@@ -36,7 +37,7 @@ interface IdeasAdminTabProps {
 export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabProps) {
   const { toast } = useToast();
   const slug = hackathon.slug;
-  const { busy: saving, errors, save } = useHackathonPatch(hackathon, onSaved);
+  const { busy: saving, errors, save, saved, clearSaved } = useHackathonPatch(hackathon, onSaved);
   const enabled = Boolean(hackathon.features?.ideas);
   const [opensAt, setOpensAt] = useState(toLocalInput(hackathon.idea_opens_at));
   const [deadline, setDeadline] = useState(toLocalInput(hackathon.idea_deadline));
@@ -158,7 +159,7 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
           checked={gate}
           onChange={setGate}
         />
-        <button type="submit" disabled={saving} className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save idea phase'}</button>
+        <ActionButton type="submit" pending={saving} success={saved} onSuccessShown={clearSaved} successLabel="Saved" className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {'Save idea phase'}</ActionButton>
       </form>
 
       {error && <LoadError message={error} onRetry={load} />}

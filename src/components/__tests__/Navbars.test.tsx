@@ -126,17 +126,13 @@ describe('public navbar', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('puts the avatar in the bar for a signed-in phone, and the Light/Dark switch in the drawer', () => {
+  it('puts the avatar in the bar for a signed-in phone, and the lamp as the only theme switch in the drawer', () => {
     render(<Navbar />);
     expect(screen.getByRole('link', { name: 'My profile' }).getAttribute('href')).toBe('/profile');
     fireEvent.click(screen.getByRole('button', { name: 'Toggle navigation menu' }));
-    const group = within(screen.getByRole('dialog')).getByRole('group', { name: 'Theme' });
-    document.documentElement.classList.add('dark');
-    fireEvent.click(within(group).getByRole('button', { name: 'Light' }));
-    expect(document.documentElement.classList.contains('dark')).toBe(false);
-    expect(within(group).getByRole('button', { name: 'Light' }).getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(within(group).getByRole('button', { name: 'Dark' }));
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    const drawer = within(screen.getByRole('dialog'));
+    expect(drawer.queryByRole('group', { name: 'Theme' })).toBeNull();           // no second Light/Dark control beside the lamp
+    expect(drawer.getByRole('button', { name: 'Toggle theme' })).toBeTruthy();   // the lamp
   });
 
   it('has no avatar for a signed-out visitor, and offers Login and Join in the drawer footer', () => {

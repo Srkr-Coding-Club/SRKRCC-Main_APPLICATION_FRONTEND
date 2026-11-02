@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { BannerCrop } from '@/lib/bannerCrop';
 import { bannerCropStyle } from '@/lib/bannerCrop';
 import { getGoogleDriveFallbackUrl, normalizeImageUrl } from '@/lib/imageUrl';
@@ -20,10 +20,12 @@ export default function BannerImage({ src, alt, crop, className = '', onError, o
   const fallbackSrc = getGoogleDriveFallbackUrl(src);
   const [usingFallback, setUsingFallback] = useState(false);
   const [lastSrc, setLastSrc] = useState(src);
+  const [loaded, setLoaded] = useState(false);
 
   if (src !== lastSrc) {
     setLastSrc(src);
     setUsingFallback(false);
+    setLoaded(false);
   }
 
   const activeSrc = usingFallback && fallbackSrc ? fallbackSrc : normalizedSrc;
@@ -36,18 +38,24 @@ export default function BannerImage({ src, alt, crop, className = '', onError, o
     onError?.();
   };
 
+  // A picture that finished before React attached (server-rendered or cached) never fires onLoad.
+  const attach = useCallback((node: HTMLImageElement | null) => {
+    if (node?.complete && node.naturalWidth > 0) setLoaded(true);
+  }, []);
+
   const isFull = crop?.mode === 'full';
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      ref={attach}
       src={activeSrc}
       alt={alt}
       draggable={false}
       referrerPolicy="no-referrer"
       onError={handleError}
-      onLoad={(event) => onLoad?.({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
-      className={`select-none ${isFull ? 'h-auto max-h-[700px] w-auto max-w-full object-contain' : 'h-full w-full object-cover'} ${className}`}
+      onLoad={(event) => { setLoaded(true); onLoad?.({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight }); }}
+      className={`select-none ${loaded ? 'animate-loaded-in' : 'skeleton'} ${isFull ? 'h-auto max-h-[700px] w-auto max-w-full object-contain' : 'h-full w-full object-cover'} ${className}`}
       style={bannerCropStyle(crop)}
     />
   );

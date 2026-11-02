@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CornerDownLeft, Flag, IndianRupee, Lightbulb, ScanLine, Search, UserSearch, Users } from 'lucide-react';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 import type { Hackathon } from '@/lib/types';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 export interface PaletteEntry {
   /** Stable id, also used to build the option's DOM id. */
@@ -92,7 +93,7 @@ export function AdminCommandPalette({ open, onClose, entries }: AdminCommandPale
   const go = (entry: PaletteEntry | undefined) => {
     if (!entry) return;
     onClose();
-    router.push(entry.href);
+    pushWithProgress(router, entry.href);
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {

@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api-client';
 import { BlogPost, JobListing } from '@/lib/types';
 import { BookOpen, Briefcase, Plus, Sparkles, Building, MapPin } from 'lucide-react';
-import { useToast } from '@/context/ToastContext';
+import { useToast } from '@/context/ToastContext';
+import { TableRowsSkeleton } from '@/components/ui/Skeleton';
 
 export function ContentHubTab() {
   const { toast } = useToast();
@@ -51,7 +52,7 @@ export function ContentHubTab() {
         </div>
 
         {loading ? (
-          <div className="text-center py-6 text-xs text-slate-400">Loading live blogs from backend...</div>
+          <div role="status" aria-busy="true" aria-label="Loading blogs"><TableRowsSkeleton rows={4} columns={3} /></div>
         ) : blogs.length === 0 ? (
           <div className="text-center py-6 text-xs text-slate-400">No blog articles currently stored in backend.</div>
         ) : (
@@ -92,7 +93,7 @@ export function ContentHubTab() {
         </div>
 
         {loading ? (
-          <div className="text-center py-6 text-xs text-slate-400">Loading live job listings from backend...</div>
+          <div role="status" aria-busy="true" aria-label="Loading job listings"><TableRowsSkeleton rows={4} columns={3} /></div>
         ) : jobs.length === 0 ? (
           <div className="text-center py-6 text-xs text-slate-400">No career listings currently stored in backend.</div>
         ) : (

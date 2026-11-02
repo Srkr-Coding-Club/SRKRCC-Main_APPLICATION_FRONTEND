@@ -6,6 +6,7 @@ import { fetchApi } from '@/lib/api-client';
 import { Announcement, AnnouncementType } from '@/lib/types';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 interface AnnouncementFormPanelProps {
   isOpen: boolean;
@@ -166,13 +167,9 @@ export function AnnouncementFormPanel({ isOpen, announcement, onClose, onSaved }
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60"
-            >
-              {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Announcement'}
-            </button>
+            <ActionButton type="submit" pending={isSubmitting} className="px-4 py-2 rounded-lg bg-journey-accent hover:opacity-90 text-journey-on-accent font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60">
+              {isEditMode ? 'Save Changes' : 'Create Announcement'}
+            </ActionButton>
           </div>
         </form>
       </div>

@@ -26,7 +26,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CollegeSelect } from '@/components/CollegeSelect';
 import { CollegeChoice, UNTOUCHED_COLLEGE_CHOICE } from '@/lib/colleges';
 import { registerUser, loginUser, RegistrationError } from '@/lib/auth';
-import { useToast } from '@/context/ToastContext';
+import { useToast } from '@/context/ToastContext';
+import { pushWithProgress } from '@/lib/routeProgress';
 import {
   SignupFieldErrors,
   getPasswordRules,
@@ -326,7 +327,7 @@ export default function SignupCard({ onClose, onSwitchToLogin, embedded = false,
       toast.success('Account Created', `Welcome to SRKR Coding Club, ${firstName}!`);
 
       setTimeout(() => {
-        router.push(isSafeNextPath(nextUrl) ? nextUrl : '/profile');
+        pushWithProgress(router, isSafeNextPath(nextUrl) ? nextUrl : '/profile');
       }, 500);
     } catch (err) {
       const registrationError = err as RegistrationError;

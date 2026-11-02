@@ -21,6 +21,7 @@ import {
 } from '@/components/hackathons/page/stageVisuals';
 import { LoadError } from './LoadError';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 interface Draft {
   title: string;
@@ -280,7 +281,7 @@ export function TimelineAdminTab({ slug }: { slug: string }) {
         footer={
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setEditing(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
-            <button type="submit" form="stage-form" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : editing === 'new' ? 'Add stage' : 'Save stage'}</button>
+            <ActionButton type="submit" form="stage-form" pending={busy} className={BTN_PRIMARY}>{editing === 'new' ? 'Add stage' : 'Save stage'}</ActionButton>
           </div>
         }
       >

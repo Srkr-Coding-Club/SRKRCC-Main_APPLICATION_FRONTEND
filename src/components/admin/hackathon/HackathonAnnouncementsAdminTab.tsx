@@ -13,6 +13,7 @@ import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFe
 import { LoadError } from './LoadError';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 const AUDIENCES: { value: HackathonAnnouncementAudience; label: string; hint: string }[] = [
   { value: 'PUBLIC', label: 'Everyone (public)', hint: 'Shown on the public hackathon page too.' },
@@ -285,7 +286,7 @@ export function HackathonAnnouncementsAdminTab({ slug }: { slug: string }) {
 
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setEditing(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
-            <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : editing === 'new' ? 'Post' : 'Save'}</button>
+            <ActionButton type="submit" pending={busy} className={BTN_PRIMARY}>{editing === 'new' ? 'Post' : 'Save'}</ActionButton>
           </div>
         </form>
       </Modal>
