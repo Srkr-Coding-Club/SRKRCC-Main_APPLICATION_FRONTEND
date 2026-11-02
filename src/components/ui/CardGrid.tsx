@@ -6,7 +6,7 @@ import { riseIn } from '@/lib/entranceMotion';
 
 const COLUMNS = 3;
 
-function CardGridItem({ index, children }: { index: number; children: ReactNode }) {
+export function CardGridItem({ index, children }: { index: number; children: ReactNode }) {
   const ref = useRef<HTMLLIElement>(null);
   // Stagger within a row only: a card in a later row starts the moment it scrolls into view.
   useScrollEntrance(ref, (timeline, element) => riseIn(timeline, element, { y: 24, duration: 0.65 }), {

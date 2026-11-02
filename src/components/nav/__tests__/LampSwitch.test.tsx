@@ -14,6 +14,8 @@ if (!('PointerEvent' in window)) {
 
 const noMotion = (reduce: boolean) => { window.matchMedia = ((query: string) => ({ matches: reduce && query.includes('reduce'), media: query, addEventListener: () => undefined, removeEventListener: () => undefined })) as any; };
 const lamp = () => screen.getByRole('button', { name: 'Toggle theme' });
+/** Where the phone bar's cord ends at rest, in drawing units; kept short so the bead hangs inside the bar. */
+const REST = 64;
 const cord = () => lamp().querySelector('svg path[stroke-linecap="round"][d^="M51 41V"]')!.getAttribute('d')!;
 const pointer = (type: 'pointerDown' | 'pointerMove' | 'pointerUp' | 'pointerCancel', y: number) =>
   fireEvent[type](lamp(), { pointerId: 1, button: 0, clientY: y, clientX: 10 });
@@ -52,7 +54,7 @@ describe('LampSwitch', () => {
     render(<LampSwitch />);
     pointer('pointerDown', 100);
     pointer('pointerMove', 100 + PULL_THRESHOLD + 6);
-    expect(cord()).not.toBe('M51 41V76');   // the cord is stretched while pulled
+    expect(cord()).not.toBe(`M51 41V${REST}`);   // the cord is stretched while pulled
     expect(document.documentElement.classList.contains('dark')).toBe(true);   // nothing changes until it is let go
     pointer('pointerUp', 100 + PULL_THRESHOLD + 6);
     expect(document.documentElement.classList.contains('dark')).toBe(false);
@@ -93,7 +95,7 @@ describe('LampSwitch', () => {
     pointer('pointerDown', 0);
     pointer('pointerMove', 5000);
     const end = Number(cord().replace('M51 41V', ''));
-    expect(end).toBeLessThanOrEqual(76 + 34 / (52 / 68) + 0.01);
+    expect(end).toBeLessThanOrEqual(REST + 34 / (52 / 68) + 0.01);
   });
 
   it('follows the theme when something else changes it, such as the Light/Dark buttons or another tab', async () => {
@@ -109,11 +111,11 @@ describe('LampSwitch', () => {
     render(<LampSwitch />);
     pointer('pointerDown', 100);
     pointer('pointerMove', 130);
-    expect(cord()).toBe('M51 41V76');
+    expect(cord()).toBe(`M51 41V${REST}`);
     pointer('pointerUp', 130);
     expect(document.documentElement.classList.contains('dark')).toBe(false);
     fireEvent.click(lamp());
-    expect(cord()).toBe('M51 41V76');
+    expect(cord()).toBe(`M51 41V${REST}`);
   });
 
   it('settles back to rest after a pull', () => {
@@ -126,7 +128,7 @@ describe('LampSwitch', () => {
     pointer('pointerMove', 130);
     pointer('pointerUp', 130);
     for (let i = 0; i < 400 && frames.length; i += 1) act(() => { frames.shift()!(performance.now()); });
-    expect(cord()).toBe('M51 41V76');
+    expect(cord()).toBe(`M51 41V${REST}`);
     vi.unstubAllGlobals();
   });
 
@@ -189,5 +191,17 @@ describe('LampSwitch: haptics and the first-visit hint', () => {
     const bubble = screen.getByText('Pull to switch the lights');
     expect(bubble.getAttribute('aria-hidden')).toBe('true');
     expect(bubble.className).toMatch(/pointer-events-none/);
+  });
+
+  it('draws a short beam in the phone bar and the long one on the desktop and in the menu', () => {
+    const beamEnd = (size?: 'bar' | 'desk' | 'drawer') => {
+      const { unmount } = render(<LampSwitch size={size} />);
+      const points = lamp().querySelector('polygon')!.getAttribute('points')!.split(' ').map((pair) => pair.split(',').map(Number));
+      unmount();
+      return Math.max(...points.map(([, y]) => y));
+    };
+    expect(beamEnd('bar')).toBeLessThanOrEqual(76);          // the bar is about 76 units tall: the beam ends inside it
+    expect(beamEnd('desk')).toBeGreaterThan(200);
+    expect(beamEnd('drawer')).toBeGreaterThan(200);
   });
 });

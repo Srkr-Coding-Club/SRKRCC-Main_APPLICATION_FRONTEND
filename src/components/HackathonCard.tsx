@@ -7,6 +7,7 @@ import { Calendar, ArrowRight, ArrowUpRight, Clock, Trophy } from 'lucide-react'
 import { Hackathon } from '@/lib/types';
 import { markdownToPreview } from '@/lib/utils';
 import { registrationLine } from '@/lib/eventDates';
+import { listingPhase } from '@/lib/eventListing';
 import BannerImage from '@/components/ui/BannerImage';
 import { useScrollEntrance } from '@/lib/hooks/useScrollEntrance';
 import { coverWipe, drawTimeline, fadeIn, footerRise, popIn, riseFromMask } from '@/lib/entranceMotion';
@@ -15,6 +16,8 @@ interface HackathonCardProps {
   hackathon: Hackathon;
   accent?: string;
   index?: number;
+  /** `wide` lays a lone hackathon out poster-beside-details (from the medium breakpoint up). */
+  layout?: 'card' | 'wide';
 }
 
 /** The grid fades the whole card in first; the inner sequence follows it. */
@@ -26,24 +29,27 @@ function formatShortDate(iso: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' });
 }
 
-function registrationChip(closed: boolean, open: boolean, notYetOpen: boolean) {
+function registrationChip(closed: boolean, open: boolean, notYetOpen: boolean, ended: boolean) {
+  if (ended) return { label: 'Ended', className: 'bg-slate-700 text-white', dot: 'bg-white' };
   if (closed) return { label: 'Closed', className: 'bg-slate-700 text-white', dot: 'bg-white' };
   if (open) return { label: 'Registration open', className: 'bg-emerald-700 text-white', dot: 'bg-white' };
   if (notYetOpen) return { label: 'Opens soon', className: 'bg-amber-400 text-slate-900', dot: 'bg-slate-900' };
   return { label: 'Registration closed', className: 'bg-slate-700 text-white', dot: 'bg-white' };
 }
 
-export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0 }: HackathonCardProps) {
+export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0, layout = 'card' }: HackathonCardProps) {
+  const wide = layout === 'wide';
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
   const detailHref = `/hackathons/${hackathon.slug}`;
   const closed = hackathon.status === 'CLOSED';
-  const registrationOpen = hackathon.is_registration_open ?? !closed;
+  const ended = listingPhase(hackathon.start_date, hackathon.end_date) === 'PAST';
+  const registrationOpen = !ended && (hackathon.is_registration_open ?? !closed);
   const opensAt = hackathon.registration_opens_at ? new Date(hackathon.registration_opens_at) : null;
   const notYetOpen = !registrationOpen && !closed && !!opensAt && opensAt > new Date();
-  const status = registrationChip(closed, registrationOpen, notYetOpen);
+  const status = registrationChip(closed, registrationOpen, notYetOpen, ended);
   // When registration closes or opens: useful to someone deciding, and says nothing about how many teams there are.
-  const registration = registrationLine({ closed, open: registrationOpen, opensAt: hackathon.registration_opens_at, closesAt: hackathon.registration_closes_at });
+  const registration = ended ? 'This hackathon has ended' : registrationLine({ closed, open: registrationOpen, opensAt: hackathon.registration_opens_at, closesAt: hackathon.registration_closes_at });
   const description = markdownToPreview(hackathon.description);
 
   useScrollEntrance(
@@ -68,6 +74,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
         }}
         className={[
           'hc-shell group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-[28px] p-2',
+          wide ? 'md:flex-row md:gap-2' : '',
           'border border-journey-text/10 bg-journey-surface/60 backdrop-blur-sm',
           'shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_20px_45px_-28px_rgba(30,41,59,0.35)]',
           'transition-shadow duration-500 hover:shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_26px_55px_-26px_rgba(255,122,0,0.28)]',
@@ -75,7 +82,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
           'dark:hover:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset,0_26px_55px_-26px_rgba(255,122,0,0.18)]',
         ].join(' ')}
       >
-        <div className="hc-media relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[20px] bg-slate-200/60 dark:bg-slate-800/60">
+        <div className={`hc-media relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[20px] bg-slate-200/60 dark:bg-slate-800/60 ${wide ? 'md:aspect-auto md:min-h-[22rem] md:w-[46%]' : ''}`}>
           <div className="hc-img absolute inset-0">
             <div className="h-full w-full transition-transform duration-700 group-hover:scale-[1.04] motion-reduce:transform-none">
               {hackathon.banner_image ? (
@@ -105,7 +112,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col px-4 pb-4 pt-4 sm:px-5">
+        <div className={`flex flex-1 flex-col px-4 pb-4 pt-4 sm:px-5 ${wide ? 'md:justify-center md:px-8 md:py-6' : ''}`}>
           {description && <p className="hc-desc line-clamp-3 text-sm leading-relaxed text-journey-text/80">{description}</p>}
 
           <ol className="relative mt-5 grid gap-4 pl-6">
@@ -144,7 +151,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
             </p>
           </div>
 
-          <div className="hc-footer mt-auto flex flex-wrap items-stretch gap-2 pt-5">
+          <div className={`hc-footer mt-auto flex flex-wrap items-stretch gap-2 pt-5 ${wide ? 'md:mt-6 md:max-w-lg md:flex-nowrap' : ''}`}>
             <Link
               href={detailHref}
               aria-label={`View details for ${hackathon.title}`}
@@ -163,7 +170,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
               </Link>
             ) : (
               <span className="inline-flex min-h-11 min-w-[8.5rem] flex-[2] items-center justify-center rounded-full bg-journey-text/10 px-3 text-center text-xs font-semibold leading-tight text-journey-text/70 sm:min-h-10">
-                {notYetOpen ? 'Registration opens soon' : 'Registration Closed'}
+                {ended ? 'Hackathon ended' : notYetOpen ? 'Registration opens soon' : 'Registration Closed'}
               </span>
             )}
           </div>

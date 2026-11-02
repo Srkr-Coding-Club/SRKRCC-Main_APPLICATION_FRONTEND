@@ -5,8 +5,8 @@ import { Event } from '@/lib/types';
 import { Calendar } from 'lucide-react';
 import { isModuleEnabled } from '@/lib/moduleFlags';
 import PageHero from '@/components/PageHero';
-import SectionHeading from '@/components/SectionHeading';
-import EventsBrowser from '../../components/events/EventsBrowser';
+import EventsListing from '@/components/events/EventsListing';
+import { splitByPhase } from '@/lib/eventListing';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
 export const dynamic = 'force-dynamic';
@@ -50,22 +50,15 @@ export default async function EventsPage() {
           description="Explore upcoming technical workshops, expert guest seminars, competitive coding bootcamps, and official club gatherings."
         />
 
-        <div className="space-y-6">
-          <SectionHeading
-            icon={Calendar}
-            title={`Upcoming Events (${events.length})`}
-            description="Workshops, seminars, and gatherings happening across campus."
-          />
-          {events.length > 0 ? (
-            <EventsBrowser events={events} />
-          ) : (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
-              <Calendar className="h-8 w-8 text-slate-300 dark:text-slate-700" />
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No upcoming events right now.</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Check back soon. New workshops and seminars are announced regularly.</p>
-            </div>
-          )}
-        </div>
+        {events.length > 0 ? (
+          <EventsListing {...splitByPhase(events, (event) => ({ start: event.start_time, end: event.end_time }))} />
+        ) : (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-journey-text/10 py-16 text-center">
+            <Calendar className="h-8 w-8 text-journey-muted" aria-hidden="true" />
+            <p className="text-sm font-semibold text-journey-muted">No events right now.</p>
+            <p className="text-xs text-journey-muted">Check back soon. New workshops and seminars are announced regularly.</p>
+          </div>
+        )}
       </div>
     </div>
   );

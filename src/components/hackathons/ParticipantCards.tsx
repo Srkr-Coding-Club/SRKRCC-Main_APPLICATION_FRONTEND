@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Award, CalendarPlus, ClipboardList, Search, Share2, Trophy } from 'lucide-react';
 import type { Hackathon, HackathonTeam, MyTeamPayload } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
-import { downloadHackathonCalendar } from '@/lib/calendar';
+import { downloadHackathonCalendar, type RoundSchedule } from '@/lib/calendar';
 import { useToast } from '@/context/ToastContext';
 import { Switch } from '@/components/ui/Switch';
 import { StatusPill } from '@/components/ui/StatusPill';
@@ -123,7 +123,7 @@ export function RecruitingCard({ hackathon, team, onSaved }: { hackathon: Hackat
 }
 
 /** Calendar download and share link for the key dates. */
-export function CalendarShareCard({ hackathon }: { hackathon: Hackathon }) {
+export function CalendarShareCard({ hackathon, rounds = [] }: { hackathon: Hackathon; rounds?: RoundSchedule[] }) {
   const { toast } = useToast();
   const share = async () => {
     const url = `${window.location.origin}/hackathons/${hackathon.slug}`;
@@ -139,7 +139,7 @@ export function CalendarShareCard({ hackathon }: { hackathon: Hackathon }) {
   };
   return (
     <div className="flex flex-wrap gap-2">
-      <button type="button" onClick={() => downloadHackathonCalendar(hackathon)} className={BTN_QUIET}><CalendarPlus className="h-3.5 w-3.5" /> Add to calendar</button>
+      <button type="button" onClick={() => downloadHackathonCalendar(hackathon, rounds)} className={BTN_QUIET}><CalendarPlus className="h-3.5 w-3.5" /> Add to calendar</button>
       <button type="button" onClick={share} className={BTN_QUIET}><Share2 className="h-3.5 w-3.5" /> Share</button>
     </div>
   );

@@ -117,6 +117,9 @@ interface NotificationBellProps {
   className?: string;
 }
 
+/** What the link on a notification opens, by what the notification is about. */
+const OPEN_LABEL: Record<string, string> = { EVENT: 'Open event', HACKATHON: 'Open hackathon', FORM: 'Open form', TEAM: 'Open team' };
+
 export function NotificationBell({ className = '' }: NotificationBellProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -423,7 +426,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
                           }}
                           className="inline-flex items-center gap-1 text-[11px] font-bold text-journey-accent hover:underline"
                         >
-                          <span>Open action</span>
+                          <span>{OPEN_LABEL[notif.category] ?? 'Open'}</span>
                           <ExternalLink className="h-3 w-3" />
                         </Link>
                       </div>

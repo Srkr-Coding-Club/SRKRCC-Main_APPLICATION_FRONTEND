@@ -17,7 +17,6 @@ import {
   Flame,
   Trophy,
   UserCheck,
-  CheckCircle2,
   LogOut,
   ShieldCheck,
   FileText,
@@ -32,30 +31,26 @@ import {
   Pencil,
   X,
   AlertTriangle,
+  Star,
 } from 'lucide-react';
 import { getStoredUser, setStoredUser, clearAuthSession, isAuthenticated } from '@/lib/auth';
 import { fetchApi } from '@/lib/api-client';
 import { EditProfileModal } from '@/components/EditProfileModal';
 import { EmailVerificationCard } from '@/components/verification/EmailVerificationCard';
 import { CelebrationSettingsCard } from '@/components/celebrations/CelebrationSettingsCard';
+import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
 import { ClubMembershipCard } from '@/components/profile/ClubMembershipCard';
 import { College, displayCollegeName } from '@/lib/colleges';
-import { MyHackathonsPanel } from '@/components/hackathons/MyHackathonsPanel';
+import { focusRing } from '@/components/profile/styles';
+import { MyEventsSection } from '@/components/profile/MyEventsSection';
+import type { RegisteredEventItem } from '@/lib/myEvents';
 import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
+import { EventFeedbackForm } from '@/components/events/EventFeedbackForm';
+import { Modal } from '@/components/ui/Modal';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { eventRegistrationApi } from '@/lib/api/events';
 
 export const dynamic = 'force-dynamic';
-
-interface RegisteredEventItem {
-  id: number;
-  form_id?: number;
-  form_slug?: string;
-  title: string;
-  track: string;
-  date: string;
-  status: string;
-  badgeBg: string;
-  attendance_enabled?: boolean;
-}
 
 interface BadgeItem {
   id: string;
@@ -149,26 +144,8 @@ const parseYear = (raw: unknown): number | null => {
   return roman[str.replace(/[^IV]/g, '')] ?? null;
 };
 
-// "23rd Sep 2026 · 5:30 PM" (time is skipped when the source has no time part)
-const formatEventDate = (raw: string): string => {
-  if (!raw) return '';
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return raw;
-  const day = d.getDate();
-  const suffix = day % 100 >= 11 && day % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][day % 10] || 'th';
-  const month = d.toLocaleDateString('en-US', { month: 'short' });
-  const base = `${day}${suffix} ${month} ${d.getFullYear()}`;
-  const hasTime = /\d{1,2}:\d{2}/.test(raw);
-  if (!hasTime) return base;
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  return `${base} · ${time}`;
-};
-
 const surface =
   'relative overflow-hidden rounded-3xl border border-journey-text/10 bg-white/65 shadow-[0_20px_50px_-36px_rgba(26,26,46,0.45)] backdrop-blur-xl dark:bg-white/[0.04]';
-
-const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-journey-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-journey-bg';
 
 const BADGE_TONES: Record<string, { tile: string; glow: string; icon: React.ReactNode }> = {
   orange: {
@@ -492,78 +469,6 @@ function RefreshNotice({ onRetry, onClose, retrying }: { onRetry: () => void; on
   );
 }
 
-function EventTicket({ evt, onShowQr }: { evt: RegisteredEventItem; onShowQr: () => void }) {
-  const accent = '#FF7A00';
-  const canShowQr = evt.attendance_enabled && evt.form_id;
-  // Keep the status colours coming from the API, but drop any border classes so it reads as a plain tag.
-  const statusClasses = (evt.badgeBg || '')
-    .split(/\s+/)
-    .filter((c) => c && !/(^|:)border/.test(c))
-    .join(' ');
-
-  return (
-    <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-journey-text/10 bg-white/65 shadow-[0_20px_50px_-36px_rgba(26,26,46,0.45)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:border-journey-accent/30 dark:bg-white/[0.04] sm:flex-row">
-      {/* main */}
-      <div className="relative min-w-0 flex-1 space-y-3 p-5 sm:p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em]"
-            style={{ backgroundColor: `${accent}1f`, color: accent }}
-          >
-            <FileText className="h-3 w-3" />
-            {evt.track}
-          </span>
-          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${statusClasses}`}>
-            <CheckCircle2 className="h-3 w-3" />
-            <span>{evt.status}</span>
-          </span>
-        </div>
-
-        <h3 className="font-display text-xl font-semibold leading-snug tracking-[-0.03em] text-journey-text sm:text-xl">{evt.title}</h3>
-
-        <p className="inline-flex items-center gap-2 text-xs font-medium text-journey-muted sm:text-[13px]">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-journey-accent/10 text-journey-accent">
-            <Calendar className="h-3.5 w-3.5" />
-          </span>
-          <span className="text-journey-text">{formatEventDate(evt.date)}</span>
-        </p>
-      </div>
-
-      {/* tear line + stub */}
-      <div
-        className="relative flex items-center justify-center border-t border-dashed border-journey-text/20 p-4 sm:w-44 sm:border-l sm:border-t-0"
-        style={{ backgroundColor: `${accent}0d` }}
-      >
-        {/* punched notches */}
-        <span
-          aria-hidden="true"
-          className="absolute -left-3 top-0 h-6 w-6 -translate-y-1/2 rounded-full bg-journey-bg sm:-top-3 sm:left-0 sm:-translate-x-1/2 sm:translate-y-0"
-        />
-        <span
-          aria-hidden="true"
-          className="absolute -right-3 top-0 h-6 w-6 -translate-y-1/2 rounded-full bg-journey-bg sm:-bottom-3 sm:left-0 sm:right-auto sm:top-auto sm:-translate-x-1/2 sm:translate-y-0"
-        />
-
-        {canShowQr ? (
-          <button
-            type="button"
-            onClick={onShowQr}
-            className={`flex w-full flex-row items-center justify-center gap-3 rounded-2xl bg-journey-accent px-4 py-3 text-journey-on-accent shadow-[0_10px_26px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] sm:aspect-square sm:h-28 sm:w-28 sm:flex-col sm:gap-1.5 sm:px-2 sm:py-2 ${focusRing}`}
-          >
-            <QrCode className="h-7 w-7" />
-            <span className="text-xs font-bold sm:text-center sm:leading-tight">View QR Badge</span>
-          </button>
-        ) : (
-          <div className="flex flex-row items-center gap-2 sm:flex-col sm:gap-1.5" style={{ color: accent }}>
-            <CheckCircle2 className="h-8 w-8" />
-            <span className="text-xs font-bold uppercase tracking-wider">Registered</span>
-          </div>
-        )}
-      </div>
-    </article>
-  );
-}
-
 function BadgeTile({ badge, compact = false }: { badge: BadgeItem; compact?: boolean }) {
   const tone = BADGE_TONES[badge.tone] ?? BADGE_TONES.emerald;
   return (
@@ -698,6 +603,9 @@ function ProfileContent() {
   const [refreshAttempt, setRefreshAttempt] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [qrBadgeEvent, setQrBadgeEvent] = useState<RegisteredEventItem | null>(null);
+  const [feedbackEvent, setFeedbackEvent] = useState<RegisteredEventItem | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [badgesOpen, setBadgesOpen] = useState(false);
 
   useEffect(() => {
@@ -774,6 +682,32 @@ function ProfileContent() {
       return { ...next, year: year ?? prev?.year };
     });
     setStoredUser(toStoredUser({ ...data, year: year ?? profile?.year }));
+  };
+
+  const cancelRegistration = async (evt: RegisteredEventItem) => {
+    if (!evt.event_slug) return;
+    const confirmed = await confirm({
+      title: 'Cancel your registration?',
+      message: `Your seat in ${evt.title} will be released. You can register again later if seats are still open.`,
+      confirmLabel: 'Cancel registration',
+      cancelLabel: 'Keep my seat',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setCancellingId(evt.id);
+    try {
+      await eventRegistrationApi.cancel(evt.event_slug);
+      setProfile((prev) => (prev ? {
+        ...prev,
+        registered_events: prev.registered_events.filter((item) => item.id !== evt.id),
+        events_registered_count: Math.max(0, prev.events_registered_count - 1),
+      } : prev));
+      toast.success('Registration cancelled', `Your seat in ${evt.title} was released.`);
+    } catch (err: any) {
+      toast.error('Could not cancel', err?.body?.error || err?.message || 'Please try again.');
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   const copyClubId = async (clubId: string) => {
@@ -914,6 +848,8 @@ function ProfileContent() {
 
             <CelebrationSettingsCard />
 
+            <NotificationPreferencesCard />
+
             {(isStaff || canScan) && (
               <div className="flex flex-wrap gap-2.5">
                 {isStaff && (
@@ -997,49 +933,28 @@ function ProfileContent() {
               />
             </section>
 
-            {/* registered events, one by one */}
-            <section aria-labelledby="events-title" className="space-y-6 sm:space-y-7">
-              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="min-w-0">
-                  <h2
-                    id="events-title"
-                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2 font-display text-[clamp(1.2rem,5vw,1.5rem)] font-semibold tracking-tight text-journey-text sm:text-2xl"
-                  >
-                    <span className="min-w-0 [font-family:var(--font-display)]">My Enrolled Events & Submissions</span>
-                    <span className="mt-0.5 inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-journey-accent/10 px-1.5 text-[11px] font-bold text-journey-accent">
-                      {registeredEvents.length}
-                    </span>
-                  </h2>
-                </div>
-                <Link href="/forms" className="inline-flex flex-shrink-0 items-center gap-1 self-end text-xs font-bold text-journey-accent transition hover:gap-2 sm:self-auto">
-                  Forms Center <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-
-              {registeredEvents.length > 0 ? (
-                <div className="space-y-3 sm:space-y-4">
-                  {registeredEvents.map((evt) => (
-                    <EventTicket key={evt.id} evt={evt} onShowQr={() => setQrBadgeEvent(evt)} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={<FileText className="h-7 w-7" />}
-                  title="No active registrations yet"
-                  text="Discover upcoming workshops, hackathons, and algorithm challenges in the club portal."
-                >
-                  <Link
-                    href="/events"
-                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-full bg-journey-accent px-5 py-2 text-xs font-bold text-journey-on-accent shadow-[0_8px_24px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] ${focusRing}`}
-                  >
-                    <span>Browse Events & Forms</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </EmptyState>
-              )}
-            </section>
-
-            <MyHackathonsPanel />
+            <MyEventsSection
+              registrations={registeredEvents}
+              cancellingId={cancellingId}
+              onShowQr={setQrBadgeEvent}
+              onRate={setFeedbackEvent}
+              onCancel={cancelRegistration}
+              emptyState={
+            <EmptyState
+              icon={<FileText className="h-7 w-7" />}
+              title="No active registrations yet"
+              text="Discover upcoming workshops, hackathons, and algorithm challenges in the club portal."
+            >
+              <Link
+                href="/events"
+                className={`inline-flex min-h-10 items-center gap-1.5 rounded-full bg-journey-accent px-5 py-2 text-xs font-bold text-journey-on-accent shadow-[0_8px_24px_-10px_rgba(255,122,0,0.8)] transition hover:brightness-110 active:scale-[0.98] ${focusRing}`}
+              >
+                <span>Browse Events & Forms</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </EmptyState>
+              }
+            />
           </div>
         </div>
       </div>
@@ -1050,6 +965,11 @@ function ProfileContent() {
         profile={profile}
         onSaved={handleProfileUpdated}
       />
+
+      {confirmDialog}
+      <Modal isOpen={feedbackEvent !== null} onClose={() => setFeedbackEvent(null)} title={feedbackEvent ? `Rate ${feedbackEvent.title}` : 'Rate this event'} icon={Star} maxWidth="max-w-lg">
+        {feedbackEvent?.event_slug && <EventFeedbackForm slug={feedbackEvent.event_slug} onSaved={() => setFeedbackEvent(null)} />}
+      </Modal>
 
       <AttendanceBadgeModal
         isOpen={qrBadgeEvent !== null}

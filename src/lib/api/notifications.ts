@@ -3,6 +3,7 @@ import type {
   UserNotification,
   NotificationListResponse,
   BroadcastPayload,
+  NotificationPreferences,
 } from '@/lib/types';
 
 export const notificationsApi = {
@@ -27,6 +28,14 @@ export const notificationsApi = {
       '/notifications/mark-all-read/',
       { method: 'POST' }
     ),
+
+  preferences: () => fetchApi<NotificationPreferences>('/notifications/preferences/'),
+
+  setEventReminderEmails: (enabled: boolean) =>
+    fetchApi<NotificationPreferences>('/notifications/preferences/', {
+      method: 'PATCH',
+      body: JSON.stringify({ event_reminder_emails: enabled }),
+    }),
 
   delete: (id: number) =>
     fetchApi<{ deleted: true; id: number; unread_count: number }>(
