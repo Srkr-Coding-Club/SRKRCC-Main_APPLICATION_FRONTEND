@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { QrCode, CheckCircle2, Circle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { fetchApi } from '@/lib/api-client';
-import { AttendanceBadge, MyAttendanceRecord } from '@/lib/types';
+import { AttendanceBadge, MyAttendanceRecord } from '@/lib/types';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 interface AttendanceBadgeCardProps {
   formId: number | string;
@@ -60,9 +61,10 @@ export function AttendanceBadgeCard({ formId, registrantName }: AttendanceBadgeC
 
   if (loading) {
     return (
-      <div className="rounded-[24px] border border-journey-text/10 bg-journey-surface/70 p-6 text-center">
-        <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-journey-accent border-t-transparent" />
-        <p className="text-sm text-journey-muted">Loading your attendance pass…</p>
+      <div role="status" aria-busy="true" aria-label="Loading your attendance pass" className="space-y-3 rounded-[24px] border border-journey-text/10 bg-journey-surface/70 p-6">
+        <Skeleton className="mx-auto h-5 w-1/2" />
+        <Skeleton className="mx-auto h-40 w-40 rounded-2xl" />
+        <Skeleton className="mx-auto h-3 w-2/3" />
       </div>
     );
   }

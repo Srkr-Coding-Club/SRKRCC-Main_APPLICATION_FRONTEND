@@ -37,7 +37,8 @@ import {
   UniversalPreviewResponse,
 } from '@/lib/types';
 import { fetchApi } from '@/lib/api-client';
-import { useToast } from '@/context/ToastContext';
+import { useToast } from '@/context/ToastContext';
+import { TableRowsSkeleton, ListRowsSkeleton } from '@/components/ui/Skeleton';
 
 interface CSVIngestionTabProps {
   forms?: Form[];
@@ -1039,10 +1040,7 @@ export function CSVIngestionTab({ forms = [] }: CSVIngestionTabProps) {
             </div>
 
             {isLoadingHistory ? (
-              <div className="flex flex-col items-center justify-center py-16 text-slate-600 dark:text-slate-400">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400 mb-2" />
-                <p className="text-sm">Loading backup vault archives...</p>
-              </div>
+              <div role="status" aria-busy="true" aria-label="Loading backup archives" className="py-4"><TableRowsSkeleton rows={4} columns={4} /></div>
             ) : backupHistory.length === 0 ? (
               <div className="text-center py-16 text-slate-500 dark:text-slate-400">
                 <Archive className="w-12 h-12 mx-auto text-slate-400 dark:text-slate-600 mb-3" />

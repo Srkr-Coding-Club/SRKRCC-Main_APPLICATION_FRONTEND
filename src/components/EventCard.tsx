@@ -10,7 +10,8 @@ import { eventAvailability, eventPoster, formatEventDay, formatEventTimeRange, r
 import BannerImage from '@/components/ui/BannerImage';
 import { EventRegisterButton } from '@/components/events/EventRegisterButton';
 import { useScrollEntrance } from '@/lib/hooks/useScrollEntrance';
-import { coverWipe, drawTimeline, fadeIn, footerRise, popIn, riseFromMask } from '@/lib/entranceMotion';
+import { coverWipe, drawTimeline, fadeIn, footerRise, popIn, riseFromMask } from '@/lib/entranceMotion';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 interface EventCardProps {
   event: Event;
@@ -54,7 +55,7 @@ export default function EventCard({ event, accent = '#FF7A00', index = 0, layout
     <div ref={cardRef} className="h-full w-full py-2">
       <article
         onClick={(click) => {
-          if (!(click.target as HTMLElement).closest('a, button')) router.push(detailHref);
+          if (!(click.target as HTMLElement).closest('a, button')) pushWithProgress(router, detailHref);
         }}
         className={[
           'ec-shell group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-[28px] p-2',

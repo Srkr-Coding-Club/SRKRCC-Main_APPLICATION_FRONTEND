@@ -8,7 +8,8 @@ import { CheckCircle2, Loader2, Ticket, UserCog } from 'lucide-react';
 import { fetchApi } from '@/lib/api-client';
 import { AuthUser, getStoredUser } from '@/lib/auth';
 import type { Event } from '@/lib/types';
-import { useToast } from '@/context/ToastContext';
+import { useToast } from '@/context/ToastContext';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 interface QuickRegisterButtonProps {
   event: Event;
@@ -66,7 +67,7 @@ export default function QuickRegisterButton({
 
   const handleClick = async () => {
     if (!user) {
-      router.push(`/login?next=${encodeURIComponent(`/events/${event.slug}`)}`);
+      pushWithProgress(router, `/login?next=${encodeURIComponent(`/events/${event.slug}`)}`);
       return;
     }
 

@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, LogIn, Loader2, RefreshCw, LogOut, QrCode } from 'lucide-react';
 import { getStoredUser, fetchAndSyncCurrentUser, subscribeToAuthResync, clearAuthSession, AuthUser } from '@/lib/auth';
-import BrainLogo from '@/components/BrainLogo';
+import BrainLogo from '@/components/BrainLogo';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 // Mirrors the backend's apps.attendance.permissions.IsVolunteerOrAbove exactly
 // - VOLUNTEER included, unlike AdminGuard's ADMIN/CLUB_LEAD-only check. That
@@ -62,7 +63,7 @@ export default function ScannerGuard({ children }: { children: React.ReactNode }
 
   const handleSwitchAccount = () => {
     clearAuthSession();
-    router.push('/login?next=/attendance/scan');
+    pushWithProgress(router, '/login?next=/attendance/scan');
   };
 
   if (!mounted || checkingServer) {

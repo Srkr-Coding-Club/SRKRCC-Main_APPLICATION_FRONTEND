@@ -40,7 +40,8 @@ import ResponsesExportModal, {
 import { isNonAnswerType } from '@/lib/fieldTypes';
 import { useUploadConfig } from '@/lib/uploadConfig';
 import { FormFilesTab } from './FormFilesTab';
-import { StoredFile } from './StoredFile';
+import { StoredFile } from './StoredFile';
+import { TableRowsSkeleton, ListRowsSkeleton } from '@/components/ui/Skeleton';
 
 const ResponseTimelineChart = dynamic(
   () => import('./ResponseTimelineChart'),
@@ -712,10 +713,7 @@ export function ResponsesViewerTab({ forms, initialFormSlug }: ResponsesViewerTa
 
         {/* Table */}
         {loading ? (
-          <div className="py-16 flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">Loading responses…</p>
-          </div>
+          <div role="status" aria-busy="true" aria-label="Loading responses" className="p-4"><TableRowsSkeleton rows={8} columns={5} /></div>
         ) : !data || data.count === 0 ? (
           <div className="py-20 flex flex-col items-center gap-4 text-center">
             <Inbox className="w-10 h-10 text-slate-700" />

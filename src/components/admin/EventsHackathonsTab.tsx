@@ -8,7 +8,8 @@ import Link from 'next/link';
 import { useToast } from '@/context/ToastContext';
 import { EventFormPanel } from './EventFormPanel';
 import { EventFeedbackPanel } from './EventFeedbackPanel';
-import { EventCertificatesPanel } from './EventCertificatesPanel';
+import { EventCertificatesPanel } from './EventCertificatesPanel';
+import { TableRowsSkeleton } from '@/components/ui/Skeleton';
 
 function StatusBadge({ status }: { status?: 'LIVE' | 'CLOSED' }) {
   const isClosed = status === 'CLOSED';
@@ -168,7 +169,7 @@ export function EventsHackathonsTab() {
         )}
 
         {loading ? (
-          <div className="text-center py-6 text-xs text-slate-400">Loading live events from backend...</div>
+          <div role="status" aria-busy="true" aria-label="Loading events"><TableRowsSkeleton rows={4} columns={3} /></div>
         ) : events.length === 0 ? (
           <div className="text-center py-6 text-xs text-slate-400">No scheduled events currently registered in backend.</div>
         ) : (

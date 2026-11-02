@@ -10,6 +10,7 @@ import { FormSelect } from '@/components/ui/FormSelect';
 import { LoadError } from './LoadError';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 const MAX_DAYS = 14;
 const MAX_SLOTS = 3;
@@ -151,7 +152,7 @@ interface CheckInSessionsManagerProps {
 /** How many days and slots check-in has, and each generated session's name, window and rules. */
 export function CheckInSessionsManager({ hackathon, onSaved }: CheckInSessionsManagerProps) {
   const slug = hackathon.slug;
-  const { busy, errors, save } = useHackathonPatch(hackathon, onSaved);
+  const { busy, errors, save, saved, clearSaved } = useHackathonPatch(hackathon, onSaved);
   const [sessions, setSessions] = useState<CheckInSessionInfo[] | null>(null);
   const [error, setError] = useState('');
   const [days, setDays] = useState(String(hackathon.check_in_days ?? 1));
@@ -189,7 +190,7 @@ export function CheckInSessionsManager({ hackathon, onSaved }: CheckInSessionsMa
           <input id="check-in-slots" type="number" min={1} max={MAX_SLOTS} value={slots} onChange={(e) => setSlots(e.target.value)} aria-invalid={Boolean(errors.check_in_slots_per_day)} className={INPUT} />
         </div>
         <button type="button" onClick={() => setDays(String(daysBetween(hackathon.start_date, hackathon.end_date)))} className={BTN_GHOST}>Match the event dates</button>
-        <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : 'Save schedule'}</button>
+        <ActionButton type="submit" pending={busy} success={saved} onSuccessShown={clearSaved} successLabel="Saved" className={BTN_PRIMARY}>{'Save schedule'}</ActionButton>
         {(errors.check_in_days || errors.check_in_slots_per_day) && (
           <p role="alert" className="basis-full text-xs text-rose-600 dark:text-rose-400">{errors.check_in_days || errors.check_in_slots_per_day}</p>
         )}

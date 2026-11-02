@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Switch } from '@/components/ui/Switch';
 import { useToast } from '@/context/ToastContext';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, firstFieldErrors, fromLocalInput } from './shared';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 /** Start the next edition from this hackathon: same setup, new dates, no people. */
 export function CloneHackathonModal({ hackathon, onClose }: { hackathon: Hackathon; onClose: () => void }) {
@@ -29,7 +30,7 @@ export function CloneHackathonModal({ hackathon, onClose }: { hackathon: Hackath
         title: title.trim(), start_date: fromLocalInput(start) ?? '', copy_problem_statements: copyProblems,
       });
       toast.success('Hackathon cloned', 'It starts as a draft. Check the dates, then publish it.');
-      router.push(`/admin/hackathons/${created.slug}?tab=settings`);
+      pushWithProgress(router, `/admin/hackathons/${created.slug}?tab=settings`);
     } catch (err) {
       setErrors(firstFieldErrors((err as { body?: unknown })?.body));
       toast.error('Could not clone', apiErrorMessage(err));

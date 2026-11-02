@@ -48,7 +48,8 @@ import { AttendanceBadgeModal } from '@/components/AttendanceBadgeModal';
 import { EventFeedbackForm } from '@/components/events/EventFeedbackForm';
 import { Modal } from '@/components/ui/Modal';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { eventRegistrationApi } from '@/lib/api/events';
+import { eventRegistrationApi } from '@/lib/api/events';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 export const dynamic = 'force-dynamic';
 
@@ -610,7 +611,7 @@ function ProfileContent() {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.push('/login?next=/profile');
+      pushWithProgress(router, '/login?next=/profile');
       return;
     }
 
@@ -672,7 +673,7 @@ function ProfileContent() {
 
   const handleLogout = () => {
     clearAuthSession();
-    router.push('/login');
+    pushWithProgress(router, '/login');
   };
 
   const handleProfileUpdated = (data: FullUserProfile) => {

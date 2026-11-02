@@ -10,7 +10,8 @@ import { registrationLine } from '@/lib/eventDates';
 import { listingPhase } from '@/lib/eventListing';
 import BannerImage from '@/components/ui/BannerImage';
 import { useScrollEntrance } from '@/lib/hooks/useScrollEntrance';
-import { coverWipe, drawTimeline, fadeIn, footerRise, popIn, riseFromMask } from '@/lib/entranceMotion';
+import { coverWipe, drawTimeline, fadeIn, footerRise, popIn, riseFromMask } from '@/lib/entranceMotion';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 interface HackathonCardProps {
   hackathon: Hackathon;
@@ -70,7 +71,7 @@ export default function HackathonCard({ hackathon, accent = '#FF7A00', index = 0
     <div ref={cardRef} className="h-full w-full py-2">
       <article
         onClick={(event) => {
-          if (!(event.target as HTMLElement).closest('a, button')) router.push(detailHref);
+          if (!(event.target as HTMLElement).closest('a, button')) pushWithProgress(router, detailHref);
         }}
         className={[
           'hc-shell group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-[28px] p-2',

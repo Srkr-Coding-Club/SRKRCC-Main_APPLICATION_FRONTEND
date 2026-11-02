@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { UserPlus, X, Loader2 } from 'lucide-react';
+import { UserPlus, X } from 'lucide-react';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 import { sanitizeAffiliateIdInput, sanitizePhoneNumberInput, sanitizeRollNumberInput } from '@/lib/validation/auth';
 import {
@@ -16,6 +16,7 @@ import {
 } from '@/lib/adminUserForm';
 import { CollegeSelect } from '@/components/CollegeSelect';
 import Portal from '@/components/ui/Portal';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -243,13 +244,9 @@ export function CreateUserModal({ isOpen, onClose, onSubmit, newUser, setNewUser
               >
                 Cancel
               </button>
-              <button
-                type="submit" disabled={isSubmitting}
-                className="px-5 py-2 rounded-lg text-xs font-bold bg-journey-accent hover:opacity-90 text-journey-on-accent shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-transform duration-100 active:scale-95"
-              >
-                {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {isSubmitting ? 'Saving...' : 'Save User Account'}
-              </button>
+              <ActionButton type="submit" pending={isSubmitting} className="px-5 py-2 rounded-lg text-xs font-bold bg-journey-accent hover:opacity-90 text-journey-on-accent shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-transform duration-100 active:scale-95">
+                Save User Account
+              </ActionButton>
             </div>
           </form>
         </div>

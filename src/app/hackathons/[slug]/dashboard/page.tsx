@@ -35,7 +35,8 @@ import {
   CalendarShareCard, CertificateCard, CheckInCard, MyRegistrationCard, RecruitingCard, ResultsNotice, WaitlistNotice,
 } from '@/components/hackathons/ParticipantCards';
 import { needsRegistrationDetails } from '@/components/hackathons/RegistrationDetailsFields';
-import { BTN, H2, PANEL } from '@/components/hackathons/dashboardStyles';
+import { BTN, H2, PANEL } from '@/components/hackathons/dashboardStyles';
+import { replaceWithProgress } from '@/lib/routeProgress';
 
 const DASHBOARD_REFRESH_MS = 15_000;
 
@@ -87,7 +88,7 @@ export default function HackathonDashboardPage() {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.replace(`/login?next=${encodeURIComponent(`/hackathons/${slug}/dashboard`)}`);
+      replaceWithProgress(router, `/login?next=${encodeURIComponent(`/hackathons/${slug}/dashboard`)}`);
       return;
     }
     load();

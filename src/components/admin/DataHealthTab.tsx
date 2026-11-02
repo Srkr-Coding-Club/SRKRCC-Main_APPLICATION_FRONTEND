@@ -18,7 +18,8 @@ import {
 import { DataHealthResponse, DataHealthWarning, ActivityItem } from '@/lib/types';
 import { relativeTime } from '@/lib/dataManagement';
 import { fetchApi } from '@/lib/api-client';
-import { useToast } from '@/context/ToastContext';
+import { useToast } from '@/context/ToastContext';
+import { TableRowsSkeleton, ListRowsSkeleton } from '@/components/ui/Skeleton';
 
 interface DataHealthTabProps {
   onSwitchSubtab: (tab: string) => void;
@@ -118,9 +119,9 @@ export function DataHealthTab({ onSwitchSubtab }: DataHealthTabProps) {
 
   if (loading) {
     return (
-      <div className="py-24 flex flex-col items-center gap-4">
-        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">Loading health data…</p>
+      <div role="status" aria-busy="true" aria-label="Loading health data" className="space-y-4 py-4">
+        <TableRowsSkeleton rows={3} columns={4} />
+        <TableRowsSkeleton rows={4} columns={3} />
       </div>
     );
   }

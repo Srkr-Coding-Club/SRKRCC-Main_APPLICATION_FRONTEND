@@ -1,5 +1,6 @@
 import React from 'react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { SlowNotice } from '@/components/ui/SlowNotice';
 
 export default function AdminLoading() {
   return (
@@ -14,6 +15,7 @@ export default function AdminLoading() {
             Synchronizing live schemas, users, and audit records
           </p>
         </div>
+        <SlowNotice className="w-full" />
       </div>
     </div>
   );

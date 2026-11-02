@@ -10,6 +10,7 @@ import { useToast } from '@/context/ToastContext';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { Switch } from '@/components/ui/Switch';
 import { isGoogleDriveUrl, normalizeImageUrl } from '@/lib/imageUrl';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 type RegistrationMode = 'quick' | 'form';
 
@@ -480,13 +481,9 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60"
-            >
-              {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Event'}
-            </button>
+            <ActionButton type="submit" pending={isSubmitting} className="px-4 py-2 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60">
+              {isEditMode ? 'Save Changes' : 'Create Event'}
+            </ActionButton>
           </div>
         </form>
       </div>

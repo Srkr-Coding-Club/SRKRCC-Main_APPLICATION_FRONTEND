@@ -19,7 +19,8 @@ import {
 import { notificationsApi } from '@/lib/api/notifications';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import type { UserNotification, AnnouncementType } from '@/lib/types';
-import { useToast } from '@/context/ToastContext';
+import { useToast } from '@/context/ToastContext';
+import { TableRowsSkeleton, ListRowsSkeleton } from '@/components/ui/Skeleton';
 
 function timeAgo(dateString: string): string {
   const now = new Date();
@@ -199,28 +200,33 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Optimistic: the row and the count change at once; a failed request puts them back.
   const handleMarkAsRead = async (id: number) => {
-    setActionBusy(id);
+    const before = notifications;
+    const wasUnread = before.some((n) => n.id === id && !n.is_read);
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    if (wasUnread) setUnreadCount((count) => Math.max(0, count - 1));
     try {
       const res = await notificationsApi.markRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-      );
       setUnreadCount(res.unread_count);
     } catch {
+      setNotifications(before);
+      if (wasUnread) setUnreadCount((count) => count + 1);
       toast.error('Failed', 'Could not mark notification as read');
-    } finally {
-      setActionBusy(null);
     }
   };
 
   const handleMarkAllRead = async () => {
+    const before = notifications;
+    const countBefore = unreadCount;
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
     try {
       const res = await notificationsApi.markAllRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      setUnreadCount(0);
       toast.success('All Read', `Marked ${res.marked_count} notification(s) as read`);
     } catch {
+      setNotifications(before);
+      setUnreadCount(countBefore);
       toast.error('Failed', 'Could not mark all notifications as read');
     }
   };
@@ -353,10 +359,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
           {/* Notification List */}
           <div className="min-h-0 max-h-[380px] flex-1 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800/60">
             {loading ? (
-              <div className="flex flex-col items-center justify-center p-8 text-xs text-slate-400">
-                <Loader2 className="h-5 w-5 animate-spin text-journey-accent mb-2" />
-                <span>Loading notifications…</span>
-              </div>
+              <div role="status" aria-busy="true" aria-label="Loading notifications" className="p-4"><ListRowsSkeleton rows={4} /></div>
             ) : displayedList.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-10 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800/60 text-slate-400 mb-3">

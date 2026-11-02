@@ -12,6 +12,7 @@ import { FEATURE_OPTIONS } from './featureOptions';
 import { ObjectListEditor, type ListField } from './ObjectListEditor';
 import { BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInput } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 interface QuestionDraft {
   key: string;
@@ -57,7 +58,7 @@ interface RegistrationControlsTabProps {
 
 /** Everything an organizer decides about who joins and what they provide: modules, capacity, eligibility, rules, questions. */
 export function RegistrationControlsTab({ hackathon, onSaved }: RegistrationControlsTabProps) {
-  const { busy, errors, save } = useHackathonPatch(hackathon, onSaved);
+  const { busy, errors, save, saved, clearSaved } = useHackathonPatch(hackathon, onSaved);
   const [features, setFeatures] = useState<HackathonFeatures>({});
   const [maxTeams, setMaxTeams] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('');
@@ -198,7 +199,7 @@ export function RegistrationControlsTab({ hackathon, onSaved }: RegistrationCont
       </section>
 
       <div className="flex justify-end">
-        <button type="submit" disabled={busy} className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save registration controls'}</button>
+        <ActionButton type="submit" pending={busy} success={saved} onSuccessShown={clearSaved} successLabel="Saved" className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {'Save registration controls'}</ActionButton>
       </div>
     </form>
   );

@@ -19,6 +19,8 @@ import { useToast } from '@/context/ToastContext';
 import { getStoredUser } from '@/lib/auth';
 import { useHackathonLifecycle } from './useHackathonLifecycle';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
+import { ActionButton } from '@/components/ui/ActionButton';
+import { replaceWithProgress } from '@/lib/routeProgress';
 
 
 const WITHDRAWAL_CHOICES: { value: WithdrawalPolicy; label: string; hint: string }[] = [
@@ -229,7 +231,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const canDelete = getStoredUser()?.role === 'ADMIN';
   const lifecycle = useHackathonLifecycle({
     onChanged: onSaved,
-    onDeleted: () => router.replace('/admin/hackathons'),
+    onDeleted: () => replaceWithProgress(router, '/admin/hackathons'),
   });
   const lifecycleBusy = lifecycle.busySlug === hackathon.slug;
   const closed = hackathon.status === 'CLOSED';
@@ -693,9 +695,9 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         >
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
             <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">You have unsaved changes.</p>
-            <button type="submit" disabled={busy} className={BTN_PRIMARY}>
-              <Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save all settings'}
-            </button>
+            <ActionButton type="submit" pending={busy} className={BTN_PRIMARY}>
+              <Save className="h-3.5 w-3.5" /> Save all settings
+            </ActionButton>
           </div>
         </div>
       )}
