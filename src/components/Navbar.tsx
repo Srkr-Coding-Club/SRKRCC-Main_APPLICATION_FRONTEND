@@ -24,7 +24,6 @@ import PillButton from './PillButton';
 import { getStoredUser, isAuthenticated, fetchAndSyncCurrentUser, subscribeToAuthResync, AuthUser, AUTH_CHANGE_EVENT } from '@/lib/auth';
 import { NotificationBell } from './notifications/NotificationBell';
 import { MobileDrawer, type DrawerItem } from './nav/MobileDrawer';
-import { ThemeSegmented } from './nav/ThemeSegmented';
 import { LampSwitch } from './nav/LampSwitch';
 import { Avatar } from './nav/Avatar';
 import { AccountMenu } from './nav/AccountMenu';
@@ -232,7 +231,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
       // as the page scrolls under it.
       className={`sticky top-0 z-50 w-full border-b backdrop-blur-2xl transition-[background-color,box-shadow,border-color] duration-300 ${
         scrolled
-          ? 'bg-white/55 dark:bg-[#0D0E15]/55 border-white/40 dark:border-white/10 shadow-[0_8px_32px_-12px_rgba(139,46,59,0.28)]'
+          ? 'bg-white/90 dark:bg-[#0D0E15]/90 lg:bg-white/55 lg:dark:bg-[#0D0E15]/55 border-white/40 dark:border-white/10 shadow-[0_8px_32px_-12px_rgba(139,46,59,0.28)]'
           : 'bg-white/20 dark:bg-white/[0.04] border-white/15 dark:border-white/[0.06] shadow-none'
       }`}
     >
@@ -470,7 +469,6 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
         }
         footer={
           <>
-            <ThemeSegmented />
             {isAuth ? (
               <button
                 type="button"

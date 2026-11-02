@@ -4,7 +4,7 @@ import React, { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, HelpCircle, LayoutTemplate, Lock, Save, Trash2, Unlock, Sparkles, Calendar, Trophy, Users, Shield, FileText, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
-import type { Form, Hackathon, ProfileFieldKey } from '@/lib/types';
+import type { Form, Hackathon, ProfileFieldKey, WithdrawalPolicy } from '@/lib/types';
 import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
 import { fetchApi } from '@/lib/api-client';
 import { DEFAULT_BANNER_CROP, isDefaultBannerCrop, normalizeBannerCrop, type BannerCrop } from '@/lib/bannerCrop';
@@ -19,7 +19,15 @@ import { useToast } from '@/context/ToastContext';
 import { getStoredUser } from '@/lib/auth';
 import { useHackathonLifecycle } from './useHackathonLifecycle';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
+import { ActionButton } from '@/components/ui/ActionButton';
+import { replaceWithProgress } from '@/lib/routeProgress';
 
+
+const WITHDRAWAL_CHOICES: { value: WithdrawalPolicy; label: string; hint: string }[] = [
+  { value: 'INSTANT', label: 'Instant', hint: 'The team withdraws at once. A team in a round or checked in still needs your approval.' },
+  { value: 'APPROVAL', label: 'Needs approval', hint: 'A registered team asks and you decide. This is how it works today.' },
+  { value: 'LOCKED', label: 'Locked', hint: 'Teams that hold a place cannot withdraw. You can still remove them yourself.' },
+];
 
 export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackathon; onSaved: (h: Hackathon) => void }) {
   const { toast } = useToast();
@@ -48,6 +56,8 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const [minSize, setMinSize] = useState('1');
   const [maxSize, setMaxSize] = useState('4');
   const [locked, setLocked] = useState(false);
+  const [withdrawalPolicy, setWithdrawalPolicy] = useState<WithdrawalPolicy>('APPROVAL');
+  const [withdrawalDeadline, setWithdrawalDeadline] = useState('');
   const [openInnovation, setOpenInnovation] = useState(true);
   const [required, setRequired] = useState<ProfileFieldKey[]>([]);
   const [faq, setFaq] = useState<{ question: string; answer: string }[]>([]);
@@ -66,7 +76,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const currentSnapshot = JSON.stringify([
     title, theme, prizePool, bannerImage, bannerCrop, registrationForm, description, startDate, endDate, visibleFrom, visibleUntil,
     opensAt, closesAt, minSize, maxSize, locked, openInnovation, required, faq,
-    mode, venue, organizer, logoImage, tagsText, prizes,
+    mode, venue, organizer, logoImage, tagsText, prizes, withdrawalPolicy, withdrawalDeadline,
   ]);
   const dirty = savedSnapshot !== '' && currentSnapshot !== savedSnapshot;
 
@@ -95,6 +105,8 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
     setMinSize(String(hackathon.min_team_size ?? 1));
     setMaxSize(String(hackathon.max_team_size ?? 4));
     setLocked(!!hackathon.team_edits_locked);
+    setWithdrawalPolicy(hackathon.withdrawal_policy ?? 'APPROVAL');
+    setWithdrawalDeadline(toLocalInput(hackathon.withdrawal_deadline));
     setOpenInnovation(hackathon.allow_open_innovation ?? true);
     setRequired(hackathon.required_profile_fields ?? []);
     setFaq(hackathon.faq ?? []);
@@ -117,6 +129,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
       hackathon.faq ?? [],
       hackathon.mode ?? 'ONLINE', hackathon.venue ?? '', hackathon.organizer_name ?? '', hackathon.logo_image ?? '',
       (hackathon.tags ?? []).join(', '), hackathon.prizes ?? [],
+      hackathon.withdrawal_policy ?? 'APPROVAL', toLocalInput(hackathon.withdrawal_deadline),
     ]));
   }, [hackathon]);
 
@@ -155,6 +168,8 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         min_team_size: Number(minSize),
         max_team_size: Number(maxSize),
         team_edits_locked: locked,
+        withdrawal_policy: withdrawalPolicy,
+        withdrawal_deadline: fromLocalInput(withdrawalDeadline),
         allow_open_innovation: openInnovation,
         required_profile_fields: required,
         faq: faq.map((item) => ({ question: item.question.trim(), answer: item.answer.trim() })),
@@ -216,7 +231,7 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
   const canDelete = getStoredUser()?.role === 'ADMIN';
   const lifecycle = useHackathonLifecycle({
     onChanged: onSaved,
-    onDeleted: () => router.replace('/admin/hackathons'),
+    onDeleted: () => replaceWithProgress(router, '/admin/hackathons'),
   });
   const lifecycleBusy = lifecycle.busySlug === hackathon.slug;
   const closed = hackathon.status === 'CLOSED';
@@ -626,6 +641,49 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
             </span>
           </label>
 
+          <fieldset className="space-y-3 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+            <legend className="px-1 text-sm font-bold text-[#1A1A2E] dark:text-white">Withdrawing a team</legend>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Applies to teams that hold a place. A team still forming can always leave, and nobody can withdraw once the hackathon has ended.
+            </p>
+            <div role="radiogroup" aria-label="Withdrawal policy" className="grid gap-2 sm:grid-cols-3">
+              {WITHDRAWAL_CHOICES.map((choice) => (
+                <label
+                  key={choice.value}
+                  className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm focus-within:ring-2 focus-within:ring-[#FF7A00]/60 ${
+                    withdrawalPolicy === choice.value ? 'border-[#FF7A00] bg-[#FF7A00]/10' : 'border-slate-200 dark:border-slate-800'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={`${fieldId}-withdrawal`}
+                    value={choice.value}
+                    checked={withdrawalPolicy === choice.value}
+                    onChange={() => setWithdrawalPolicy(choice.value)}
+                    className="mt-0.5 h-4 w-4 accent-[#FF7A00]"
+                  />
+                  <span>
+                    <span className="block font-bold text-[#1A1A2E] dark:text-white">{choice.label}</span>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">{choice.hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div>
+              <label htmlFor={`${fieldId}-withdrawal-deadline`} className={LABEL}>Withdrawals close at <span className="normal-case font-medium text-slate-400">(optional)</span></label>
+              <input
+                id={`${fieldId}-withdrawal-deadline`}
+                type="datetime-local"
+                value={withdrawalDeadline}
+                disabled={withdrawalPolicy === 'LOCKED'}
+                onChange={(e) => setWithdrawalDeadline(e.target.value)}
+                className={`${INPUT} disabled:opacity-50`}
+              />
+              <p className="mt-1 text-[11px] text-slate-400">Leave blank to allow withdrawals until the hackathon ends. A request made before this time can still be approved after it.</p>
+              {errors.withdrawal_deadline && <p role="alert" className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.withdrawal_deadline}</p>}
+            </div>
+          </fieldset>
+
           
         </section>
       </div>
@@ -637,9 +695,9 @@ export function HackathonSettingsTab({ hackathon, onSaved }: { hackathon: Hackat
         >
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
             <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">You have unsaved changes.</p>
-            <button type="submit" disabled={busy} className={BTN_PRIMARY}>
-              <Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save all settings'}
-            </button>
+            <ActionButton type="submit" pending={busy} className={BTN_PRIMARY}>
+              <Save className="h-3.5 w-3.5" /> Save all settings
+            </ActionButton>
           </div>
         </div>
       )}

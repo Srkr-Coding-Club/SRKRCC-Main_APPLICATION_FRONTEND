@@ -14,6 +14,7 @@ import { LoadError } from './LoadError';
 import { SubmissionPhases } from './SubmissionPhases';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInput } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 const STATE_PILL = {
   OFF: { tone: 'slate', label: 'Off' },
@@ -30,7 +31,7 @@ interface SubmissionsAdminTabProps {
 
 export function SubmissionsAdminTab({ hackathon, onSaved, onEnable }: SubmissionsAdminTabProps) {
   const { toast } = useToast();
-  const { busy, errors, save } = useHackathonPatch(hackathon, onSaved);
+  const { busy, errors, save, saved, clearSaved } = useHackathonPatch(hackathon, onSaved);
   const [opensAt, setOpensAt] = useState(toLocalInput(hackathon.submission_opens_at));
   const [deadline, setDeadline] = useState(toLocalInput(hackathon.submission_deadline));
   const [data, setData] = useState<AdminSubmissionsPayload | null>(null);
@@ -96,7 +97,7 @@ export function SubmissionsAdminTab({ hackathon, onSaved, onEnable }: Submission
             {errors.submission_deadline ? <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.submission_deadline}</p> : <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Teams cannot submit or edit after this. Blank = no deadline.</p>}
           </div>
         </div>
-        <button type="submit" disabled={busy} className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save window'}</button>
+        <ActionButton type="submit" pending={busy} success={saved} onSuccessShown={clearSaved} successLabel="Saved" className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {'Save window'}</ActionButton>
       </form>
 
       {error && <LoadError message={error} onRetry={load} />}

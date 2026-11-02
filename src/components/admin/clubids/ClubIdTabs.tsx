@@ -11,6 +11,7 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
 import { EmailStatusBadge } from '../directory/EmailStatusBadge';
 import { LoadError } from '../hackathon/LoadError';
+import { TableRowsSkeleton } from '@/components/ui/Skeleton';
 
 const SELECT = 'min-h-11 rounded-lg border border-journey-text/15 bg-journey-surface px-3 text-sm font-semibold text-journey-text focus:border-journey-accent focus:outline-none sm:min-h-10 sm:text-xs';
 const SEARCH = 'min-h-11 w-full rounded-lg border border-journey-text/15 bg-journey-surface pl-9 pr-3 text-base text-journey-text placeholder:text-journey-muted focus:border-journey-accent focus:outline-none sm:min-h-10 sm:text-sm';
@@ -49,16 +50,20 @@ function Pager({ count, page, onPage }: { count: number; page: number; onPage: (
 function useLoaded<T>(load: () => Promise<T>, deps: unknown[]) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(true);
   const newest = useRef(0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const run = useCallback(() => {
     const mine = ++newest.current;
+    setBusy(true);
     load().then((result) => { if (mine === newest.current) { setData(result); setError(''); } })
-      .catch((err) => { if (mine === newest.current) setError(apiErrorMessage(err, 'Could not load this.')); });
+      .catch((err) => { if (mine === newest.current) setError(apiErrorMessage(err, 'Could not load this.')); })
+      .finally(() => { if (mine === newest.current) setBusy(false); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
   useEffect(() => { run(); }, [run]);
-  return { data, error, reload: run };
+  // First load shows skeleton rows; a later refetch keeps the old rows, dimmed, until the new ones arrive.
+  return { data, error, reload: run, busy };
 }
 
 function useDebounced(value: string, ms = 300) {
@@ -78,7 +83,7 @@ export function RegistryTab({ isAdmin, counters, refreshKey, onMove, onClear }: 
   const [page, setPage] = useState(1);
   const q = useDebounced(text);
   useEffect(() => { setPage(1); }, [q, prefix, status]);
-  const { data, error, reload } = useLoaded<DirectoryPage>(() => clubIdApi.registry({ page, q, prefix, status }), [page, q, prefix, status, refreshKey]);
+  const { data, error, reload, busy } = useLoaded<DirectoryPage>(() => clubIdApi.registry({ page, q, prefix, status }), [page, q, prefix, status, refreshKey]);
   const rows = data?.results ?? [];
   return (
     <section className="space-y-4" aria-label="Registry">
@@ -92,10 +97,11 @@ export function RegistryTab({ isAdmin, counters, refreshKey, onMove, onClear }: 
           <option value="">Any status</option><option value="ACTIVE">Active</option><option value="ALUMNI">Alumni</option><option value="INACTIVE">Inactive</option><option value="SUSPENDED">Suspended</option>
         </select>
       </div>
+      {!data && !error && <div role="status" aria-busy="true" aria-label="Loading"><TableRowsSkeleton rows={6} columns={3} /></div>}
       {error && <LoadError message={error} onRetry={reload} />}
       {data && rows.length === 0 && <p className="rounded-lg border border-dashed border-journey-text/15 p-6 text-center text-sm text-journey-muted">No Club ID matches.</p>}
       {rows.length > 0 && (
-        <ul className="divide-y divide-journey-text/10 rounded-xl border border-journey-text/10">
+        <ul aria-busy={busy} className={`divide-y divide-journey-text/10 rounded-xl border border-journey-text/10 transition-opacity duration-200 ${busy ? 'opacity-50' : ''}`}>
           {rows.map((row) => (
             <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
               <span className="flex min-w-0 flex-1 basis-64 items-center gap-3">
@@ -126,7 +132,7 @@ export function ReservationsTab({ isAdmin, refreshKey, onReserve, onChanged }: {
   const { toast } = useToast();
   const { confirm, dialog } = useConfirmDialog();
   const [status, setStatus] = useState('RESERVED');
-  const { data, error, reload } = useLoaded(() => clubIdApi.reservations(status || undefined), [status, refreshKey]);
+  const { data, error, reload, busy } = useLoaded(() => clubIdApi.reservations(status || undefined), [status, refreshKey]);
   const rows: ClubIdReservation[] = data?.results ?? [];
   const release = async (row: ClubIdReservation) => {
     const ok = await confirm({ title: `Release ${row.club_id}?`, message: `${row.email || 'The hold'} loses it and the id goes back to the pool.`, confirmLabel: 'Release', danger: true });
@@ -144,9 +150,10 @@ export function ReservationsTab({ isAdmin, refreshKey, onReserve, onChanged }: {
         </div>
         {isAdmin && <button type="button" onClick={onReserve} className={`${SMALL} bg-journey-accent text-journey-on-accent hover:opacity-90`}><Lock className="h-3.5 w-3.5" aria-hidden="true" /> Reserve an id</button>}
       </div>
+      {!data && !error && <div role="status" aria-busy="true" aria-label="Loading"><TableRowsSkeleton rows={6} columns={3} /></div>}
       {error && <LoadError message={error} onRetry={reload} />}
       {data && rows.length === 0 && <p className="rounded-lg border border-dashed border-journey-text/15 p-6 text-center text-sm text-journey-muted">Nothing here.</p>}
-      <ul className="space-y-3">
+      <ul aria-busy={busy} className={`space-y-3 transition-opacity duration-200 ${busy ? 'opacity-50' : ''}`}>
         {rows.map((row) => {
           const pill = RESERVATION_PILL[row.status];
           return (
@@ -204,7 +211,7 @@ export function HistoryTab({ refreshKey }: { refreshKey: number }) {
   const [page, setPage] = useState(1);
   const q = useDebounced(text);
   useEffect(() => { setPage(1); }, [q, kind]);
-  const { data, error, reload } = useLoaded<EventPage>(() => clubIdApi.events({ page: page > 1 ? page : undefined, q, kind }), [page, q, kind, refreshKey]);
+  const { data, error, reload, busy } = useLoaded<EventPage>(() => clubIdApi.events({ page: page > 1 ? page : undefined, q, kind }), [page, q, kind, refreshKey]);
   const rows: ClubIdEvent[] = data?.results ?? [];
   return (
     <section className="space-y-4" aria-label="History">
@@ -212,9 +219,10 @@ export function HistoryTab({ refreshKey }: { refreshKey: number }) {
         <SearchBox value={text} onChange={setText} label="Search the history" placeholder="Club ID or an email" />
         <select aria-label="Filter by kind" value={kind} onChange={(event) => setKind(event.target.value)} className={SELECT}>{KINDS.map(([value, label]) => <option key={label} value={value}>{label}</option>)}</select>
       </div>
+      {!data && !error && <div role="status" aria-busy="true" aria-label="Loading"><TableRowsSkeleton rows={6} columns={3} /></div>}
       {error && <LoadError message={error} onRetry={reload} />}
       {data && rows.length === 0 && <p className="rounded-lg border border-dashed border-journey-text/15 p-6 text-center text-sm text-journey-muted">No history matches.</p>}
-      <ol className="space-y-2">
+      <ol aria-busy={busy} className={`space-y-2 transition-opacity duration-200 ${busy ? 'opacity-50' : ''}`}>
         {rows.map((event) => (
           <li key={event.id} className="rounded-xl border border-journey-text/10 p-3.5 text-sm">
             <div className="flex flex-wrap items-center gap-2">

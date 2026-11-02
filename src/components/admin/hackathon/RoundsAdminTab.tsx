@@ -37,6 +37,7 @@ import { FormSelect } from '@/components/ui/FormSelect';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { ENTRY_STATUS_PILL, ROUND_STATUS_PILL, StatusPill } from '@/components/ui/StatusPill';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, BTN, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 interface RoundDraft {
   name: string;
@@ -781,7 +782,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setRoundModal(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
-            <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : 'Save round'}</button>
+            <ActionButton type="submit" pending={busy} className={BTN_PRIMARY}>{'Save round'}</ActionButton>
           </div>
         </form>
       </Modal>
@@ -860,7 +861,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setDecision(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
-            <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : 'Apply'}</button>
+            <ActionButton type="submit" pending={busy} className={BTN_PRIMARY}>{'Apply'}</ActionButton>
           </div>
         </form>
       </Modal>
@@ -898,7 +899,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
           )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setPublishOpen(false)} disabled={busy} className={BTN_GHOST}>Cancel</button>
-            <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Publishing…' : 'Publish'}</button>
+            <ActionButton type="submit" pending={busy} className={BTN_PRIMARY}>{'Publish'}</ActionButton>
           </div>
         </form>
       </Modal>

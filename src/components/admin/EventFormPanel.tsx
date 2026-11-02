@@ -8,12 +8,17 @@ import { PROFILE_FIELD_OPTIONS } from '@/lib/profileFields';
 import { slugify } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { Switch } from '@/components/ui/Switch';
 import { isGoogleDriveUrl, normalizeImageUrl } from '@/lib/imageUrl';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 type RegistrationMode = 'quick' | 'form';
 
 // A registration is meaningless without knowing who registered, so these are always collected.
 const ALWAYS_COLLECTED: ProfileFieldKey[] = ['full_name', 'email'];
+
+/** The longest lead for closing cancellations: 30 days. */
+const MAX_CANCELLATION_CUTOFF_HOURS = 24 * 30;
 
 interface EventFormPanelProps {
   isOpen: boolean;
@@ -58,6 +63,8 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
   const [capacity, setCapacity] = useState('100');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [cancellationAllowed, setCancellationAllowed] = useState(true);
+  const [cancellationCutoff, setCancellationCutoff] = useState('0');
   const [posterImage, setPosterImage] = useState('');
   const [registrationForm, setRegistrationForm] = useState('');
   const [registrationMode, setRegistrationMode] = useState<RegistrationMode>('form');
@@ -80,6 +87,8 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
     setCapacity('100');
     setStartTime('');
     setEndTime('');
+    setCancellationAllowed(true);
+    setCancellationCutoff('0');
     setPosterImage('');
     setRegistrationForm('');
     setRegistrationMode('form');
@@ -101,6 +110,8 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
       setCapacity(String(event.capacity));
       setStartTime(toDatetimeLocal(event.start_time));
       setEndTime(toDatetimeLocal(event.end_time));
+      setCancellationAllowed(!event.cancellation_locked);
+      setCancellationCutoff(String(event.cancellation_cutoff_hours ?? 0));
       setPosterImage(event.poster_image || '');
       const isQuick = Boolean(event.is_quick_registration);
       setRegistrationMode(isQuick ? 'quick' : 'form');
@@ -137,6 +148,10 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
     if (startTime && endTime && new Date(endTime) <= new Date(startTime)) {
       next.endTime = 'End time must be after the start time.';
     }
+    const cutoff = Number(cancellationCutoff);
+    if (!Number.isInteger(cutoff) || cutoff < 0 || cutoff > MAX_CANCELLATION_CUTOFF_HOURS) {
+      next.cancellationCutoff = `Enter a whole number of hours from 0 to ${MAX_CANCELLATION_CUTOFF_HOURS}.`;
+    }
     if ((startTime && !endTime) || (!startTime && endTime)) {
       next.endTime = 'Set both a start and end time, or leave both blank for "date to be announced".';
     }
@@ -161,6 +176,8 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
         start_time: startTime ? new Date(startTime).toISOString() : null,
         end_time: endTime ? new Date(endTime).toISOString() : null,
         poster_image: normalizeImageUrl(posterImage) || null,
+        cancellation_locked: !cancellationAllowed,
+        cancellation_cutoff_hours: Number(cancellationCutoff) || 0,
         // One-click: the server builds the registration form from the ticked details.
         ...(registrationMode === 'quick'
           ? { quick_registration_fields: quickFields }
@@ -300,6 +317,32 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
             This is when the event itself happens. Leave it blank to show "Date to be announced" on the public card.
           </p>
 
+          <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+            <legend className="px-1 text-xs font-bold uppercase text-[#1A1A2E] dark:text-white">Cancelling a registration</legend>
+            <Switch
+              label="Let registered people cancel"
+              description="They cancel from their profile, which frees the seat. Turn this off and only organizers can remove a registration."
+              checked={cancellationAllowed}
+              onChange={setCancellationAllowed}
+            />
+            <div>
+              <label htmlFor="cancellation-cutoff" className={labelClasses}>Stop cancellations this many hours before the start</label>
+              <input
+                id="cancellation-cutoff"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={MAX_CANCELLATION_CUTOFF_HOURS}
+                value={cancellationCutoff}
+                disabled={!cancellationAllowed}
+                onChange={(e) => setCancellationCutoff(e.target.value)}
+                className={`${inputClasses} disabled:opacity-50`}
+              />
+              <p className="mt-1 text-[11px] text-slate-400">0 means people can cancel until the event starts. 24 closes cancellations a day before. An event with no date can always be cancelled unless you turn it off above.</p>
+              {errors.cancellationCutoff && <p role="alert" className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.cancellationCutoff}</p>}
+            </div>
+          </fieldset>
+
           <div>
             <label className={labelClasses}>Poster Image URL</label>
             <input
@@ -438,13 +481,9 @@ export function EventFormPanel({ isOpen, event, onClose, onSaved }: EventFormPan
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60"
-            >
-              {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Event'}
-            </button>
+            <ActionButton type="submit" pending={isSubmitting} className="px-4 py-2 rounded-lg bg-[#8B2E3B] hover:bg-rose-900 text-white font-bold text-sm shadow-sm transition active:scale-95 disabled:opacity-60">
+              {isEditMode ? 'Save Changes' : 'Create Event'}
+            </ActionButton>
           </div>
         </form>
       </div>

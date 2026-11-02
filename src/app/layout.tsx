@@ -92,6 +92,8 @@ import { VerificationGate } from '@/components/verification/VerificationGate';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import BackendHeartbeat from '@/components/BackendHeartbeat';
 import { CelebrationHost } from '@/components/celebrations/CelebrationHost';
+import { RouteProgress } from '@/components/ui/RouteProgress';
+import { Suspense } from 'react';
 
 export default async function RootLayout({
   children,
@@ -117,6 +119,7 @@ export default async function RootLayout({
         <ToastProvider>
           <EmailVerificationProvider>
             <BackendHeartbeat />
+            <Suspense fallback={null}><RouteProgress /></Suspense>
             <a
               href="#main-content"
               className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-journey-accent focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-journey-on-accent"

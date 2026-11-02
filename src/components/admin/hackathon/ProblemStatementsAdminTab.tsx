@@ -14,6 +14,7 @@ import { ProblemDomainsPanel } from './ProblemDomainsPanel';
 import { StatusPill, TEAM_STATUS_PILL } from '@/components/ui/StatusPill';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors } from './shared';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 interface Draft {
   title: string;
@@ -423,7 +424,7 @@ export function ProblemStatementsAdminTab({ slug }: { slug: string }) {
         footer={
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setEditing(null)} disabled={busy} className={BTN_GHOST}>Cancel</button>
-            <button type="submit" form="problem-statement-form" disabled={busy} className={BTN_PRIMARY}>{busy ? 'Saving…' : 'Save'}</button>
+            <ActionButton type="submit" form="problem-statement-form" pending={busy} className={BTN_PRIMARY}>{'Save'}</ActionButton>
           </div>
         }
       >

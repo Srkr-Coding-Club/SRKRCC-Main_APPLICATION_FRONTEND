@@ -21,7 +21,8 @@ import type {
   ExportFormat, FilterClause, FilterDefinition, FilterOption, FilterType, FilterOperator, SortClause
 } from '@/lib/types/dmc';
 import EmailTemplateEditor, { EmailRecipient } from '@/components/admin/EmailTemplateEditor';
-import Portal from '@/components/ui/Portal';
+import Portal from '@/components/ui/Portal';
+import { TableRowsSkeleton, ListRowsSkeleton } from '@/components/ui/Skeleton';
 
 // ============================================================================
 // Group Icons mapping
@@ -188,10 +189,7 @@ function Sidebar({ grouped, active, onSelect, loading, open, onClose }: SidebarP
       </div>
       <div className="flex-1 py-3 px-2 space-y-4">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400 dark:text-slate-500">
-            <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
-            <span className="text-xs font-medium">Loading datasets…</span>
-          </div>
+          <div role="status" aria-busy="true" aria-label="Loading datasets" className="px-2"><ListRowsSkeleton rows={6} /></div>
         ) : (
           groups.map(group => {
             const GroupIcon = GROUP_ICONS[group] || Database;
@@ -953,10 +951,7 @@ function DataGrid({
 }) {
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-28 text-slate-600 dark:text-slate-400 gap-3">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400" />
-        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Loading dataset records…</p>
-      </div>
+      <div role="status" aria-busy="true" aria-label="Loading dataset records" className="py-6"><TableRowsSkeleton rows={8} columns={5} /></div>
     );
   }
   if (empty || records.length === 0) {

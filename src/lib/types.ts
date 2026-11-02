@@ -108,6 +108,10 @@ export interface Event {
   is_quick_registration?: boolean;
   /** The member details a one-click event collects (profile keys such as 'full_name', 'phone_number'). */
   registration_profile_fields?: ProfileFieldKey[];
+  /** When on, registered people cannot cancel on their own. */
+  cancellation_locked?: boolean;
+  /** Cancelling stops this many hours before the start; 0 = until the event starts. */
+  cancellation_cutoff_hours?: number;
   /** Write-only: the details to collect; the server builds the registration form from them. */
   quick_registration_fields?: ProfileFieldKey[];
 }
@@ -154,6 +158,10 @@ export interface Hackathon {
   min_team_size?: number;
   max_team_size?: number;
   team_edits_locked?: boolean;
+  /** How a team that holds a place withdraws: at once, with an organizer's approval (the default), or not at all. */
+  withdrawal_policy?: WithdrawalPolicy;
+  /** Withdrawals cannot start after this. Blank: until the hackathon ends. */
+  withdrawal_deadline?: string | null;
   required_profile_fields?: ProfileFieldKey[];
   /** Admin-configured domains problem statements are filed under (also the public filter order). */
   problem_domains?: string[];
@@ -267,6 +275,18 @@ export interface CertificateConfig {
 // Hackathon team formation, rounds and announcements
 // (apps/hackathons on the backend)
 // ---------------------------------------------------------------------------
+
+export type WithdrawalPolicy = 'INSTANT' | 'APPROVAL' | 'LOCKED';
+
+/** Whether the leader can still withdraw the team, and what happens when they do. */
+export interface WithdrawalWindow {
+  open: boolean;
+  reason: 'ENDED' | 'LOCKED' | 'DEADLINE' | null;
+  message: string;
+  policy: WithdrawalPolicy;
+  closes_at: string | null;
+  needs_approval: boolean;
+}
 
 export type HackathonTeamStatus = 'FORMING' | 'REGISTERED' | 'DISQUALIFIED' | 'WITHDRAWN' | 'PAYMENT_PENDING' | 'PAYMENT_REJECTED';
 /** When the fee is paid: with the registration (team creation), with the idea, or never. */
@@ -382,6 +402,8 @@ export interface HackathonTeam {
   round_entries?: TeamRoundEntryBrief[];
   /** /my-teams/ only */
   hackathon_title?: string;
+  hackathon_start?: string | null;
+  hackathon_end?: string | null;
   is_leader?: boolean;
 }
 
@@ -467,6 +489,8 @@ export interface MyTeamPayload {
   payment?: TeamPaymentSummary | null;
   /** The latest withdrawal request on the team (pending or decided), if any. */
   withdrawal_request?: MyWithdrawalRequest | null;
+  /** The organizers' withdrawal rules as they apply to this team; null when the person has no team. */
+  withdrawal_window?: WithdrawalWindow | null;
   /** What one person may do: teams they can create, and the wait after withdrawing one. */
   team_limits?: { max_teams: number; cooldown_minutes: number };
   is_leader: boolean;
@@ -1992,4 +2016,80 @@ export interface Celebration {
   link_url: string;
   payload: Record<string, string | number | boolean>;
   created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Post-event feedback (apps/events on the backend)
+// ---------------------------------------------------------------------------
+
+export type EventFeedbackBlock = 'EVENT_NOT_ENDED' | 'NOT_ATTENDED';
+
+export interface EventFeedbackInput {
+  rating: number;
+  would_recommend: boolean;
+  went_well: string;
+  to_improve: string;
+}
+
+export interface EventFeedbackState {
+  eligible: boolean;
+  reason: EventFeedbackBlock | null;
+  feedback: EventFeedbackInput | null;
+}
+
+export interface EventFeedbackComment extends EventFeedbackInput {
+  id: number;
+  name: string;
+  created_at: string;
+}
+
+export interface EventFeedbackSummary {
+  count: number;
+  average_rating: number | null;
+  recommend_rate: number | null;
+  distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+  attendees: number;
+  response_rate: number | null;
+  ended: boolean;
+  comments: EventFeedbackComment[];
+}
+
+// Attendance certificates for regular events (apps/events on the backend)
+
+export interface EventCertificate {
+  kind: 'PARTICIPATION';
+  title: string;
+  body: string;
+  name: string;
+  event: string;
+  organizer: string;
+  /** Null while the event has no date. */
+  date: string | null;
+  signatory_name: string;
+  signatory_title: string;
+  code: string;
+}
+
+export interface EventCertificateVerification {
+  valid: boolean;
+  kind: 'PARTICIPATION';
+  name: string;
+  event: string;
+  date: string | null;
+}
+
+export interface EventCertificateSettings {
+  certificates_released: boolean;
+  certificate_body: string;
+  certificate_signatory_name: string;
+  certificate_signatory_title: string;
+  eligible_count: number;
+  preview: EventCertificate;
+}
+
+export type EventCertificateSettingsInput = Partial<Pick<EventCertificateSettings, 'certificates_released' | 'certificate_body' | 'certificate_signatory_name' | 'certificate_signatory_title'>>;
+
+export interface NotificationPreferences {
+  /** Email reminders before events the person registered for. In-app reminders are always sent. */
+  event_reminder_emails: boolean;
 }

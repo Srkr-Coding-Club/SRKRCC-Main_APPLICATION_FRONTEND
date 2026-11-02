@@ -232,7 +232,7 @@ def make_listing_hackathon(args):
     now = timezone.now()
     Hackathon.objects.update_or_create(slug=args.slug, defaults=dict(
         title=args.title, theme=args.theme, description=args.description, prize_pool=args.prize,
-        start_date=now + timedelta(days=30), end_date=now + timedelta(days=31),
+        start_date=now + timedelta(days=args.start_days), end_date=now + timedelta(days=args.start_days + 1),
         status='LIVE', min_team_size=1, max_team_size=3,
     ))
     emit({'ok': True})
@@ -388,6 +388,92 @@ def age_payments(args):
 def run_reminders(args):
     from apps.hackathons import payments
     emit({'mentioned': payments.remind_organizers()})
+
+
+def make_event(args):
+    """A one-click event starting `--start-hours` from now (negative: already started), with attendance scanning when asked."""
+    from datetime import timedelta
+    from apps.attendance.services import generate_sessions
+    from apps.events.models import Event
+    from apps.events.quick_registration import apply_quick_registration
+    from apps.forms.models import Form
+    start = timezone.now() + timedelta(hours=args.start_hours)
+    event = Event.objects.create(
+        title=args.title, slug=args.slug, description=f'{args.title} for the live run.', category='Workshop', venue='Seminar Hall',
+        start_time=start, end_time=start + timedelta(hours=args.duration_hours), capacity=args.capacity,
+        poster_image=args.poster or None, status=args.status,
+    )
+    form = apply_quick_registration(event, ['full_name', 'email'])
+    if args.attendance:
+        Form.objects.filter(pk=form.pk).update(attendance_enabled=True, attendance_start_date=start.date(), attendance_days=1, attendance_sessions_per_day=1)
+        form.refresh_from_db()
+        generate_sessions(form)
+    event.registration_form = form
+    event.save()
+    if args.released:
+        Event.objects.filter(pk=event.pk).update(certificates_released=True)
+    emit({'form': form.slug})
+
+
+def register_event(args):
+    """Register a person for an event as if they had registered `--days-ago` days ago; `--scanned` also checks them in."""
+    from datetime import timedelta
+    from apps.attendance.models import AttendanceBadge, AttendanceRecord, AttendanceSession
+    from apps.events.models import Event
+    from apps.forms.models import Form, FormStatus, Response
+    event = Event.objects.get(slug=args.slug)
+    form = event.registration_form
+    response = Response.objects.create(form=form, user=User.objects.get(email__iexact=args.email))
+    Response.objects.filter(pk=response.pk).update(submitted_at=timezone.now() - timedelta(days=args.days_ago))
+    if form.attendance_enabled:
+        badge = AttendanceBadge.objects.create(response=response)
+        if args.scanned:
+            AttendanceRecord.objects.create(badge=badge, session=AttendanceSession.objects.filter(form=form).first())
+    if form.max_total_responses is not None and Response.objects.filter(form=form, is_test_submission=False).count() >= form.max_total_responses:
+        Form.objects.filter(pk=form.pk).update(status=FormStatus.CLOSED)  # what the last registration does
+    emit({'ok': True})
+
+
+def event_state(args):
+    from apps.events.models import Event, EventFeedback
+    from apps.forms.models import Response
+    event = Event.objects.get(slug=args.slug)
+    form = event.registration_form
+    emit({
+        'form_status': form.status, 'registrations': Response.objects.filter(form=form, is_test_submission=False).count(),
+        'feedback': EventFeedback.objects.filter(event=event).count(), 'released': event.certificates_released,
+    })
+
+
+def send_event_reminders(args):
+    from apps.events import reminders
+    emit(reminders.send_due())
+
+
+def set_reminder_emails(args):
+    from apps.notifications import preferences
+    preferences.set_event_reminder_emails(User.objects.get(email__iexact=args.email), args.enabled == 'on')
+    emit({'ok': True})
+
+
+def make_team_hackathon(args):
+    """A live hackathon with one registered team whose only member (and leader) is the person given."""
+    from apps.hackathons.models import Hackathon
+    from apps.hackathons.tests.helpers import make_team
+    now = timezone.now()
+    hack, _ = Hackathon.objects.get_or_create(slug=args.slug, defaults=dict(
+        title=args.title, theme='Withdraw', description='d', start_date=now + timedelta(days=args.start_days),
+        end_date=now + timedelta(days=args.start_days + 1), status='LIVE', min_team_size=1, max_team_size=3,
+    ))
+    leader = User.objects.get(email__iexact=args.email)
+    team = make_team(hack, leader, name=args.team)
+    emit({'team': team.pk})
+
+
+def team_status_of(args):
+    from apps.hackathons.models import Team, WithdrawalRequest
+    team = Team.objects.get(hackathon__slug=args.slug, name=args.team)
+    emit({'status': team.status, 'requests': WithdrawalRequest.objects.filter(team=team).count()})
 
 
 def staff_user(args):
@@ -646,7 +732,7 @@ p = sub.add_parser('project_state'); p.set_defaults(fn=project_state); p.add_arg
 p = sub.add_parser('idea_state'); p.set_defaults(fn=idea_state); p.add_argument('slug')
 p = sub.add_parser('user_profile'); p.set_defaults(fn=user_profile); p.add_argument('email')
 p = sub.add_parser('make_finder_hackathon'); p.set_defaults(fn=make_finder_hackathon); p.add_argument('slug'); p.add_argument('--leader', required=True); p.add_argument('--rounds', type=int, default=0)
-p = sub.add_parser('make_listing_hackathon'); p.set_defaults(fn=make_listing_hackathon); p.add_argument('slug'); p.add_argument('--description', required=True)
+p = sub.add_parser('make_listing_hackathon'); p.set_defaults(fn=make_listing_hackathon); p.add_argument('slug'); p.add_argument('--description', required=True); p.add_argument('--start-days', type=float, default=30)
 p.add_argument('--title', default='Card Check'); p.add_argument('--theme', default='Futuristic'); p.add_argument('--prize', default='₹60,000')
 p = sub.add_parser('team_state'); p.set_defaults(fn=team_state); p.add_argument('slug')
 p = sub.add_parser('make_payment_hackathon'); p.set_defaults(fn=make_payment_hackathon); p.add_argument('slug')
@@ -681,7 +767,16 @@ p = sub.add_parser('add_ideas'); p.set_defaults(fn=add_ideas); p.add_argument('s
 p = sub.add_parser('add_withdrawal'); p.set_defaults(fn=add_withdrawal); p.add_argument('slug'); p.add_argument('--index', type=int, default=0)
 p = sub.add_parser('arrive'); p.set_defaults(fn=arrive); p.add_argument('slug'); p.add_argument('--count', type=int, default=1)
 p = sub.add_parser('staff_perms'); p.set_defaults(fn=staff_perms); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--perms', nargs='+', required=True)
-for name, fn in (('mailbox', mailbox), ('clear_mailbox', clear_mailbox), ('clear_cache', clear_cache), ('run_reminders', run_reminders)):
+p = sub.add_parser('make_event'); p.set_defaults(fn=make_event); p.add_argument('slug'); p.add_argument('--title', required=True)
+p.add_argument('--start-hours', type=float, required=True); p.add_argument('--duration-hours', type=float, default=2); p.add_argument('--capacity', type=int, default=100)
+p.add_argument('--attendance', action='store_true'); p.add_argument('--released', action='store_true')
+p.add_argument('--poster', default=''); p.add_argument('--status', default='LIVE', choices=['LIVE', 'CLOSED'])
+p = sub.add_parser('register_event'); p.set_defaults(fn=register_event); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--scanned', action='store_true'); p.add_argument('--days-ago', type=float, default=5)
+p = sub.add_parser('event_state'); p.set_defaults(fn=event_state); p.add_argument('slug')
+p = sub.add_parser('set_reminder_emails'); p.set_defaults(fn=set_reminder_emails); p.add_argument('email'); p.add_argument('enabled', choices=['on', 'off'])
+p = sub.add_parser('make_team_hackathon'); p.set_defaults(fn=make_team_hackathon); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--title', default='Withdraw Hack'); p.add_argument('--team', default='Alpha'); p.add_argument('--start-days', type=float, default=20)
+p = sub.add_parser('team_status_of'); p.set_defaults(fn=team_status_of); p.add_argument('slug'); p.add_argument('team')
+for name, fn in (('send_event_reminders', send_event_reminders), ('mailbox', mailbox), ('clear_mailbox', clear_mailbox), ('clear_cache', clear_cache), ('run_reminders', run_reminders)):
     sub.add_parser(name).set_defaults(fn=fn)
 
 arguments = parser.parse_args()

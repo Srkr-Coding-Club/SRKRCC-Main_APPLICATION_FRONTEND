@@ -123,7 +123,8 @@ describe('Create user form', () => {
     render(<Harness onSubmit={submit} />);
     fillBasics();
     send();
-    const saving = await screen.findByRole('button', { name: 'Saving...' }) as HTMLButtonElement;
+    const saving = await screen.findByRole('button', { name: 'Save User Account' }) as HTMLButtonElement;
+    await waitFor(() => expect(saving.getAttribute('aria-busy')).toBe('true'));
     expect(saving.disabled).toBe(true);
     fireEvent.submit(saving.closest('form')!);
     expect(submit).toHaveBeenCalledTimes(1);

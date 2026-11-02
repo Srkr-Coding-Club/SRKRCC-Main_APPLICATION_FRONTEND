@@ -9,7 +9,8 @@ import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useRequireLogin } from '@/lib/hooks/useRequireLogin';
 import { useToast } from '@/context/ToastContext';
 import { StatusPill } from '@/components/ui/StatusPill';
-import { BTN_ACCENT, PANEL } from '@/components/hackathons/dashboardStyles';
+import { BTN_ACCENT, PANEL } from '@/components/hackathons/dashboardStyles';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 type Criteria = JudgingPayload['criteria'];
 type Kind = 'PROJECT' | 'IDEA';
@@ -81,7 +82,7 @@ function ReviewForm({ itemId, teamName, criteria, existing, save, onSaved }: Rev
         <textarea id={`comment-${itemId}`} rows={3} maxLength={2000} value={comment} onChange={(e) => setComment(e.target.value)} className="glass-panel block w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700" />
       </div>
       {error && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
-      <button type="submit" disabled={busy} className={BTN_ACCENT}>{busy ? 'Saving…' : existing ? 'Update my scores' : 'Save my scores'}</button>
+      <ActionButton type="submit" pending={busy} className={BTN_ACCENT}>{existing ? 'Update my scores' : 'Save my scores'}</ActionButton>
     </form>
   );
 }

@@ -1,11 +1,12 @@
 import React from 'react';
 import { Award } from 'lucide-react';
-import type { HackathonCertificate } from '@/lib/types';
+import type { EventCertificate, HackathonCertificate } from '@/lib/types';
 
 const dateFormat = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
 /** The certificate itself. Fixed light colours on purpose: it is printed or saved as a PDF. */
-export function CertificateSheet({ certificate }: { certificate: HackathonCertificate }) {
+export function CertificateSheet({ certificate }: { certificate: HackathonCertificate | EventCertificate }) {
+  const subject = 'event' in certificate ? certificate.event : certificate.hackathon;
   return (
     <div className="certificate-print mx-auto w-full sm:aspect-[1.414/1] max-w-4xl rounded-lg border-[10px] border-double border-[#FF7A00] bg-white p-6 text-center text-[#1A1A2E] shadow-xl sm:p-10">
       <div className="flex h-full flex-col items-center justify-between gap-6">
@@ -21,8 +22,8 @@ export function CertificateSheet({ certificate }: { certificate: HackathonCertif
         </div>
         <div className="flex w-full items-end justify-between gap-4 text-[11px] sm:text-sm">
           <div className="text-left">
-            <p className="font-semibold">{dateFormat.format(new Date(certificate.date))}</p>
-            <p className="text-slate-500">{certificate.hackathon}</p>
+            {certificate.date && <p className="font-semibold">{dateFormat.format(new Date(certificate.date))}</p>}
+            <p className="text-slate-500">{subject}</p>
           </div>
           {(certificate.signatory_name || certificate.signatory_title) && (
             <div className="border-t border-slate-400 px-4 pt-1 text-center">

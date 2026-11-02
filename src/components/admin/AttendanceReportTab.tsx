@@ -4,7 +4,8 @@ import React from 'react';
 import { Users, CalendarDays } from 'lucide-react';
 import { AttendanceReport } from '@/lib/types';
 import { downloadServerExport } from '@/lib/exportApi';
-import { ExportMenu } from '@/components/ui/ExportMenu';
+import { ExportMenu } from '@/components/ui/ExportMenu';
+import { TableRowsSkeleton } from '@/components/ui/Skeleton';
 
 interface AttendanceReportTabProps {
   /** The attendance-enabled form the report belongs to; the server renders the download. */
@@ -27,9 +28,8 @@ function sessionColumnLabel(day_index: number, session_label: string): string {
 export function AttendanceReportTab({ formId, report, loading, formTitle }: AttendanceReportTabProps) {
   if (loading) {
     return (
-      <div className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center">
-        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-xs text-slate-400">Loading attendance report…</p>
+      <div role="status" aria-busy="true" aria-label="Loading attendance report" className="glass-panel rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+        <TableRowsSkeleton rows={6} columns={4} />
       </div>
     );
   }

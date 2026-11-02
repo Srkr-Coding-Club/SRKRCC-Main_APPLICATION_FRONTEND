@@ -3,10 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api-client';
 import { Event } from '@/lib/types';
-import { Trophy, Calendar, MapPin, Users, Plus, Link2, Pencil, Lock, Unlock, Trash2, Eye, EyeOff, Settings2 } from 'lucide-react';
+import { Trophy, Calendar, MapPin, Users, Plus, Link2, Pencil, Lock, Unlock, Trash2, Eye, EyeOff, Settings2, MessageSquareText, Award } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/context/ToastContext';
 import { EventFormPanel } from './EventFormPanel';
+import { EventFeedbackPanel } from './EventFeedbackPanel';
+import { EventCertificatesPanel } from './EventCertificatesPanel';
+import { TableRowsSkeleton } from '@/components/ui/Skeleton';
 
 function StatusBadge({ status }: { status?: 'LIVE' | 'CLOSED' }) {
   const isClosed = status === 'CLOSED';
@@ -43,6 +46,8 @@ export function EventsHackathonsTab() {
   const [loading, setLoading] = useState(true);
   const [eventPanel, setEventPanel] = useState<{ open: boolean; editing: Event | null }>({ open: false, editing: null });
   const [transitioningSlug, setTransitioningSlug] = useState<string | null>(null);
+  const [feedbackEvent, setFeedbackEvent] = useState<Event | null>(null);
+  const [certificateEvent, setCertificateEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -146,6 +151,9 @@ export function EventsHackathonsTab() {
           </button>
         </div>
 
+        <EventFeedbackPanel event={feedbackEvent} onClose={() => setFeedbackEvent(null)} />
+        <EventCertificatesPanel event={certificateEvent} onClose={() => setCertificateEvent(null)} />
+
         {eventPanel.open && (
           <EventFormPanel
             isOpen={eventPanel.open}
@@ -161,7 +169,7 @@ export function EventsHackathonsTab() {
         )}
 
         {loading ? (
-          <div className="text-center py-6 text-xs text-slate-400">Loading live events from backend...</div>
+          <div role="status" aria-busy="true" aria-label="Loading events"><TableRowsSkeleton rows={4} columns={3} /></div>
         ) : events.length === 0 ? (
           <div className="text-center py-6 text-xs text-slate-400">No scheduled events currently registered in backend.</div>
         ) : (
@@ -214,6 +222,20 @@ export function EventsHackathonsTab() {
                     >
                       <Pencil className="w-3 h-3" />
                       Edit
+                    </button>
+                    <button
+                      onClick={() => setFeedbackEvent(e)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    >
+                      <MessageSquareText className="w-3 h-3" />
+                      Feedback
+                    </button>
+                    <button
+                      onClick={() => setCertificateEvent(e)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    >
+                      <Award className="w-3 h-3" />
+                      Certificates
                     </button>
                     <button
                       onClick={() => toggleEventStatus(e)}

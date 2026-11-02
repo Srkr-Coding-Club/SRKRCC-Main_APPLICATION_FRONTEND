@@ -1,15 +1,24 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CalendarClock, CheckCircle2, FileText, Flag } from 'lucide-react';
 import type { ParticipantRound } from '@/lib/types';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { ENTRY_STATUS_PILL, ROUND_STATUS_PILL, StatusPill } from '@/components/ui/StatusPill';
 import { ROUND_KIND_LABEL } from '@/components/admin/hackathon/roundKinds';
+import { roundCountdown } from '@/lib/countdown';
 import { formatDateTime } from './HackathonAnnouncementsFeed';
 
+const COUNTDOWN_TICK_MS = 30_000;
+
 export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[]; isLeader: boolean }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), COUNTDOWN_TICK_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
   if (rounds.length === 0) {
     return <p className="py-6 text-center text-sm text-journey-muted">Rounds will appear here once the organizers announce them.</p>;
   }
@@ -23,6 +32,7 @@ export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[
         const schedule = r.starts_at || r.ends_at
           ? `${r.starts_at ? formatDateTime(r.starts_at) : 'TBA'} → ${r.ends_at ? formatDateTime(r.ends_at) : 'TBA'}`
           : null;
+        const countdown = roundCountdown(r, now);
         const form = r.details_form;
         const formOpen = form?.status === 'PUBLISHED';
 
@@ -40,7 +50,7 @@ export function RoundsTimeline({ rounds, isLeader }: { rounds: ParticipantRound[
                   : <StatusPill tone="slate">Results pending</StatusPill>)}
               </div>
               {schedule && (
-                <p className="flex items-center gap-1.5 text-xs text-journey-muted"><CalendarClock className="h-3.5 w-3.5" /> {schedule}</p>
+                <p className="flex items-center gap-1.5 text-xs text-journey-muted"><CalendarClock className="h-3.5 w-3.5" /> {schedule}{countdown && <span className="font-bold text-journey-accent"> · {countdown}</span>}</p>
               )}
               {r.description?.trim() && (
                 <div className="text-sm text-journey-text/80"><MarkdownRenderer content={r.description} /></div>

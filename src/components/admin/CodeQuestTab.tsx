@@ -20,7 +20,9 @@ import { useToast } from "@/context/ToastContext";
 import { fetchApi } from "@/lib/api-client";
 import type { CodeQuestSubmission, Problem } from "@/lib/types";
 import PillButton from "@/components/PillButton";
-import Portal from '@/components/ui/Portal';
+import Portal from '@/components/ui/Portal';
+import { TableRowsSkeleton, ListRowsSkeleton } from '@/components/ui/Skeleton';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 type Difficulty = Problem["difficulty"];
 type ProblemForm = {
@@ -421,7 +423,7 @@ export function CodeQuestTab() {
 
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {loading ? (
-              <Empty text="Loading scheduled problems…" />
+              <div role="status" aria-busy="true" aria-label="Loading scheduled problems" className="p-4"><ListRowsSkeleton rows={4} /></div>
             ) : shown.length === 0 ? (
               <Empty text="No upcoming problems to show." />
             ) : (
@@ -513,7 +515,7 @@ export function CodeQuestTab() {
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {loading ? (
-              <Empty text="Loading submissions…" />
+              <div role="status" aria-busy="true" aria-label="Loading submissions" className="p-4"><ListRowsSkeleton rows={4} /></div>
             ) : submissions.length === 0 ? (
               <Empty text="No submissions have been received." />
             ) : (
@@ -864,13 +866,10 @@ function Editor({
             >
               Cancel
             </button>
-            <button
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-journey-accent px-4 py-2 text-sm font-bold text-journey-on-accent disabled:opacity-60"
-            >
+            <ActionButton type="submit" pending={saving} className="inline-flex items-center gap-2 rounded-lg bg-journey-accent px-4 py-2 text-sm font-bold text-journey-on-accent disabled:opacity-60">
               <Save className="h-4 w-4" />
-              {saving ? "Saving…" : editing ? "Save changes" : "Schedule problem"}
-            </button>
+              {editing ? "Save changes" : "Schedule problem"}
+            </ActionButton>
           </div>
         </form>
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { pushWithProgress } from '@/lib/routeProgress';
 
 const SUBTAB_ROUTES: Record<string, string> = {
   dashboard: '/admin',
@@ -24,9 +25,9 @@ export function useAdminSubtabNav() {
   return (tab: string, formSlug?: string) => {
     const base = SUBTAB_ROUTES[tab] ?? (tab.startsWith('/') ? tab : `/admin/${tab}`);
     if (tab === 'builder') {
-      router.push(formSlug ? `${base}?slug=${encodeURIComponent(formSlug)}` : `${base}?new=true`);
+      pushWithProgress(router, formSlug ? `${base}?slug=${encodeURIComponent(formSlug)}` : `${base}?new=true`);
     } else {
-      router.push(formSlug ? `${base}?form=${encodeURIComponent(formSlug)}` : base);
+      pushWithProgress(router, formSlug ? `${base}?form=${encodeURIComponent(formSlug)}` : base);
     }
   };
 }

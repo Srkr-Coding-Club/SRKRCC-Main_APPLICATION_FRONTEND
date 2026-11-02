@@ -11,6 +11,7 @@ import { PaymentQr } from '@/components/hackathons/PaymentQr';
 import { IDEA_FILE_RULES, uploadIdeaQr } from '@/lib/ideaUpload';
 import { BTN_PRIMARY, INPUT, LABEL, PANEL } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
+import { ActionButton } from '@/components/ui/ActionButton';
 
 export const STAGE_OPTIONS: { value: PaymentStage; label: string }[] = [
   { value: 'NONE', label: 'No fee' },
@@ -33,7 +34,7 @@ interface PaymentSettingsPanelProps {
 export function PaymentSettingsPanel({ hackathon, onSaved }: PaymentSettingsPanelProps) {
   const { toast } = useToast();
   const slug = hackathon.slug;
-  const { busy, errors, save } = useHackathonPatch(hackathon, onSaved);
+  const { busy, errors, save, saved, clearSaved } = useHackathonPatch(hackathon, onSaved);
   const [stage, setStage] = useState<PaymentStage>(hackathon.payment_stage ?? 'NONE');
   const [fee, setFee] = useState(String(hackathon.idea_fee_amount ?? 0));
   const [note, setNote] = useState(hackathon.idea_payment_note ?? '');
@@ -113,7 +114,7 @@ export function PaymentSettingsPanel({ hackathon, onSaved }: PaymentSettingsPane
         </>
       )}
 
-      <button type="submit" disabled={busy} className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save fee settings'}</button>
+      <ActionButton type="submit" pending={busy} success={saved} onSuccessShown={clearSaved} successLabel="Saved" className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {'Save fee settings'}</ActionButton>
     </form>
   );
 }
