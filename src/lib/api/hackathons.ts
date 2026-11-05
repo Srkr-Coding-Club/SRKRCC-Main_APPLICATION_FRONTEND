@@ -36,6 +36,7 @@ import type {
   JoinRequestRow,
   JoinRequestsPayload,
   IdeaFileInfo,
+  IdeaTemplateInfo,
   IdeaFileKind,
   IdeaStatus,
   MyHackathonPermissions,
@@ -144,6 +145,14 @@ export const hackathonApi = {
     fetchApi<{ file: IdeaFileInfo; payment_qr: { id: string; name: string } | null }>(`/hackathons/${enc(slug)}/idea-qr/${fileId}/`, { method: 'POST' }),
   ideaQrRemove: (slug: string) => fetchApi<null>(`/hackathons/${enc(slug)}/idea-qr/`, { method: 'DELETE' }),
   ideaQrLink: (slug: string) => fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/idea-qr/link/`),
+  /** The idea template: organizers upload it (settings permission); any signed-in user can download it. */
+  ideaTemplateUpload: (slug: string, body: { name: string; size: number; type: string }) =>
+    fetchApi<{ file: IdeaFileInfo; post: { url: string; fields: Record<string, string> }; max_bytes: number }>(`/hackathons/${enc(slug)}/idea-template/`, json(body)),
+  ideaTemplateComplete: (slug: string, fileId: string) =>
+    fetchApi<{ file: IdeaFileInfo; template: IdeaTemplateInfo | null }>(`/hackathons/${enc(slug)}/idea-template/${fileId}/`, { method: 'POST' }),
+  ideaTemplateRemove: (slug: string) => fetchApi<null>(`/hackathons/${enc(slug)}/idea-template/`, { method: 'DELETE' }),
+  ideaTemplateLink: (slug: string, inline = false) =>
+    fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/idea-template/link/${inline ? '?inline=1' : ''}`),
   saveIdea: (slug: string, body: IdeaDraft) =>
     fetchApi<MyIdeaPayload>(`/hackathons/${enc(slug)}/my-idea/`, { method: 'PUT', body: JSON.stringify(body) }),
   mySubmission: (slug: string) => fetchApi<MySubmissionPayload>(`/hackathons/${enc(slug)}/my-submission/`),

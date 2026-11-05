@@ -208,6 +208,8 @@ export interface Hackathon {
   /** Which QR code image teams pay to (its id), or null when none was uploaded. */
   payment_qr_id?: string | null;
   idea_payment_note?: string;
+  /** A Google Drive / Docs link to the idea template: what teams see when no template file was uploaded. */
+  idea_template_url?: string;
   idea_deck_required?: boolean;
   idea_linkedin_required?: boolean;
   /** Teams may edit a submitted idea. */
@@ -1919,6 +1921,14 @@ export interface IdeaDraft {
   payment_file_id?: string | null;
 }
 
+/** The idea template as the organizers uploaded it. */
+export interface IdeaTemplateInfo {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+}
+
 /** The organizers' choices for the idea form. */
 export interface IdeaConfig {
   fee_amount: number;
@@ -1928,6 +1938,10 @@ export interface IdeaConfig {
   files_available: boolean;
   /** The QR code teams scan to pay, if the organizers uploaded one. */
   payment_qr: { id: string; name: string } | null;
+  /** The file the organizers uploaded for teams to follow when writing their idea. */
+  template?: IdeaTemplateInfo | null;
+  /** Google Drive link to the template, used when no file was uploaded ('' = none). */
+  template_url?: string;
   edits_enabled: boolean;
   edits_until: string | null;
 }

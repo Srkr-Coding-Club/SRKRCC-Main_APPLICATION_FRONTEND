@@ -5,6 +5,7 @@ const OK: Record<LinkKind, string[]> = {
   any: ['https://smart-bins.vercel.app/', 'https://docs.google.com/presentation/d/abc/edit', 'https://example.org/a?b=1#c'],
   repo: ['https://github.com/owner/repo', 'https://www.github.com/owner/repo', 'https://gitlab.com/group/sub/repo', 'https://huggingface.co/spaces/o/app'],
   video: ['https://www.youtube.com/watch?v=abc', 'https://youtu.be/abc', 'https://drive.google.com/file/d/abc/view'],
+  drive: ['https://drive.google.com/file/d/abc/view', 'https://docs.google.com/presentation/d/abc/edit'],
   linkedin: ['https://www.linkedin.com/posts/x-activity-1', 'https://lnkd.in/abc'],
 };
 const BAD_ANY = [
@@ -30,6 +31,11 @@ describe('linkProblem', () => {
     expect(linkProblem('https://example.com/v.mp4', 'Video', 'video')).toContain('video site');
     expect(linkProblem('https://youtube.com.evil.com/w', 'Video', 'video')).not.toBe('');
     expect(linkProblem('https://example.org/post', 'Post', 'linkedin')).toContain('LinkedIn');
+  });
+
+  it('keeps Drive links to Google Drive and Docs', () => {
+    expect(linkProblem('https://example.com/t.pptx', 'Template', 'drive')).toContain('Google Drive');
+    expect(linkProblem('https://drive.google.com.evil.com/x', 'Template', 'drive')).not.toBe('');
   });
 
   it('lets optional links be empty but not required ones', () => {
