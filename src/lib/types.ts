@@ -1538,7 +1538,10 @@ export interface CheckInSessionInfo {
   id: number;
   name: string;
   day_index: number;
-  slot: 'MORNING' | 'AFTERNOON' | 'EVENING';
+  /** Empty for a session an organizer added by hand. */
+  slot: 'MORNING' | 'AFTERNOON' | 'EVENING' | null;
+  /** Added by an organizer with its own title and time; the days and slots schedule never touches it. */
+  is_custom?: boolean;
   date: string;
   is_main: boolean;
   needs_arrival: boolean;
@@ -1552,6 +1555,55 @@ export interface CheckInSessionInfo {
   window: CheckInWindow;
   /** Only in the sessions list. */
   checked_in?: number;
+}
+
+/** What an organizer fills in to add a check-in session. */
+export interface CheckInSessionDraft {
+  name: string;
+  /** YYYY-MM-DD, a day the event runs. */
+  date: string;
+  opens_at?: string | null;
+  closes_at?: string | null;
+  scan_mode?: CheckInScanMode;
+  needs_arrival?: boolean;
+  counts_for_certificate?: boolean;
+}
+
+export type CheckInTeamState = 'present' | 'partial' | 'absent';
+
+export interface CheckInTeamMember {
+  user_id: number;
+  name: string;
+  email: string;
+  phone: string;
+  role: 'LEADER' | 'MEMBER';
+  checked_in: boolean;
+  checked_in_at: string | null;
+  checked_in_by: string | null;
+  via: CheckInVia | null;
+  override_reason: string;
+}
+
+/** One team in a session: who of its people are checked in. */
+export interface CheckInTeamRow {
+  team_id: number;
+  name: string;
+  state: CheckInTeamState;
+  present: number;
+  total: number;
+  first_at: string | null;
+  last_at: string | null;
+  leader_name: string;
+  leader_email: string;
+  leader_phone: string;
+  members: CheckInTeamMember[];
+}
+
+/** A session's check-in grouped by team. `totals` always counts the whole event, whatever the filters. */
+export interface CheckInByTeam {
+  session: CheckInSessionInfo;
+  totals: { teams: number; present: number; partial: number; absent: number; people: number; people_in: number };
+  teams: CheckInTeamRow[];
 }
 
 export interface CheckInParticipant {

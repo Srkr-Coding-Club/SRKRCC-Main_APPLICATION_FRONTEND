@@ -4,6 +4,7 @@ import React from 'react';
 import { ScanLine } from 'lucide-react';
 import type { Hackathon } from '@/lib/types';
 import { CheckInConsole } from '@/components/hackathons/CheckInConsole';
+import { CheckInByTeam } from './CheckInByTeam';
 import { CheckInNoShows } from './CheckInNoShows';
 import { CheckInSessionsManager } from './CheckInSessionsManager';
 import { CheckInStats } from './CheckInStats';
@@ -25,6 +26,7 @@ export function CheckInAdminTab({ hackathon, onEnable, onSaved }: CheckInAdminTa
     <div className="space-y-6">
       <CheckInSessionsManager hackathon={hackathon} onSaved={onSaved} />
       <CheckInConsole slug={hackathon.slug} />
+      <CheckInByTeam slug={hackathon.slug} title={hackathon.title} />
       <CheckInStats slug={hackathon.slug} />
       <CheckInNoShows slug={hackathon.slug} />
       <section className={`${PANEL} space-y-3`}>

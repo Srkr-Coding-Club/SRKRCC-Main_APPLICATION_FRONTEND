@@ -6,6 +6,8 @@ import type {
   AdminSubmissionsPayload,
   CertificateVerification,
   CheckInNoShows,
+  CheckInByTeam,
+  CheckInSessionDraft,
   CheckInSessionInfo,
   CheckInStats,
   MemberScanResult,
@@ -91,7 +93,7 @@ const patch = (body: unknown): RequestInit => ({ method: 'PATCH', body: JSON.str
 const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) });
 
 /** The downloads the server renders for one hackathon (apps/hackathons/exports.py). */
-export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in' | 'payments' | 'finder-seekers' | 'finder-teams';
+export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in' | 'check-in-teams' | 'check-in-by-team' | 'check-in-matrix' | 'payments' | 'finder-seekers' | 'finder-teams';
 
 /** Typed wrappers for /api/hackathons/* (see apps/hackathons/urls.py). */
 export const hackathonApi = {
@@ -197,6 +199,14 @@ export const hackathonApi = {
       const suffix = search.toString();
       return fetchApi<CheckInRoster>(`/hackathons/${enc(slug)}/check-in/${suffix ? `?${suffix}` : ''}`);
     },
+    byTeam: (slug: string, params: { session?: number; state?: string; q?: string } = {}) => {
+      const search = new URLSearchParams();
+      if (params.session) search.set('session', String(params.session));
+      if (params.state) search.set('state', params.state);
+      if (params.q) search.set('q', params.q);
+      const suffix = search.toString();
+      return fetchApi<CheckInByTeam>(`/hackathons/${enc(slug)}/check-in/by-team/${suffix ? `?${suffix}` : ''}`);
+    },
     stats: (slug: string, session?: number) => fetchApi<CheckInStats>(`/hackathons/${enc(slug)}/check-in/stats/${session ? `?session=${session}` : ''}`),
     sessions: (slug: string) => fetchApi<CheckInSessionInfo[]>(`/hackathons/${enc(slug)}/check-in/sessions/`),
     noShows: (slug: string, session?: number) => fetchApi<CheckInNoShows>(`/hackathons/${enc(slug)}/check-in/no-shows/${session ? `?session=${session}` : ''}`),
@@ -258,9 +268,15 @@ export const hackathonApi = {
 
   // --- admin ---
   admin: {
+    /** Add a session of your own: a title, a day, optional times, and who checks in. */
+    createCheckInSession: (slug: string, body: CheckInSessionDraft) =>
+      fetchApi<CheckInSessionInfo>(`/hackathons/${enc(slug)}/check-in/sessions/`, json(body)),
+    /** Removes a session you added; one with people checked in is retired instead. */
+    deleteCheckInSession: (slug: string, id: number) =>
+      fetchApi<{ outcome: 'deleted' | 'retired' }>(`/hackathons/${enc(slug)}/check-in/sessions/${id}/`, { method: 'DELETE' }),
     updateCheckInSession: (
       slug: string, id: number,
-      body: Partial<Pick<CheckInSessionInfo, 'name' | 'opens_at' | 'closes_at' | 'needs_arrival' | 'counts_for_certificate' | 'scan_mode' | 'is_active'>>,
+      body: Partial<Pick<CheckInSessionInfo, 'name' | 'opens_at' | 'closes_at' | 'needs_arrival' | 'counts_for_certificate' | 'scan_mode' | 'is_active' | 'outside_schedule'> & { date: string }>,
     ) => fetchApi<CheckInSessionInfo>(`/hackathons/${enc(slug)}/check-in/sessions/${id}/`, patch(body)),
     withdrawals: (slug: string) => fetchApi<WithdrawalOverview>(`/hackathons/${enc(slug)}/withdrawals/`),
     decideWithdrawal: (slug: string, id: number, body: { approve: boolean; note?: string }) =>

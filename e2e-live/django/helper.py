@@ -702,6 +702,18 @@ def arrive(args):
     emit({'arrived': len(members)})
 
 
+def check_in_codes(args):
+    """The QR codes of the registered teams (in name order): each team's code and each member's own code."""
+    from apps.hackathons.checkin import make_team_token, make_token
+    from apps.hackathons.models import Hackathon
+    hack = Hackathon.objects.get(slug=args.slug)
+    teams = []
+    for team in hack.teams.filter(status='REGISTERED').order_by('name'):
+        members = [{'email': m.user.email, 'token': make_token(hack, m.user)} for m in team.memberships.select_related('user').order_by('id')]
+        teams.append({'name': team.name, 'token': make_team_token(hack, team), 'members': members})
+    emit(teams)
+
+
 def staff_perms(args):
     """Give someone a hackathon staff role with exactly these permissions."""
     from apps.hackathons.models import Hackathon, HackathonStaff
@@ -766,6 +778,7 @@ p = sub.add_parser('add_payment'); p.set_defaults(fn=add_payment); p.add_argumen
 p = sub.add_parser('add_ideas'); p.set_defaults(fn=add_ideas); p.add_argument('slug'); p.add_argument('--count', type=int, default=1); p.add_argument('--status', default='SUBMITTED')
 p = sub.add_parser('add_withdrawal'); p.set_defaults(fn=add_withdrawal); p.add_argument('slug'); p.add_argument('--index', type=int, default=0)
 p = sub.add_parser('arrive'); p.set_defaults(fn=arrive); p.add_argument('slug'); p.add_argument('--count', type=int, default=1)
+p = sub.add_parser('check_in_codes'); p.set_defaults(fn=check_in_codes); p.add_argument('slug')
 p = sub.add_parser('staff_perms'); p.set_defaults(fn=staff_perms); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--perms', nargs='+', required=True)
 p = sub.add_parser('make_event'); p.set_defaults(fn=make_event); p.add_argument('slug'); p.add_argument('--title', required=True)
 p.add_argument('--start-hours', type=float, required=True); p.add_argument('--duration-hours', type=float, default=2); p.add_argument('--capacity', type=int, default=100)
