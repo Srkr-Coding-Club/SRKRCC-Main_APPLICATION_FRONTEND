@@ -7,17 +7,11 @@ import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
 import { FeatureOffNotice } from './FeatureOffNotice';
 import { LoadError } from './LoadError';
-import { ObjectListEditor, type ListField } from './ObjectListEditor';
+import { ObjectListEditor } from './ObjectListEditor';
+import { CRITERION_FIELDS, MAX_CRITERIA, type CriterionDraft } from './criterionFields';
+import { JudgeInvitesPanel } from './JudgeInvitesPanel';
 import { StaffPanel } from './StaffPanel';
 import { BTN_GHOST, BTN_PRIMARY, PANEL } from './shared';
-
-interface CriterionDraft {
-  id?: number;
-  name: string;
-  description: string;
-  max_score: number | '';
-  weight: number | '';
-}
 
 /** One row of either leaderboard, in a shape both share. */
 interface BoardRow {
@@ -29,14 +23,6 @@ interface BoardRow {
   review_count: number;
 }
 
-const CRITERION_FIELDS: ListField<CriterionDraft>[] = [
-  { key: 'name', label: 'Criterion', placeholder: 'e.g. Innovation', wide: true },
-  { key: 'description', label: 'What judges look for', type: 'textarea', placeholder: 'Shown to judges next to the score.' },
-  { key: 'max_score', label: 'Score out of', type: 'number', min: 1, max: 100 },
-  { key: 'weight', label: 'Weight (1-10)', type: 'number', min: 1, max: 10 },
-];
-
-const MAX_CRITERIA = 10;
 const COPY: Record<CriterionTarget, { heading: string; explain: string; rowLabel: string }> = {
   PROJECT: { heading: 'Project scoring rubric', explain: 'Each judge scores every submitted project on every criterion; a team\'s score is the weighted average, out of 100, across judges.', rowLabel: 'Project' },
   IDEA: { heading: 'Idea scoring rubric', explain: 'The same, applied to ideas in phase 1. Idea scores can drive round shortlisting (for example "best idea scores").', rowLabel: 'Idea' },
@@ -183,6 +169,10 @@ export function JudgingAdminTab({ hackathon, onEnable }: JudgingAdminTabProps) {
           noun="Judge"
           description="Judges open the Judging page of this hackathon and score. They cannot score their own team, and people who are on a team here cannot be added."
         />
+        <details className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+          <summary className="cursor-pointer text-sm font-semibold text-[#1A1A2E] dark:text-white">Invite someone who has no account yet</summary>
+          <div className="pt-3"><JudgeInvitesPanel slug={slug} /></div>
+        </details>
       </section>
 
       <section className={`${PANEL} space-y-3`}>

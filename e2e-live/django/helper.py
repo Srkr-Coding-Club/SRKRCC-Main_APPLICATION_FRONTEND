@@ -714,6 +714,131 @@ def check_in_codes(args):
     emit(teams)
 
 
+def make_round_judging_hackathon(args):
+    """A hackathon with round judging on, registered teams, two judges and one plain round (judging not yet switched on)."""
+    from apps.hackathons.models import Hackathon, HackathonStaff, Round
+    from apps.hackathons.tests.helpers import make_team
+    now = timezone.now()
+    hack = Hackathon.objects.create(
+        slug=args.slug, title='Round Judging Fest', theme='t', description='d', status='LIVE', min_team_size=1, max_team_size=3,
+        start_date=now + timedelta(days=3), end_date=now + timedelta(days=4), features={'round_judging': True, 'judging': True},
+    )
+    for number in range(args.teams):
+        leader = User.objects.create_user(
+            username=f'{args.slug}-lead{number}', email=f'{args.slug}-lead{number}@example.org', password='x', first_name=f'Lead{number}',
+        )
+        make_team(hack, leader, name=f'Team {chr(65 + number)}')
+    judges = []
+    for name in ('Asha Rao', 'Ben Roy'):
+        first, last = name.split()
+        user = User.objects.create_user(
+            username=f'{args.slug}-{first.lower()}', email=f'{first.lower()}.{args.slug}@example.org', password='Live!Pass123', first_name=first, last_name=last,
+        )
+        user.email_verified_at = timezone.now()
+        user.save(update_fields=['email_verified_at'])
+        HackathonStaff.objects.create(hackathon=hack, user=user, role='JUDGE', permissions=['judge'])
+        judges.append({'email': user.email, 'name': name})
+    round_obj = Round.objects.create(hackathon=hack, order=1, name='Semi-final', kind='PROJECT_REVIEW')
+    from apps.hackathons.services import RoundService
+    RoundService.populate_entries(round_obj)
+    emit({'round_id': round_obj.pk, 'judges': judges})
+
+
+def score_round(args):
+    """Have a judge score every team they were given in a round, at `--percent` of the maximum on every criterion."""
+    from apps.hackathons.models import Round, RoundAssignment
+    from apps.hackathons.round_judging import RoundJudgingService, criteria_of
+    round_obj = Round.objects.get(hackathon__slug=args.slug, name=args.round)
+    judge = User.objects.get(email__iexact=args.email)
+    criteria = criteria_of(round_obj)
+    done = 0
+    rows = RoundAssignment.objects.filter(round=round_obj, judge=judge, recused=False).select_related('entry__team')
+    if args.team:
+        rows = rows.filter(entry__team__name=args.team)
+    for assignment in rows:
+        scores = {str(c.id): round(c.max_score * args.percent / 100, 2) for c in criteria}
+        RoundJudgingService.submit_review(round_obj, assignment.entry_id, judge, scores, 'live test')
+        done += 1
+    emit({'scored': done})
+
+
+def round_state(args):
+    from apps.hackathons.models import Round
+    round_obj = Round.objects.get(hackathon__slug=args.slug, name=args.round)
+    emit({
+        'mode': round_obj.evaluation_mode, 'status': round_obj.evaluation_status, 'panel': round_obj.panel.count(),
+        'ranks': dict(round_obj.entries.values_list('team__name', 'final_rank')),
+        'statuses': dict(round_obj.entries.values_list('team__name', 'status')),
+        'published': round_obj.results_published,
+    })
+
+
+def start_round_judging(args):
+    """Switch a round to panel judging with two criteria and both judges, give every team an idea and a project, and start it."""
+    from apps.hackathons.models import IdeaSubmission, Round, Submission
+    from apps.hackathons.round_judging import RoundJudgingService as J
+    round_obj = Round.objects.get(hackathon__slug=args.slug, name=args.round)
+    for entry in round_obj.entries.select_related('team'):
+        IdeaSubmission.objects.get_or_create(team=entry.team, defaults=dict(
+            title=f'Idea number {entry.id}', problem='Waste is not sorted.', solution='Sensors in every bin.', plan='Week one.', tech_stack=['IoT'],
+        ))
+        Submission.objects.get_or_create(team=entry.team, defaults=dict(
+            project_title=f'Project number {entry.id}', tagline='Smarter bins', description='We built it.', repo_url='https://github.com/example/bins',
+        ))
+    judges = list(User.objects.filter(hackathon_staff_roles__hackathon=round_obj.hackathon, hackathon_staff_roles__role='JUDGE').order_by('id'))
+    J.configure(round_obj, None, {
+        'evaluation_mode': 'JUDGED', 'assignment_mode': args.mode, 'judges_per_team': args.per_team, 'min_reviews_per_team': 1, 'blind': bool(args.blind),
+    })
+    J.set_criteria(round_obj, None, [{'name': 'Idea', 'max_score': 10, 'weight': 3}, {'name': 'Demo', 'max_score': 10, 'weight': 1}])
+    J.set_panel(round_obj, None, [j.id for j in judges])
+    J.start(round_obj, None)
+    emit({'judges': len(judges)})
+
+
+def close_round(args):
+    from apps.hackathons.models import Round
+    from apps.hackathons.round_judging import RoundJudgingService as J
+    round_obj = Round.objects.get(hackathon__slug=args.slug, name=args.round)
+    J.close(round_obj, None, force=True, reason='live test')
+    emit({'closed': True})
+
+
+def round_assignments(args):
+    """The teams (by round entry id and name) each judge was given, and which of them they stepped aside from."""
+    from apps.hackathons.models import RoundAssignment
+    out = {}
+    for row in RoundAssignment.objects.filter(round__hackathon__slug=args.slug, round__name=args.round).select_related('entry__team', 'judge'):
+        out.setdefault(row.judge.email, []).append({'entry_id': row.entry_id, 'team': row.entry.team.name, 'recused': row.recused})
+    emit(out)
+
+
+def age_judge_invite(args):
+    """Pretend the invitation went out five minutes ago, so it can be sent again (there is a one minute wait)."""
+    from apps.hackathons.models import JudgeInvite
+    JudgeInvite.objects.filter(hackathon__slug=args.slug, email__iexact=args.email).update(last_sent_at=timezone.now() - timedelta(minutes=5))
+    emit({'ok': True})
+
+
+def expire_setup_link(args):
+    """Make every unused set-password link of this person run out."""
+    from apps.accounts.models import PasswordSetupToken
+    n = PasswordSetupToken.objects.filter(user__email__iexact=args.email, is_used=False).update(expires_at=timezone.now() - timedelta(minutes=1))
+    emit({'expired': n})
+
+
+def set_round_deadline(args):
+    """Move a round's scoring deadline `--hours` from now (negative = already passed)."""
+    from apps.hackathons.models import Round
+    Round.objects.filter(hackathon__slug=args.slug, name=args.round).update(scoring_deadline=timezone.now() + timedelta(hours=args.hours))
+    emit({'ok': True})
+
+
+def publish_round(args):
+    from apps.hackathons.models import Round
+    Round.objects.filter(hackathon__slug=args.slug, name=args.round).update(results_published=True)
+    emit({'ok': True})
+
+
 def staff_perms(args):
     """Give someone a hackathon staff role with exactly these permissions."""
     from apps.hackathons.models import Hackathon, HackathonStaff
@@ -779,6 +904,16 @@ p = sub.add_parser('add_ideas'); p.set_defaults(fn=add_ideas); p.add_argument('s
 p = sub.add_parser('add_withdrawal'); p.set_defaults(fn=add_withdrawal); p.add_argument('slug'); p.add_argument('--index', type=int, default=0)
 p = sub.add_parser('arrive'); p.set_defaults(fn=arrive); p.add_argument('slug'); p.add_argument('--count', type=int, default=1)
 p = sub.add_parser('check_in_codes'); p.set_defaults(fn=check_in_codes); p.add_argument('slug')
+p = sub.add_parser('make_round_judging_hackathon'); p.set_defaults(fn=make_round_judging_hackathon); p.add_argument('slug'); p.add_argument('--teams', type=int, default=4)
+p = sub.add_parser('score_round'); p.set_defaults(fn=score_round); p.add_argument('slug'); p.add_argument('round'); p.add_argument('email'); p.add_argument('--percent', type=float, default=80); p.add_argument('--team')
+p = sub.add_parser('round_state'); p.set_defaults(fn=round_state); p.add_argument('slug'); p.add_argument('round')
+p = sub.add_parser('start_round_judging'); p.set_defaults(fn=start_round_judging); p.add_argument('slug'); p.add_argument('round'); p.add_argument('--mode', default='BALANCED'); p.add_argument('--per-team', type=int, default=1, dest='per_team'); p.add_argument('--blind', action='store_true')
+p = sub.add_parser('close_round'); p.set_defaults(fn=close_round); p.add_argument('slug'); p.add_argument('round')
+p = sub.add_parser('round_assignments'); p.set_defaults(fn=round_assignments); p.add_argument('slug'); p.add_argument('round')
+p = sub.add_parser('age_judge_invite'); p.set_defaults(fn=age_judge_invite); p.add_argument('slug'); p.add_argument('email')
+p = sub.add_parser('expire_setup_link'); p.set_defaults(fn=expire_setup_link); p.add_argument('email')
+p = sub.add_parser('set_round_deadline'); p.set_defaults(fn=set_round_deadline); p.add_argument('slug'); p.add_argument('round'); p.add_argument('--hours', type=float, required=True)
+p = sub.add_parser('publish_round'); p.set_defaults(fn=publish_round); p.add_argument('slug'); p.add_argument('round')
 p = sub.add_parser('staff_perms'); p.set_defaults(fn=staff_perms); p.add_argument('slug'); p.add_argument('email'); p.add_argument('--perms', nargs='+', required=True)
 p = sub.add_parser('make_event'); p.set_defaults(fn=make_event); p.add_argument('slug'); p.add_argument('--title', required=True)
 p.add_argument('--start-hours', type=float, required=True); p.add_argument('--duration-hours', type=float, default=2); p.add_argument('--capacity', type=int, default=100)

@@ -229,7 +229,7 @@ export interface Hackathon {
   venue_map_url?: string | null;
 }
 
-export type HackathonFeatureKey = 'ideas' | 'submissions' | 'judging' | 'check_in' | 'certificates' | 'team_finder' | 'showcase';
+export type HackathonFeatureKey = 'ideas' | 'submissions' | 'judging' | 'round_judging' | 'check_in' | 'certificates' | 'team_finder' | 'showcase';
 export type HackathonFeatures = Partial<Record<HackathonFeatureKey, boolean>>;
 export interface HackathonEligibility {
   colleges?: string[];
@@ -541,6 +541,165 @@ export interface HackathonStage extends PublicStage {
 
 export type RoundKind = 'GENERAL' | 'SCREENING' | 'IDEA_REVIEW' | 'PROJECT_REVIEW' | 'PITCH' | 'FINAL';
 
+export type RoundEvaluationMode = 'NONE' | 'JUDGED';
+export type RoundEvaluationStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'CLOSED';
+export type RoundScoringTarget = 'IDEA' | 'PROJECT' | 'PITCH';
+export type RoundAssignmentMode = 'ALL' | 'BALANCED' | 'MANUAL';
+export type RoundTieBreak = 'CRITERIA' | 'SHARED';
+
+export interface RoundEvaluationSettings {
+  evaluation_mode: RoundEvaluationMode;
+  scoring_target: RoundScoringTarget;
+  assignment_mode: RoundAssignmentMode;
+  judges_per_team: number;
+  min_reviews_per_team: number;
+  scoring_deadline: string | null;
+  blind: boolean;
+  tie_break: RoundTieBreak;
+}
+
+export interface RoundCriterion {
+  id: number;
+  name: string;
+  description: string;
+  max_score: number;
+  weight: number;
+  order: number;
+}
+
+export interface RoundPanelJudge {
+  judge_id: number;
+  name: string;
+  email: string;
+}
+
+export interface ReadinessCheck {
+  key: 'teams' | 'judges' | 'rubric' | 'coverage' | 'deadline';
+  label: string;
+  ok: boolean;
+  detail: string;
+}
+
+/** How a round is judged, as the organizer sees it. */
+export interface RoundEvaluation {
+  round_id: number;
+  name: string;
+  enabled: boolean;
+  settings: RoundEvaluationSettings;
+  status: RoundEvaluationStatus;
+  started_at: string | null;
+  closed_at: string | null;
+  results_published: boolean;
+  /** Whose rubric the judges score against: the round's own, or the hackathon's. */
+  criteria_source: 'round' | 'hackathon';
+  criteria: RoundCriterion[];
+  panel: RoundPanelJudge[];
+  coverage: { assignments: number; teams: number; short: { entry_id: number; team_name: string; judges: number }[] };
+  readiness: ReadinessCheck[];
+  can_start: boolean;
+}
+
+export type RoundCellState = 'scored' | 'pending' | 'recused';
+
+export interface RoundProgress {
+  status: RoundEvaluationStatus;
+  started_at: string | null;
+  closed_at: string | null;
+  deadline: string | null;
+  min_reviews: number;
+  judges: { judge_id: number; name: string; email: string; assigned: number; scored: number; pending: number; recused: number; last_activity: string | null }[];
+  teams: { entry_id: number; team_id: number; team_name: string; label: string; review_count: number; needs: number; cells: { judge_id: number; state: RoundCellState }[] }[];
+  totals: { assigned: number; scored: number; pending: number };
+}
+
+export interface RoundResultRow {
+  entry_id: number;
+  team_id: number;
+  team_name: string;
+  status: RoundEntryStatus;
+  rank: number | null;
+  score: number | null;
+  review_count: number;
+  per_judge: Record<string, number>;
+  highest: number | null;
+  lowest: number | null;
+  spread: number | null;
+}
+
+/** A round this person judges, with their own counts. */
+export interface JudgeRoundSummary {
+  round_id: number;
+  name: string;
+  description: string;
+  status: RoundEvaluationStatus;
+  deadline: string | null;
+  scoring_target: RoundScoringTarget;
+  blind: boolean;
+  assigned: number;
+  scored: number;
+  pending: number;
+  recused: number;
+  can_score: boolean;
+}
+
+export interface JudgeRoundTeam {
+  entry_id: number;
+  /** The team's name, or a short code in a blind round. */
+  label: string;
+  state: RoundCellState;
+  my_total: number | null;
+  scored_at: string | null;
+}
+
+export interface JudgeRoundDetail extends JudgeRoundSummary {
+  criteria: RoundCriterion[];
+  teams: JudgeRoundTeam[];
+}
+
+export interface JudgeTeamMaterial {
+  problem: { title: string; description: string; domain: string } | null;
+  idea: {
+    id: number; title: string; problem: string; solution: string; plan: string; tech_stack: string[];
+    deck_url: string | null; has_deck_file: boolean; linkedin_url: string | null;
+  } | null;
+  project: {
+    id: number; title: string; tagline: string; description: string; repo_url: string | null; demo_url: string | null;
+    video_url: string | null; slides_url: string | null; tech_stack: string[];
+  } | null;
+}
+
+export interface JudgeTeamView {
+  entry_id: number;
+  label: string;
+  scoring_target: RoundScoringTarget;
+  blind: boolean;
+  recused: boolean;
+  recused_reason: string;
+  criteria: RoundCriterion[];
+  my_review: { scores: Record<string, number>; comment: string; total: number; submitted_at: string } | null;
+  can_score: boolean;
+  material: JudgeTeamMaterial;
+}
+
+export type JudgeInviteState = 'INVITED' | 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+
+export interface JudgeInviteRow {
+  id: number;
+  user_id: number;
+  email: string;
+  name: string;
+  state: JudgeInviteState;
+  account_created: boolean;
+  last_sent_at: string | null;
+  resend_count: number;
+  link_expires_at: string | null;
+  accepted_at: string | null;
+  invited_at: string;
+  email_sent?: boolean;
+}
+
+export type JudgeInviteResult = ({ ok: true } & JudgeInviteRow) | { ok: false; email: string; code: string; detail: string };
+
 export interface HackathonRound {
   id: number;
   order: number;
@@ -558,6 +717,9 @@ export interface HackathonRound {
   details_form_slug?: string | null;
   details_form_title?: string | null;
   results_published: boolean;
+  /** Whether a panel of judges scores this round. */
+  evaluation_mode?: RoundEvaluationMode;
+  evaluation_status?: RoundEvaluationStatus;
   entry_counts: Record<RoundEntryStatus, number> & {
     total: number;
     details_submitted: number;
@@ -2020,6 +2182,7 @@ export interface AdminIdeasPayload {
 }
 
 export type RoundRuleKey =
+  | 'ROUND_SCORE_TOP' | 'ROUND_SCORE_MIN'
   | 'PROJECT_SCORE_TOP' | 'PROJECT_SCORE_MIN' | 'IDEA_SCORE_TOP' | 'IDEA_SCORE_MIN' | 'IDEA_APPROVED' | 'HAS_PROJECT' | 'CHECKED_IN' | 'ALL_CHECKED_IN';
 
 export interface AutoShortlistRow {
