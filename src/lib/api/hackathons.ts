@@ -6,6 +6,20 @@ import type {
   AdminSubmissionsPayload,
   CertificateVerification,
   CheckInNoShows,
+  CheckInByTeam,
+  CheckInSessionDraft,
+  JudgeInviteResult,
+  JudgeRoundDetail,
+  JudgeRoundSummary,
+  JudgeTeamView,
+  JudgeInviteRow,
+  ReadinessCheck,
+  RoundEvaluation,
+  RoundEvaluationSettings,
+  RoundEvaluationStatus,
+  RoundPanelJudge,
+  RoundProgress,
+  RoundResultRow,
   CheckInSessionInfo,
   CheckInStats,
   MemberScanResult,
@@ -36,6 +50,7 @@ import type {
   JoinRequestRow,
   JoinRequestsPayload,
   IdeaFileInfo,
+  IdeaTemplateInfo,
   IdeaFileKind,
   IdeaStatus,
   MyHackathonPermissions,
@@ -90,7 +105,7 @@ const patch = (body: unknown): RequestInit => ({ method: 'PATCH', body: JSON.str
 const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) });
 
 /** The downloads the server renders for one hackathon (apps/hackathons/exports.py). */
-export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in' | 'payments' | 'finder-seekers' | 'finder-teams';
+export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in' | 'check-in-teams' | 'check-in-by-team' | 'check-in-matrix' | 'payments' | 'finder-seekers' | 'finder-teams';
 
 /** Typed wrappers for /api/hackathons/* (see apps/hackathons/urls.py). */
 export const hackathonApi = {
@@ -144,6 +159,14 @@ export const hackathonApi = {
     fetchApi<{ file: IdeaFileInfo; payment_qr: { id: string; name: string } | null }>(`/hackathons/${enc(slug)}/idea-qr/${fileId}/`, { method: 'POST' }),
   ideaQrRemove: (slug: string) => fetchApi<null>(`/hackathons/${enc(slug)}/idea-qr/`, { method: 'DELETE' }),
   ideaQrLink: (slug: string) => fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/idea-qr/link/`),
+  /** The idea template: organizers upload it (settings permission); any signed-in user can download it. */
+  ideaTemplateUpload: (slug: string, body: { name: string; size: number; type: string }) =>
+    fetchApi<{ file: IdeaFileInfo; post: { url: string; fields: Record<string, string> }; max_bytes: number }>(`/hackathons/${enc(slug)}/idea-template/`, json(body)),
+  ideaTemplateComplete: (slug: string, fileId: string) =>
+    fetchApi<{ file: IdeaFileInfo; template: IdeaTemplateInfo | null }>(`/hackathons/${enc(slug)}/idea-template/${fileId}/`, { method: 'POST' }),
+  ideaTemplateRemove: (slug: string) => fetchApi<null>(`/hackathons/${enc(slug)}/idea-template/`, { method: 'DELETE' }),
+  ideaTemplateLink: (slug: string, inline = false) =>
+    fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/idea-template/link/${inline ? '?inline=1' : ''}`),
   saveIdea: (slug: string, body: IdeaDraft) =>
     fetchApi<MyIdeaPayload>(`/hackathons/${enc(slug)}/my-idea/`, { method: 'PUT', body: JSON.stringify(body) }),
   mySubmission: (slug: string) => fetchApi<MySubmissionPayload>(`/hackathons/${enc(slug)}/my-submission/`),
@@ -170,6 +193,14 @@ export const hackathonApi = {
       fetchApi<{ request: JoinRequestRow }>(`/hackathons/${enc(slug)}/finder/requests/${requestId}/${action}/`, json({})),
   },
   judging: {
+    /** The rounds this person is a judge of, with their own counts. */
+    myRounds: (slug: string) => fetchApi<{ enabled: boolean; rounds: JudgeRoundSummary[] }>(`/hackathons/${enc(slug)}/my-judging/`),
+    round: (slug: string, roundId: number) => fetchApi<JudgeRoundDetail>(`/hackathons/${enc(slug)}/my-judging/${roundId}/`),
+    team: (slug: string, roundId: number, entryId: number) => fetchApi<JudgeTeamView>(`/hackathons/${enc(slug)}/my-judging/${roundId}/teams/${entryId}/`),
+    scoreRoundTeam: (slug: string, roundId: number, entryId: number, body: { scores: Record<string, number>; comment: string }) =>
+      fetchApi<{ scores: Record<string, number>; comment: string; total: number }>(`/hackathons/${enc(slug)}/my-judging/${roundId}/teams/${entryId}/`, { method: 'PUT', body: JSON.stringify(body) }),
+    recuseRoundTeam: (slug: string, roundId: number, entryId: number, reason: string) =>
+      fetchApi<{ reassigned: boolean; reassigned_to: string | null }>(`/hackathons/${enc(slug)}/my-judging/${roundId}/teams/${entryId}/recuse/`, json({ reason })),
     ideas: (slug: string) => fetchApi<JudgingIdeasPayload>(`/hackathons/${enc(slug)}/judging/ideas/`),
     reviewIdea: (slug: string, ideaId: number, body: { scores: Record<string, number>; comment: string }) =>
       fetchApi<JudgeReview>(`/hackathons/${enc(slug)}/judging/ideas/${ideaId}/`, json(body)),
@@ -187,6 +218,14 @@ export const hackathonApi = {
       if (params.offset) search.set('offset', String(params.offset));
       const suffix = search.toString();
       return fetchApi<CheckInRoster>(`/hackathons/${enc(slug)}/check-in/${suffix ? `?${suffix}` : ''}`);
+    },
+    byTeam: (slug: string, params: { session?: number; state?: string; q?: string } = {}) => {
+      const search = new URLSearchParams();
+      if (params.session) search.set('session', String(params.session));
+      if (params.state) search.set('state', params.state);
+      if (params.q) search.set('q', params.q);
+      const suffix = search.toString();
+      return fetchApi<CheckInByTeam>(`/hackathons/${enc(slug)}/check-in/by-team/${suffix ? `?${suffix}` : ''}`);
     },
     stats: (slug: string, session?: number) => fetchApi<CheckInStats>(`/hackathons/${enc(slug)}/check-in/stats/${session ? `?session=${session}` : ''}`),
     sessions: (slug: string) => fetchApi<CheckInSessionInfo[]>(`/hackathons/${enc(slug)}/check-in/sessions/`),
@@ -249,9 +288,42 @@ export const hackathonApi = {
 
   // --- admin ---
   admin: {
+    /** Add a session of your own: a title, a day, optional times, and who checks in. */
+    // --- judging a round ---
+    roundEvaluation: (slug: string, id: number) => fetchApi<RoundEvaluation>(`/hackathons/${enc(slug)}/rounds/${id}/evaluation/`),
+    configureRoundEvaluation: (slug: string, id: number, body: Partial<RoundEvaluationSettings>) =>
+      fetchApi<RoundEvaluation>(`/hackathons/${enc(slug)}/rounds/${id}/evaluation/`, patch(body)),
+    setRoundCriteria: (slug: string, id: number, criteria: { id?: number; name: string; description: string; max_score: number; weight: number }[]) =>
+      fetchApi<RoundEvaluation>(`/hackathons/${enc(slug)}/rounds/${id}/evaluation/criteria/`, { method: 'PUT', body: JSON.stringify({ criteria }) }),
+    setRoundPanel: (slug: string, id: number, judgeIds: number[]) =>
+      fetchApi<RoundEvaluation>(`/hackathons/${enc(slug)}/rounds/${id}/evaluation/panel/`, { method: 'PUT', body: JSON.stringify({ judge_ids: judgeIds }) }),
+    assignRoundJudges: (slug: string, id: number, manual?: { entry_id: number; judge_ids: number[] }[]) =>
+      fetchApi<{ result: { assignments: number; teams: number; short: { team_name: string }[]; skipped: unknown[] }; progress: RoundProgress }>(
+        `/hackathons/${enc(slug)}/rounds/${id}/evaluation/assign/`, json(manual ? { manual } : {}),
+      ),
+    roundEvaluationAction: (slug: string, id: number, action: 'start' | 'close' | 'reopen', body: { force?: boolean; reason?: string } = {}) =>
+      fetchApi<{ ranked?: number; unranked?: number; under_reviewed?: string[]; evaluation: RoundEvaluation }>(
+        `/hackathons/${enc(slug)}/rounds/${id}/evaluation/${action}/`, json(body),
+      ),
+    roundProgress: (slug: string, id: number) => fetchApi<RoundProgress>(`/hackathons/${enc(slug)}/rounds/${id}/evaluation/progress/`),
+    roundResults: (slug: string, id: number) =>
+      fetchApi<{ status: RoundEvaluationStatus; rows: RoundResultRow[]; panel: RoundPanelJudge[] }>(`/hackathons/${enc(slug)}/rounds/${id}/evaluation/results/`),
+    // --- inviting judges ---
+    judgeInvites: (slug: string) => fetchApi<JudgeInviteRow[]>(`/hackathons/${enc(slug)}/judge-invites/`),
+    inviteJudge: (slug: string, body: { name: string; email: string }) =>
+      fetchApi<JudgeInviteRow>(`/hackathons/${enc(slug)}/judge-invites/`, json(body)),
+    inviteJudges: (slug: string, judges: { name: string; email: string }[]) =>
+      fetchApi<{ results: JudgeInviteResult[] }>(`/hackathons/${enc(slug)}/judge-invites/`, json({ judges })),
+    resendJudgeInvite: (slug: string, id: number) => fetchApi<JudgeInviteRow>(`/hackathons/${enc(slug)}/judge-invites/${id}/resend/`, json({})),
+    revokeJudgeInvite: (slug: string, id: number) => fetchApi<JudgeInviteRow>(`/hackathons/${enc(slug)}/judge-invites/${id}/`, { method: 'DELETE' }),
+    createCheckInSession: (slug: string, body: CheckInSessionDraft) =>
+      fetchApi<CheckInSessionInfo>(`/hackathons/${enc(slug)}/check-in/sessions/`, json(body)),
+    /** Removes a session you added; one with people checked in is retired instead. */
+    deleteCheckInSession: (slug: string, id: number) =>
+      fetchApi<{ outcome: 'deleted' | 'retired' }>(`/hackathons/${enc(slug)}/check-in/sessions/${id}/`, { method: 'DELETE' }),
     updateCheckInSession: (
       slug: string, id: number,
-      body: Partial<Pick<CheckInSessionInfo, 'name' | 'opens_at' | 'closes_at' | 'needs_arrival' | 'counts_for_certificate' | 'scan_mode' | 'is_active'>>,
+      body: Partial<Pick<CheckInSessionInfo, 'name' | 'opens_at' | 'closes_at' | 'needs_arrival' | 'counts_for_certificate' | 'scan_mode' | 'is_active' | 'outside_schedule'> & { date: string }>,
     ) => fetchApi<CheckInSessionInfo>(`/hackathons/${enc(slug)}/check-in/sessions/${id}/`, patch(body)),
     withdrawals: (slug: string) => fetchApi<WithdrawalOverview>(`/hackathons/${enc(slug)}/withdrawals/`),
     decideWithdrawal: (slug: string, id: number, body: { approve: boolean; note?: string }) =>

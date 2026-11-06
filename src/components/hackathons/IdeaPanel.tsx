@@ -13,6 +13,7 @@ import { StatusPill, type PillTone } from '@/components/ui/StatusPill';
 import { TagInput } from '@/components/ui/TagInput';
 import { PaymentQr } from './PaymentQr';
 import { IdeaFileActions } from './IdeaFileActions';
+import { IdeaTemplateDownload } from './IdeaTemplateDownload';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { previewKindOf } from '@/lib/filePreview';
 import { linkProblem, type LinkKind } from '@/lib/validation/submissionLinks';
@@ -191,6 +192,8 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
       {idea?.status === 'APPROVED' && idea.feedback && (
         <p role="status" className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300"><strong>Note from the organizers:</strong> {idea.feedback}</p>
       )}
+
+      <IdeaTemplateDownload slug={hackathon.slug} template={config.template} url={config.template_url} />
 
       {payload.can_edit && (!idea || editing) ? (
         <form onSubmit={submit} className="space-y-4">

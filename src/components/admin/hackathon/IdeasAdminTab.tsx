@@ -15,6 +15,7 @@ import { SubmissionPhases } from './SubmissionPhases';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInput } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
 import { IdeaFileActions } from '@/components/hackathons/IdeaFileActions';
+import { IdeaTemplatePanel } from './IdeaTemplatePanel';
 import { ActionButton } from '@/components/ui/ActionButton';
 
 const STATUS_PILL: Record<IdeaStatus, { tone: PillTone; label: string }> = {
@@ -161,6 +162,8 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
         />
         <ActionButton type="submit" pending={saving} success={saved} onSuccessShown={clearSaved} successLabel="Saved" className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {'Save idea phase'}</ActionButton>
       </form>
+
+      <IdeaTemplatePanel hackathon={hackathon} onSaved={onSaved} template={data?.config.template ?? null} />
 
       {error && <LoadError message={error} onRetry={load} />}
 

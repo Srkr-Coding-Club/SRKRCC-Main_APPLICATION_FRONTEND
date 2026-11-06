@@ -30,6 +30,7 @@ import { useToast } from '@/context/ToastContext';
 import { Modal } from '@/components/ui/Modal';
 import { LoadError } from './LoadError';
 import { RoundAutoShortlist } from './RoundAutoShortlist';
+import { RoundEvaluationPanel } from './RoundEvaluationPanel';
 import { ROUND_KIND_LABEL, ROUND_KIND_OPTIONS, ROUND_TEMPLATES } from './roundKinds';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ExportMenu } from '@/components/ui/ExportMenu';
@@ -573,6 +574,8 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
               </p>
             )}
           </div>
+
+          <RoundEvaluationPanel key={`judging-${round.id}`} slug={slug} round={round} features={features} onChanged={refresh} />
 
           <RoundAutoShortlist key={round.id} slug={slug} round={round} features={features} onApplied={refresh} />
 

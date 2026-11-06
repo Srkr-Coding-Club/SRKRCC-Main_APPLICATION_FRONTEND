@@ -9,8 +9,10 @@ import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useRequireLogin } from '@/lib/hooks/useRequireLogin';
 import { useToast } from '@/context/ToastContext';
 import { StatusPill } from '@/components/ui/StatusPill';
-import { BTN_ACCENT, PANEL } from '@/components/hackathons/dashboardStyles';
+import { BTN_ACCENT, PANEL } from '@/components/hackathons/dashboardStyles';
+
 import { ActionButton } from '@/components/ui/ActionButton';
+import { JudgeRoundsPanel } from '@/components/hackathons/judging/JudgeRoundsPanel';
 
 type Criteria = JudgingPayload['criteria'];
 type Kind = 'PROJECT' | 'IDEA';
@@ -108,6 +110,7 @@ export default function JudgingPage() {
   const [ideas, setIdeas] = useState<JudgingIdeasPayload | null>(null);
   const [error, setError] = useState('');
   const [openId, setOpenId] = useState<number | null>(null);
+  const [roundCount, setRoundCount] = useState<number | null>(null);
 
   const load = useCallback(() => {
     hackathonApi.judging.list(slug)
@@ -124,6 +127,9 @@ export default function JudgingPage() {
   const scoredCount = data?.reviewed ?? 0;
   const total = data?.total ?? 0;
   const switchKind = (next: Kind) => { setKind(next); setOpenId(null); };
+  // Someone who judges rounds should not also be told that hackathon-wide scoring is "not set up" or "0 of 4 scored".
+  const wideInUse = Boolean(data?.enabled && !rubricMissing && total > 0);
+  const showWide = roundCount === 0 || wideInUse;
 
   return (
     <div className="min-h-screen bg-[var(--background)] py-10">
@@ -132,12 +138,18 @@ export default function JudgingPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-journey-text sm:text-3xl"><Gavel className="h-6 w-6 text-journey-accent" /> Judging</h1>
-            <p className="text-sm text-journey-muted">Score each {kind === 'IDEA' ? 'idea' : 'project'} on every criterion. You can change your scores until the organizers publish results.</p>
+            <p className="text-sm text-journey-muted">
+              {showWide
+                ? `Score each ${kind === 'IDEA' ? 'idea' : 'project'} on every criterion. You can change your scores until the organizers publish results.`
+                : 'Pick a round below. You only see the teams you were given, and you can change your scores until the round closes.'}
+            </p>
           </div>
-          {data && <StatusPill tone={scoredCount === total && total > 0 ? 'green' : 'amber'}>{scoredCount} of {total} scored</StatusPill>}
+          {showWide && data && <StatusPill tone={scoredCount === total && total > 0 ? 'green' : 'amber'}>{scoredCount} of {total} scored</StatusPill>}
         </div>
 
-        {projects?.ideas_scoring && (
+        <JudgeRoundsPanel slug={slug} onLoaded={setRoundCount} />
+
+        {showWide && projects?.ideas_scoring && (
           <div role="tablist" aria-label="What to score" className="inline-flex rounded-xl border border-journey-text/15 p-1">
             {(['PROJECT', 'IDEA'] as const).map((item) => (
               <button key={item} type="button" role="tab" aria-selected={kind === item} onClick={() => switchKind(item)}
@@ -149,9 +161,9 @@ export default function JudgingPage() {
         )}
 
         {error && <p role="alert" className={`${PANEL} text-sm text-rose-600 dark:text-rose-400`}>{error}</p>}
-        {data && !data.enabled && <p className={`${PANEL} text-sm text-journey-muted`}>Judging is not switched on for this hackathon.</p>}
-        {data && data.enabled && rubricMissing && <p className={`${PANEL} text-sm text-journey-muted`}>The organizers have not set the scoring criteria yet. Check back soon.</p>}
-        {data && data.enabled && total === 0 && !rubricMissing && <p className={`${PANEL} text-sm text-journey-muted`}>Nothing has been submitted yet.</p>}
+        {data && !data.enabled && roundCount === 0 && <p className={`${PANEL} text-sm text-journey-muted`}>Judging is not switched on for this hackathon.</p>}
+        {roundCount === 0 && data && data.enabled && rubricMissing && <p className={`${PANEL} text-sm text-journey-muted`}>The organizers have not set the scoring criteria yet. Check back soon.</p>}
+        {roundCount === 0 && data && data.enabled && total === 0 && !rubricMissing && <p className={`${PANEL} text-sm text-journey-muted`}>Nothing has been submitted yet.</p>}
 
         {kind === 'PROJECT' && projects && projects.enabled && !rubricMissing && (
           <ul className="space-y-4">

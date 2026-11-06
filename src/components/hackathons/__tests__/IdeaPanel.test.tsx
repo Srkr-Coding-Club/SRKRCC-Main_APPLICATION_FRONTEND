@@ -79,6 +79,32 @@ describe('IdeaPanel: what the form asks for', () => {
   });
 });
 
+describe('IdeaPanel: the idea template', () => {
+  it('offers the template the organizers uploaded', async () => {
+    await show(payload({ config: config({ template: { id: 't1', name: 'idea-template.pptx', size: 1000, type: 'application/vnd.ms-powerpoint' } }) }));
+    expect(screen.getByText('Idea template')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Download idea-template.pptx' })).toBeTruthy();
+  });
+
+  it('falls back to the Google Drive link when no file was uploaded', async () => {
+    await show(payload({ config: config({ template_url: 'https://drive.google.com/file/d/abc/view' }) }));
+    const link = screen.getByRole('link', { name: /Open the template in Google Drive/ });
+    expect(link.getAttribute('href')).toBe('https://drive.google.com/file/d/abc/view');
+    expect(link.getAttribute('rel')).toContain('noopener');
+  });
+
+  it('prefers the uploaded file over the Drive link', async () => {
+    await show(payload({ config: config({ template: { id: 't1', name: 'idea-template.pptx', size: 1000, type: 'application/vnd.ms-powerpoint' }, template_url: 'https://drive.google.com/file/d/abc/view' }) }));
+    expect(screen.getByRole('button', { name: 'Download idea-template.pptx' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Google Drive/ })).toBeNull();
+  });
+
+  it('shows no template area when there is none', async () => {
+    await show(payload());
+    expect(screen.queryByText('Idea template')).toBeNull();
+  });
+});
+
 describe('IdeaPanel: the payment QR code', () => {
   it('shows the QR the organizers uploaded, with what to do with it', async () => {
     api.ideaQrLink.mockResolvedValue({ url: 'https://bucket/qr.png?sig=1', expires_in: 60, inline: true });

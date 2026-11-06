@@ -210,6 +210,13 @@ export function useAdminData(options?: UseAdminDataOptions) {
     redirect_delay_seconds?: number;
     captcha_enabled?: boolean;
     language?: string;
+    restrictions_enabled?: boolean;
+    restrictions?: import('@/lib/types').FormRestrictions;
+    submission_note_enabled?: boolean;
+    submission_note_title?: string;
+    submission_note_content?: string;
+    submission_note_confirm_label?: string;
+    submission_note_cancel_label?: string;
     attendance_enabled?: boolean;
     attendance_start_date?: string | null;
     attendance_days?: number;
@@ -247,6 +254,13 @@ export function useAdminData(options?: UseAdminDataOptions) {
     redirect_delay_seconds: 5,
     captcha_enabled: false,
     language: 'en',
+    restrictions_enabled: false,
+    restrictions: { enabled: false },
+    submission_note_enabled: false,
+    submission_note_title: '',
+    submission_note_content: '',
+    submission_note_confirm_label: '',
+    submission_note_cancel_label: '',
     attendance_enabled: false,
     attendance_start_date: null,
     attendance_days: 1,
@@ -787,6 +801,13 @@ export function useAdminData(options?: UseAdminDataOptions) {
       redirect_delay_seconds: form.redirect_delay_seconds ?? 5,
       captcha_enabled: form.captcha_enabled ?? false,
       language: form.language || 'en',
+      restrictions_enabled: form.restrictions_enabled ?? form.restrictions?.enabled ?? false,
+      restrictions: form.restrictions || { enabled: form.restrictions_enabled ?? false },
+      submission_note_enabled: form.submission_note_enabled ?? false,
+      submission_note_title: form.submission_note_title || '',
+      submission_note_content: form.submission_note_content || '',
+      submission_note_confirm_label: form.submission_note_confirm_label || '',
+      submission_note_cancel_label: form.submission_note_cancel_label || '',
       attendance_enabled: form.attendance_enabled ?? false,
       attendance_start_date: form.attendance_start_date ?? null,
       attendance_days: form.attendance_days ?? 1,
@@ -890,6 +911,18 @@ export function useAdminData(options?: UseAdminDataOptions) {
       redirect_delay_seconds: formMeta.redirect_delay_seconds ?? 5,
       captcha_enabled: formMeta.captcha_enabled ?? false,
       language: formMeta.language || 'en',
+      restrictions_enabled: formMeta.restrictions_enabled ?? formMeta.restrictions?.enabled ?? false,
+      restrictions: formMeta.restrictions
+        ? {
+            ...formMeta.restrictions,
+            enabled: formMeta.restrictions_enabled ?? formMeta.restrictions.enabled ?? false,
+          }
+        : undefined,
+      submission_note_enabled: formMeta.submission_note_enabled ?? false,
+      submission_note_title: formMeta.submission_note_title || '',
+      submission_note_content: formMeta.submission_note_content || '',
+      submission_note_confirm_label: formMeta.submission_note_confirm_label || '',
+      submission_note_cancel_label: formMeta.submission_note_cancel_label || '',
       attendance_enabled: formMeta.attendance_enabled ?? false,
       attendance_start_date: formMeta.attendance_start_date || null,
       attendance_days: formMeta.attendance_days ?? 1,
@@ -1080,6 +1113,13 @@ export function useAdminData(options?: UseAdminDataOptions) {
         redirect_delay_seconds: saved.redirect_delay_seconds ?? 5,
         captcha_enabled: saved.captcha_enabled ?? false,
         language: saved.language || 'en',
+        restrictions_enabled: saved.restrictions_enabled ?? saved.restrictions?.enabled ?? false,
+        restrictions: saved.restrictions || formMeta.restrictions || { enabled: false },
+        submission_note_enabled: saved.submission_note_enabled ?? formMeta.submission_note_enabled ?? false,
+        submission_note_title: saved.submission_note_title || formMeta.submission_note_title || '',
+        submission_note_content: saved.submission_note_content || formMeta.submission_note_content || '',
+        submission_note_confirm_label: saved.submission_note_confirm_label || formMeta.submission_note_confirm_label || '',
+        submission_note_cancel_label: saved.submission_note_cancel_label || formMeta.submission_note_cancel_label || '',
         attendance_enabled: saved.attendance_enabled ?? false,
         attendance_start_date: saved.attendance_start_date ?? null,
         attendance_days: saved.attendance_days ?? 1,
