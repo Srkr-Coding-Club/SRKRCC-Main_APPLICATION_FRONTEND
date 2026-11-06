@@ -1129,6 +1129,26 @@ export interface FormField {
   profile_field?: ProfileFieldKey | null;
 }
 
+export interface FormRestrictions {
+  enabled?: boolean;
+  club_members_only?: boolean;
+  allowed_roles?: ('AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN')[];
+  allowed_years?: number[];
+  allowed_branches?: string[];
+  allowed_colleges?: string[];
+  home_college_only?: boolean;
+  allowed_members?: string[];
+  custom_restriction_message?: string;
+}
+
+export interface FormSubmissionConfirmation {
+  enabled?: boolean;
+  title?: string;
+  message?: string;
+  confirm_label?: string;
+  cancel_label?: string;
+}
+
 export interface Form {
   id: number | string;
   title: string;
@@ -1168,6 +1188,15 @@ export interface Form {
   captcha_enabled?: boolean;
   /** Language of the form's own buttons and prompts: 'en' | 'te' | 'hi' (lib/i18n/formStrings.ts). */
   language?: string;
+  /** Audience & access restrictions (year, club member, role, branch, college, whitelist). */
+  restrictions_enabled?: boolean;
+  restrictions?: FormRestrictions;
+  /** Pre-submission confirmation note / rules acceptance dialog before final submit. */
+  submission_note_enabled?: boolean;
+  submission_note_title?: string;
+  submission_note_content?: string;
+  submission_note_confirm_label?: string;
+  submission_note_cancel_label?: string;
   /** QR-code attendance tracking - see apps/forms/models.py's attendance_* fields. */
   attendance_enabled?: boolean;
   attendance_start_date?: string | null;
