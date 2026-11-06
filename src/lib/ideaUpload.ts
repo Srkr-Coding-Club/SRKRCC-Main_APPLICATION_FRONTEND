@@ -67,28 +67,50 @@ export async function uploadRegistrationPayment(
 export const asUploaded = (file: { id: string; name: string; size: number; type: string } | null | undefined): UploadedFile | null =>
   file ? { upload_id: file.id, name: file.name, size: file.size, type: file.type } : null;
 
-/** Organizers: send the payment QR image to storage and have the server make it the hackathon's QR code. */
-export async function uploadIdeaQr(
-  slug: string,
+/** What the template picker allows. The server checks the same rules again. */
+export const IDEA_TEMPLATE_RULES = { allowedFileTypes: '.ppt,.pptx,.pdf,.doc,.docx', maxFileSizeMB: 25, label: 'template' };
+
+type OrganizerGrant = Awaited<ReturnType<typeof hackathonApi.ideaQrUpload>>;
+type OrganizerDone = { file: { id: string; name: string; size: number; type: string } };
+
+/** Organizers: send a hackathon-wide file to storage and have the server make it the hackathon's file. */
+async function uploadOrganizerFile(
   file: File,
-  onProgress: (fraction: number) => void,
-  signal?: AbortSignal,
+  progress: (fraction: number) => void,
+  signal: AbortSignal | undefined,
+  api: { grant: () => Promise<OrganizerGrant>; complete: (fileId: string) => Promise<OrganizerDone>; completeFailure: string },
 ): Promise<UploadedFile> {
   let grant;
   try {
-    grant = await hackathonApi.ideaQrUpload(slug, { name: file.name, size: file.size, type: file.type });
+    grant = await api.grant();
   } catch (error) {
     throw asUploadError(error, 'Could not start the upload.');
   }
   try {
-    await sendToStorage({ upload: { id: grant.file.id }, post: grant.post, max_bytes: grant.max_bytes }, file, onProgress, signal);
+    await sendToStorage({ upload: { id: grant.file.id }, post: grant.post, max_bytes: grant.max_bytes }, file, progress, signal);
   } catch (error) {
     throw asUploadError(error, 'The upload failed.');
   }
   try {
-    const done = await hackathonApi.ideaQrComplete(slug, grant.file.id);
+    const done = await api.complete(grant.file.id);
     return { upload_id: done.file.id, name: done.file.name, size: done.file.size, type: done.file.type };
   } catch (error) {
-    throw asUploadError(error, 'We could not save the QR code.');
+    throw asUploadError(error, api.completeFailure);
   }
 }
+
+/** Organizers: send the payment QR image to storage and have the server make it the hackathon's QR code. */
+export const uploadIdeaQr = (slug: string, file: File, onProgress: (fraction: number) => void, signal?: AbortSignal) =>
+  uploadOrganizerFile(file, onProgress, signal, {
+    grant: () => hackathonApi.ideaQrUpload(slug, { name: file.name, size: file.size, type: file.type }),
+    complete: (fileId) => hackathonApi.ideaQrComplete(slug, fileId),
+    completeFailure: 'We could not save the QR code.',
+  });
+
+/** Organizers: send the idea template to storage and have the server make it the hackathon's template. */
+export const uploadIdeaTemplate = (slug: string, file: File, onProgress: (fraction: number) => void, signal?: AbortSignal) =>
+  uploadOrganizerFile(file, onProgress, signal, {
+    grant: () => hackathonApi.ideaTemplateUpload(slug, { name: file.name, size: file.size, type: file.type }),
+    complete: (fileId) => hackathonApi.ideaTemplateComplete(slug, fileId),
+    completeFailure: 'We could not save the template.',
+  });

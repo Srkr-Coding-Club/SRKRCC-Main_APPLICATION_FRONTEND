@@ -42,7 +42,10 @@ import {
   ChevronDown,
   Star,
   Info,
+  ShieldAlert,
 } from 'lucide-react';
+import { evaluateFormEligibility } from '@/lib/formRestrictions';
+import { SubmissionConfirmModal } from '@/components/forms/SubmissionConfirmModal';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { SubmissionThanks } from '@/components/forms/SubmissionThanks';
 import { useEmailVerification } from '@/context/EmailVerificationContext';
@@ -853,6 +856,8 @@ export default function FormDetailSubmissionPage() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [canEditResponse, setCanEditResponse] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const pendingPayloadRef = useRef<Record<string, any> | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -994,6 +999,13 @@ export default function FormDetailSubmissionPage() {
   const verification = useEmailVerification();
   const verifyLocked = !!currentUser && restrictsFeatures(verification.state);
 
+  // Form access & eligibility restrictions (year, club member, role, branch, college, whitelist)
+  const eligibility = React.useMemo(() => {
+    const r = form?.restrictions || (form?.restrictions_enabled ? { enabled: true } : undefined);
+    return evaluateFormEligibility(currentUser, r);
+  }, [currentUser, form]);
+  const isRestricted = !eligibility.eligible;
+
   // What an untouched form holds, so the autosave can tell the person's own typing from the form's starting values.
   const freshAnswers = React.useMemo(() => {
     const fields = (form?.fields as FormField[]) || [];
@@ -1007,7 +1019,7 @@ export default function FormDetailSubmissionPage() {
     freshAnswers: freshAnswers,
     keepUploads: uploadConfig.direct_upload,
     fields: (form?.fields as FormField[]) || [],
-    enabled: !!currentUser && !!form && submissionChecked && !isEditMode && !isSubmitted && !isLockedToSingleExistingResponse && verification.loaded && uploadConfig.loaded && !verifyLocked,
+    enabled: !!currentUser && !!form && submissionChecked && !isEditMode && !isSubmitted && !isLockedToSingleExistingResponse && verification.loaded && uploadConfig.loaded && !verifyLocked && !isRestricted,
     formData,
     currentPage: activePage,
     onRestore: (restored) => {
@@ -1448,12 +1460,24 @@ export default function FormDetailSubmissionPage() {
       return;
     }
 
+    // If pre-submission note/rules modal is enabled, confirm before submitting
+    if (form.submission_note_enabled && form.submission_note_content) {
+      pendingPayloadRef.current = payload;
+      setShowConfirmModal(true);
+      return;
+    }
+
+    await executeSubmission(payload);
+  };
+
+  const executeSubmission = async (payloadToSubmit: Record<string, any>) => {
+    if (!form || !currentUser) return;
     setIsSubmitting(true);
     setSubmissionError(null);
     setErrors({});
     try {
       // Only submit answers for fields the conditional layout leaves visible.
-      const answersPayload = Object.entries(payload).map(([fieldId, value]) => ({
+      const answersPayload = Object.entries(payloadToSubmit).map(([fieldId, value]) => ({
         field: Number(fieldId) || fieldId,
         value,
       }));
@@ -1854,7 +1878,30 @@ export default function FormDetailSubmissionPage() {
                   <button type="button" onClick={() => verification.openDialog({ reason: 'feature' })} className="mt-3 min-h-9 rounded-lg bg-[#C25100] px-4 py-2 text-sm font-bold text-white hover:bg-[#A84600]">Verify email</button>
                 </div>
               )}
-              <fieldset disabled={verifyLocked} className="m-0 min-w-0 space-y-6 border-0 p-0 [&[disabled]]:opacity-70 [&[disabled]_canvas]:pointer-events-none">
+              {isRestricted && currentUser && (
+                <div role="region" aria-label="Access Restricted" className="rounded-2xl border border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 p-4 sm:p-5 text-sm text-rose-950 dark:text-rose-100 space-y-2.5">
+                  <div className="flex items-center gap-2 font-bold text-rose-700 dark:text-rose-400">
+                    <ShieldAlert className="w-5 h-5 shrink-0" />
+                    <span className="text-base">Access Restricted</span>
+                  </div>
+                  {eligibility.customMessage && (
+                    <p className="font-semibold text-rose-900 dark:text-rose-200">
+                      {eligibility.customMessage}
+                    </p>
+                  )}
+                  {eligibility.reasons.length > 0 && (
+                    <ul className="list-disc list-inside space-y-1 text-xs text-rose-800 dark:text-rose-300">
+                      {eligibility.reasons.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="text-[11px] text-rose-700/80 dark:text-rose-400/80 pt-1">
+                    You can read the questions below, but responses are restricted to eligible participants.
+                  </p>
+                </div>
+              )}
+              <fieldset disabled={verifyLocked || isRestricted} className="m-0 min-w-0 space-y-6 border-0 p-0 [&[disabled]]:opacity-70 [&[disabled]_canvas]:pointer-events-none">
               {form.fields?.map((sourceField) => {
                 // restrict_options narrows the choices a condition allows; a full option (optionLimits) is not offered
                 // unless this person already holds it. {{id}} in the text shows that question's answer.
@@ -2714,6 +2761,25 @@ export default function FormDetailSubmissionPage() {
                   );
                 }
 
+                if (isRestricted) {
+                  return (
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5">
+                        <ShieldAlert className="w-4 h-4 shrink-0" />
+                        <span>You do not meet the eligibility criteria to register for this form.</span>
+                      </p>
+                      <button
+                        type="button"
+                        disabled={true}
+                        className="inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-slate-800 text-slate-400 font-extrabold text-sm shadow-sm opacity-60 cursor-not-allowed"
+                      >
+                        <Lock className="w-4 h-4" />
+                        <span>Access Restricted</span>
+                      </button>
+                    </div>
+                  );
+                }
+
                 const hasNextPage = multiPage && nextReachable(layout, activePage) !== null;
                 const hasPreviousPage = multiPage && previousReachable(layout, activePage) !== null;
                 return (
@@ -2756,7 +2822,7 @@ export default function FormDetailSubmissionPage() {
                     <button
                       key="submit-form"
                       type="submit"
-                      disabled={isSubmitting || anyUploading || isClosed || isBeforeOpen || cooldown > 0 || verifyLocked || (!!form.captcha_enabled && !isEditMode && !captchaToken)}
+                      disabled={isSubmitting || anyUploading || isClosed || isBeforeOpen || cooldown > 0 || verifyLocked || isRestricted || (!!form.captcha_enabled && !isEditMode && !captchaToken)}
                       className="group/btn relative inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-journey-accent text-journey-on-accent font-extrabold text-base shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <span>
@@ -2782,6 +2848,30 @@ export default function FormDetailSubmissionPage() {
               })()}
             </form>
           </div>
+        )}
+
+        {/* Pre-Submission Rule / Note Acceptance Modal */}
+        {form && (
+          <SubmissionConfirmModal
+            isOpen={showConfirmModal}
+            onClose={() => {
+              setShowConfirmModal(false);
+              pendingPayloadRef.current = null;
+            }}
+            onConfirm={async () => {
+              setShowConfirmModal(false);
+              if (pendingPayloadRef.current) {
+                const p = pendingPayloadRef.current;
+                pendingPayloadRef.current = null;
+                await executeSubmission(p);
+              }
+            }}
+            title={form.submission_note_title}
+            content={form.submission_note_content || ''}
+            confirmLabel={form.submission_note_confirm_label}
+            cancelLabel={form.submission_note_cancel_label}
+            isSubmitting={isSubmitting}
+          />
         )}
 
       </div>

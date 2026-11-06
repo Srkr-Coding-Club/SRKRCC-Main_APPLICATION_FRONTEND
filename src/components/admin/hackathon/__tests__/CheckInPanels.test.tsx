@@ -2,12 +2,12 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const api = { noShows: vi.fn(), remindNoShows: vi.fn(), withdrawNoShows: vi.fn(), stats: vi.fn(), roster: vi.fn(), update: vi.fn(), sessions: vi.fn(), updateSession: vi.fn() };
+const api = { byTeam: vi.fn(), noShows: vi.fn(), remindNoShows: vi.fn(), withdrawNoShows: vi.fn(), stats: vi.fn(), roster: vi.fn(), update: vi.fn(), sessions: vi.fn(), updateSession: vi.fn() };
 const toast = { success: vi.fn(), error: vi.fn() };
 vi.mock('@/lib/api/hackathons', () => ({
   hackathonApi: {
     checkIn: {
-      noShows: (...a: unknown[]) => api.noShows(...a), remindNoShows: (...a: unknown[]) => api.remindNoShows(...a),
+      byTeam: (...a: unknown[]) => api.byTeam(...a), noShows: (...a: unknown[]) => api.noShows(...a), remindNoShows: (...a: unknown[]) => api.remindNoShows(...a),
       withdrawNoShows: (...a: unknown[]) => api.withdrawNoShows(...a), stats: (...a: unknown[]) => api.stats(...a),
       roster: (...a: unknown[]) => api.roster(...a), sessions: (...a: unknown[]) => api.sessions(...a),
     },
@@ -38,6 +38,7 @@ beforeEach(() => {
   api.stats.mockResolvedValue({ total: 0, overrides: 0, volunteers: [], bucket_minutes: 15, timeline: [], by_via: {}, team_scans: 0 });
   api.sessions.mockResolvedValue([session()]);
   api.noShows.mockResolvedValue(noShows());
+  api.byTeam.mockResolvedValue({ session: session(), totals: { teams: 0, present: 0, partial: 0, absent: 0, people: 0, people_in: 0 }, teams: [] });
 });
 afterEach(() => cleanup());
 

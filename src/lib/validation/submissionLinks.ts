@@ -4,7 +4,7 @@
  */
 export const MAX_URL_LENGTH = 200;
 
-export type LinkKind = 'any' | 'repo' | 'video' | 'linkedin';
+export type LinkKind = 'any' | 'repo' | 'video' | 'drive' | 'linkedin';
 
 const CODE_HOSTS = ['github.com', 'gitlab.com', 'bitbucket.org', 'codeberg.org', 'dev.azure.com', 'sourceforge.net', 'git.sr.ht', 'huggingface.co'];
 const VIDEO_HOSTS = [
@@ -12,6 +12,7 @@ const VIDEO_HOSTS = [
   'onedrive.live.com', 'sharepoint.com', 'linkedin.com', 'lnkd.in', 'instagram.com', 'facebook.com', 'fb.watch', 'x.com', 'twitter.com',
 ];
 const LINKEDIN_HOSTS = ['linkedin.com', 'lnkd.in'];
+const GOOGLE_DRIVE_HOSTS = ['drive.google.com', 'docs.google.com'];
 const PRIVATE_SUFFIXES = ['.local', '.localhost', '.internal', '.lan', '.home', '.corp', '.intranet'];
 
 const onHost = (host: string, names: string[]) => names.some((name) => host === name || host.endsWith(`.${name}`));
@@ -43,6 +44,8 @@ export function linkProblem(value: string, label: string, kind: LinkKind = 'any'
     if (url.pathname.split('/').filter(Boolean).length < 2) return `${label} must point at the repository itself (for example https://github.com/owner/repo).`;
   } else if (kind === 'video' && !onHost(host, VIDEO_HOSTS)) {
     return `${label} must be on a video site such as YouTube, Vimeo, Loom or Google Drive.`;
+  } else if (kind === 'drive' && !onHost(host, GOOGLE_DRIVE_HOSTS)) {
+    return `${label} must be a Google Drive or Google Docs link.`;
   } else if (kind === 'linkedin' && !onHost(host, LINKEDIN_HOSTS)) {
     return `${label} must be a LinkedIn link (linkedin.com).`;
   }

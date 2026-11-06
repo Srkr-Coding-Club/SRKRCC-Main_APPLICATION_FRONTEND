@@ -22,6 +22,8 @@ If you change a rule, change both sides and the shared vectors (`src/lib/__tests
 - After submitting (`src/components/forms/SubmissionThanks.tsx`, `src/lib/afterSubmit.ts`): thank-you text, optional redirect with a countdown. Redirects are re-checked in the browser (https or same-site path only).
 - Bot protection: an invisible honeypot input (`hp_q7z4`) and an optional Cloudflare Turnstile widget (`src/components/forms/TurnstileWidget.tsx`, needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY`).
 - Language (`src/lib/i18n/formStrings.ts`): the form's own buttons and prompts in English, Telugu or Hindi. What the admin writes is shown as written. Built-in validation messages are English only.
+- Audience & access restrictions (`src/lib/formRestrictions.ts`, `src/components/admin/FormRestrictionsSettings.tsx`): forms can be restricted by academic year (1st-4th), club membership, role, branch, college (SRKR home college), or a specific member whitelist. Ineligible visitors get an "Access Restricted" alert card with criteria and custom admin notice; fields and submission are disabled.
+- Pre-submission rule/note acceptance (`src/components/forms/SubmissionConfirmModal.tsx`, `src/components/admin/SubmissionNoteSettings.tsx`): when enabled, clicking Submit prompts respondents with an agreement dialog displaying rules/guidelines before final submission.
 
 ## Admin builder (`src/app/admin/builder`, `src/components/admin/`)
 

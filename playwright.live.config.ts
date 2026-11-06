@@ -10,6 +10,8 @@ const SITE_PORT = 3200;
 
 export default defineConfig({
   testDir: './e2e-live',
+  // Failure traces and videos go here, not into test-results/, which the ordinary run (and the editor's Playwright test server) clears.
+  outputDir: './test-results/live-artifacts',
   testMatch: /.*\.live\.spec\.ts/,
   globalSetup: './e2e-live/global-setup.ts',
   globalTeardown: './e2e-live/global-teardown.ts',

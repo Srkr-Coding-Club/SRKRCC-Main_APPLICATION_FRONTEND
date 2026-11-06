@@ -23,7 +23,12 @@ interface RoundAutoShortlistProps {
 export function RoundAutoShortlist({ slug, round, features, onApplied }: RoundAutoShortlistProps) {
   const { toast } = useToast();
   const { confirm, dialog } = useConfirmDialog();
-  const rules = useMemo(() => ROUND_RULES.filter((rule) => rule.needs(features)), [features]);
+  // A round's own scores only count once its judging is closed.
+  const judgedAndClosed = round.evaluation_mode === 'JUDGED' && round.evaluation_status === 'CLOSED';
+  const rules = useMemo(
+    () => ROUND_RULES.filter((rule) => rule.needs(features) && (!rule.key.startsWith('ROUND_SCORE') || judgedAndClosed)),
+    [features, judgedAndClosed],
+  );
   const [ruleKey, setRuleKey] = useState(() => (rules.find((item) => item.key === DEFAULT_RULE_FOR_KIND[round.kind]) ?? rules[0])?.key ?? '');
   const [value, setValue] = useState('');
   const [rejectRest, setRejectRest] = useState(false);

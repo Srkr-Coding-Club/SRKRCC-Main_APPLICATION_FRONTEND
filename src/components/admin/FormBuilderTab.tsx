@@ -1,6 +1,8 @@
 'use client';
 
 import { AfterSubmitSettings } from './AfterSubmitSettings';
+import { FormRestrictionsSettings } from './FormRestrictionsSettings';
+import { SubmissionNoteSettings } from './SubmissionNoteSettings';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Eye,
@@ -170,6 +172,13 @@ interface FormBuilderTabProps {
     redirect_delay_seconds?: number;
     captcha_enabled?: boolean;
     language?: string;
+    restrictions_enabled?: boolean;
+    restrictions?: import('@/lib/types').FormRestrictions;
+    submission_note_enabled?: boolean;
+    submission_note_title?: string;
+    submission_note_content?: string;
+    submission_note_confirm_label?: string;
+    submission_note_cancel_label?: string;
     attendance_enabled?: boolean;
     attendance_start_date?: string | null;
     attendance_days?: number;
@@ -645,6 +654,18 @@ export function FormBuilderTab({
               </div>
             </div>
 
+            {/* Audience & Access Restrictions Card */}
+            <FormRestrictionsSettings
+              restrictions={formMeta.restrictions || { enabled: formMeta.restrictions_enabled ?? false }}
+              onChange={(next) =>
+                setFormMeta({
+                  ...formMeta,
+                  restrictions_enabled: !!next.enabled,
+                  restrictions: next,
+                })
+              }
+            />
+
             {/* Automation Card - Club Member ID + confirmation email, wired into
                 Response submission on the backend (apps/forms/services.py). */}
             <div className="glass-panel rounded-lg border border-slate-200 dark:border-slate-800 p-6 space-y-5">
@@ -944,6 +965,16 @@ export function FormBuilderTab({
                   />
                 </label>
               </div>
+
+              {/* Pre-Submission Rule / Note Acceptance Modal Settings */}
+              <SubmissionNoteSettings
+                enabled={!!formMeta.submission_note_enabled}
+                title={formMeta.submission_note_title || ''}
+                content={formMeta.submission_note_content || ''}
+                confirmLabel={formMeta.submission_note_confirm_label || ''}
+                cancelLabel={formMeta.submission_note_cancel_label || ''}
+                onChange={(patch) => setFormMeta({ ...formMeta, ...patch })}
+              />
 
               <AfterSubmitSettings formMeta={formMeta} setFormMeta={setFormMeta} />
 

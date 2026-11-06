@@ -47,7 +47,14 @@ export const envFilePath = envFile;
 
 /** Run one helper command against the live backend's database and return what it printed. */
 export function helper<T = any>(...args: string[]): T {
-  const output = execFileSync(python, [join(__dirname, 'django', 'helper.py'), ...args], { cwd: backendDir, env: liveEnv(), encoding: 'utf-8' });
+  let output: string;
+  try {
+    output = execFileSync(python, [join(__dirname, 'django', 'helper.py'), ...args], { cwd: backendDir, env: liveEnv(), encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (error) {
+    // The command line alone never says why a helper failed: show the end of what the backend printed.
+    const stderr = String((error as { stderr?: unknown }).stderr ?? '').trim().split('\n').slice(-6).join('\n');
+    throw new Error(`helper ${args.join(' ')} failed:\n${stderr}`);
+  }
   const last = output.trim().split('\n').filter(Boolean).pop() || 'null';
   return JSON.parse(last) as T;
 }
@@ -72,5 +79,5 @@ export async function signIn(page: Page, email: string, password = PASSWORD) {
   await page.getByPlaceholder('you@srkr.ac.in').fill(email);
   await page.getByPlaceholder('••••••••').fill(password);
   await page.getByRole('button', { name: /^Sign in/ }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 30_000 });
+  await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 90_000 }); // the first sign-in of a run waits for the dev server to build the page
 }

@@ -1,26 +1,22 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { CalendarClock, Save } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { CalendarClock, Save, Trash2 } from 'lucide-react';
 import type { CheckInScanMode, CheckInSessionInfo, Hackathon } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { useToast } from '@/context/ToastContext';
 import { Switch } from '@/components/ui/Switch';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { LoadError } from './LoadError';
-import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
+import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, TAP, firstFieldErrors, fromLocalInput, toLocalInput } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
 import { ActionButton } from '@/components/ui/ActionButton';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { CheckInSessionForm, WHO_OPTIONS, eventDays } from './CheckInSessionForm';
 
 const MAX_DAYS = 14;
 const MAX_SLOTS = 3;
 const DAY_MS = 86_400_000;
-
-const SCAN_MODES: { value: CheckInScanMode; label: string }[] = [
-  { value: 'BOTH', label: 'Person or team codes' },
-  { value: 'MEMBERS', label: 'Each person scans their own code' },
-  { value: 'TEAMS', label: 'Team codes only (pick who is present)' },
-];
 
 const WINDOW_LABEL = { NOT_OPEN: 'Not open yet', OPEN: 'Open now', CLOSED: 'Closed' } as const;
 
@@ -34,29 +30,32 @@ export function daysBetween(start?: string, end?: string): number {
   return Math.max(1, Math.min(MAX_DAYS, Math.round((day(last) - day(first)) / DAY_MS) + 1));
 }
 
-function SessionCard({ slug, session, onSaved }: { slug: string; session: CheckInSessionInfo; onSaved: () => void }) {
+function SessionCard({ slug, session, days, onSaved }: { slug: string; session: CheckInSessionInfo; days: string[]; onSaved: () => void }) {
   const { toast } = useToast();
   const retired = session.outside_schedule;
-  const [name, setName] = useState(session.name === defaultName(session) ? '' : session.name);
+  const [name, setName] = useState(editableName(session));
   const [opens, setOpens] = useState(toLocalInput(session.opens_at));
   const [closes, setCloses] = useState(toLocalInput(session.closes_at));
   const [needsArrival, setNeedsArrival] = useState(session.needs_arrival);
   const [counts, setCounts] = useState(session.counts_for_certificate);
   const [mode, setMode] = useState<CheckInScanMode>(session.scan_mode);
   const [active, setActive] = useState(session.is_active);
+  const [day, setDay] = useState(session.date);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
 
   // What the server now holds replaces this card's edits (after its own save); other cards keep theirs.
-  const snapshot = JSON.stringify([session.name, session.opens_at, session.closes_at, session.needs_arrival, session.counts_for_certificate, session.scan_mode, session.is_active]);
+  const snapshot = JSON.stringify([session.name, session.opens_at, session.closes_at, session.needs_arrival, session.counts_for_certificate, session.scan_mode, session.is_active, session.date]);
   useEffect(() => {
-    setName(session.name === defaultName(session) ? '' : session.name);
+    setName(editableName(session));
     setOpens(toLocalInput(session.opens_at));
     setCloses(toLocalInput(session.closes_at));
     setNeedsArrival(session.needs_arrival);
     setCounts(session.counts_for_certificate);
     setMode(session.scan_mode);
     setActive(session.is_active);
+    setDay(session.date);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot]);
 
@@ -68,12 +67,47 @@ function SessionCard({ slug, session, onSaved }: { slug: string; session: CheckI
       await hackathonApi.admin.updateCheckInSession(slug, session.id, {
         name, opens_at: fromLocalInput(opens), closes_at: fromLocalInput(closes), scan_mode: mode,
         ...(session.is_main ? {} : { needs_arrival: needsArrival, counts_for_certificate: counts, is_active: active }),
+        ...(session.is_custom && day !== session.date ? { date: day } : {}),
       });
       toast.success(`${name.trim() || session.name} saved`);
       onSaved();
     } catch (err: any) {
       setErrors(firstFieldErrors(err?.body));
       toast.error('Could not save', apiErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    const ok = await confirm({
+      title: `Delete ${session.name}?`,
+      message: (session.checked_in ?? 0) > 0
+        ? `${session.checked_in} people are already checked in to it, so it is kept (switched off, with its check-ins) instead of deleted.`
+        : 'Nobody is checked in to it yet, so it is removed.',
+      confirmLabel: 'Delete session', danger: true,
+    });
+    if (!ok) return;
+    setBusy(true);
+    try {
+      const { outcome } = await hackathonApi.admin.deleteCheckInSession(slug, session.id);
+      toast.success(outcome === 'retired' ? `${session.name} kept, switched off` : `${session.name} deleted`);
+      onSaved();
+    } catch (err: any) {
+      toast.error('Could not delete it', apiErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const bringBack = async () => {
+    setBusy(true);
+    try {
+      await hackathonApi.admin.updateCheckInSession(slug, session.id, { outside_schedule: false });
+      toast.success(`${session.name} is back`);
+      onSaved();
+    } catch (err: any) {
+      toast.error('Could not bring it back', apiErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -86,11 +120,12 @@ function SessionCard({ slug, session, onSaved }: { slug: string; session: CheckI
         <div className="min-w-0">
           <h4 className="break-words text-sm font-bold text-[#1A1A2E] dark:text-white">{session.name}</h4>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Day {session.day_index + 1} · {session.slot.charAt(0) + session.slot.slice(1).toLowerCase()} · {session.date} · {session.checked_in ?? 0} checked in
+            Day {session.day_index + 1} · {session.slot ? session.slot.charAt(0) + session.slot.slice(1).toLowerCase() : 'Added by you'} · {session.date} · {session.checked_in ?? 0} checked in
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
           {session.is_main && <span className="rounded-full bg-journey-accent/15 px-2 py-0.5 text-journey-accent">Arrival (main)</span>}
+          {session.is_custom && <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-sky-800 dark:text-sky-200">Added by you</span>}
           {retired ? <span className="rounded-full bg-slate-500/15 px-2 py-0.5 text-slate-700 dark:text-slate-300">Retired: outside the schedule</span>
             : <span className="rounded-full bg-slate-500/10 px-2 py-0.5 text-slate-600 dark:text-slate-300">{session.is_active ? WINDOW_LABEL[session.window] : 'Switched off'}</span>}
         </div>
@@ -117,9 +152,19 @@ function SessionCard({ slug, session, onSaved }: { slug: string; session: CheckI
       </div>
 
       <div className="space-y-1.5">
-        <span className={LABEL} id={`${id}-mode`}>What volunteers may scan</span>
-        <FormSelect value={mode} onChange={(value) => value && setMode(value as CheckInScanMode)} options={SCAN_MODES} placeholder="Choose" allowClear={false} aria-labelledby={`${id}-mode`} disabled={retired} />
+        <span className={LABEL} id={`${id}-mode`}>Who is checked in</span>
+        <FormSelect value={mode} onChange={(value) => value && setMode(value as CheckInScanMode)} options={WHO_OPTIONS} placeholder="Choose" allowClear={false} aria-labelledby={`${id}-mode`} disabled={retired} />
       </div>
+
+      {session.is_custom && !retired && days.length > 1 && (
+        <div className="max-w-xs space-y-1.5">
+          <span className={LABEL} id={`${id}-day`}>Day</span>
+          <FormSelect
+            value={day} options={days.map((value, index) => ({ value, label: `Day ${index + 1}: ${value}` }))} placeholder="Choose the day"
+            allowClear={false} onChange={(value) => value && setDay(value)} aria-labelledby={`${id}-day`}
+          />
+        </div>
+      )}
 
       {!session.is_main && (
         <div className="grid gap-2 lg:grid-cols-3">
@@ -130,15 +175,28 @@ function SessionCard({ slug, session, onSaved }: { slug: string; session: CheckI
       )}
 
       {errors.is_active && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{errors.is_active}</p>}
-      <div className="flex justify-end">
-        <button type="submit" disabled={busy || retired} className={BTN_PRIMARY}><Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save session'}</button>
+      <div className="flex flex-wrap justify-end gap-2">
+        {session.is_custom && retired && (
+          <button type="button" onClick={bringBack} disabled={busy} className={`${BTN_GHOST} ${TAP}`}>Bring it back</button>
+        )}
+        {session.is_custom && !retired && (
+          <button type="button" onClick={remove} disabled={busy} className={`${BTN_DANGER} ${TAP}`}><Trash2 className="h-3.5 w-3.5" /> Delete</button>
+        )}
+        <button type="submit" disabled={busy || retired} className={`${BTN_PRIMARY} ${TAP}`}><Save className="h-3.5 w-3.5" /> {busy ? 'Saving…' : 'Save session'}</button>
       </div>
+      {dialog}
     </form>
   );
 }
 
+/** What the Name box holds: nothing for a generated session nobody renamed (its default shows as the hint), always the title of one you added (it must have one). */
+function editableName(session: CheckInSessionInfo): string {
+  return !session.is_custom && session.name === defaultName(session) ? '' : session.name;
+}
+
 /** The name a session has when nobody renamed it: "Day 2 Afternoon". */
 function defaultName(session: CheckInSessionInfo): string {
+  if (session.is_custom || session.slot === null) return session.name;
   return session.is_main && session.day_index === 0 && session.slot === 'MORNING' && session.name === 'Check-in'
     ? 'Check-in'
     : `Day ${session.day_index + 1} ${session.slot.charAt(0) + session.slot.slice(1).toLowerCase()}`;
@@ -157,6 +215,7 @@ export function CheckInSessionsManager({ hackathon, onSaved }: CheckInSessionsMa
   const [error, setError] = useState('');
   const [days, setDays] = useState(String(hackathon.check_in_days ?? 1));
   const [slots, setSlots] = useState(String(hackathon.check_in_slots_per_day ?? 1));
+  const eventDayList = useMemo(() => eventDays(hackathon.start_date, hackathon.end_date), [hackathon.start_date, hackathon.end_date]);
 
   const load = useCallback(() => {
     hackathonApi.checkIn.sessions(slug).then((list) => { setSessions(list); setError(''); }).catch((err) => setError(apiErrorMessage(err, 'Could not load the sessions.')));
@@ -175,7 +234,7 @@ export function CheckInSessionsManager({ hackathon, onSaved }: CheckInSessionsMa
       <div className="space-y-1">
         <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] dark:text-white"><CalendarClock className="h-4 w-4 text-journey-accent" /> Check-in sessions</h3>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Choose how many days and slots people are checked in on and a session is generated for each (arrival, lunch, Day 2 morning, ...). Each person has one code for all of them.
+          Choose how many days and slots people are checked in on and a session is generated for each, or add sessions of your own below. Each person has one code for all of them, and a team has one team code.
           A session that already has people checked in is kept, not deleted, if you shorten the schedule.
         </p>
       </div>
@@ -196,10 +255,12 @@ export function CheckInSessionsManager({ hackathon, onSaved }: CheckInSessionsMa
         )}
       </form>
 
+      <CheckInSessionForm hackathon={hackathon} onAdded={load} />
+
       {error && <LoadError message={error} onRetry={load} />}
       {sessions && (
         <div className="space-y-3">
-          {sessions.map((session) => <SessionCard key={session.id} slug={slug} session={session} onSaved={load} />)}
+          {sessions.map((session) => <SessionCard key={session.id} slug={slug} session={session} days={eventDayList} onSaved={load} />)}
         </div>
       )}
     </section>
