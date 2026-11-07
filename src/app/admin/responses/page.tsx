@@ -8,7 +8,7 @@ import { useAdminData } from '@/lib/hooks/useAdminData';
 export const dynamic = 'force-dynamic';
 
 function ResponsesViewerWithQuery() {
-  const { publishedForms } = useAdminData();
+  const { publishedForms } = useAdminData({ include: ['forms'] });
   const searchParams = useSearchParams();
   const initialFormSlug = searchParams.get('form') || undefined;
 

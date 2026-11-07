@@ -20,6 +20,9 @@ import PageHero from '@/components/PageHero';
 import ScrollReveal from '@/components/ScrollReveal';
 import AlumniCarousel from '@/components/AlumniCarousel';
 
+/** Static marketing page — long CDN TTL is fine. */
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: 'About the SRKR Coding Club',
   description:

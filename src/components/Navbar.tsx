@@ -83,6 +83,8 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const signOut = useSignOut();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuth, setIsAuth] = useState(false);
+  // Both navbar layouts stay in the DOM; mount the bell only in the one on screen.
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     const syncAuth = () => {
@@ -99,6 +101,14 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
       window.removeEventListener('storage', syncAuth);
     };
   }, [pathname]);
+
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setIsDesktop(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -386,7 +396,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
           <div className="hidden lg:flex items-center gap-3">
             {isAuth ? (
               <>
-                <NotificationBell />
+                {isDesktop && <NotificationBell />}
                 <AccountMenu
                   user={currentUser}
                   onSignOut={signOut}
@@ -422,7 +432,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             <div className="relative hidden h-10 w-[52px] shrink-0 min-[390px]:block">
               <LampSwitch size="bar" className="absolute left-0 -top-[10px]" />
             </div>
-            {isAuth && <NotificationBell />}
+            {isAuth && !isDesktop && <NotificationBell />}
             {isAuth && (
               <Link href="/profile" aria-label="My profile" className="hidden h-11 w-11 items-center justify-center rounded-full transition active:scale-95 min-[360px]:flex">
                 <Avatar user={currentUser} size={34} />

@@ -40,7 +40,17 @@ describe('useLiveSection', () => {
     expect(result.current.data).toBe('new');
   });
 
-  it('polls only while the page is visible', async () => {
+  it('does not poll by default', async () => {
+    vi.useFakeTimers();
+    const load = vi.fn().mockResolvedValue('x');
+    renderHook(() => useLiveSection(load));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    const first = load.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(240_000); });
+    expect(load.mock.calls.length).toBe(first);
+  });
+
+  it('polls only while the page is visible when an interval is set', async () => {
     vi.useFakeTimers();
     const load = vi.fn().mockResolvedValue('x');
     renderHook(() => useLiveSection(load, { interval: 1000 }));

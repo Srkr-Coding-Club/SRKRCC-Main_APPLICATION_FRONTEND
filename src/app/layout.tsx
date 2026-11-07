@@ -95,6 +95,9 @@ import { CelebrationHost } from '@/components/celebrations/CelebrationHost';
 import { RouteProgress } from '@/components/ui/RouteProgress';
 import { Suspense } from 'react';
 
+/** Public shells share the layout; Amplify/CloudFront can cache for a minute. */
+export const revalidate = 60;
+
 export default async function RootLayout({
   children,
 }: {
@@ -118,7 +121,8 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: INTRO_CINEMA_SCRIPT }} />
         <ToastProvider>
           <EmailVerificationProvider>
-            <BackendHeartbeat />
+            {/* Keeps a sleeping Render backend awake. Off on Amplify, where Django runs on Lambda. */}
+            {process.env.NEXT_PUBLIC_BACKEND_KEEPALIVE === 'true' && <BackendHeartbeat />}
             <Suspense fallback={null}><RouteProgress /></Suspense>
             <a
               href="#main-content"

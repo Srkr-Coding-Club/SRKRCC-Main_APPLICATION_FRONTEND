@@ -44,8 +44,6 @@ interface AuditLogRecord {
 const DETAILS_TRUNCATE_LENGTH = 150;
 /** Matches the backend page size (apps/core/pagination.py). */
 const PAGE_SIZE = 50;
-/** Live refresh cadence, matching the other admin data pages. */
-const REFRESH_MS = 8000;
 const SEARCH_DEBOUNCE_MS = 300;
 
 /** 'YYYY-MM' -> 'October 2026'. Built from numbers so the browser's timezone cannot shift the month. */
@@ -163,13 +161,6 @@ export function AuditLogsTab() {
       setDeletingMonth(null);
     }
   };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') setRefreshTick((tick) => tick + 1);
-    }, REFRESH_MS);
-    return () => clearInterval(interval);
-  }, []);
 
   const toggleExpanded = (id: number) => {
     setExpandedIds((prev) => {

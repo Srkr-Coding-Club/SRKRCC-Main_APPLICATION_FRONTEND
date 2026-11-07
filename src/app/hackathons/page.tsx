@@ -10,7 +10,7 @@ import { splitByPhase } from '@/lib/eventListing';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: 'Hackathons & Competitions',

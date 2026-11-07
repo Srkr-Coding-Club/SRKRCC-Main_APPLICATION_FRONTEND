@@ -8,8 +8,6 @@ import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { H2, PANEL } from './dashboardStyles';
 import { formatDateTime } from './HackathonAnnouncementsFeed';
 
-const REFRESH_MS = 20000;
-
 type CodeKind = 'person' | 'team';
 
 const CODE_COPY: Record<CodeKind, { tab: string; title: string; hint: string }> = {
@@ -57,8 +55,6 @@ export function CheckInCard({ slug }: { slug: string }) {
 
   useEffect(() => {
     hackathonApi.myCheckIn(slug).then(setState).catch((err) => setMessage(apiErrorMessage(err)));
-    const refresh = window.setInterval(() => hackathonApi.myCheckIn(slug).then(setState).catch(() => undefined), REFRESH_MS);
-    return () => window.clearInterval(refresh);
   }, [slug]);
 
   const sessions = state?.sessions ?? [];

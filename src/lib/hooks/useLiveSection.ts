@@ -13,7 +13,7 @@ export interface LiveSection<T> {
 }
 
 interface Options {
-  /** How often to look again while the page is visible. */
+  /** Optional poll while the page is visible. Default 0 (load once; use `reload` or refresh the page). */
   interval?: number;
   /** Changing this reloads (a parent "refresh" button). */
   refreshKey?: number;
@@ -22,11 +22,10 @@ interface Options {
 }
 
 /**
- * One block of a dashboard that loads, fails and refreshes on its own: a failure in one block never blanks another, the
- * previous numbers stay on screen while a refresh runs or fails, polling stops while the tab is hidden, and only the
- * newest answer is ever used.
+ * One block of a dashboard that loads on its own: a failure in one block never blanks another, the previous numbers
+ * stay on screen while a refresh runs or fails, and only the newest answer is ever used. Polling is off by default.
  */
-export function useLiveSection<T>(load: () => Promise<T>, { interval = 30_000, refreshKey = 0, enabled = true }: Options = {}): LiveSection<T> {
+export function useLiveSection<T>(load: () => Promise<T>, { interval = 0, refreshKey = 0, enabled = true }: Options = {}): LiveSection<T> {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(enabled);
@@ -50,9 +49,7 @@ export function useLiveSection<T>(load: () => Promise<T>, { interval = 30_000, r
   useEffect(() => {
     if (!enabled || interval <= 0) return undefined;
     const timer = window.setInterval(() => { if (document.visibilityState === 'visible') run(); }, interval);
-    const onVisible = () => { if (document.visibilityState === 'visible') run(); };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); };
+    return () => { window.clearInterval(timer); };
   }, [enabled, interval, run]);
 
   return { data, error, loading, updatedAt, reload: run };

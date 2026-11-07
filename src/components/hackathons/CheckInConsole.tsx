@@ -18,7 +18,8 @@ import { BTN_GHOST, BTN_PRIMARY, INPUT, PANEL } from '@/components/admin/hackath
 
 const SCAN_REGION_ID = 'hackathon-check-in-scanner';
 const SAME_CODE_COOLDOWN_MS = 4000;
-const ROSTER_REFRESH_MS = 30000;
+/** How often to retry flushing offline scans while any are queued. */
+const QUEUE_FLUSH_MS = 30000;
 const ROSTER_PAGE_SIZE = 100;
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -82,8 +83,6 @@ export function CheckInConsole({ slug }: { slug: string }) {
 
   useEffect(() => {
     load();
-    const timer = window.setInterval(load, ROSTER_REFRESH_MS);
-    return () => window.clearInterval(timer);
   }, [load]);
 
   const report = useCallback((next: ScanOutcome) => {
@@ -127,7 +126,7 @@ export function CheckInConsole({ slug }: { slug: string }) {
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
     void flushQueue();
-    const timer = window.setInterval(() => { if (loadQueue(slug).length) void flushQueue(); }, ROSTER_REFRESH_MS);
+    const timer = window.setInterval(() => { if (loadQueue(slug).length) void flushQueue(); }, QUEUE_FLUSH_MS);
     return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); window.clearInterval(timer); };
   }, [slug, flushQueue]);
 

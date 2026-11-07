@@ -20,7 +20,6 @@ const BTN_GHOST = `${GHOST} ${TOUCH}`;
 const BTN_PRIMARY = `${PRIMARY} ${TOUCH}`;
 const BTN_DANGER = `${DANGER} ${TOUCH}`;
 
-const REFRESH_MS = 30000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Matches the server: a person listed this long without a team is worth a nudge. */
 const LONG_WAIT_DAYS = 3;
@@ -112,8 +111,6 @@ export function FinderAdminTab({ hackathon }: { hackathon: Hackathon }) {
 
   useEffect(() => {
     load();
-    const timer = window.setInterval(load, REFRESH_MS);
-    return () => window.clearInterval(timer);
   }, [load]);
 
   const run = async (key: string, action: () => Promise<string>, failure = 'Could not complete that') => {

@@ -46,8 +46,6 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: '**' },
-      { protocol: 'http', hostname: '**' },
       ...allImageHosts.map((hostname) => ({ protocol: 'https' as const, hostname })),
     ],
   },
@@ -73,6 +71,13 @@ const nextConfig: NextConfig = {
     ].join('; ');
 
     return [
+      {
+        // Fingerprinted Next assets — safe for Amplify/CloudFront to keep forever.
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [

@@ -8,7 +8,7 @@ import { isModuleEnabled } from '@/lib/moduleFlags';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 import { HackathonDetailClient } from '@/components/hackathons/HackathonDetailClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 type HackathonLookup = { hackathon: Hackathon | null; unavailable: boolean };
 

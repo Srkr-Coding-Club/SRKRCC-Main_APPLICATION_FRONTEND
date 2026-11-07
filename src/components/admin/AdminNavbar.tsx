@@ -140,11 +140,12 @@ export default function AdminNavbar() {
   const navRef = useRef<HTMLElement>(null);
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  // Both navbar layouts stay in the DOM; mount the bell only in the one on screen.
+  const [isDesktop, setIsDesktop] = useState(false);
   // Only administrators can see the Maintenance page, so only they ask what needs running.
   const maintenanceAttention = useMaintenanceAttention(currentUser?.role === 'ADMIN');
-  // Club membership requests waiting for an answer: checked every minute while the tab is visible, quietly nothing when not allowed.
+  // Club membership requests waiting for an answer: loaded once; refresh the page for updates.
   const memberships = useLiveSection(() => membershipApi.queue({ status: 'PENDING' }), {
-    interval: 60_000,
     enabled: currentUser?.role === 'ADMIN' || currentUser?.role === 'CLUB_LEAD',
   });
   const pendingMembers = memberships.data?.counts.PENDING ?? 0;
@@ -153,6 +154,14 @@ export default function AdminNavbar() {
   useEffect(() => {
     setCurrentUser(getStoredUser());
     setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
+  }, []);
+
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setIsDesktop(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
   }, []);
 
   // Ctrl K (Cmd K on a Mac) opens the jump menu from anywhere in the admin area.
@@ -417,7 +426,7 @@ export default function AdminNavbar() {
               <Search className="h-4 w-4" aria-hidden="true" />
               <kbd className="hidden font-mono text-[11px] xl:inline">{isMac ? '⌘ K' : 'Ctrl K'}</kbd>
             </button>
-            <NotificationBell />
+            {isDesktop && <NotificationBell />}
             <AccountMenu
               user={currentUser}
               onSignOut={signOut}
@@ -431,7 +440,7 @@ export default function AdminNavbar() {
 
           {/* Mobile trigger: bell and the menu; the theme switch is in the menu, and stays here from tablet width up. */}
           <div className="flex lg:hidden items-center gap-1.5">
-            <NotificationBell />
+            {!isDesktop && <NotificationBell />}
             <div className="hidden sm:block">
               <ThemeToggle />
             </div>

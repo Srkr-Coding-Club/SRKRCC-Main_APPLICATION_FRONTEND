@@ -40,13 +40,23 @@ export async function fetchApi<T>(
 
   const method = (options.method || 'GET').toUpperCase();
   const defaultCache: RequestCache = options.cache || (method === 'GET' ? 'default' : 'no-store');
+  // Server reads are anonymous and must stay cacheable for Amplify/CloudFront ISR.
+  // Only the browser BFF proxy needs cookies.
+  const credentials = isClient ? 'include' : 'omit';
+  // Public server GETs default to a 60s Data Cache entry unless the caller opts out.
+  const hasNext = Boolean((options as { next?: unknown }).next);
+  const serverPublicGet =
+    !isClient && method === 'GET' && defaultCache !== 'no-store' && !hasNext
+      ? { next: { revalidate: 60 as const } }
+      : {};
 
   try {
     const response = await fetch(url, {
       cache: defaultCache,
+      ...serverPublicGet,
       ...options,
       headers,
-      credentials: 'include', // Automatically includes HttpOnly cookies
+      credentials,
       signal: controller.signal,
     });
 

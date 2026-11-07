@@ -14,8 +14,6 @@ import { LoadError } from './LoadError';
 import { PaymentSettingsPanel } from './PaymentSettingsPanel';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, PANEL } from './shared';
 
-const REFRESH_MS = 30000;
-
 const PILL: Record<PaymentStatus, { tone: PillTone; label: string }> = {
   PENDING: { tone: 'amber', label: 'Waiting for a check' },
   VERIFIED: { tone: 'green', label: 'Verified' },
@@ -66,10 +64,8 @@ export function PaymentsAdminTab({ hackathon, onSaved, canEditSettings }: Paymen
   useEffect(() => { reload.current = load; }, [load]);
 
   useEffect(() => {
-    if (!atRegistration) return undefined;
+    if (!atRegistration) return;
     load();
-    const timer = window.setInterval(load, REFRESH_MS);
-    return () => window.clearInterval(timer);
   }, [atRegistration, load]);
 
   const run = async (row: PaymentRow, action: PaymentAction, done: string, body: { reason?: string } = {}) => {

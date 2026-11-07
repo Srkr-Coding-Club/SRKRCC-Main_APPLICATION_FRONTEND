@@ -21,7 +21,7 @@ export default function AdminManageFormsPage() {
     handleAdminManualEntrySubmit,
     handleFormStatusTransition,
     handleEditFormInBuilder,
-  } = useAdminData();
+  } = useAdminData({ include: ['forms'] });
   const switchSubtab = useAdminSubtabNav();
 
   return (

@@ -8,8 +8,6 @@ import { FormSelect } from '@/components/ui/FormSelect';
 import { LoadError } from './LoadError';
 import { BTN_GHOST, PANEL } from './shared';
 
-const REFRESH_MS = 60000;
-
 function slotLabel(iso: string, bucketMinutes: number): string {
   return new Date(iso).toLocaleTimeString('en-IN', {
     hour: 'numeric', minute: bucketMinutes < 60 ? '2-digit' : undefined, day: bucketMinutes >= 60 ? 'numeric' : undefined,
@@ -34,8 +32,6 @@ export function CheckInStats({ slug }: { slug: string }) {
 
   useEffect(() => {
     load();
-    const timer = window.setInterval(load, REFRESH_MS);
-    return () => window.clearInterval(timer);
   }, [load]);
 
   const sessionOptions = sessions.map((item) => ({ value: String(item.id), label: item.name, hint: item.is_main ? 'Arrival' : undefined }));
