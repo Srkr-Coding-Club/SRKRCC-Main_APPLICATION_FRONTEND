@@ -15,7 +15,6 @@ import { BTN_GHOST, INPUT, PANEL, TAP } from './shared';
 
 const ROW_BUTTON = 'inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 sm:min-h-8';
 
-const REFRESH_MS = 30000;
 const SEARCH_DELAY_MS = 300;
 
 const STATE_FILTERS: { value: '' | CheckInTeamState; label: string }[] = [
@@ -208,8 +207,6 @@ export function CheckInByTeam({ slug, title = 'Check-in' }: { slug: string; titl
 
   useEffect(() => {
     load();
-    const timer = window.setInterval(load, REFRESH_MS);
-    return () => window.clearInterval(timer);
   }, [load]);
 
   const sessionOptions = sessions.map((item) => ({ value: String(item.id), label: item.name, hint: item.is_main ? 'Arrival' : item.outside_schedule ? 'Retired' : undefined }));

@@ -146,11 +146,11 @@ const ALL_ADMIN_DATA_TYPES: AdminDataType[] = ['users', 'flags', 'forms', 'submi
 
 export interface UseAdminDataOptions {
   /**
-   * Restrict `refetchAll` (the initial load + the 8s background poll) to
-   * only these data types, sparing pages that render a narrow slice of the
-   * admin data (e.g. the Flags page) from also fetching the full user list,
-   * all forms, and all submissions on every poll tick.
-   * Omit to fetch everything, as before.
+   * Restrict `refetchAll` (the initial load) to only these data types, sparing
+   * pages that render a narrow slice of the admin data (e.g. the Flags page)
+   * from also fetching the full user list, all forms, and all submissions.
+   * Omit to fetch everything, as before. There is no background poll — reload
+   * the page (or call `refetchAll`) to pick up remote changes.
    */
   include?: AdminDataType[];
 }
@@ -418,29 +418,9 @@ export function useAdminData(options?: UseAdminDataOptions) {
     }
   };
 
-  // Live background polling and focus revalidation
+  // Load once on mount. Mutations call refetchAll; otherwise refresh the page.
   useEffect(() => {
     refetchAll(false);
-
-    // Poll live data every 8 seconds when window is active
-    const interval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        refetchAll(true);
-      }
-    }, 8000);
-
-    const handleFocus = () => {
-      refetchAll(true);
-    };
-
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleFocus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleFocus);
-    };
   }, []);
 
   // Handlers

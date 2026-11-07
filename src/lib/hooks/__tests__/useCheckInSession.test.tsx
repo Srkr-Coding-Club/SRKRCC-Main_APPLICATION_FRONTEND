@@ -87,16 +87,13 @@ describe('useCheckInSession', () => {
     expect(result.current.error).toBe('');
   });
 
-  it('refreshes every minute while mounted', async () => {
+  it('does not auto-refresh while mounted', async () => {
     vi.useFakeTimers();
     sessions.mockResolvedValue([row(1)]);
-    const { unmount } = renderHook(() => useCheckInSession('demo'));
+    renderHook(() => useCheckInSession('demo'));
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     const first = sessions.mock.calls.length;
-    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
-    expect(sessions.mock.calls.length).toBe(first + 1);
-    unmount();
-    await act(async () => { await vi.advanceTimersByTimeAsync(120000); });
-    expect(sessions.mock.calls.length).toBe(first + 1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(240_000); });
+    expect(sessions.mock.calls.length).toBe(first);
   });
 });

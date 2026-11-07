@@ -72,7 +72,8 @@ describe('CelebrationHost', () => {
     await mount();
     expect(api.seen).toHaveBeenCalledTimes(1);
     expect(api.seen).toHaveBeenCalledWith([1]);
-    await act(async () => { await vi.advanceTimersByTimeAsync(31_000); });     // it closed by itself, and the next poll still lists it (the mark may be slow)
+    await act(async () => { await vi.advanceTimersByTimeAsync(7000); });        // it closed by itself
+    await act(async () => { requestCelebrationCheck(); await vi.advanceTimersByTimeAsync(10); }); // a later check still lists it
     expect(api.pending.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(api.seen).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("You're in!")).toBeNull();                      // not shown a second time
@@ -159,31 +160,31 @@ describe('CelebrationHost', () => {
     expect(region?.className).toContain('pointer-events-none');             // the page behind stays usable
   });
 
-  it('looks again right away when asked, on a page change and when the tab comes back', async () => {
+  it('looks again right away when asked', async () => {
     await mount();
     const calls = () => api.pending.mock.calls.length;
     const before = calls();
     await act(async () => { requestCelebrationCheck(); await vi.advanceTimersByTimeAsync(10); });
     expect(calls()).toBe(before + 1);
-    await act(async () => { window.dispatchEvent(new Event('focus')); await vi.advanceTimersByTimeAsync(10); });
+    await act(async () => { requestCelebrationCheck(); await vi.advanceTimersByTimeAsync(10); });
     expect(calls()).toBe(before + 1);                                       // too soon after the last look: skipped
-    await act(async () => { await vi.advanceTimersByTimeAsync(5000); window.dispatchEvent(new Event('focus')); await vi.advanceTimersByTimeAsync(10); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); requestCelebrationCheck(); await vi.advanceTimersByTimeAsync(10); });
     expect(calls()).toBe(before + 2);
   });
 
   it('does not look while the tab is hidden', async () => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
     await mount();
-    await act(async () => { await vi.advanceTimersByTimeAsync(61_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     expect(api.pending).not.toHaveBeenCalled();
   });
 
-  it('shrugs off a failed check and tries again later', async () => {
+  it('shrugs off a failed check and tries again when asked', async () => {
     api.pending.mockRejectedValueOnce(new Error('offline'));
     await mount();
     expect(screen.queryByText("You're in!")).toBeNull();
     api.pending.mockResolvedValue({ enabled: true, results: [card()] });
-    await act(async () => { await vi.advanceTimersByTimeAsync(31_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); requestCelebrationCheck(); await vi.advanceTimersByTimeAsync(10); });
     expect(screen.getByText("You're in!")).toBeTruthy();
   });
 

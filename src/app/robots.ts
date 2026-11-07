@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site';
 
+export const revalidate = 3600;
+
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = SITE_URL;
 

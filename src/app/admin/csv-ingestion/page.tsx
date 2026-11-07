@@ -16,7 +16,7 @@ const CSVIngestionTab = nextDynamic(
 );
 
 export default function AdminCsvIngestionPage() {
-  const { publishedForms } = useAdminData();
+  const { publishedForms } = useAdminData({ include: ['forms'] });
   const switchSubtab = useAdminSubtabNav();
 
   return (

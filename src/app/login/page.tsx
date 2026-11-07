@@ -1,8 +1,9 @@
-'use client';
-
 import React, { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import LoginCard from '@/components/LoginCard';
+
+/** Static shell — Amplify/CloudFront can cache; auth runs in the browser. */
+export const revalidate = 3600;
 
 export default function LoginPage() {
   return (

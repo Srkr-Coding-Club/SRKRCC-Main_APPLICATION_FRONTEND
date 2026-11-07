@@ -11,7 +11,7 @@ import IconCodersHallOfFameCard from '@/components/IconCodersHallOfFameCard';
 import CardGrid from '@/components/ui/CardGrid';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: 'IconCoders Flagship Hackathon & Hall of Fame',

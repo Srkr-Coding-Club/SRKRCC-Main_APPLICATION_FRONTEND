@@ -1,7 +1,8 @@
-'use client';
-
 import React, { Suspense } from 'react';
 import SignupCard from '@/components/SignupCard';
+
+/** Static shell — Amplify/CloudFront can cache; signup runs in the browser. */
+export const revalidate = 3600;
 
 export default function SignupPage() {
   return (

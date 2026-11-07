@@ -43,7 +43,7 @@ function BuilderContent() {
     showTestDataModal,
     setShowTestDataModal,
     submittedTestData,
-  } = useAdminData();
+  } = useAdminData({ include: [] });
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);

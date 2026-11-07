@@ -119,7 +119,6 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
 
     const response = await fetch(targetUrl, init);
 
-    const responseBody = await response.arrayBuffer();
     const responseHeaders: Record<string, string> = {};
 
     const respContentType = response.headers.get('content-type');
@@ -156,7 +155,7 @@ async function handleProxy(request: NextRequest, params: { path: string[] }) {
     // makes the Response constructor throw ("Invalid response status code 204").
     // Django's DELETE endpoints return 204 with no body.
     const isNullBodyStatus = response.status === 204 || response.status === 205 || response.status === 304;
-    return new NextResponse(isNullBodyStatus ? null : responseBody, {
+    return new NextResponse(isNullBodyStatus ? null : response.body, {
       status: response.status,
       statusText: response.statusText,
       headers: responseHeaders,

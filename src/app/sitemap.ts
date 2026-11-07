@@ -3,7 +3,7 @@ import { fetchApi } from '@/lib/api-client';
 import { SITE_URL } from '@/lib/site';
 import { Form } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL;
