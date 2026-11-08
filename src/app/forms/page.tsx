@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { ClipboardList } from 'lucide-react';
 
-export const revalidate = 300;
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'Forms & Registrations Center',

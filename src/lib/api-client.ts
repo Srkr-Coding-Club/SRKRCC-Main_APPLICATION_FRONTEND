@@ -47,7 +47,7 @@ export async function fetchApi<T>(
   const hasNext = Boolean((options as { next?: unknown }).next);
   const serverPublicGet =
     !isClient && method === 'GET' && defaultCache !== 'no-store' && !hasNext
-      ? { next: { revalidate: 300 as const } }
+      ? { next: { revalidate: 600 as const } }
       : {};
 
   try {

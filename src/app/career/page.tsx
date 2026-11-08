@@ -17,7 +17,7 @@ import ModuleUnavailable from '@/components/ModuleUnavailable';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 
-export const revalidate = 300;
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'Career Hub & Tech Opportunities',

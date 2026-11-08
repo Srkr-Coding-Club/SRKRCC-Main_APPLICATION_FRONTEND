@@ -36,7 +36,9 @@ const SIGNED_OUT_PATHS = ['/login', '/signup'];
 
 // Navbar, hero and route guards all ask /auth/me/ on mount; one in-flight
 // request (and a short reuse window) answers them all.
-const ME_REUSE_MS = 5_000;
+// Short window so Navbar + Hero + AdminGuard on one mount share one /auth/me
+// round trip. Focus resync itself is throttled separately (see below).
+const ME_REUSE_MS = 15_000;
 let inflightMe: Promise<AuthUser | null> | null = null;
 let lastMe: { at: number; user: AuthUser | null } | null = null;
 
@@ -136,8 +138,10 @@ export function isAdminOrLead(): boolean {
 
 // Shared across every subscribeToAuthResync() caller so switching back to a tab
 // with several of them mounted (Navbar + HeroSection, say) triggers one
-// resync, not one per component.
-const AUTH_RESYNC_MIN_INTERVAL_MS = 15_000;
+// resync, not one per component. 15 minutes: role changes are rare; a full
+// page refresh still picks them up immediately, and Amplify must not pay for
+// /auth/me on every Alt-Tab.
+const AUTH_RESYNC_MIN_INTERVAL_MS = 900_000;
 let lastAuthResyncAt = 0;
 
 // Every currently-mounted subscribeToAuthResync() caller registers its

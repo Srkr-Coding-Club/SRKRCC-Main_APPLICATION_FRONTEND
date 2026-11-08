@@ -12,7 +12,7 @@ import { FeatureFlag } from './types';
 export async function getModuleFlags(): Promise<Record<string, boolean>> {
   if (skipBuildTimeApiRead()) return {};
   try {
-    const flags = await fetchApi<FeatureFlag[]>('/feature-flags/', { next: { revalidate: 300 } } as RequestInit);
+    const flags = await fetchApi<FeatureFlag[]>('/feature-flags/', { next: { revalidate: 600 } } as RequestInit);
     return Object.fromEntries(flags.map((f) => [f.key, f.is_enabled]));
   } catch {
     return {};
