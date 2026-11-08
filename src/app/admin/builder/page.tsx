@@ -10,8 +10,6 @@ import { ReviewChangesModal } from '@/components/admin/ReviewChangesModal';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 import { Loader2 } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 function BuilderContent() {
   const searchParams = useSearchParams();
   const formSlug = searchParams.get('slug');

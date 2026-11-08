@@ -3,8 +3,6 @@
 import { FlagsTab } from '@/components/admin/FlagsTab';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminFlagsPage() {
   // This page only renders feature-flag toggles, so scope the shared admin
   // data hook to flags - it would otherwise also fetch the full user list,

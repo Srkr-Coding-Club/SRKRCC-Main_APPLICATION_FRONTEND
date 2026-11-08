@@ -3,8 +3,6 @@
 import { Suspense } from 'react';
 import { ReconcileWorkspace } from '@/components/admin/reconcile/ReconcileWorkspace';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminReconcilePage() {
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">

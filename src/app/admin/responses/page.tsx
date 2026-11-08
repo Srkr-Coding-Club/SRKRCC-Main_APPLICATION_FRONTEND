@@ -5,8 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { ResponsesViewerTab } from '@/components/admin/ResponsesViewerTab';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 
-export const dynamic = 'force-dynamic';
-
 function ResponsesViewerWithQuery() {
   const { publishedForms } = useAdminData({ include: ['forms'] });
   const searchParams = useSearchParams();
