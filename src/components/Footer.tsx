@@ -112,7 +112,7 @@ export default function Footer() {
               <ul className="space-y-2.5 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {QUICK_LINKS.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="inline-flex min-h-6 items-center py-1.5 hover:text-journey-accent transition-colors sm:py-0">
+                    <Link href={l.href} prefetch={false} className="inline-flex min-h-6 items-center py-1.5 hover:text-journey-accent transition-colors sm:py-0">
                       {l.label}
                     </Link>
                   </li>
@@ -128,7 +128,7 @@ export default function Footer() {
               <ul className="space-y-2.5 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {RESOURCES.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="inline-flex min-h-6 items-center py-1.5 hover:text-journey-accent transition-colors sm:py-0">
+                    <Link href={l.href} prefetch={false} className="inline-flex min-h-6 items-center py-1.5 hover:text-journey-accent transition-colors sm:py-0">
                       {l.label}
                     </Link>
                   </li>

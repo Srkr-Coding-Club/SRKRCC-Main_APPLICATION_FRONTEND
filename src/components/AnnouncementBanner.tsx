@@ -17,7 +17,7 @@ export default async function AnnouncementBanner() {
 
   let announcements: Announcement[] = [];
   try {
-    announcements = (await fetchApi<Announcement[]>('/announcements/', { next: { revalidate: 60 } } as RequestInit)) || [];
+    announcements = (await fetchApi<Announcement[]>('/announcements/', { next: { revalidate: 300 } } as RequestInit)) || [];
   } catch {
     announcements = [];
   }

@@ -10,7 +10,7 @@ import { splitByPhase } from '@/lib/eventListing';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Events & Workshops',
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 async function getEvents(): Promise<Event[]> {
   try {
-    const fetched = await fetchApi<Event[]>('/events/', { next: { revalidate: 60 } } as RequestInit);
+    const fetched = await fetchApi<Event[]>('/events/', { next: { revalidate: 300 } } as RequestInit);
     return fetched || [];
   } catch (error) {
     return [];
