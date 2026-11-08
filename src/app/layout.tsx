@@ -95,8 +95,8 @@ import { CelebrationHost } from '@/components/celebrations/CelebrationHost';
 import { RouteProgress } from '@/components/ui/RouteProgress';
 import { Suspense } from 'react';
 
-/** Public shells share the layout; Amplify/CloudFront can cache for a minute. */
-export const revalidate = 60;
+/** Public shells share the layout; Amplify/CloudFront can cache for 5 minutes. */
+export const revalidate = 300;
 
 export default async function RootLayout({
   children,

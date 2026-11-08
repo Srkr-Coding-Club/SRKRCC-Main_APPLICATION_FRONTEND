@@ -9,7 +9,7 @@ import ModuleUnavailable from '@/components/ModuleUnavailable';
 import { EventDetailClient } from '@/components/events/EventDetailClient';
 import { eventPoster } from '@/lib/eventListing';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 const MORE_EVENTS = 3;
 
