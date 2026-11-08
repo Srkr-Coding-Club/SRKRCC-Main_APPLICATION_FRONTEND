@@ -12,8 +12,6 @@ import { useHackathonLifecycle } from '@/components/admin/hackathon/useHackathon
 import { BTN_DANGER, BTN_GHOST } from '@/components/admin/hackathon/shared';
 import { getStoredUser } from '@/lib/auth';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminHackathonsPage() {
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [loading, setLoading] = useState(true);

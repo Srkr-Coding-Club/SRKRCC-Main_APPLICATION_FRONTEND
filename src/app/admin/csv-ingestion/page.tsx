@@ -5,8 +5,6 @@ import { useAdminData } from '@/lib/hooks/useAdminData';
 import { useAdminSubtabNav } from '@/lib/hooks/useAdminSubtabNav';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 
-export const dynamic = 'force-dynamic';
-
 const CSVIngestionTab = nextDynamic(
   () => import('@/components/admin/CSVIngestionTab').then((m) => m.CSVIngestionTab),
   {

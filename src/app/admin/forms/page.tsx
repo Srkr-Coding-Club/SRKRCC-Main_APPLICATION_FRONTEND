@@ -5,8 +5,6 @@ import { ManualEntryModal } from '@/components/admin/ManualEntryModal';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 import { useAdminSubtabNav } from '@/lib/hooks/useAdminSubtabNav';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminManageFormsPage() {
   const {
     publishedForms,

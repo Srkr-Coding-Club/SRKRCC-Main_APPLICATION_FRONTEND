@@ -1,7 +1,7 @@
-export const dynamic = 'force-dynamic';
-
 import type { Metadata } from 'next';
 import DataManagementCenter from '@/components/admin/DataManagementCenter';
+
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'Data Management Center | Admin',

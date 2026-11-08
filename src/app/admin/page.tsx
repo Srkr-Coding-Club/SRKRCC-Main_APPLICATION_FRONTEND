@@ -4,8 +4,6 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { DashboardTab } from '@/components/admin/DashboardTab';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminDashboardPage() {
   const { usersList, publishedForms, formSubmissions, isLoadingForms, isLoadingSubmissions, refetchAll } = useAdminData({ include: ['users', 'forms', 'submissions'] });
 

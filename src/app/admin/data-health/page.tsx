@@ -3,8 +3,6 @@
 import { DataHealthTab } from '@/components/admin/DataHealthTab';
 import { useAdminSubtabNav } from '@/lib/hooks/useAdminSubtabNav';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminDataHealthPage() {
   const switchSubtab = useAdminSubtabNav();
 

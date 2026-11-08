@@ -2,8 +2,6 @@
 
 import { AuditLogsTab } from '@/components/admin/AuditLogsTab';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminAuditLogsPage() {
   // The tab fetches its own page of logs, so this page doesn't pull in the shared
   // admin data (users, forms, flags, submissions) that the other admin pages need.

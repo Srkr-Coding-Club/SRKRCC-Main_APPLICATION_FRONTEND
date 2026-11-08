@@ -2,8 +2,6 @@
 
 import { BackgroundJobsTab } from '@/components/admin/BackgroundJobsTab';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminJobsPage() {
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">

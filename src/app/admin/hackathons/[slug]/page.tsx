@@ -4,8 +4,6 @@ import React, { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { HackathonManager } from '@/components/admin/hackathon/HackathonManager';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminHackathonManagePage() {
   const { slug } = useParams<{ slug: string }>();
   return (

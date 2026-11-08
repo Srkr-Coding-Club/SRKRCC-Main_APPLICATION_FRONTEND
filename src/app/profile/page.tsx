@@ -51,8 +51,6 @@ import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { eventRegistrationApi } from '@/lib/api/events';
 import { pushWithProgress } from '@/lib/routeProgress';
 
-export const dynamic = 'force-dynamic';
-
 interface BadgeItem {
   id: string;
   title: string;

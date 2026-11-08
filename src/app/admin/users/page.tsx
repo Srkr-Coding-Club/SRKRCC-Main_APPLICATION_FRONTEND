@@ -6,8 +6,6 @@ import { UserDirectory } from '@/components/admin/directory/UserDirectory';
 import { EMPTY_NEW_USER } from '@/lib/adminUserForm';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminUsersPage() {
   // The directory loads its own pages; this hook is only the "create account" form (include nothing: no other data is needed).
   const { showCreateUserModal, setShowCreateUserModal, newUser, setNewUser, handleCreateUser } = useAdminData({ include: [] });
