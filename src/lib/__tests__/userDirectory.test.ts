@@ -18,21 +18,22 @@ describe('toQuery', () => {
 
 describe('fromSearchParams', () => {
   it('reads the filters back from an address', () => {
-    expect(fromSearchParams(new URLSearchParams('q=a&role=ADMIN&member=yes&year=3&page=2&ordering=email'))).toEqual({
-      ...EMPTY_FILTERS, q: 'a', role: 'ADMIN', member: 'yes', year: '3', page: 2, ordering: 'email',
+    expect(fromSearchParams(new URLSearchParams('q=a&role=ADMIN&member=yes&year=3&college=12&page=2&ordering=email'))).toEqual({
+      ...EMPTY_FILTERS, q: 'a', role: 'ADMIN', member: 'yes', year: '3', college: '12', page: 2, ordering: 'email',
     });
   });
 
   it('ignores a bad page, an unknown membership value and a missing order', () => {
-    const filters = fromSearchParams(new URLSearchParams('page=-4&member=maybe'));
+    const filters = fromSearchParams(new URLSearchParams('page=-4&member=maybe&college=abc'));
     expect(filters.page).toBe(1);
     expect(filters.member).toBe('');
+    expect(filters.college).toBe('');
     expect(filters.ordering).toBe('newest');
     expect(fromSearchParams(new URLSearchParams('page=abc')).page).toBe(1);
   });
 
   it('round-trips through toQuery', () => {
-    const filters = { ...EMPTY_FILTERS, q: 'x', membership_status: 'ALUMNI', branch: 'CSE', page: 4 };
+    const filters = { ...EMPTY_FILTERS, q: 'x', membership_status: 'ALUMNI', branch: 'CSE', college: '7', page: 4 };
     expect(fromSearchParams(new URLSearchParams(toQuery(filters, 'users')))).toEqual(filters);
   });
 });
@@ -41,5 +42,6 @@ describe('hasActiveFilters', () => {
   it('is false for the page and the order alone, true for anything else', () => {
     expect(hasActiveFilters({ ...EMPTY_FILTERS, page: 5, ordering: 'email' })).toBe(false);
     expect(hasActiveFilters({ ...EMPTY_FILTERS, branch: 'IT' })).toBe(true);
+    expect(hasActiveFilters({ ...EMPTY_FILTERS, college: '3' })).toBe(true);
   });
 });
