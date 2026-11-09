@@ -4,8 +4,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { apiErrorMessage } from '@/lib/api/hackathons';
 import {
-  directoryApi, fromSearchParams, toQuery,
-  type DirectoryFilters, type DirectoryPage, type DirectoryScope, type DirectorySummary,
+  directoryApi,
+  filterUsersByCollegeName,
+  fromSearchParams,
+  listAllDirectoryUsers,
+  paginateUsers,
+  toQuery,
+  withoutClientCollege,
+  type DirectoryFilters,
+  type DirectoryPage,
+  type DirectoryScope,
+  type DirectorySummary,
 } from '@/lib/userDirectory';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -13,6 +22,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 /**
  * The directory's state: the filters live in the page address (so a filtered view survives a refresh and can be shared),
  * the list and the numbers come from the server one page at a time, and only the newest answer is ever shown.
+ * College name is applied in the browser so typed-in colleges work without a backend filter.
  */
 export function useUserDirectory(scope: DirectoryScope) {
   const router = useRouter();
@@ -30,9 +40,9 @@ export function useUserDirectory(scope: DirectoryScope) {
 
   const apply = useCallback((patch: Partial<DirectoryFilters>) => {
     const next = { ...filters, page: 1, ...patch };
-    const query = toQuery(next, 'users');
+    const query = toQuery(next, scope);
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [filters, pathname, router]);
+  }, [filters, pathname, router, scope]);
 
   // Typing is debounced into the address; the box itself updates at once.
   useEffect(() => { setSearchText(filters.q); }, [filters.q]);
@@ -46,7 +56,14 @@ export function useUserDirectory(scope: DirectoryScope) {
   const load = useCallback(() => {
     const mine = ++newest.current;
     setLoading(true);
-    Promise.all([directoryApi.list(filters, scope), directoryApi.summary(scope)])
+    const collegeQuery = filters.college.trim();
+    const loadList = collegeQuery
+      ? listAllDirectoryUsers((pageNum) =>
+          directoryApi.list({ ...withoutClientCollege(filters), page: pageNum }, scope, { page_size: '100' }),
+        ).then((people) => paginateUsers(filterUsersByCollegeName(people, collegeQuery), filters.page))
+      : directoryApi.list(filters, scope);
+
+    Promise.all([loadList, directoryApi.summary(scope)])
       .then(([rows, counts]) => {
         if (mine !== newest.current) return;
         setPage(rows);
