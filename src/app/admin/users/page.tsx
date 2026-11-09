@@ -10,6 +10,10 @@ export default function AdminUsersPage() {
   const {
     userSearch,
     setUserSearch,
+    collegeFilter,
+    setCollegeFilter,
+    collegeOptions,
+    hasUsersWithoutCollege,
     filteredUsers,
     isLoadingUsers,
     showCreateUserModal,
@@ -28,6 +32,10 @@ export default function AdminUsersPage() {
         <UsersTab
           userSearch={userSearch}
           setUserSearch={setUserSearch}
+          collegeFilter={collegeFilter}
+          setCollegeFilter={setCollegeFilter}
+          collegeOptions={collegeOptions}
+          hasUsersWithoutCollege={hasUsersWithoutCollege}
           filteredUsers={filteredUsers}
           isLoading={isLoadingUsers}
           onOpenCreateModal={() => setShowCreateUserModal(true)}

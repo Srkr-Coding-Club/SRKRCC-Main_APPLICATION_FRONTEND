@@ -4,29 +4,9 @@ import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Search, UserPlus, Eye, Pencil, Check, X as XIcon } from 'lucide-react';
 import { getStoredUser } from '@/lib/auth';
+import { COLLEGE_FILTER_NONE, type UserRecord } from '@/lib/hooks/useAdminData';
 import { sanitizeRollNumberInput, validateRollNumber } from '@/lib/validation/auth';
 import { DetailDrawer } from './DetailDrawer';
-
-interface UserRecord {
-  id: number;
-  name: string;
-  email: string;
-  rollNumber: string;
-  branch: string;
-  year: string;
-  role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
-  membershipStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI' | 'PENDING';
-  scopedAssignments?: { type: 'EVENT' | 'HACKATHON'; targetTitle: string; role: string }[];
-  isActive: boolean;
-  joinedDate: string;
-  clubId?: string | null;
-  phoneNumber?: string | null;
-  githubProfile?: string | null;
-  linkedinProfile?: string | null;
-  registeredAt?: string | null;
-  createdFrom?: string;
-  referredBy?: string;
-}
 
 const ALL_ROLES: UserRecord['role'][] = ['AFFILIATE', 'NON_AFFILIATE', 'VOLUNTEER', 'JUDGE', 'CLUB_LEAD', 'ADMIN'];
 const ELEVATED_ROLES = new Set<UserRecord['role']>(['ADMIN', 'CLUB_LEAD']);
@@ -186,6 +166,7 @@ function UserDrawerContent({
           initialValue={user.rollNumber !== 'Not set' ? user.rollNumber : ''}
           onSave={onRollNumberChange}
         />
+        <DrawerField label="College" value={user.collegeName || undefined} />
         <DrawerField label="Branch" value={user.branch} />
         <DrawerField label="Year" value={user.year} />
       </DrawerSection>
@@ -231,6 +212,10 @@ function UserDrawerContent({
 interface UsersTabProps {
   userSearch: string;
   setUserSearch: (val: string) => void;
+  collegeFilter: string;
+  setCollegeFilter: (val: string) => void;
+  collegeOptions: string[];
+  hasUsersWithoutCollege: boolean;
   filteredUsers: UserRecord[];
   onOpenCreateModal: () => void;
   onRoleChange: (userId: number, role: UserRecord['role']) => void;
@@ -242,6 +227,10 @@ interface UsersTabProps {
 export function UsersTab({
   userSearch,
   setUserSearch,
+  collegeFilter,
+  setCollegeFilter,
+  collegeOptions,
+  hasUsersWithoutCollege,
   filteredUsers,
   onOpenCreateModal,
   onRoleChange,
@@ -257,15 +246,32 @@ export function UsersTab({
   return (
     <div className="space-y-6">
       <div className="glass-panel p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search user by name, email, roll..."
-            value={userSearch}
-            onChange={(e) => setUserSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
-          />
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:w-auto">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search user by name, email, roll..."
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 rounded-lg border text-sm bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+            />
+          </div>
+          <label className="sr-only" htmlFor="admin-users-college-filter">Filter by college</label>
+          <select
+            id="admin-users-college-filter"
+            value={collegeFilter}
+            onChange={(e) => setCollegeFilter(e.target.value)}
+            className="w-full sm:w-64 px-3 py-2 rounded-lg border text-sm font-medium bg-[#FAFAFC] dark:bg-[#0D0E15] text-[#1A1A2E] dark:text-white border-slate-200 dark:border-slate-800 focus:outline-none focus:border-[#FF7A00]"
+          >
+            <option value="">All colleges</option>
+            {collegeOptions.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+            {hasUsersWithoutCollege && (
+              <option value={COLLEGE_FILTER_NONE}>No college set</option>
+            )}
+          </select>
         </div>
 
         <button
@@ -340,6 +346,9 @@ export function UsersTab({
                         <p className="font-bold text-[#1A1A2E] dark:text-white">{user.rollNumber}</p>
                       )}
                       <p className="text-slate-500">{user.branch} ({user.year})</p>
+                      <p className="mt-0.5 text-slate-500 normal-case font-sans">
+                        {user.collegeName || <span className="italic text-slate-400">No college</span>}
+                      </p>
                     </td>
 
                     <td className="px-6 py-4">

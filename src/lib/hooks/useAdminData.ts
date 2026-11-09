@@ -31,6 +31,8 @@ export interface UserRecord {
   rollNumber: string;
   branch: string;
   year: string;
+  /** Catalogue college name, or the typed-in other college name. Empty when unset. */
+  collegeName: string;
   role: 'AFFILIATE' | 'NON_AFFILIATE' | 'VOLUNTEER' | 'JUDGE' | 'CLUB_LEAD' | 'ADMIN';
   membershipStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI' | 'PENDING';
   scopedAssignments?: { type: 'EVENT' | 'HACKATHON'; targetTitle: string; role: string }[];
@@ -44,6 +46,9 @@ export interface UserRecord {
   createdFrom?: string;
   referredBy?: string;
 }
+
+/** Sentinel for the college dropdown: show members with no college set. */
+export const COLLEGE_FILTER_NONE = '__none__';
 
 interface FormSubmissionRecord {
   id: number;
@@ -159,6 +164,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
   // Users State - fetched live from backend
   const [usersList, setUsersList] = useState<UserRecord[]>([]);
   const [userSearch, setUserSearch] = useState('');
+  const [collegeFilter, setCollegeFilter] = useState('');
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
@@ -313,6 +319,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
               rollNumber: u.roll_number || 'Not set',
               branch: u.branch || 'CSE',
               year: u.year ? `${u.year}th Year` : '1st Year',
+              collegeName: (u.college?.name || u.other_college_name || '').trim(),
               role: u.role || 'NON_AFFILIATE',
               membershipStatus: u.membership_status || 'ACTIVE',
               isActive: u.is_active !== false,
@@ -456,6 +463,7 @@ export function useAdminData(options?: UseAdminDataOptions) {
         rollNumber: newUser.rollNumber,
         branch: newUser.branch,
         year: newUser.year,
+        collegeName: '',
         phoneNumber: newUser.phoneNumber || null,
         role: newUser.role,
         membershipStatus: 'ACTIVE',
@@ -1119,7 +1127,23 @@ export function useAdminData(options?: UseAdminDataOptions) {
       });
   };
 
-  const filteredUsers = usersList.filter((u) => u.name.toLowerCase().includes(userSearch.toLowerCase()));
+  const collegeOptions = Array.from(
+    new Set(usersList.map((u) => u.collegeName).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b));
+  const hasUsersWithoutCollege = usersList.some((u) => !u.collegeName);
+
+  const filteredUsers = usersList.filter((u) => {
+    const q = userSearch.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.rollNumber.toLowerCase().includes(q);
+    const matchesCollege =
+      !collegeFilter ||
+      (collegeFilter === COLLEGE_FILTER_NONE ? !u.collegeName : u.collegeName === collegeFilter);
+    return matchesSearch && matchesCollege;
+  });
 
   return {
     flags,
@@ -1128,6 +1152,10 @@ export function useAdminData(options?: UseAdminDataOptions) {
     usersList,
     userSearch,
     setUserSearch,
+    collegeFilter,
+    setCollegeFilter,
+    collegeOptions,
+    hasUsersWithoutCollege,
     filteredUsers,
     showCreateUserModal,
     setShowCreateUserModal,
