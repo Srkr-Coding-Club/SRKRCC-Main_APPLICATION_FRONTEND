@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { BRANCHES } from '@/lib/adminUserForm';
+import { fetchColleges, type College } from '@/lib/colleges';
 import { hasActiveFilters, type DirectoryFilters, type DirectoryScope } from '@/lib/userDirectory';
 
 const SELECT = 'min-h-11 rounded-lg border border-journey-text/15 bg-journey-surface px-3 text-sm font-semibold text-journey-text focus:border-journey-accent focus:outline-none sm:min-h-10 sm:text-xs';
@@ -21,6 +22,23 @@ function Pick({ label, value, onChange, options, all }: { label: string; value: 
   );
 }
 
+/** Load enough catalogue rows for the college filter dropdown (server filters by college id). */
+async function loadCollegeOptions(signal: AbortSignal): Promise<string[][]> {
+  const colleges: College[] = [];
+  let page = 1;
+  let next: string | null = 'start';
+  while (next && page <= 10 && !signal.aborted) {
+    const reply = await fetchColleges({ query: '', page }, signal);
+    colleges.push(...reply.results);
+    next = reply.next;
+    page += 1;
+  }
+  return colleges
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((college) => [String(college.id), college.name]);
+}
+
 interface DirectoryFilterBarProps {
   scope: DirectoryScope;
   filters: DirectoryFilters;
@@ -32,6 +50,16 @@ interface DirectoryFilterBarProps {
 
 /** Search plus every filter the server understands. The values live in the page address, so this component holds no state. */
 export function DirectoryFilterBar({ scope, filters, searchText, onSearch, onChange, onClear }: DirectoryFilterBarProps) {
+  const [collegeOptions, setCollegeOptions] = useState<string[][]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadCollegeOptions(controller.signal)
+      .then(setCollegeOptions)
+      .catch(() => { if (!controller.signal.aborted) setCollegeOptions([]); });
+    return () => controller.abort();
+  }, []);
+
   return (
     <div className="space-y-3" role="search" aria-label="Filter people">
       <div className="relative">
@@ -52,6 +80,7 @@ export function DirectoryFilterBar({ scope, filters, searchText, onSearch, onCha
         {scope === 'users' && (
           <Pick label="Filter by club membership" value={filters.member} onChange={(member) => onChange({ member: member as DirectoryFilters['member'] })} options={[['yes', 'Club members'], ['no', 'Not club members']]} all="Members and others" />
         )}
+        <Pick label="Filter by college" value={filters.college} onChange={(college) => onChange({ college })} options={collegeOptions} all="Any college" />
         <Pick label="Filter by branch" value={filters.branch} onChange={(branch) => onChange({ branch })} options={BRANCHES.map((branch) => [branch, branch])} all="Any branch" />
         <Pick label="Filter by year" value={filters.year} onChange={(year) => onChange({ year })} options={[['1', 'Year 1'], ['2', 'Year 2'], ['3', 'Year 3'], ['4', 'Year 4']]} all="Any year" />
         <select aria-label="Sort by" value={filters.ordering} onChange={(event) => onChange({ ordering: event.target.value })} className={`${SELECT} sm:ml-auto`}>

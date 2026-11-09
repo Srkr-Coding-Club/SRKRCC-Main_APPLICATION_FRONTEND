@@ -65,11 +65,13 @@ export interface DirectoryFilters {
   member: '' | 'yes' | 'no';
   branch: string;
   year: string;
+  /** Catalogue college id as a digit string; the directory API filters on `college_id`. */
+  college: string;
   ordering: string;
   page: number;
 }
 
-export const EMPTY_FILTERS: DirectoryFilters = { q: '', role: '', membership_status: '', email: '', member: '', branch: '', year: '', ordering: 'newest', page: 1 };
+export const EMPTY_FILTERS: DirectoryFilters = { q: '', role: '', membership_status: '', email: '', member: '', branch: '', year: '', college: '', ordering: 'newest', page: 1 };
 export const PAGE_SIZE = 25;
 const KEYS = Object.keys(EMPTY_FILTERS) as (keyof DirectoryFilters)[];
 
@@ -98,6 +100,7 @@ export function fromSearchParams(params: URLSearchParams): DirectoryFilters {
     member: (['yes', 'no'] as const).find((value) => value === params.get('member')) ?? '',
     branch: params.get('branch') ?? '',
     year: params.get('year') ?? '',
+    college: /^\d+$/.test(params.get('college') ?? '') ? (params.get('college') as string) : '',
     ordering: params.get('ordering') || EMPTY_FILTERS.ordering,
     page: Number.isInteger(page) && page > 1 ? page : 1,
   };
