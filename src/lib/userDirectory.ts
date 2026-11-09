@@ -65,20 +65,42 @@ export interface DirectoryFilters {
   member: '' | 'yes' | 'no';
   branch: string;
   year: string;
-  /** Catalogue college id as a digit string; the directory API filters on `college_id`. */
+  /**
+   * College name fragment for client-side filtering (catalogue name or typed-in name).
+   * Kept in the page URL; never sent to the directory API.
+   */
   college: string;
   ordering: string;
   page: number;
 }
 
-export const EMPTY_FILTERS: DirectoryFilters = { q: '', role: '', membership_status: '', email: '', member: '', branch: '', year: '', college: '', ordering: 'newest', page: 1 };
+export const EMPTY_FILTERS: DirectoryFilters = {
+  q: '', role: '', membership_status: '', email: '', member: '', branch: '', year: '', college: '', ordering: 'newest', page: 1,
+};
 export const PAGE_SIZE = 25;
 const KEYS = Object.keys(EMPTY_FILTERS) as (keyof DirectoryFilters)[];
 
-/** The query string for the server; blank filters and the first page are left out. */
-export function toQuery(filters: DirectoryFilters, scope: DirectoryScope, extra: Record<string, string> = {}): string {
+/** Filters the directory API understands (college is applied in the browser). */
+export function withoutClientCollege(filters: DirectoryFilters): DirectoryFilters {
+  return { ...filters, college: '' };
+}
+
+/** The college label shown for a person (catalogue or typed-in). */
+export function directoryCollegeName(user: Pick<DirectoryUser, 'college' | 'other_college_name'>): string {
+  return (user.college?.name || user.other_college_name || '').trim();
+}
+
+/** The query string for the page address or the server; blank filters and the first page are left out. */
+export function toQuery(
+  filters: DirectoryFilters,
+  scope: DirectoryScope,
+  extra: Record<string, string> = {},
+  options: { includeClientCollege?: boolean } = {},
+): string {
+  const includeClientCollege = options.includeClientCollege !== false;
   const params = new URLSearchParams();
   for (const key of KEYS) {
+    if (!includeClientCollege && key === 'college') continue;
     const value = filters[key];
     if (value === '' || value === EMPTY_FILTERS[key] || (key === 'page' && value === 1)) continue;
     params.set(key, String(value));
@@ -100,7 +122,7 @@ export function fromSearchParams(params: URLSearchParams): DirectoryFilters {
     member: (['yes', 'no'] as const).find((value) => value === params.get('member')) ?? '',
     branch: params.get('branch') ?? '',
     year: params.get('year') ?? '',
-    college: /^\d+$/.test(params.get('college') ?? '') ? (params.get('college') as string) : '',
+    college: (params.get('college') ?? '').trim(),
     ordering: params.get('ordering') || EMPTY_FILTERS.ordering,
     page: Number.isInteger(page) && page > 1 ? page : 1,
   };
@@ -110,11 +132,62 @@ export const hasActiveFilters = (filters: DirectoryFilters) => KEYS.some((key) =
 
 const post = (body: unknown = {}): RequestInit => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
+/** Load every directory row via a page fetcher (so tests can inject the mocked list). */
+export async function listAllDirectoryUsers(
+  fetchPage: (page: number) => Promise<DirectoryPage>,
+): Promise<DirectoryUser[]> {
+  const people: DirectoryUser[] = [];
+  let page = 1;
+  let hasMore = true;
+  while (hasMore && page <= 50) {
+    const reply = await fetchPage(page);
+    people.push(...reply.results);
+    hasMore = Boolean(reply.next);
+    page += 1;
+  }
+  return people;
+}
+
+/** Case-insensitive substring match on the person's college label. */
+export function filterUsersByCollegeName(users: DirectoryUser[], collegeQuery: string): DirectoryUser[] {
+  const wanted = collegeQuery.trim().toLowerCase();
+  if (!wanted) return users;
+  return users.filter((user) => directoryCollegeName(user).toLowerCase().includes(wanted));
+}
+
+export function paginateUsers(users: DirectoryUser[], page: number, pageSize = PAGE_SIZE): DirectoryPage {
+  const safePage = Math.max(1, page);
+  const start = (safePage - 1) * pageSize;
+  const results = users.slice(start, start + pageSize);
+  return {
+    count: users.length,
+    next: start + pageSize < users.length ? 'client-next' : null,
+    previous: safePage > 1 ? 'client-prev' : null,
+    results,
+  };
+}
+
 export const directoryApi = {
-  list: (filters: DirectoryFilters, scope: DirectoryScope) => fetchApi<DirectoryPage>(`/auth/users/directory/?${toQuery(filters, scope)}`),
+  list: (filters: DirectoryFilters, scope: DirectoryScope, extra: Record<string, string> = {}) =>
+    fetchApi<DirectoryPage>(`/auth/users/directory/?${toQuery(withoutClientCollege(filters), scope, extra, { includeClientCollege: false })}`),
   summary: (scope: DirectoryScope) => fetchApi<DirectorySummary>(`/auth/users/directory/summary/${scope === 'members' ? '?scope=members' : ''}`),
-  recipients: (filters: DirectoryFilters, scope: DirectoryScope) =>
-    fetchApi<{ recipients: { id: number; email: string }[]; truncated: boolean; limit: number }>(`/auth/users/directory/recipients/?${toQuery({ ...filters, page: 1 }, scope)}`),
+  recipients: async (filters: DirectoryFilters, scope: DirectoryScope) => {
+    const collegeQuery = filters.college.trim();
+    if (!collegeQuery) {
+      return fetchApi<{ recipients: { id: number; email: string }[]; truncated: boolean; limit: number }>(
+        `/auth/users/directory/recipients/?${toQuery(withoutClientCollege({ ...filters, page: 1 }), scope, {}, { includeClientCollege: false })}`,
+      );
+    }
+    const people = await listAllDirectoryUsers((page) =>
+      directoryApi.list({ ...withoutClientCollege(filters), page }, scope, { page_size: '100' }),
+    );
+    const matched = filterUsersByCollegeName(people, collegeQuery);
+    return {
+      recipients: matched.map((user) => ({ id: user.id, email: user.email })),
+      truncated: false,
+      limit: matched.length,
+    };
+  },
   markVerified: (id: number) => fetchApi<{ verified: true; changed: boolean }>(`/auth/users/${id}/verify-email/`, post()),
   extendDeadline: (id: number, days: number) => fetchApi<{ deadline: string }>(`/auth/users/${id}/verification/extend/`, post({ days })),
   resendVerification: (id: number) => fetchApi<{ sent: true; email_masked: string }>(`/auth/users/${id}/verification/resend/`, post()),

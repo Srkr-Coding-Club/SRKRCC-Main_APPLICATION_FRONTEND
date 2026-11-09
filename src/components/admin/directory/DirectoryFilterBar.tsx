@@ -1,12 +1,21 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { BRANCHES } from '@/lib/adminUserForm';
-import { fetchColleges, type College } from '@/lib/colleges';
-import { hasActiveFilters, type DirectoryFilters, type DirectoryScope } from '@/lib/userDirectory';
+import {
+  directoryApi,
+  directoryCollegeName,
+  EMPTY_FILTERS,
+  hasActiveFilters,
+  listAllDirectoryUsers,
+  type DirectoryFilters,
+  type DirectoryScope,
+} from '@/lib/userDirectory';
 
 const SELECT = 'min-h-11 rounded-lg border border-journey-text/15 bg-journey-surface px-3 text-sm font-semibold text-journey-text focus:border-journey-accent focus:outline-none sm:min-h-10 sm:text-xs';
+const COLLEGE_INPUT = `${SELECT} w-[min(100%,14rem)] font-medium placeholder:font-medium placeholder:text-journey-muted`;
+const COLLEGE_DEBOUNCE_MS = 300;
 
 const ROLES = [['AFFILIATE', 'Affiliate'], ['NON_AFFILIATE', 'Non-affiliate'], ['VOLUNTEER', 'Volunteer'], ['JUDGE', 'Judge'], ['CLUB_LEAD', 'Club lead'], ['ADMIN', 'Admin']];
 const STATUSES = [['ACTIVE', 'Active'], ['INACTIVE', 'Inactive'], ['SUSPENDED', 'Suspended'], ['ALUMNI', 'Alumni (past)'], ['PENDING', 'Pending']];
@@ -22,21 +31,83 @@ function Pick({ label, value, onChange, options, all }: { label: string; value: 
   );
 }
 
-/** Load enough catalogue rows for the college filter dropdown (server filters by college id). */
-async function loadCollegeOptions(signal: AbortSignal): Promise<string[][]> {
-  const colleges: College[] = [];
-  let page = 1;
-  let next: string | null = 'start';
-  while (next && page <= 10 && !signal.aborted) {
-    const reply = await fetchColleges({ query: '', page }, signal);
-    colleges.push(...reply.results);
-    next = reply.next;
-    page += 1;
+/** Distinct college names already on member accounts (catalogue or typed-in). */
+async function loadCollegeSuggestions(scope: DirectoryScope): Promise<string[]> {
+  const names = new Set<string>();
+  const people = await listAllDirectoryUsers((page) =>
+    directoryApi.list({ ...EMPTY_FILTERS, page }, scope, { page_size: '100' }),
+  );
+  for (const user of people) {
+    const name = directoryCollegeName(user);
+    if (name) names.add(name);
   }
-  return colleges
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((college) => [String(college.id), college.name]);
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+function CollegeNameFilter({
+  scope,
+  value,
+  onChange,
+}: {
+  scope: DirectoryScope;
+  value: string;
+  onChange: (college: string) => void;
+}) {
+  const listId = useId();
+  const [text, setText] = useState(value);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  useEffect(() => { setText(value); }, [value]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadCollegeSuggestions(scope)
+      .then((names) => { if (!cancelled) setSuggestions(names); })
+      .catch(() => { if (!cancelled) setSuggestions([]); });
+    return () => { cancelled = true; };
+  }, [scope]);
+
+  useEffect(() => {
+    if (text.trim() === value) return undefined;
+    const timer = window.setTimeout(() => onChange(text.trim()), COLLEGE_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [text, value, onChange]);
+
+  const matching = useMemo(() => {
+    const needle = text.trim().toLowerCase();
+    if (!needle) return suggestions.slice(0, 40);
+    return suggestions.filter((name) => name.toLowerCase().includes(needle)).slice(0, 40);
+  }, [suggestions, text]);
+
+  return (
+    <div className="relative flex items-center gap-1">
+      <input
+        type="search"
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        list={listId}
+        placeholder="College name…"
+        aria-label="Filter by college name"
+        autoComplete="off"
+        className={COLLEGE_INPUT}
+      />
+      <datalist id={listId}>
+        {matching.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+      {text.trim() !== '' && (
+        <button
+          type="button"
+          onClick={() => { setText(''); onChange(''); }}
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-journey-muted hover:text-journey-accent sm:min-h-10 sm:min-w-10"
+          aria-label="Clear college filter"
+        >
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
 }
 
 interface DirectoryFilterBarProps {
@@ -48,17 +119,9 @@ interface DirectoryFilterBarProps {
   onClear: () => void;
 }
 
-/** Search plus every filter the server understands. The values live in the page address, so this component holds no state. */
+/** Search plus directory filters. College is a free-text name match applied in the browser. */
 export function DirectoryFilterBar({ scope, filters, searchText, onSearch, onChange, onClear }: DirectoryFilterBarProps) {
-  const [collegeOptions, setCollegeOptions] = useState<string[][]>([]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadCollegeOptions(controller.signal)
-      .then(setCollegeOptions)
-      .catch(() => { if (!controller.signal.aborted) setCollegeOptions([]); });
-    return () => controller.abort();
-  }, []);
+  const setCollege = useCallback((college: string) => onChange({ college }), [onChange]);
 
   return (
     <div className="space-y-3" role="search" aria-label="Filter people">
@@ -80,7 +143,7 @@ export function DirectoryFilterBar({ scope, filters, searchText, onSearch, onCha
         {scope === 'users' && (
           <Pick label="Filter by club membership" value={filters.member} onChange={(member) => onChange({ member: member as DirectoryFilters['member'] })} options={[['yes', 'Club members'], ['no', 'Not club members']]} all="Members and others" />
         )}
-        <Pick label="Filter by college" value={filters.college} onChange={(college) => onChange({ college })} options={collegeOptions} all="Any college" />
+        <CollegeNameFilter scope={scope} value={filters.college} onChange={setCollege} />
         <Pick label="Filter by branch" value={filters.branch} onChange={(branch) => onChange({ branch })} options={BRANCHES.map((branch) => [branch, branch])} all="Any branch" />
         <Pick label="Filter by year" value={filters.year} onChange={(year) => onChange({ year })} options={[['1', 'Year 1'], ['2', 'Year 2'], ['3', 'Year 3'], ['4', 'Year 4']]} all="Any year" />
         <select aria-label="Sort by" value={filters.ordering} onChange={(event) => onChange({ ordering: event.target.value })} className={`${SELECT} sm:ml-auto`}>
