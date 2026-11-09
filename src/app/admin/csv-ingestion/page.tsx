@@ -5,8 +5,6 @@ import { useAdminData } from '@/lib/hooks/useAdminData';
 import { useAdminSubtabNav } from '@/lib/hooks/useAdminSubtabNav';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 
-export const dynamic = 'force-dynamic';
-
 const CSVIngestionTab = nextDynamic(
   () => import('@/components/admin/CSVIngestionTab').then((m) => m.CSVIngestionTab),
   {
@@ -16,7 +14,7 @@ const CSVIngestionTab = nextDynamic(
 );
 
 export default function AdminCsvIngestionPage() {
-  const { publishedForms } = useAdminData();
+  const { publishedForms } = useAdminData({ include: ['forms'] });
   const switchSubtab = useAdminSubtabNav();
 
   return (

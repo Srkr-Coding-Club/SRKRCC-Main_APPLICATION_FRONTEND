@@ -5,8 +5,6 @@ import { Megaphone, Bell } from 'lucide-react';
 import { AnnouncementsTab } from '@/components/admin/AnnouncementsTab';
 import { BroadcastNotificationPanel } from '@/components/admin/BroadcastNotificationPanel';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminAnnouncementsPage() {
   const [activeTab, setActiveTab] = useState<'broadcast' | 'banners'>('broadcast');
 

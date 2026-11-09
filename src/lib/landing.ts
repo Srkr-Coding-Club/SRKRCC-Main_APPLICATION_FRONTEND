@@ -159,9 +159,9 @@ function hackathonAgendaItem(hackathon: Hackathon, now: number): AgendaItem {
 
 export async function getLandingData(): Promise<LandingData> {
   const [events, hackathons, problems] = await Promise.all([
-    settle(fetchApi<Event[]>('/events/', { next: { revalidate: 60 } } as RequestInit)),
-    settle(fetchApi<Hackathon[]>('/hackathons/', { next: { revalidate: 60 } } as RequestInit)),
-    settle(fetchApi<Problem[]>('/codequest/', { next: { revalidate: 60 } } as RequestInit)),
+    settle(fetchApi<Event[]>('/events/', { next: { revalidate: 600 } } as RequestInit)),
+    settle(fetchApi<Hackathon[]>('/hackathons/', { next: { revalidate: 600 } } as RequestInit)),
+    settle(fetchApi<Problem[]>('/codequest/', { next: { revalidate: 600 } } as RequestInit)),
   ]);
   const now = Date.now();
 

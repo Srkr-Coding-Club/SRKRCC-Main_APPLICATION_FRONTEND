@@ -17,7 +17,7 @@ import ModuleUnavailable from '@/components/ModuleUnavailable';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'Career Hub & Tech Opportunities',

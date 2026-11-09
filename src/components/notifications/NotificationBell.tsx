@@ -19,7 +19,7 @@ import {
 import { notificationsApi } from '@/lib/api/notifications';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import type { UserNotification, AnnouncementType } from '@/lib/types';
-import { useToast } from '@/context/ToastContext';
+import { useToast } from '@/context/ToastContext';
 import { TableRowsSkeleton, ListRowsSkeleton } from '@/components/ui/Skeleton';
 
 function timeAgo(dateString: string): string {
@@ -163,11 +163,9 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
     }
   }, []);
 
-  // Poll count periodically (every 40 seconds)
+  // Count once on mount; opening the popover loads the list. Refresh the page for newer counts.
   useEffect(() => {
     fetchCount();
-    const interval = setInterval(fetchCount, 40000);
-    return () => clearInterval(interval);
   }, [fetchCount]);
 
   // Load notifications when popover opens or tab switches

@@ -2,6 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import { ShieldAlert, Home, LogIn } from 'lucide-react';
 
+export const revalidate = 3600;
+
 export const metadata = {
   title: '403 Forbidden | Access Restricted',
   description: 'Administrative clearance required to access this resource.',

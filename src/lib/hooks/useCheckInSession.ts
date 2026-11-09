@@ -4,8 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import type { CheckInSessionInfo } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 
-const REFRESH_MS = 60000;
-
 const storageKey = (slug: string) => `hackathon-check-in-session:${slug}`;
 
 const scannable = (session: CheckInSessionInfo) => session.is_active && !session.outside_schedule;
@@ -47,9 +45,6 @@ export function useCheckInSession(slug: string) {
 
   useEffect(() => {
     refresh();
-    // Windows open and close while the page stays open.
-    const timer = window.setInterval(refresh, REFRESH_MS);
-    return () => window.clearInterval(timer);
   }, [refresh]);
 
   const select = useCallback((id: number) => {

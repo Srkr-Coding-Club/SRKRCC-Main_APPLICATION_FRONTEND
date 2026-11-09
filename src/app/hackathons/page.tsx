@@ -10,7 +10,7 @@ import { splitByPhase } from '@/lib/eventListing';
 import ModuleUnavailable from '@/components/ModuleUnavailable';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'Hackathons & Competitions',
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 async function getHackathons(): Promise<Hackathon[]> {
   try {
-    const fetched = await fetchApi<Hackathon[]>('/hackathons/', { next: { revalidate: 60 } } as RequestInit);
+    const fetched = await fetchApi<Hackathon[]>('/hackathons/', { next: { revalidate: 600 } } as RequestInit);
     return fetched || [];
   } catch (error) {
     return [];

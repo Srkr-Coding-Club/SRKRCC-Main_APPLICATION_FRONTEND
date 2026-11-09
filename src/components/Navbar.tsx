@@ -83,6 +83,8 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
   const signOut = useSignOut();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuth, setIsAuth] = useState(false);
+  // Both navbar layouts stay in the DOM; mount the bell only in the one on screen.
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     const syncAuth = () => {
@@ -99,6 +101,14 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
       window.removeEventListener('storage', syncAuth);
     };
   }, [pathname]);
+
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setIsDesktop(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -247,7 +257,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
           {/* Logo - CODING CLUB leads, in the landing page's own shimmering title
               treatment (.ember-text); SRKR rides above it as a small label, not
               the other way round. */}
-          <Link href="/" className="group flex shrink-0 items-center gap-2.5 sm:gap-3" aria-label="SRKR Coding Club Home">
+          <Link href="/" prefetch={false} className="group flex shrink-0 items-center gap-2.5 sm:gap-3" aria-label="SRKR Coding Club Home">
             <motion.div whileHover={{ rotate: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
               <BrainLogo size={36} showRays animated />
             </motion.div>
@@ -283,6 +293,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                 >
                   <Link
                     href={item.href}
+                    prefetch={false}
                     // A dropdown tab opens on hover, on keyboard focus, and on the first tap of a touch screen (a second tap goes to the page).
                     onFocus={() => {
                       if (item.hasDropdown) {
@@ -349,6 +360,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
                                 <Link
                                   key={child.label}
                                   href={child.href}
+                                  prefetch={false}
                                   aria-current={routeIs(pathname, child.href) ? 'page' : undefined}
                                   className={`group/item flex items-start gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.05] active:bg-black/[0.06] dark:active:bg-white/[0.08] transition-colors ${routeIs(pathname, child.href) ? 'bg-orange-500/10' : ''}`}
                                 >
@@ -386,7 +398,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
           <div className="hidden lg:flex items-center gap-3">
             {isAuth ? (
               <>
-                <NotificationBell />
+                {isDesktop && <NotificationBell />}
                 <AccountMenu
                   user={currentUser}
                   onSignOut={signOut}
@@ -400,6 +412,7 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
               <>
                 <Link
                   href="/login"
+                  prefetch={false}
                   className="text-[13px] font-semibold text-[#1A1A2E]/65 dark:text-white/55 hover:text-[#1A1A2E] dark:hover:text-white transition active:scale-95 duration-100 inline-flex min-h-10 items-center px-1"
                 >
                   Login
@@ -422,9 +435,9 @@ export default function Navbar({ moduleFlags = {} }: NavbarProps) {
             <div className="relative hidden h-10 w-[52px] shrink-0 min-[390px]:block">
               <LampSwitch size="bar" className="absolute left-0 -top-[10px]" />
             </div>
-            {isAuth && <NotificationBell />}
+            {isAuth && !isDesktop && <NotificationBell />}
             {isAuth && (
-              <Link href="/profile" aria-label="My profile" className="hidden h-11 w-11 items-center justify-center rounded-full transition active:scale-95 min-[360px]:flex">
+              <Link href="/profile" prefetch={false} aria-label="My profile" className="hidden h-11 w-11 items-center justify-center rounded-full transition active:scale-95 min-[360px]:flex">
                 <Avatar user={currentUser} size={34} />
               </Link>
             )}

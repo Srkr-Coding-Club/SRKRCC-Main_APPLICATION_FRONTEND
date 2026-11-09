@@ -3,8 +3,6 @@
 import ScannerGuard from '@/components/ScannerGuard';
 import { AttendanceScannerTab } from '@/components/admin/AttendanceScannerTab';
 
-export const dynamic = 'force-dynamic';
-
 /**
  * Volunteer-reachable attendance scanner - /admin/attendance/scan renders the
  * exact same AttendanceScannerTab but sits behind AdminGuard, which only

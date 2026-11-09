@@ -4,10 +4,8 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { DashboardTab } from '@/components/admin/DashboardTab';
 import { useAdminData } from '@/lib/hooks/useAdminData';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminDashboardPage() {
-  const { usersList, publishedForms, formSubmissions, isLoadingForms, isLoadingSubmissions, refetchAll } = useAdminData();
+  const { usersList, publishedForms, formSubmissions, isLoadingForms, isLoadingSubmissions, refetchAll } = useAdminData({ include: ['users', 'forms', 'submissions'] });
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">

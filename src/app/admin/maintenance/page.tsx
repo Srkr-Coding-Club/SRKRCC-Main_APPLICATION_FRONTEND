@@ -2,8 +2,6 @@
 
 import { MaintenanceTab } from '@/components/admin/MaintenanceTab';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminMaintenancePage() {
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0D0E15] py-10 transition-colors duration-300">

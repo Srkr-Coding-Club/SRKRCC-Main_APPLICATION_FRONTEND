@@ -10,7 +10,7 @@ import UpNext from '@/components/landing/UpNext';
 import YourTurn from '@/components/landing/YourTurn';
 import { getLandingData } from '@/lib/landing';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'Home | Innovate, Code, Excel',

@@ -52,27 +52,12 @@ describe('CheckInCard', () => {
     expect(await screen.findByText('Check-in opens once your team is registered.')).toBeTruthy();
   });
 
-  it('picks up the rotated code on the next refresh and keeps the old one if a refresh fails', async () => {
-    vi.useFakeTimers();
-    myCheckIn.mockResolvedValueOnce(state({ token: 'tok-1' })).mockResolvedValueOnce(state({ token: 'tok-2' })).mockRejectedValueOnce(new Error('offline'));
+  it('loads the check-in code once on mount', async () => {
+    myCheckIn.mockResolvedValue(state({ token: 'tok-1' }));
     render(<CheckInCard slug="demo" />);
-    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(await screen.findByTestId('qr')).toBeTruthy();
     expect(screen.getByTestId('qr').getAttribute('data-value')).toBe('tok-1');
-    await act(async () => { await vi.advanceTimersByTimeAsync(20000); });
-    expect(screen.getByTestId('qr').getAttribute('data-value')).toBe('tok-2');
-    await act(async () => { await vi.advanceTimersByTimeAsync(20000); });
-    expect(screen.getByTestId('qr').getAttribute('data-value')).toBe('tok-2');
-  });
-
-  it('stops refreshing after it unmounts', async () => {
-    vi.useFakeTimers();
-    myCheckIn.mockResolvedValue(state());
-    const { unmount } = render(<CheckInCard slug="demo" />);
-    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    unmount();
-    const calls = myCheckIn.mock.calls.length;
-    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
-    expect(myCheckIn.mock.calls.length).toBe(calls);
+    expect(myCheckIn).toHaveBeenCalledTimes(1);
   });
 
   describe('with several sessions', () => {

@@ -35,10 +35,8 @@ import {
   CalendarShareCard, CertificateCard, CheckInCard, MyRegistrationCard, RecruitingCard, ResultsNotice, WaitlistNotice,
 } from '@/components/hackathons/ParticipantCards';
 import { needsRegistrationDetails } from '@/components/hackathons/RegistrationDetailsFields';
-import { BTN, H2, PANEL } from '@/components/hackathons/dashboardStyles';
+import { BTN, H2, PANEL } from '@/components/hackathons/dashboardStyles';
 import { replaceWithProgress } from '@/lib/routeProgress';
-
-const DASHBOARD_REFRESH_MS = 15_000;
 
 export default function HackathonDashboardPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -93,21 +91,6 @@ export default function HackathonDashboardPage() {
     }
     load();
   }, [load, router, slug]);
-
-  useEffect(() => {
-    const refreshOnFocus = () => {
-      if (document.visibilityState === 'visible' && !busyKey) load();
-    };
-    document.addEventListener('visibilitychange', refreshOnFocus);
-    window.addEventListener('focus', refreshOnFocus);
-    // Other people change the team too (an invite accepted, someone leaves): pick it up while the page is open.
-    const poll = window.setInterval(refreshOnFocus, DASHBOARD_REFRESH_MS);
-    return () => {
-      document.removeEventListener('visibilitychange', refreshOnFocus);
-      window.removeEventListener('focus', refreshOnFocus);
-      window.clearInterval(poll);
-    };
-  }, [load, busyKey]);
 
   const run = async (key: string, fn: () => Promise<unknown>, success?: string) => {
     setBusyKey(key);

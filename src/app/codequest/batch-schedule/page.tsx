@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import BatchScheduleClient from './BatchScheduleClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'CodeQuest Batch Scheduling',

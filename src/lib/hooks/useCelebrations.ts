@@ -6,7 +6,6 @@ import type { Celebration } from '@/lib/types';
 import { celebrationsApi } from '@/lib/api/celebrations';
 import { isAuthenticated } from '@/lib/auth';
 
-const POLL_MS = 30_000;
 /** A check right after another one is skipped, so a burst of page changes costs one request. */
 const MIN_GAP_MS = 4_000;
 /** At most this many are lined up at a time; the rest wait on the server for a later check. */
@@ -38,8 +37,8 @@ export function requestCelebrationCheck(): void {
 
 /**
  * The celebrations waiting for the signed-in person, one at a time. It looks when the site opens, on every page change,
- * when the tab comes back, every 30 seconds while visible and on `requestCelebrationCheck()`. A celebration is marked
- * seen the moment it is put on screen, so closing the tab never makes it come back.
+ * and on `requestCelebrationCheck()`. A celebration is marked seen the moment it is put on screen, so closing the tab
+ * never makes it come back. There is no background poll.
  */
 export function useCelebrations() {
   const pathname = usePathname();
@@ -83,19 +82,12 @@ export function useCelebrations() {
 
   useEffect(() => {
     const first = window.setTimeout(() => void check(), 800);
-    const timer = window.setInterval(() => void check(), POLL_MS);
-    const onVisible = () => { if (document.visibilityState === 'visible') void check(); };
     const onCheck = () => { lastCheck.current = 0; void check(); };
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', onVisible);
     window.addEventListener(CHECK_EVENT, onCheck);
     return () => {
       window.clearTimeout(first);
-      window.clearInterval(timer);
       if (retry.current !== null) window.clearTimeout(retry.current);
       retry.current = null;
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', onVisible);
       window.removeEventListener(CHECK_EVENT, onCheck);
     };
   }, [check]);

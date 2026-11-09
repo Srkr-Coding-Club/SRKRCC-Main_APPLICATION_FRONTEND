@@ -9,7 +9,7 @@ import ModuleUnavailable from '@/components/ModuleUnavailable';
 import { EventDetailClient } from '@/components/events/EventDetailClient';
 import { eventPoster } from '@/lib/eventListing';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 const MORE_EVENTS = 3;
 

@@ -34,6 +34,14 @@ const ROLE_COOKIE = 'srkrcc_user_role';
 
 const SIGNED_OUT_PATHS = ['/login', '/signup'];
 
+// Navbar, hero and route guards all ask /auth/me/ on mount; one in-flight
+// request (and a short reuse window) answers them all.
+// Short window so Navbar + Hero + AdminGuard on one mount share one /auth/me
+// round trip. Focus resync itself is throttled separately (see below).
+const ME_REUSE_MS = 15_000;
+let inflightMe: Promise<AuthUser | null> | null = null;
+let lastMe: { at: number; user: AuthUser | null } | null = null;
+
 export function redirectToLogin() {
   if (typeof window === 'undefined') return;
   const next = `${window.location.pathname}${window.location.search}`;
@@ -91,6 +99,8 @@ export function setStoredUser(user: AuthUser) {
 
 export function clearAuthSession() {
   if (typeof window === 'undefined') return;
+  lastMe = null;
+  inflightMe = null;
   localStorage.removeItem(USER_KEY);
   const domainAttr = getDomainAttribute();
   if (domainAttr) {
@@ -128,8 +138,10 @@ export function isAdminOrLead(): boolean {
 
 // Shared across every subscribeToAuthResync() caller so switching back to a tab
 // with several of them mounted (Navbar + HeroSection, say) triggers one
-// resync, not one per component.
-const AUTH_RESYNC_MIN_INTERVAL_MS = 15_000;
+// resync, not one per component. 15 minutes: role changes are rare; a full
+// page refresh still picks them up immediately, and Amplify must not pay for
+// /auth/me on every Alt-Tab.
+const AUTH_RESYNC_MIN_INTERVAL_MS = 900_000;
 let lastAuthResyncAt = 0;
 
 // Every currently-mounted subscribeToAuthResync() caller registers its
@@ -189,8 +201,19 @@ export function subscribeToAuthResync(onResync: () => void): () => void {
  * fetchApi already does - using refreshAccessToken()'s module-level
  * `activeRefreshPromise`, which IS a reliable dedup because a single tab's JS
  * is genuinely single-threaded.
+ *
+ * See ME_REUSE_MS / inflightMe / lastMe above for the in-flight share.
  */
-export async function fetchAndSyncCurrentUser(): Promise<AuthUser | null> {
+export function fetchAndSyncCurrentUser(): Promise<AuthUser | null> {
+  if (typeof window === 'undefined' || !isAuthenticated()) return Promise.resolve(null);
+  if (lastMe && Date.now() - lastMe.at < ME_REUSE_MS) return Promise.resolve(lastMe.user);
+  inflightMe ??= syncCurrentUser()
+    .then((user) => { lastMe = { at: Date.now(), user }; return user; })
+    .finally(() => { inflightMe = null; });
+  return inflightMe;
+}
+
+async function syncCurrentUser(): Promise<AuthUser | null> {
   if (typeof window === 'undefined') return null;
   if (!isAuthenticated()) return null;
 
@@ -277,6 +300,7 @@ export async function loginUser(email: string, password: string): Promise<{ user
     role: data.role || 'NON_AFFILIATE',
   };
 
+  lastMe = null;
   setStoredUser(user);
   return { user };
 }
