@@ -55,6 +55,10 @@ export interface DirectorySummary {
   needs_password: number;
   by_role: Record<DirectoryRole, number>;
   by_membership_status: Record<DirectoryMembership, number>;
+  /** Sign-ups per local calendar month (YYYY-MM) over the last six months. */
+  joined_by_month: Record<string, number>;
+  /** People per branch as typed; blank branches are under ''. */
+  by_branch: Record<string, number>;
 }
 
 export interface DirectoryFilters {

@@ -13,11 +13,13 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { Form } from '@/lib/types';
-import { UserRecord } from '@/lib/hooks/useAdminData';
 
 interface DashboardTabProps {
   userCount: number;
-  users: UserRecord[];
+  /** Sign-ups per month, keyed YYYY-MM. */
+  joinedByMonth: Record<string, number>;
+  /** People per branch as typed; blank branches are under ''. */
+  usersByBranch: Record<string, number>;
   publishedForms: Form[];
   formSubmissions: Array<{ id: number; submitterName: string; formTitle: string; submittedAt: string }>;
   isLoading?: boolean;
@@ -59,7 +61,7 @@ function lastSixMonths(): { key: string; label: string }[] {
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push({
-      key: `${d.getFullYear()}-${d.getMonth()}`,
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
       label: d.toLocaleString('en-US', { month: 'short' }),
     });
   }
@@ -68,7 +70,8 @@ function lastSixMonths(): { key: string; label: string }[] {
 
 export function DashboardTab({
   userCount,
-  users,
+  joinedByMonth,
+  usersByBranch,
   publishedForms,
   formSubmissions,
   isLoading = false,
@@ -98,13 +101,7 @@ export function DashboardTab({
   // --- Real monthly registrations trend, computed from actual join dates.
   const monthlyTrend = useMemo(() => {
     const buckets = lastSixMonths();
-    const counts = buckets.map(({ key }) => {
-      const [year, month] = key.split('-').map(Number);
-      return users.filter((u) => {
-        const joined = new Date(u.joinedDate);
-        return joined.getFullYear() === year && joined.getMonth() === month;
-      }).length;
-    });
+    const counts = buckets.map(({ key }) => joinedByMonth[key] ?? 0);
     const max = Math.max(1, ...counts);
     const lastCount = counts[counts.length - 1] ?? 0;
     const prevCount = counts[counts.length - 2] ?? 0;
@@ -122,17 +119,19 @@ export function DashboardTab({
       growthLabel,
       growthUp,
     };
-  }, [users]);
+  }, [joinedByMonth]);
 
   // --- Real branch breakdown, grouped the same way the signup/admin branch
   // dropdowns group related specializations.
   const branchBreakdown = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const u of users) {
-      const group = BRANCH_GROUPS[(u.branch || '').toUpperCase()] || 'Other';
-      counts[group] = (counts[group] || 0) + 1;
+    let total = 0;
+    for (const [branch, count] of Object.entries(usersByBranch)) {
+      const group = BRANCH_GROUPS[(branch || 'CSE').toUpperCase()] || 'Other';
+      counts[group] = (counts[group] || 0) + count;
+      total += count;
     }
-    const total = users.length || 1;
+    total = total || 1;
     return Object.entries(counts)
       .map(([group, count]) => ({
         branch: group,
@@ -142,7 +141,7 @@ export function DashboardTab({
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
-  }, [users]);
+  }, [usersByBranch]);
 
   const cardHoverClasses =
     'transition duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-200/70 dark:hover:shadow-black/30';
