@@ -19,6 +19,11 @@ const event = (over: Record<string, unknown> = {}) => ({
 
 beforeEach(() => { push.mockReset(); vi.mocked(useScrollEntrance).mockClear(); });
 afterEach(cleanup);
+// The fixtures are dated around 10 Nov 2026: "now" is pinned before them, so the registration and date wording does
+// not change as the real calendar moves on. Only Date is faked; timers stay real for the async waits.
+const TODAY = new Date('2026-11-01T00:00:00Z');
+beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(TODAY); });
+afterEach(() => { vi.useRealTimers(); });
 
 describe('EventCard', () => {
   it('shows the cover title and category, the plain description, when and where, and the seats', () => {

@@ -183,6 +183,11 @@ export function IdeaPanel({ hackathon }: { hackathon: Hackathon }) {
         </p>
       )}
 
+      {idea?.result_held && (
+        <p role="status" className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+          The organizers will share every team&apos;s result together when this round&apos;s results are published.
+        </p>
+      )}
       {idea?.status === 'CHANGES_REQUESTED' && idea.feedback && (
         <p role="status" className="rounded-lg bg-orange-500/10 px-3 py-2 text-sm text-orange-800 dark:text-orange-200"><strong>The organizers asked for changes:</strong> {idea.feedback}</p>
       )}

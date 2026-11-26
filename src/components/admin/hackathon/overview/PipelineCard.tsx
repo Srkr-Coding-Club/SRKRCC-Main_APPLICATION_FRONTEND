@@ -4,10 +4,11 @@ import React from 'react';
 import { Workflow } from 'lucide-react';
 import { pipeline, type FunnelStep } from '@/lib/hackathonOverview';
 import type { HackathonFeatures } from '@/lib/types';
+import { notCompetingSummary, type TeamBreakdown } from '@/lib/teamCohorts';
 import { PANEL } from '../shared';
 
 /** From registered teams to winners: how many are still in at each step, and where they dropped out. */
-export function PipelineCard({ funnel, features, participants }: { funnel: FunnelStep[]; features: HackathonFeatures; participants: number }) {
+export function PipelineCard({ funnel, features, participants, teams }: { funnel: FunnelStep[]; features: HackathonFeatures; participants: number; teams?: TeamBreakdown }) {
   const steps = pipeline(funnel, features);
   // Nothing to follow until a team has registered.
   if (steps.length === 0 || steps[0].count === 0) return null;
@@ -16,8 +17,11 @@ export function PipelineCard({ funnel, features, participants }: { funnel: Funne
     <section className={`${PANEL} space-y-3`} aria-label="Team pipeline">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-bold text-journey-text"><Workflow className="h-4 w-4 text-journey-accent" aria-hidden="true" /> Where teams drop out</h3>
-        <p className="text-xs text-journey-muted">{participants} people in {steps[0].count} registered teams</p>
+        <p className="text-xs text-journey-muted">{steps[0].count} registered teams · {participants} people in forming or registered teams</p>
       </div>
+      {teams && notCompetingSummary(teams) && (
+        <p className="text-xs text-journey-muted">Every step counts registered teams holding a place. Not counted: {notCompetingSummary(teams)}.</p>
+      )}
       <ol className="space-y-2.5">
         {steps.map((step) => (
           <li key={step.key} className="space-y-1">

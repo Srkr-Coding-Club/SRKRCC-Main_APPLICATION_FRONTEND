@@ -324,3 +324,12 @@ describe('IdeaPanel: editing control', () => {
     expect(violations.map((v) => v.id)).toEqual([]);
   });
 });
+
+describe('IdeaPanel: a result held for the shortlisting round', () => {
+  it('says the result is shared when the round is published, without showing it', async () => {
+    api.myIdea.mockResolvedValue(payload({ idea: idea({ status: 'SUBMITTED', result_held: true }) }));
+    render(<IdeaPanel hackathon={hackathon} />);
+    expect(await screen.findByText(/share every team.s result together when this round.s results are published/)).toBeTruthy();
+    expect(screen.queryByText(/Why it was not accepted/)).toBeNull();
+  });
+});
