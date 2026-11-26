@@ -181,7 +181,7 @@ export function HackathonOverviewTab({ slug, hackathon, onNavigate }: { slug: st
     ),
     pipeline: (
       <>
-{analytics.data && <PipelineCard funnel={analytics.data.funnel} features={features} participants={data.participants} />}
+{analytics.data && <PipelineCard funnel={analytics.data.funnel} features={features} participants={data.participants} teams={analytics.data.teams} />}
       </>
     ),
     trend: (

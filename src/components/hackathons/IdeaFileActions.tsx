@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import { Download, Eye, FileText } from 'lucide-react';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
 import { formatSize } from '@/lib/fileUpload';
-import { previewKindOf } from '@/lib/filePreview';
-import { FilePreviewDialog } from './FilePreviewDialog';
+import { isPowerPoint, previewKindOf } from '@/lib/filePreview';
+import { FilePreviewDialog, type PreviewSource } from './FilePreviewDialog';
 
 interface IdeaFileActionsProps {
   slug: string;
@@ -23,7 +23,9 @@ export function IdeaFileActions({ slug, ideaId, kind, link, file, label }: IdeaF
   const fetchLink = (inline: boolean) => (link ? link(inline) : hackathonApi.ideaFileLink(slug, ideaId as number, kind as 'deck' | 'payment', inline));
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState('');
-  const canPreview = previewKindOf(file.type, file.name) !== null;
+  // Only a saved idea deck has an Office viewer link; other PowerPoint files (the template) stay download-only.
+  const opensInOffice = !link && kind === 'deck' && ideaId !== undefined && isPowerPoint(file.name);
+  const canPreview = opensInOffice || previewKindOf(file.type, file.name) !== null;
 
   const download = async () => {
     setError('');
@@ -33,7 +35,9 @@ export function IdeaFileActions({ slug, ideaId, kind, link, file, label }: IdeaF
       setError(apiErrorMessage(err, 'Could not download the file.'));
     }
   };
-  const loadPreview = async () => (await fetchLink(true)).url;
+  const previewSource: PreviewSource = opensInOffice
+    ? { kind: 'office', loadUrl: async () => (await hackathonApi.ideaDeckOfficeLink(slug, ideaId as number)).url }
+    : { kind: 'saved', loadUrl: async () => (await fetchLink(true)).url };
   const button = 'inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-journey-text/15 px-3 text-xs font-semibold text-journey-text hover:bg-journey-text/5 dark:border-slate-700';
 
   return (
@@ -57,7 +61,7 @@ export function IdeaFileActions({ slug, ideaId, kind, link, file, label }: IdeaF
       {!canPreview && <p className="text-[11px] text-journey-muted">PowerPoint files cannot be previewed in the browser. Download to open.</p>}
       {error && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
       {previewing && (
-        <FilePreviewDialog name={file.name} type={file.type} source={{ kind: 'saved', loadUrl: loadPreview }} onClose={() => setPreviewing(false)} onDownload={download} />
+        <FilePreviewDialog name={file.name} type={file.type} source={previewSource} onClose={() => setPreviewing(false)} onDownload={download} />
       )}
     </div>
   );

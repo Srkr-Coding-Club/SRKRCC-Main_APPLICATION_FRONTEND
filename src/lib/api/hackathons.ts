@@ -152,6 +152,9 @@ export const hackathonApi = {
   /** A 60-second link to a saved idea file. The payment screenshot is for organizers and the team only. */
   ideaFileLink: (slug: string, ideaId: number, kind: 'deck' | 'payment', inline = false) =>
     fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/ideas/${ideaId}/files/${kind}/link/${inline ? '?inline=1' : ''}`),
+  /** A 10-minute public link to the idea's PowerPoint slides, for Microsoft's Office viewer. Same people as `ideaFileLink`. */
+  ideaDeckOfficeLink: (slug: string, ideaId: number) =>
+    fetchApi<{ url: string; expires_in: number }>(`/hackathons/${enc(slug)}/ideas/${ideaId}/files/deck/office-link/`),
   /** The payment QR code: organizers upload it (settings permission); registered team members and organizers can see it. */
   ideaQrUpload: (slug: string, body: { name: string; size: number; type: string }) =>
     fetchApi<{ file: IdeaFileInfo; post: { url: string; fields: Record<string, string> }; max_bytes: number }>(`/hackathons/${enc(slug)}/idea-qr/`, json(body)),
@@ -337,7 +340,9 @@ export const hackathonApi = {
       fetchApi<{ slug: string; title: string }>(`/hackathons/${enc(slug)}/clone/`, json(body)),
     analytics: (slug: string) => fetchApi<HackathonAnalytics>(`/hackathons/${enc(slug)}/analytics/`),
     overview: (slug: string) => fetchApi<OverviewPayload>(`/hackathons/${enc(slug)}/overview/`),
-    submissions: (slug: string) => fetchApi<AdminSubmissionsPayload>(`/hackathons/${enc(slug)}/submissions/`),
+    /** Projects of withdrawn or disqualified teams are left out unless includeRemoved. */
+    submissions: (slug: string, includeRemoved = false) =>
+      fetchApi<AdminSubmissionsPayload>(`/hackathons/${enc(slug)}/submissions/${includeRemoved ? '?include_removed=1' : ''}`),
     remindMissingSubmissions: (slug: string) =>
       fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/submissions/remind/`, json({})),
     submissionReviews: (slug: string, submissionId: number) =>
@@ -363,7 +368,9 @@ export const hackathonApi = {
       fetchApi<HackathonStaffMember>(`/hackathons/${enc(slug)}/staff/`, json({ email, role, ...(permissions ? { permissions } : {}) })),
     updateStaffPermissions: (slug: string, id: number, permissions: HackathonPermissionKey[]) =>
       fetchApi<HackathonStaffMember>(`/hackathons/${enc(slug)}/staff/${id}/`, patch({ permissions })),
-    ideas: (slug: string) => fetchApi<AdminIdeasPayload>(`/hackathons/${enc(slug)}/ideas/`),
+    /** Ideas of withdrawn or disqualified teams are left out unless includeRemoved. */
+    ideas: (slug: string, includeRemoved = false) =>
+      fetchApi<AdminIdeasPayload>(`/hackathons/${enc(slug)}/ideas/${includeRemoved ? '?include_removed=1' : ''}`),
     reviewIdea: (slug: string, id: number, body: { status: Exclude<IdeaStatus, 'SUBMITTED'>; feedback: string }) =>
       fetchApi<HackathonIdea>(`/hackathons/${enc(slug)}/ideas/${id}/review/`, json(body)),
     remindMissingIdeas: (slug: string) => fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/ideas/remind/`, json({})),

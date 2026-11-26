@@ -141,8 +141,10 @@ describe('ShareSummary', () => {
 describe('PipelineCard', () => {
   it('shows each step with its share, the loss since the step above and the biggest drop', () => {
     const funnel = [{ key: 'registered', label: 'Teams registered', count: 20 }, { key: 'ideas', label: 'Teams submitted an idea', count: 10 }, { key: 'winners', label: 'Teams with an award', count: 9 }];
-    render(<PipelineCard funnel={funnel} features={{ ideas: true }} participants={64} />);
-    expect(screen.getByText('64 people in 20 registered teams')).toBeTruthy();
+    const teams = { competing: 20, forming: 3, waitlisted: 0, awaiting_payment: 1, removed: 2, total: 26 };
+    render(<PipelineCard funnel={funnel} features={{ ideas: true }} participants={64} teams={teams} />);
+    expect(screen.getByText('20 registered teams · 64 people in forming or registered teams')).toBeTruthy();
+    expect(screen.getByText('Every step counts registered teams holding a place. Not counted: 3 forming · 1 awaiting payment · 2 withdrawn or disqualified.')).toBeTruthy();
     expect(screen.getByRole('img', { name: 'Teams submitted an idea: 10, 50% of registered teams' })).toBeTruthy();
     expect(screen.getByText('−10 (50%) since the step above')).toBeTruthy();
     expect(screen.getByText(/Biggest drop:/).textContent).toContain('Teams submitted an idea');

@@ -2,16 +2,25 @@ import React from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const api = { myRounds: vi.fn(), scoreRoundTeam: vi.fn(), recuseRoundTeam: vi.fn(), ideaFileLink: vi.fn() };
+const api = { myRounds: vi.fn(), scoreRoundTeam: vi.fn(), recuseRoundTeam: vi.fn(), ideaFileLink: vi.fn(), ideaDeckOfficeLink: vi.fn() };
 const toast = { success: vi.fn(), error: vi.fn() };
 vi.mock('@/lib/api/hackathons', () => ({
   hackathonApi: {
     judging: { myRounds: (...a: unknown[]) => api.myRounds(...a), scoreRoundTeam: (...a: unknown[]) => api.scoreRoundTeam(...a), recuseRoundTeam: (...a: unknown[]) => api.recuseRoundTeam(...a) },
     ideaFileLink: (...a: unknown[]) => api.ideaFileLink(...a),
+    ideaDeckOfficeLink: (...a: unknown[]) => api.ideaDeckOfficeLink(...a),
   },
   apiErrorMessage: (err: any, fallback = 'Something went wrong') => err?.message || fallback,
 }));
 vi.mock('@/context/ToastContext', () => ({ useToast: () => ({ toast }) }));
+vi.mock('../FilePreviewDialog', () => ({
+  FilePreviewDialog: ({ name, source }: { name: string; source: { kind: string; loadUrl: () => Promise<string> } }) => (
+    <div>
+      preview:{source.kind}:{name}
+      <button type="button" onClick={() => void source.loadUrl()}>load</button>
+    </div>
+  ),
+}));
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a> }));
 
 import { JudgeRoundsPanel } from '../judging/JudgeRoundsPanel';
@@ -222,5 +231,33 @@ describe('JudgeTeamScoring: when scoring is closed or stepped aside', () => {
     fireEvent.click(screen.getByRole('button', { name: /Download the slides/ }));
     await waitFor(() => expect(api.ideaFileLink).toHaveBeenCalledWith('demo', 9, 'deck'));
     expect((await screen.findByRole('alert')).textContent).toContain('virus');
+  });
+
+  const withSlides = (deck_file_type: string | null) => team({
+    material: { ...team().material, idea: { ...team().material.idea, deck_file_type } },
+  });
+
+  it('shows PowerPoint slides in the Office viewer, without the file name', async () => {
+    api.ideaDeckOfficeLink.mockResolvedValue({ url: 'https://api/office-view/t/slides.pptx', expires_in: 600 });
+    render(<JudgeTeamScoring slug="demo" roundId={5} nextEntryId={null} onChanged={vi.fn()} team={withSlides('.pptx')} />);
+    fireEvent.click(screen.getByRole('button', { name: /View the slides/ }));
+    expect(screen.getByText('preview:office:Slides.pptx')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'load' }));
+    await waitFor(() => expect(api.ideaDeckOfficeLink).toHaveBeenCalledWith('demo', 9));
+  });
+
+  it('shows PDF slides in the browser viewer through an inline link', async () => {
+    api.ideaFileLink.mockResolvedValue({ url: 'https://files/deck.pdf' });
+    render(<JudgeTeamScoring slug="demo" roundId={5} nextEntryId={null} onChanged={vi.fn()} team={withSlides('.pdf')} />);
+    fireEvent.click(screen.getByRole('button', { name: /View the slides/ }));
+    expect(screen.getByText('preview:saved:Slides.pdf')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'load' }));
+    await waitFor(() => expect(api.ideaFileLink).toHaveBeenCalledWith('demo', 9, 'deck', true));
+  });
+
+  it('offers only the download when the slides type is unknown', () => {
+    render(<JudgeTeamScoring slug="demo" roundId={5} nextEntryId={null} onChanged={vi.fn()} team={withSlides(null)} />);
+    expect(screen.queryByRole('button', { name: /View the slides/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /Download the slides/ })).toBeTruthy();
   });
 });

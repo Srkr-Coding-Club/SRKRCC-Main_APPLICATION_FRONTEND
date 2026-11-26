@@ -13,6 +13,7 @@ import { BTN_ACCENT, PANEL } from '@/components/hackathons/dashboardStyles';
 
 import { ActionButton } from '@/components/ui/ActionButton';
 import { JudgeRoundsPanel } from '@/components/hackathons/judging/JudgeRoundsPanel';
+import { IdeaFileActions } from '@/components/hackathons/IdeaFileActions';
 
 type Criteria = JudgingPayload['criteria'];
 type Kind = 'PROJECT' | 'IDEA';
@@ -216,12 +217,7 @@ export default function JudgingPage() {
                   ))}
                   {idea.tech_stack.length > 0 && <p className="text-xs text-journey-muted">Planned tech: {idea.tech_stack.join(', ')}</p>}
                   <Links items={[['Slides link', idea.deck_url], ['LinkedIn post', idea.linkedin_url]]} />
-                  {idea.deck_file && (
-                    <button type="button" onClick={() => hackathonApi.ideaFileLink(slug, idea.id, 'deck').then((link) => window.location.assign(link.url)).catch((err) => toast.error('Could not open the slides', apiErrorMessage(err)))}
-                      className="inline-flex min-h-8 items-center gap-1 text-xs font-bold text-journey-accent hover:underline">
-                      Presentation ({idea.deck_file.name})<ExternalLink className="h-3 w-3" />
-                    </button>
-                  )}
+                  {idea.deck_file && <IdeaFileActions slug={slug} ideaId={idea.id} kind="deck" label="Presentation" file={idea.deck_file} />}
                   {idea.is_own_team ? (
                     <p className="text-xs text-journey-muted">This is your own team, so you cannot score it.</p>
                   ) : open ? (

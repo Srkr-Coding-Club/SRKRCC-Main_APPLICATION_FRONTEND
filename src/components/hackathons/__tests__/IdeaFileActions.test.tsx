@@ -3,11 +3,22 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ideaFileLink = vi.fn();
+const ideaDeckOfficeLink = vi.fn();
 vi.mock('@/lib/api/hackathons', () => ({
-  hackathonApi: { ideaFileLink: (...a: unknown[]) => ideaFileLink(...a) },
+  hackathonApi: {
+    ideaFileLink: (...a: unknown[]) => ideaFileLink(...a),
+    ideaDeckOfficeLink: (...a: unknown[]) => ideaDeckOfficeLink(...a),
+  },
   apiErrorMessage: (err: any, fallback = 'Something went wrong') => err?.message || fallback,
 }));
-vi.mock('../FilePreviewDialog', () => ({ FilePreviewDialog: () => <div>preview</div> }));
+vi.mock('../FilePreviewDialog', () => ({
+  FilePreviewDialog: ({ source }: { source: { kind: string; loadUrl?: () => Promise<string> } }) => (
+    <div>
+      preview:{source.kind}
+      {source.loadUrl && <button type="button" onClick={() => source.loadUrl?.()}>load</button>}
+    </div>
+  ),
+}));
 
 import { IdeaFileActions } from '../IdeaFileActions';
 
@@ -16,6 +27,7 @@ const assign = vi.fn();
 
 beforeEach(() => {
   ideaFileLink.mockReset().mockResolvedValue({ url: 'https://files/idea' });
+  ideaDeckOfficeLink.mockReset().mockResolvedValue({ url: 'https://api/office-view/t/deck.pptx', expires_in: 600 });
   assign.mockReset();
   Object.defineProperty(window, 'location', { configurable: true, value: { ...window.location, assign } });
 });
@@ -50,6 +62,24 @@ describe('IdeaFileActions', () => {
   it('offers a preview for an image', () => {
     render(<IdeaFileActions slug="demo" link={vi.fn()} file={file} />);
     fireEvent.click(screen.getByRole('button', { name: 'Preview pay.png' }));
-    expect(screen.getByText('preview')).toBeTruthy();
+    expect(screen.getByText('preview:saved')).toBeTruthy();
+  });
+
+  it('opens a saved PowerPoint idea deck in the Office viewer through its own link', async () => {
+    const deck = { name: 'Pitch.pptx', size: 4096, type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' };
+    render(<IdeaFileActions slug="demo" ideaId={7} kind="deck" file={deck} />);
+    expect(screen.queryByText(/cannot be previewed/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Pitch.pptx' }));
+    expect(screen.getByText('preview:office')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'load' }));
+    await waitFor(() => expect(ideaDeckOfficeLink).toHaveBeenCalledWith('demo', 7));
+    expect(ideaFileLink).not.toHaveBeenCalled();
+  });
+
+  it('keeps PowerPoint files that are not an idea deck, such as the template, download-only', () => {
+    const template = { name: 'template.pptx', size: 4096, type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' };
+    render(<IdeaFileActions slug="demo" link={vi.fn()} file={template} />);
+    expect(screen.queryByRole('button', { name: 'Preview template.pptx' })).toBeNull();
+    expect(screen.getByText(/cannot be previewed/)).toBeTruthy();
   });
 });

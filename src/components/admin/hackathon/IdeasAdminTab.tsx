@@ -16,6 +16,7 @@ import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInp
 import { useHackathonPatch } from './useHackathonPatch';
 import { IdeaFileActions } from '@/components/hackathons/IdeaFileActions';
 import { IdeaTemplatePanel } from './IdeaTemplatePanel';
+import { REMOVED_STATUS_LABEL, TeamCoverageNote } from './TeamCoverageNote';
 import { ActionButton } from '@/components/ui/ActionButton';
 
 const STATUS_PILL: Record<IdeaStatus, { tone: PillTone; label: string }> = {
@@ -55,11 +56,12 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
   const [feedback, setFeedback] = useState('');
   const [reviewing, setReviewing] = useState(false);
   const [reminding, setReminding] = useState(false);
+  const [showRemoved, setShowRemoved] = useState(false);
 
   const load = useCallback(() => {
     setError('');
-    hackathonApi.admin.ideas(slug).then((payload) => { setData(payload); }).catch((err) => setError(apiErrorMessage(err, 'Could not load ideas.')));
-  }, [slug]);
+    hackathonApi.admin.ideas(slug, showRemoved).then((payload) => { setData(payload); }).catch((err) => setError(apiErrorMessage(err, 'Could not load ideas.')));
+  }, [slug, showRemoved]);
 
   useEffect(() => {
     if (enabled) load();
@@ -171,13 +173,15 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
         <section className={`${PANEL} space-y-4`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">
-              {data.rows.length} idea{data.rows.length === 1 ? '' : 's'} · {data.counts.SUBMITTED} to review · {data.missing.length} registered teams without one
+              {data.rows.length} idea{data.rows.length === 1 ? '' : 's'} · {data.counts.SUBMITTED} to review · {data.missing.length}{data.teams ? ` of ${data.teams.competing}` : ''} registered teams without one
             </h3>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={remind} disabled={reminding || data.missing.length === 0 || data.state === 'CLOSED'} className={BTN_GHOST}><BellRing className="h-3.5 w-3.5" /> {reminding ? 'Sending…' : 'Remind teams without one'}</button>
               <ExportMenu subject="ideas" disabled={data.rows.length === 0} onExport={(format) => hackathonApi.exportFile(slug, 'ideas', format)} />
             </div>
           </div>
+
+          <TeamCoverageNote teams={data.teams} noun="ideas" removedRows={data.removed_rows} showRemoved={showRemoved} onToggleRemoved={setShowRemoved} />
 
           <div role="tablist" aria-label="Filter ideas" className="flex flex-wrap gap-1.5">
             {FILTERS.map((item) => (
@@ -199,7 +203,7 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
                       <div className="min-w-0">
                         <p className="font-bold text-[#1A1A2E] dark:text-white">{row.title}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {row.team_name} · updated {formatDateTime(row.updated_at)}
+                          {row.team_name}{REMOVED_STATUS_LABEL[row.team_status] ? ` (${REMOVED_STATUS_LABEL[row.team_status]})` : ''} · updated {formatDateTime(row.updated_at)}
                           {row.review_count > 0 && <> · judges&apos; score <strong>{row.score.toFixed(1)}</strong> ({row.review_count} judge{row.review_count === 1 ? '' : 's'})</>}
                         </p>
                       </div>

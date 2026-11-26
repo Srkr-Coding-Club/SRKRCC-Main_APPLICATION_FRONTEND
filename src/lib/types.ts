@@ -1,3 +1,5 @@
+import type { TeamBreakdown } from './teamCohorts';
+
 export interface FeatureFlag {
   id: number;
   key: string;
@@ -661,6 +663,8 @@ export interface JudgeTeamMaterial {
   idea: {
     id: number; title: string; problem: string; solution: string; plan: string; tech_stack: string[];
     deck_url: string | null; has_deck_file: boolean; linkedin_url: string | null;
+    /** The uploaded slides' extension ('.pdf', '.pptx', ...), never the file name: in a blind round it could name the team. */
+    deck_file_type?: string | null;
   } | null;
   project: {
     id: number; title: string; tagline: string; description: string; repo_url: string | null; demo_url: string | null;
@@ -1607,7 +1611,11 @@ export interface AdminSubmissionRow extends Omit<HackathonSubmission, 'created_a
 export interface AdminSubmissionsPayload {
   state: SubmissionWindowState;
   rows: AdminSubmissionRow[];
+  /** Registered teams holding a place that have not submitted. */
   missing: { id: number; name: string }[];
+  teams?: TeamBreakdown;
+  /** Projects of withdrawn or disqualified teams: listed only with includeRemoved. */
+  removed_rows?: number;
 }
 
 export type CriterionTarget = 'PROJECT' | 'IDEA';
@@ -2078,6 +2086,8 @@ export interface FinderListing {
 
 export interface HackathonAnalytics {
   funnel: { key: string; label: string; count: number }[];
+  /** Every team in exactly one group; from "registered" on, the funnel counts the competing group only. */
+  teams?: TeamBreakdown;
   checked_in: number;
   waitlisted_teams: number;
   by_branch: { label: string; count: number }[];
@@ -2205,8 +2215,13 @@ export interface MyIdeaPayload {
 export interface AdminIdeasPayload {
   state: SubmissionWindowState;
   rows: (HackathonIdea & { team_status: string })[];
+  /** Registered teams holding a place that have no idea. */
   missing: { id: number; name: string }[];
+  /** Ideas by status, never counting withdrawn or disqualified teams. */
   counts: Record<IdeaStatus, number>;
+  teams?: TeamBreakdown;
+  /** Ideas of withdrawn or disqualified teams: listed only with includeRemoved. */
+  removed_rows?: number;
   config: IdeaConfig;
 }
 
