@@ -2,6 +2,11 @@ import { fetchApi } from '@/lib/api-client';
 import { downloadServerExport, type ExportFormat } from '@/lib/exportApi';
 import type {
   AdminRoundEntry,
+  MyPaymentStep,
+  PaymentStepDraft,
+  PaymentStepInfo,
+  StepPaymentQueue,
+  IdeaRoundLink,
   AdminIdeasPayload,
   AdminSubmissionsPayload,
   CertificateVerification,
@@ -105,7 +110,7 @@ const patch = (body: unknown): RequestInit => ({ method: 'PATCH', body: JSON.str
 const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) });
 
 /** The downloads the server renders for one hackathon (apps/hackathons/exports.py). */
-export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in' | 'check-in-teams' | 'check-in-by-team' | 'check-in-matrix' | 'payments' | 'finder-seekers' | 'finder-teams';
+export type HackathonExportKind = 'teams' | 'participants' | 'ideas' | 'submissions' | 'rounds' | 'check-in' | 'check-in-teams' | 'check-in-by-team' | 'check-in-matrix' | 'payments' | 'step-payments' | 'finder-seekers' | 'finder-teams';
 
 /** Typed wrappers for /api/hackathons/* (see apps/hackathons/urls.py). */
 export const hackathonApi = {
@@ -140,6 +145,20 @@ export const hackathonApi = {
     ),
   updateTeamRecruiting: (teamId: number, body: { looking_for_members: boolean; looking_for: string }) =>
     fetchApi<HackathonTeam>(`/hackathons/teams/${teamId}/`, patch(body)),
+  // --- payment steps: what the team owes and the leader paying ---
+  myPaymentSteps: (slug: string) => fetchApi<MyPaymentStep[]>(`/hackathons/${enc(slug)}/my-payment-steps/`),
+  stepPaymentFileUpload: (slug: string, stepId: number, body: { name: string; size: number }) =>
+    fetchApi<{ file: IdeaFileInfo; post: { url: string; fields: Record<string, string> }; max_bytes: number }>(`/hackathons/${enc(slug)}/payment-steps/${stepId}/files/`, json(body)),
+  stepPaymentFileComplete: (slug: string, stepId: number, fileId: string) =>
+    fetchApi<{ file: IdeaFileInfo }>(`/hackathons/${enc(slug)}/payment-steps/${stepId}/files/${fileId}/`, { method: 'POST' }),
+  payStep: (slug: string, stepId: number, body: { transaction_id: string; payment_file_id: string }) =>
+    fetchApi<MyPaymentStep[]>(`/hackathons/${enc(slug)}/payment-steps/${stepId}/pay/`, json(body)),
+  /** A short link to the step's QR code: organizers and the teams that have to pay it. */
+  paymentStepQrLink: (slug: string, stepId: number) =>
+    fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/payment-steps/${stepId}/qr/link/`),
+  /** The screenshot of a step payment: organizers and the team's leader. */
+  stepPaymentScreenshotLink: (slug: string, paymentId: number, inline = false) =>
+    fetchApi<{ url: string; expires_in: number; inline: boolean }>(`/hackathons/${enc(slug)}/step-payments/${paymentId}/screenshot/${inline ? '?inline=1' : ''}`),
   myPermissions: (slug: string) => fetchApi<MyHackathonPermissions>(`/hackathons/${enc(slug)}/my-permissions/`),
   myIdea: (slug: string) => fetchApi<MyIdeaPayload>(`/hackathons/${enc(slug)}/my-idea/`),
   /** Ask for a signed upload form for the idea's slides or payment screenshot. */
@@ -291,6 +310,28 @@ export const hackathonApi = {
 
   // --- admin ---
   admin: {
+    // --- payment steps: setting them up and checking payments ---
+    paymentSteps: (slug: string) => fetchApi<PaymentStepInfo[]>(`/hackathons/${enc(slug)}/payment-steps/`),
+    createPaymentStep: (slug: string, body: PaymentStepDraft) =>
+      fetchApi<PaymentStepInfo>(`/hackathons/${enc(slug)}/payment-steps/`, json(body)),
+    updatePaymentStep: (slug: string, id: number, body: Partial<PaymentStepDraft>) =>
+      fetchApi<PaymentStepInfo>(`/hackathons/${enc(slug)}/payment-steps/${id}/`, patch(body)),
+    /** A step nobody paid is deleted; one with payments is switched off. */
+    deletePaymentStep: (slug: string, id: number) =>
+      fetchApi<{ outcome: 'deleted' | 'deactivated' }>(`/hackathons/${enc(slug)}/payment-steps/${id}/`, { method: 'DELETE' }),
+    paymentStepQueue: (slug: string, id: number) => fetchApi<StepPaymentQueue>(`/hackathons/${enc(slug)}/payment-steps/${id}/queue/`),
+    remindPaymentStep: (slug: string, id: number) =>
+      fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/payment-steps/${id}/remind/`, json({})),
+    paymentStepQrUpload: (slug: string, id: number, body: { name: string; size: number }) =>
+      fetchApi<{ file: IdeaFileInfo; post: { url: string; fields: Record<string, string> }; max_bytes: number }>(`/hackathons/${enc(slug)}/payment-steps/${id}/qr/`, json(body)),
+    paymentStepQrComplete: (slug: string, id: number, fileId: string) =>
+      fetchApi<PaymentStepInfo>(`/hackathons/${enc(slug)}/payment-steps/${id}/qr/${fileId}/`, { method: 'POST' }),
+    paymentStepQrRemove: (slug: string, id: number) =>
+      fetchApi<PaymentStepInfo>(`/hackathons/${enc(slug)}/payment-steps/${id}/qr/`, { method: 'DELETE' }),
+    verifyStepPayment: (slug: string, paymentId: number) =>
+      fetchApi<StepPaymentQueue>(`/hackathons/${enc(slug)}/step-payments/${paymentId}/verify/`, json({})),
+    rejectStepPayment: (slug: string, paymentId: number, reason: string) =>
+      fetchApi<StepPaymentQueue>(`/hackathons/${enc(slug)}/step-payments/${paymentId}/reject/`, json({ reason })),
     /** Add a session of your own: a title, a day, optional times, and who checks in. */
     // --- judging a round ---
     roundEvaluation: (slug: string, id: number) => fetchApi<RoundEvaluation>(`/hackathons/${enc(slug)}/rounds/${id}/evaluation/`),
@@ -371,8 +412,16 @@ export const hackathonApi = {
     /** Ideas of withdrawn or disqualified teams are left out unless includeRemoved. */
     ideas: (slug: string, includeRemoved = false) =>
       fetchApi<AdminIdeasPayload>(`/hackathons/${enc(slug)}/ideas/${includeRemoved ? '?include_removed=1' : ''}`),
-    reviewIdea: (slug: string, id: number, body: { status: Exclude<IdeaStatus, 'SUBMITTED'>; feedback: string }) =>
-      fetchApi<HackathonIdea>(`/hackathons/${enc(slug)}/ideas/${id}/review/`, json(body)),
+    /** With a linked round, the review also sets the team's round result, so it can need the round's confirmations. */
+    reviewIdea: (
+      slug: string, id: number,
+      body: { status: Exclude<IdeaStatus, 'SUBMITTED'>; feedback: string; confirm_published?: boolean; confirm_over_limit?: boolean },
+    ) => fetchApi<HackathonIdea>(`/hackathons/${enc(slug)}/ideas/${id}/review/`, json(body)),
+    /** Link the round idea reviews decide (copying the ideas already reviewed into it), or unlink with `round: null`. */
+    linkIdeaRound: (
+      slug: string,
+      body: { round: number | null; preview?: boolean; confirm_published?: boolean; confirm_over_limit?: boolean },
+    ) => fetchApi<IdeaRoundLink>(`/hackathons/${enc(slug)}/ideas/link-round/`, json(body)),
     remindMissingIdeas: (slug: string) => fetchApi<{ reminded: number }>(`/hackathons/${enc(slug)}/ideas/remind/`, json({})),
     removeStaff: (slug: string, id: number) =>
       fetchApi<{ deleted: true }>(`/hackathons/${enc(slug)}/staff/${id}/`, { method: 'DELETE' }),
@@ -485,7 +534,11 @@ export const hackathonApi = {
     publishRound: (
       slug: string,
       id: number,
-      body: { announce?: boolean; message?: string; email?: boolean; announce_rejected?: boolean } = {},
+      body: {
+        announce?: boolean; message?: string; announce_rejected?: boolean;
+        /** Email the shortlisted / other teams' note. Publishing again never emails anyone twice. */
+        email_shortlisted?: boolean; email_rejected?: boolean;
+      } = {},
     ) =>
       fetchApi<{ round: HackathonRound }>(`/hackathons/${enc(slug)}/rounds/${id}/publish/`, json(body)),
     unpublishRound: (slug: string, id: number) =>

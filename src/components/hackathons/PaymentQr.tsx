@@ -8,14 +8,20 @@ import { hackathonApi } from '@/lib/api/hackathons';
  * The QR code the organizers uploaded for paying. Its link lasts one minute, so it is fetched when this appears
  * (and again after a failure or when `version` changes, e.g. a new QR was uploaded).
  */
-export function PaymentQr({ slug, version, size = 224, className = '' }: { slug: string; version?: string; size?: number; className?: string }) {
+export function PaymentQr({ slug, version, size = 224, className = '', loadLink }: {
+  slug: string; version?: string; size?: number; className?: string;
+  /** Where the link comes from when it is not the hackathon's own QR (a payment step's). */
+  loadLink?: () => Promise<{ url: string }>;
+}) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(() => {
     setFailed(false);
     setUrl(null);
-    hackathonApi.ideaQrLink(slug).then((link) => setUrl(link.url)).catch(() => setFailed(true));
+    (loadLink ? loadLink() : hackathonApi.ideaQrLink(slug)).then((link) => setUrl(link.url)).catch(() => setFailed(true));
+    // loadLink is recreated by the caller on every render; `version` says when to load again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   useEffect(load, [load, version]);

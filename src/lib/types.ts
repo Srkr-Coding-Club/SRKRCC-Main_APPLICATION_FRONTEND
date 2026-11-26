@@ -204,6 +204,8 @@ export interface Hackathon {
   idea_deadline?: string | null;
   /** Organizers must approve an idea before it counts. */
   idea_review_required?: boolean;
+  /** The round idea reviews decide (approved = shortlisted, rejected = not); set through `linkIdeaRound`. */
+  idea_round?: number | null;
   /** Rupees a team pays with its idea (0 = free); the payment screenshot is then required. */
   idea_fee_amount?: number;
   payment_stage?: PaymentStage;
@@ -721,6 +723,8 @@ export interface HackathonRound {
   details_form_slug?: string | null;
   details_form_title?: string | null;
   results_published: boolean;
+  /** Idea reviews set this round's results (the hackathon's `idea_round`). */
+  linked_to_ideas?: boolean;
   /** Whether a panel of judges scores this round. */
   evaluation_mode?: RoundEvaluationMode;
   evaluation_status?: RoundEvaluationStatus;
@@ -2107,6 +2111,8 @@ export interface OverviewPayload {
   payments: { counts: Record<PaymentStatus, number>; fee_amount: number; stage: PaymentStage; payments: Pick<PaymentRow, 'status' | 'amount' | 'team_status' | 'submitted_at'>[] } | null;
   finder: FinderAdminPayload | null;
   withdrawals: { pending: number } | null;
+  /** Payment-step payments waiting for a check, per step (absent when the hackathon has no active step). */
+  step_payments?: { pending: number; steps: { id: number; name: string; pending: number }[] } | null;
   hidden: string[];
   errors: Record<string, string>;
 }
@@ -2146,6 +2152,8 @@ export interface HackathonIdea {
   status: IdeaStatus;
   feedback: string;
   reviewed_at: string | null;
+  /** The team's own view: the outcome is decided but waits for the linked round to be published (shown as under review). */
+  result_held?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -2210,6 +2218,14 @@ export interface MyIdeaPayload {
   /** Why a team that already submitted cannot edit now (empty when it can). */
   edit_blocked_reason: string;
   config: IdeaConfig;
+}
+
+/** What linking a round to idea review copies: the teams it would shortlist and mark not shortlisted. */
+export interface IdeaRoundLink {
+  round: number | null;
+  shortlisted: number;
+  rejected: number;
+  published: boolean;
 }
 
 export interface AdminIdeasPayload {
@@ -2365,4 +2381,90 @@ export type EventCertificateSettingsInput = Partial<Pick<EventCertificateSetting
 export interface NotificationPreferences {
   /** Email reminders before events the person registered for. In-app reminders are always sent. */
   event_reminder_emails: boolean;
+}
+
+// --- Payment steps: a per-person fee the teams shortlisted in a round pay (cheaper for club affiliates) ---
+
+export type StepPaymentStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+/** Each member with their fee; `affiliate` = a Club ID and an active membership. */
+export interface StepQuote {
+  members: { user_id: number; name: string; affiliate: boolean; fee: number }[];
+  total: number;
+}
+
+/** A payment as the team sees it; `reason` is only filled for a rejected one. */
+export interface StepPaymentInfo {
+  id: number;
+  status: StepPaymentStatus;
+  amount: number;
+  breakdown: StepQuote['members'];
+  transaction_id: string;
+  reason: string;
+  submitted_at: string;
+  reviewed_at: string | null;
+}
+
+/** A step the person's team has to pay, from `my-payment-steps`. */
+export interface MyPaymentStep {
+  id: number;
+  name: string;
+  round_name: string;
+  deadline: string | null;
+  payment_note: string;
+  has_qr: boolean;
+  required_for_projects: boolean;
+  fee_per_person: number;
+  affiliate_fee_per_person: number;
+  quote: StepQuote;
+  /** The latest payment, of any status. */
+  payment: StepPaymentInfo | null;
+  is_leader: boolean;
+  can_pay: boolean;
+}
+
+export interface PaymentStepCounts {
+  due: number;
+  unpaid: number;
+  pending: number;
+  verified: number;
+  rejected: number;
+}
+
+/** A step as organizers see and edit it. */
+export interface PaymentStepInfo {
+  id: number;
+  name: string;
+  round: number | null;
+  round_name: string | null;
+  round_published: boolean;
+  fee_per_person: number;
+  affiliate_fee_per_person: number;
+  deadline: string | null;
+  payment_note: string;
+  required_for_projects: boolean;
+  is_active: boolean;
+  order: number;
+  qr: { id: string; name: string } | null;
+  counts: PaymentStepCounts;
+}
+
+export type PaymentStepDraft = Pick<PaymentStepInfo, 'name' | 'round' | 'fee_per_person' | 'affiliate_fee_per_person' | 'deadline' | 'payment_note' | 'required_for_projects'>
+  & { is_active?: boolean };
+
+export interface StepPaymentQueueRow {
+  team_id: number;
+  team_name: string;
+  leader_name: string;
+  leader_email: string;
+  leader_phone: string;
+  quote: StepQuote;
+  /** False for a team whose payment is still waiting although it no longer owes the step (unshortlisted, withdrawn...). */
+  due: boolean;
+  payment: (StepPaymentInfo & { screenshot: IdeaFileInfo | null; reviewed_by: string | null; duplicate_reference: boolean }) | null;
+}
+
+export interface StepPaymentQueue {
+  step: PaymentStepInfo;
+  rows: StepPaymentQueueRow[];
 }

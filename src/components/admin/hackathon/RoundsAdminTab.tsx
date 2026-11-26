@@ -86,6 +86,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
   const [announce, setAnnounce] = useState(true);
   const [announceMsg, setAnnounceMsg] = useState('');
   const [emailShortlisted, setEmailShortlisted] = useState(false);
+  const [emailRejected, setEmailRejected] = useState(false);
   const [announceRejected, setAnnounceRejected] = useState(true);
 
   // Wildcard / manual team addition modal
@@ -299,7 +300,8 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
         announce,
         message: announceMsg.trim(),
         announce_rejected: announceRejected,
-        email: (announce || announceRejected) && emailShortlisted,
+        email_shortlisted: announce && emailShortlisted,
+        email_rejected: announceRejected && emailRejected,
       }),
       'Results published'
     );
@@ -438,6 +440,11 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                     {ROUND_KIND_LABEL[r.kind]} · {r.entry_counts.total} teams · {r.entry_counts.SHORTLISTED}{r.shortlist_limit ? `/${r.shortlist_limit}` : ''} shortlisted
                     {r.results_published ? ' · published' : ''}
                   </p>
+                  {r.linked_to_ideas && (
+                    <p className="mt-0.5 text-[11px] font-semibold text-journey-accent" title="Approving an idea shortlists the team here; rejecting it marks the team not shortlisted. Set in the Ideas tab.">
+                      Linked to idea review
+                    </p>
+                  )}
                 </button>
                 {rounds.length > 1 && (
                   <div className="flex flex-col justify-center">
@@ -466,7 +473,13 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                 ) : (
                   <StatusPill tone="slate" icon={EyeOff}>Results hidden</StatusPill>
                 )}
+                {round.linked_to_ideas && <StatusPill tone="amber">Linked to idea review</StatusPill>}
               </div>
+              {round.linked_to_ideas && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Idea reviews set these results: approved = shortlisted, rejected = not shortlisted. Changing a result here does not change the idea.
+                </p>
+              )}
               {round.details_form_slug ? (
                 <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                   <FileText className="h-3.5 w-3.5 text-journey-accent" /> Details form: <strong>{round.details_form_title}</strong>
@@ -502,7 +515,7 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
                 </button>
               ) : (
                 <button
-                  onClick={() => { setAnnounce(true); setAnnounceRejected(true); setAnnounceMsg(''); setEmailShortlisted(false); setPublishOpen(true); }}
+                  onClick={() => { setAnnounce(true); setAnnounceRejected(true); setAnnounceMsg(''); setEmailShortlisted(false); setEmailRejected(false); setPublishOpen(true); }}
                   disabled={busy}
                   className={BTN_PRIMARY}
                 >
@@ -888,17 +901,28 @@ export function RoundsAdminTab({ slug, features }: { slug: string; features: Hac
             Post an announcement to the shortlisted teams
           </label>
           {announce && (
-            <textarea value={announceMsg} onChange={(e) => setAnnounceMsg(e.target.value)} rows={3} className={INPUT} placeholder="Optional custom message for shortlisted teams (Markdown). Leave blank for a default congratulations note." />
+            <>
+              <textarea value={announceMsg} onChange={(e) => setAnnounceMsg(e.target.value)} rows={3} className={INPUT} placeholder="Optional custom message for shortlisted teams (Markdown). Leave blank for a default congratulations note." />
+              <label className="ml-6 flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={emailShortlisted} onChange={(e) => setEmailShortlisted(e.target.checked)} className="accent-[#FF7A00]" />
+                Also email it to every member of the shortlisted teams
+              </label>
+            </>
           )}
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={announceRejected} onChange={(e) => setAnnounceRejected(e.target.checked)} className="accent-[#FF7A00]" />
             Post a thank-you note to the teams that were not shortlisted
           </label>
-          {(announce || announceRejected) && (
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={emailShortlisted} onChange={(e) => setEmailShortlisted(e.target.checked)} className="accent-[#FF7A00]" />
-              Also email these announcements to every member of the teams they are for
+          {announceRejected && (
+            <label className="ml-6 flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={emailRejected} onChange={(e) => setEmailRejected(e.target.checked)} className="accent-[#FF7A00]" />
+              Also email it to every member of those teams
             </label>
+          )}
+          {round && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Publishing again after unpublishing updates these notes; nobody is emailed twice. A team you shortlist after publishing gets the shortlisted email too, if it was emailed.
+            </p>
           )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setPublishOpen(false)} disabled={busy} className={BTN_GHOST}>Cancel</button>

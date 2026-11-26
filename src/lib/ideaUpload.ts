@@ -36,6 +36,33 @@ export async function uploadIdeaFile(
   }
 }
 
+/** The screenshot of a payment step's payment (the leader only). It is confirmed here and used when the payment is submitted. */
+export async function uploadStepPayment(
+  slug: string,
+  stepId: number,
+  file: File,
+  onProgress: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<UploadedFile> {
+  let grant;
+  try {
+    grant = await hackathonApi.stepPaymentFileUpload(slug, stepId, { name: file.name, size: file.size });
+  } catch (error) {
+    throw asUploadError(error, 'Could not start the upload.');
+  }
+  try {
+    await sendToStorage({ upload: { id: grant.file.id }, post: grant.post, max_bytes: grant.max_bytes }, file, onProgress, signal);
+  } catch (error) {
+    throw asUploadError(error, 'The upload failed.');
+  }
+  try {
+    const done = await hackathonApi.stepPaymentFileComplete(slug, stepId, grant.file.id);
+    return { upload_id: done.file.id, name: done.file.name, size: done.file.size, type: done.file.type };
+  } catch (error) {
+    throw asUploadError(error, 'We could not confirm the upload.');
+  }
+}
+
 /** The screenshot of the fee paid to register: sent to storage before the team exists, then used when the team is created. */
 export async function uploadRegistrationPayment(
   slug: string,

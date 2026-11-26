@@ -12,6 +12,8 @@ vi.mock('@/lib/api/hackathons', () => ({
   apiErrorMessage: (err: any, fallback = 'Something went wrong') => err?.body?.detail || err?.message || fallback,
 }));
 vi.mock('@/context/ToastContext', () => ({ useToast: () => ({ toast }) }));
+// The payment steps section has its own tests (PaymentStepsPanel.test.tsx); this file covers the registration fee.
+vi.mock('../PaymentStepsPanel', () => ({ PaymentStepsPanel: () => null }));
 vi.mock('@/components/forms/FileUploadField', () => ({ default: () => <div>file field</div> }));
 vi.mock('@/components/hackathons/PaymentQr', () => ({ PaymentQr: () => <div data-testid="qr" /> }));
 vi.mock('@/lib/ideaUpload', () => ({ IDEA_FILE_RULES: { PAYMENT: { allowedFileTypes: '.png', maxFileSizeMB: 5, label: 'x' } }, uploadIdeaQr: vi.fn() }));

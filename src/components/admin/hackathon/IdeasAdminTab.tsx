@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BellRing, Check, ExternalLink, IndianRupee, Lightbulb, MessageSquareWarning, Save, X } from 'lucide-react';
 import type { AdminIdeasPayload, Hackathon, IdeaStatus } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
@@ -17,6 +17,8 @@ import { useHackathonPatch } from './useHackathonPatch';
 import { IdeaFileActions } from '@/components/hackathons/IdeaFileActions';
 import { IdeaTemplatePanel } from './IdeaTemplatePanel';
 import { REMOVED_STATUS_LABEL, TeamCoverageNote } from './TeamCoverageNote';
+import { IdeaRoundLinkPanel, isCancelled, withRoundConfirmations } from './IdeaRoundLinkPanel';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ActionButton } from '@/components/ui/ActionButton';
 
 const STATUS_PILL: Record<IdeaStatus, { tone: PillTone; label: string }> = {
@@ -57,10 +59,15 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
   const [reviewing, setReviewing] = useState(false);
   const [reminding, setReminding] = useState(false);
   const [showRemoved, setShowRemoved] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
+  const latestLoad = useRef(0);
   const load = useCallback(() => {
     setError('');
-    hackathonApi.admin.ideas(slug, showRemoved).then((payload) => { setData(payload); }).catch((err) => setError(apiErrorMessage(err, 'Could not load ideas.')));
+    const request = ++latestLoad.current;
+    hackathonApi.admin.ideas(slug, showRemoved)
+      .then((payload) => { if (request === latestLoad.current) setData(payload); })
+      .catch((err) => { if (request === latestLoad.current) setError(apiErrorMessage(err, 'Could not load ideas.')); });
   }, [slug, showRemoved]);
 
   useEffect(() => {
@@ -84,13 +91,18 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
   const review = async (id: number, status: Exclude<IdeaStatus, 'SUBMITTED'>) => {
     setReviewing(true);
     try {
-      await hackathonApi.admin.reviewIdea(slug, id, { status, feedback });
-      toast.success(status === 'APPROVED' ? 'Idea approved' : status === 'REJECTED' ? 'Idea rejected' : 'Changes requested', 'The team was notified.');
+      const reviewed = await withRoundConfirmations(
+        (flags) => hackathonApi.admin.reviewIdea(slug, id, { status, feedback, ...flags }), confirm, 'The shortlisting round',
+      );
+      toast.success(
+        status === 'APPROVED' ? 'Idea approved' : status === 'REJECTED' ? 'Idea rejected' : 'Changes requested',
+        reviewed.result_held ? 'The team sees it when the shortlisting round is published.' : 'The team was notified.',
+      );
       setFeedback('');
       setOpenId(null);
       load();
     } catch (err) {
-      toast.error('Could not save the review', apiErrorMessage(err));
+      if (!isCancelled(err)) toast.error('Could not save the review', apiErrorMessage(err));
     } finally {
       setReviewing(false);
     }
@@ -166,6 +178,16 @@ export function IdeasAdminTab({ hackathon, onSaved, onEnable }: IdeasAdminTabPro
       </form>
 
       <IdeaTemplatePanel hackathon={hackathon} onSaved={onSaved} template={data?.config.template ?? null} />
+
+      <IdeaRoundLinkPanel
+        hackathon={hackathon}
+        confirm={confirm}
+        onLinked={() => {
+          hackathonApi.get(slug).then(onSaved).catch(() => undefined);
+          load();
+        }}
+      />
+      {confirmDialog}
 
       {error && <LoadError message={error} onRetry={load} />}
 

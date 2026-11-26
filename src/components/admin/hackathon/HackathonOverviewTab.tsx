@@ -104,6 +104,11 @@ export function HackathonOverviewTab({ slug, hackathon, onNavigate }: { slug: st
     ? finder.data.seekers.filter((person) => person.status === 'WAITING' && now.getTime() - new Date(person.listed_at).getTime() >= FINDER_LONG_WAIT_MS).length
     : 0;
   const pendingWithdrawals = withdrawals.data?.pending ?? 0;
+  const stepPayments = overview.data?.step_payments ?? null;
+  const stepWaiting = stepPayments?.pending ?? 0;
+  // One step: name it. Several: say how many steps the waiting payments are spread over.
+  const stepsWaiting = stepPayments?.steps.filter((step) => step.pending > 0) ?? [];
+  const stepLabel = stepsWaiting.length === 1 ? ` for ${stepsWaiting[0].name}` : stepsWaiting.length > 1 ? ` across ${stepsWaiting.length} payment steps` : '';
   const ideaDue = hackathon.idea_deadline ? new Date(hackathon.idea_deadline) : null;
   const ideaPassed = Boolean(ideaDue) && ideaDue!.getTime() <= now.getTime();
   const ideasNearDue = Boolean(ideaDue) && now.getTime() >= ideaDue!.getTime() - IDEA_NUDGE_BEFORE_MS;
@@ -111,6 +116,7 @@ export function HackathonOverviewTab({ slug, hackathon, onNavigate }: { slug: st
 
   const attention: AttentionItem[] = [
     { key: 'payments', count: waiting, label: `${waiting === 1 ? 'team is' : 'teams are'} waiting for their payment to be checked${slowPayments ? ` (${slowPayments} for over a day)` : ''}`, action: 'Check', tone: slowPayments ? 'red' : 'amber', onClick: () => onNavigate('payments') },
+    { key: 'step-payments', count: stepWaiting, label: `${stepWaiting === 1 ? 'payment is' : 'payments are'} waiting for a check${stepLabel}`, action: 'Check', tone: 'amber', onClick: () => onNavigate('payments') },
     { key: 'ideas', count: toReview, label: `${toReview === 1 ? 'idea is' : 'ideas are'} waiting for a review`, action: 'Review', tone: 'accent', onClick: () => onNavigate('ideas') },
     { key: 'no-idea', count: withoutIdea, label: `${withoutIdea === 1 ? 'team has' : 'teams have'} not sent an idea${ideaPassed ? ' and the deadline has passed' : ' yet, and it is due soon'}`, action: 'See ideas', tone: ideaPassed ? 'red' : 'amber', onClick: () => onNavigate('ideas') },
     { key: 'forming', count: data.forming_teams.length, label: `${data.forming_teams.length === 1 ? 'team is' : 'teams are'} below the minimum size of ${data.min_team_size}`, action: 'See teams', tone: 'amber', onClick: () => onNavigate('teams') },

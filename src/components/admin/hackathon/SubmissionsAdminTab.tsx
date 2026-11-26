@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BellRing, ExternalLink, Eye, FileUp, Save } from 'lucide-react';
 import type { AdminSubmissionRow, AdminSubmissionsPayload, Hackathon } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
@@ -42,9 +42,13 @@ export function SubmissionsAdminTab({ hackathon, onSaved, onEnable }: Submission
   const [showRemoved, setShowRemoved] = useState(false);
   const enabled = Boolean(hackathon.features?.submissions);
 
+  const latestLoad = useRef(0);
   const load = useCallback(() => {
     setError('');
-    hackathonApi.admin.submissions(hackathon.slug, showRemoved).then(setData).catch((err) => setError(apiErrorMessage(err, 'Could not load submissions.')));
+    const request = ++latestLoad.current;
+    hackathonApi.admin.submissions(hackathon.slug, showRemoved)
+      .then((payload) => { if (request === latestLoad.current) setData(payload); })
+      .catch((err) => { if (request === latestLoad.current) setError(apiErrorMessage(err, 'Could not load submissions.')); });
   }, [hackathon.slug, showRemoved]);
 
   useEffect(() => {
