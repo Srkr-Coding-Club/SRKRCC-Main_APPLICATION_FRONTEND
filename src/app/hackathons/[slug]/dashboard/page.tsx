@@ -29,6 +29,7 @@ import { HackathonAnnouncementsFeed, formatDateTime } from '@/components/hackath
 import { AcceptInviteModal } from '@/components/hackathons/AcceptInviteModal';
 import { SubmissionPanel } from '@/components/hackathons/SubmissionPanel';
 import { IdeaPanel } from '@/components/hackathons/IdeaPanel';
+import { StepPayments } from '@/components/hackathons/StepPayments';
 import { TeamFinderCard } from '@/components/hackathons/TeamFinderCard';
 import { StaffShortcuts } from '@/components/hackathons/StaffShortcuts';
 import {
@@ -517,6 +518,7 @@ export default function HackathonDashboardPage() {
               </section>
             )}
             {team && !unpaid && hackathon.features?.ideas && team.status === 'REGISTERED' && !team.is_waitlisted && <IdeaPanel hackathon={hackathon} />}
+            {team && !unpaid && team.status === 'REGISTERED' && !team.is_waitlisted && hackathon.has_payment_steps !== false && <StepPayments hackathon={hackathon} />}
             {team && !unpaid && hackathon.features?.submissions && team.status === 'REGISTERED' && !team.is_waitlisted && <SubmissionPanel hackathon={hackathon} />}
 
             {team && !unpaid && (

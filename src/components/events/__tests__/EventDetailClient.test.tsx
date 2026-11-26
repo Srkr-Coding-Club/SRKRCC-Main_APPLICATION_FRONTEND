@@ -21,6 +21,11 @@ const event = (over: Record<string, unknown> = {}) => ({
 
 beforeEach(() => { download.mockReset(); });
 afterEach(cleanup);
+// The fixtures are dated around 10 Nov 2026: "now" is pinned before them, so the registration and date wording does
+// not change as the real calendar moves on. Only Date is faked; timers stay real for the async waits.
+const TODAY = new Date('2026-11-01T00:00:00Z');
+beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(TODAY); });
+afterEach(() => { vi.useRealTimers(); });
 
 describe('EventDetailClient', () => {
   it('shows the title as the page heading with its category, status and the facts', () => {

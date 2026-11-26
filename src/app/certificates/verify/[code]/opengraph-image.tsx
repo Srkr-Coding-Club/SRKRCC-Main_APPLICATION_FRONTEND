@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { lookupCertificate } from '@/lib/certificateVerify';
 
-export const revalidate = 600;
+export const revalidate = 3600;
 
 export const alt = 'Certificate verification';
 export const size = { width: 1200, height: 630 };

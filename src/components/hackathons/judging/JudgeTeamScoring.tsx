@@ -2,9 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Download, ExternalLink, Lock, UserMinus } from 'lucide-react';
+import { CheckCircle2, Download, ExternalLink, Eye, Lock, UserMinus } from 'lucide-react';
 import type { JudgeTeamView } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
+import { isPowerPoint, previewKindOf } from '@/lib/filePreview';
+import { FilePreviewDialog, type PreviewSource } from '@/components/hackathons/FilePreviewDialog';
 import { useToast } from '@/context/ToastContext';
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ScoreInput } from './ScoreInput';
@@ -44,9 +46,19 @@ function ExternalLinks({ items }: { items: [string, string | null | undefined][]
   );
 }
 
+/** Preview for uploaded slides: a PDF in the browser's viewer, PowerPoint in Microsoft's Office viewer, anything else none. */
+function slidesPreview(slug: string, ideaId: number, fileType: string | null | undefined): PreviewSource | null {
+  const name = `slides${fileType || ''}`;
+  if (isPowerPoint(name)) return { kind: 'office', loadUrl: async () => (await hackathonApi.ideaDeckOfficeLink(slug, ideaId)).url };
+  if (previewKindOf(undefined, name) === 'pdf') return { kind: 'saved', loadUrl: async () => (await hackathonApi.ideaFileLink(slug, ideaId, 'deck', true)).url };
+  return null;
+}
+
 function Material({ slug, team }: { slug: string; team: JudgeTeamView }) {
   const { problem, idea, project } = team.material;
   const [fileError, setFileError] = useState('');
+  const [previewing, setPreviewing] = useState(false);
+  const preview = idea?.has_deck_file ? slidesPreview(slug, idea.id, idea.deck_file_type) : null;
   const downloadDeck = async () => {
     setFileError('');
     try {
@@ -66,9 +78,23 @@ function Material({ slug, team }: { slug: string; team: JudgeTeamView }) {
           {idea.tech_stack.length > 0 && <p className="text-xs text-journey-muted">Built with {idea.tech_stack.join(', ')}</p>}
           <ExternalLinks items={[['Slides link', idea.deck_url], ['LinkedIn post', idea.linkedin_url]]} />
           {idea.has_deck_file && (
-            <button type="button" onClick={() => void downloadDeck()} className={`${BTN_QUIET} min-h-11 sm:min-h-0`}><Download className="h-3.5 w-3.5" aria-hidden="true" /> Download the slides</button>
+            <div className="flex flex-wrap gap-2">
+              {preview && (
+                <button type="button" onClick={() => setPreviewing(true)} className={`${BTN_QUIET} min-h-11 sm:min-h-0`}><Eye className="h-3.5 w-3.5" aria-hidden="true" /> View the slides</button>
+              )}
+              <button type="button" onClick={() => void downloadDeck()} className={`${BTN_QUIET} min-h-11 sm:min-h-0`}><Download className="h-3.5 w-3.5" aria-hidden="true" /> Download the slides</button>
+            </div>
           )}
           {fileError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">{fileError}</p>}
+          {previewing && preview && (
+            <FilePreviewDialog
+              name={`Slides${idea.deck_file_type || ''}`}
+              type=""
+              source={preview}
+              onClose={() => setPreviewing(false)}
+              onDownload={() => void downloadDeck()}
+            />
+          )}
         </>
       ) : <p className="text-sm text-journey-muted">This team has not submitted an idea.</p>}
     </Section>

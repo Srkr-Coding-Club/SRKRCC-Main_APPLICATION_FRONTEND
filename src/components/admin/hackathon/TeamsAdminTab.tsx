@@ -15,6 +15,7 @@ import { Modal } from '@/components/ui/Modal';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { ENTRY_STATUS_PILL, StatusPill, TEAM_STATUS_PILL } from '@/components/ui/StatusPill';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL } from './shared';
+import { COHORT_HINT, COHORT_LABEL, COHORT_ORDER, breakdownOf, cohortOf, type TeamCohort } from '@/lib/teamCohorts';
 
 const STATUS_OPTIONS = [
   { value: 'REGISTERED', label: 'Registered' },
@@ -43,6 +44,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [cohort, setCohort] = useState<TeamCohort | ''>('');
   const [ps, setPs] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusReason, setStatusReason] = useState('');
@@ -151,10 +153,12 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
     const q = search.trim().toLowerCase();
     return teams.filter((t) =>
       (!status || t.status === status)
+      && (!cohort || cohortOf(t) === cohort)
       && (!ps || (ps === OPEN_INNOVATION ? !!t.open_innovation : String(t.problem_statement?.id) === ps))
       && (!q || t.name.toLowerCase().includes(q) || t.members.some((m) => `${m.name} ${m.email} ${m.roll_number ?? ''}`.toLowerCase().includes(q))),
     );
-  }, [teams, search, status, ps]);
+  }, [teams, search, status, cohort, ps]);
+  const breakdown = useMemo(() => breakdownOf(teams), [teams]);
 
   const selected = teams.find((t) => t.id === selectedId) ?? null;
 
@@ -313,7 +317,7 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
             className={`${INPUT} pl-9`}
           />
         </div>
-        <FormSelect className="w-44" value={status} onChange={setStatus} options={FILTER_OPTIONS} placeholder="All statuses" />
+        <FormSelect className="w-44" value={status} onChange={(v) => { setCohort(''); setStatus(v); }} options={FILTER_OPTIONS} placeholder="All statuses" />
         <FormSelect
           className="w-56"
           value={ps}
@@ -325,7 +329,25 @@ export function TeamsAdminTab({ hackathon }: { hackathon: Hackathon }) {
 
       {confirmDialog}
       {loadError && <LoadError message={loadError} onRetry={load} />}
-      <p className="text-xs text-slate-500 dark:text-slate-400">{filtered.length} of {teams.length} teams</p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+        <span>{filtered.length} of {teams.length} teams</span>
+        {teams.length > 0 && (
+          <span className="flex flex-wrap items-center gap-1" aria-label="Teams by group">
+            {COHORT_ORDER.filter((c) => breakdown[c] > 0).map((c) => (
+              <button
+                key={c}
+                type="button"
+                title={COHORT_HINT[c]}
+                aria-pressed={cohort === c}
+                onClick={() => { setStatus(''); setCohort(cohort === c ? '' : c); }}
+                className={`rounded-full border px-2 py-0.5 font-semibold transition-colors ${cohort === c ? 'border-journey-accent bg-journey-accent/10 text-journey-accent' : 'border-slate-200 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-white/5'}`}
+              >
+                {breakdown[c]} {COHORT_LABEL[c]}
+              </button>
+            ))}
+          </span>
+        )}
+      </div>
 
       {loading ? (
         <div className="h-40 rounded-lg bg-slate-200 dark:bg-white/5 animate-pulse" />

@@ -141,7 +141,9 @@ export function EmailVerificationProvider({ children }: { children: React.ReactN
     };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
-    const timer = blocked ? setInterval(() => void refresh({ force: true }), POLL_WHILE_BLOCKED_MS) : undefined;
+    // A hidden tab must not poll: background timers still fire about once a minute, which keeps the database awake.
+    const pollWhileVisible = () => { if (document.visibilityState === 'visible') void refresh({ force: true }); };
+    const timer = blocked ? setInterval(pollWhileVisible, POLL_WHILE_BLOCKED_MS) : undefined;
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BellRing, ExternalLink, Eye, FileUp, Save } from 'lucide-react';
 import type { AdminSubmissionRow, AdminSubmissionsPayload, Hackathon } from '@/lib/types';
 import { apiErrorMessage, hackathonApi } from '@/lib/api/hackathons';
@@ -15,6 +15,7 @@ import { SubmissionPhases } from './SubmissionPhases';
 import { BTN_GHOST, BTN_PRIMARY, INPUT, LABEL, PANEL, fromLocalInput, toLocalInput } from './shared';
 import { useHackathonPatch } from './useHackathonPatch';
 import { ActionButton } from '@/components/ui/ActionButton';
+import { REMOVED_STATUS_LABEL, TeamCoverageNote } from './TeamCoverageNote';
 
 const STATE_PILL = {
   OFF: { tone: 'slate', label: 'Off' },
@@ -38,12 +39,17 @@ export function SubmissionsAdminTab({ hackathon, onSaved, onEnable }: Submission
   const [error, setError] = useState('');
   const [reminding, setReminding] = useState(false);
   const [reading, setReading] = useState<AdminSubmissionRow | null>(null);
+  const [showRemoved, setShowRemoved] = useState(false);
   const enabled = Boolean(hackathon.features?.submissions);
 
+  const latestLoad = useRef(0);
   const load = useCallback(() => {
     setError('');
-    hackathonApi.admin.submissions(hackathon.slug).then(setData).catch((err) => setError(apiErrorMessage(err, 'Could not load submissions.')));
-  }, [hackathon.slug]);
+    const request = ++latestLoad.current;
+    hackathonApi.admin.submissions(hackathon.slug, showRemoved)
+      .then((payload) => { if (request === latestLoad.current) setData(payload); })
+      .catch((err) => { if (request === latestLoad.current) setError(apiErrorMessage(err, 'Could not load submissions.')); });
+  }, [hackathon.slug, showRemoved]);
 
   useEffect(() => {
     if (enabled) load();
@@ -105,7 +111,7 @@ export function SubmissionsAdminTab({ hackathon, onSaved, onEnable }: Submission
       {data && (
         <section className={`${PANEL} space-y-4`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">{data.rows.length} submitted · {data.missing.length} registered teams still to submit</h3>
+            <h3 className="text-sm font-bold text-[#1A1A2E] dark:text-white">{data.rows.length} submitted · {data.missing.length}{data.teams ? ` of ${data.teams.competing}` : ''} registered teams still to submit</h3>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={remind} disabled={reminding || data.missing.length === 0 || data.state === 'CLOSED'} className={BTN_GHOST}>
                 <BellRing className="h-3.5 w-3.5" /> {reminding ? 'Sending…' : 'Remind teams without one'}
@@ -113,6 +119,8 @@ export function SubmissionsAdminTab({ hackathon, onSaved, onEnable }: Submission
               <ExportMenu subject="projects" disabled={data.rows.length === 0} onExport={(format) => hackathonApi.exportFile(hackathon.slug, 'submissions', format)} />
             </div>
           </div>
+
+          <TeamCoverageNote teams={data.teams} noun="projects" removedRows={data.removed_rows} showRemoved={showRemoved} onToggleRemoved={setShowRemoved} />
 
           {data.rows.length === 0 ? (
             <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:text-slate-400 dark:border-slate-700">No submissions yet.</p>
@@ -125,7 +133,7 @@ export function SubmissionsAdminTab({ hackathon, onSaved, onEnable }: Submission
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {data.rows.map((row) => (
                     <tr key={row.id} className="align-top">
-                      <td className="py-2.5 pr-3 font-semibold text-[#1A1A2E] dark:text-white">{row.team}</td>
+                      <td className="py-2.5 pr-3 font-semibold text-[#1A1A2E] dark:text-white">{row.team}{REMOVED_STATUS_LABEL[row.team_status] ? ` (${REMOVED_STATUS_LABEL[row.team_status]})` : ''}</td>
                       <td className="py-2.5 pr-3">
                         <p className="font-medium">{row.project_title}</p>
                         {row.tagline && <p className="text-xs text-slate-500 dark:text-slate-400">{row.tagline}</p>}

@@ -12,6 +12,7 @@ import { IdeaFileActions } from '@/components/hackathons/IdeaFileActions';
 import { formatDateTime } from '@/components/hackathons/HackathonAnnouncementsFeed';
 import { LoadError } from './LoadError';
 import { PaymentSettingsPanel } from './PaymentSettingsPanel';
+import { PaymentStepsPanel } from './PaymentStepsPanel';
 import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY, INPUT, PANEL } from './shared';
 
 const PILL: Record<PaymentStatus, { tone: PillTone; label: string }> = {
@@ -109,6 +110,7 @@ export function PaymentsAdminTab({ hackathon, onSaved, canEditSettings }: Paymen
   return (
     <div className="space-y-6">
       {canEditSettings && <PaymentSettingsPanel hackathon={hackathon} onSaved={onSaved} />}
+      <PaymentStepsPanel slug={slug} canEdit={canEditSettings} />
       {dialog}
 
       {!atRegistration ? (

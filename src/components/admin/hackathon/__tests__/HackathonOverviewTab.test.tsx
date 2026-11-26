@@ -2,7 +2,7 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const api = { stats: vi.fn(), analytics: vi.fn(), ideas: vi.fn(), payments: vi.fn(), remindForming: vi.fn(), finder: vi.fn(), withdrawals: vi.fn(), overview: vi.fn() };
+const api = { stats: vi.fn(), analytics: vi.fn(), ideas: vi.fn(), payments: vi.fn(), remindForming: vi.fn(), finder: vi.fn(), withdrawals: vi.fn(), overview: vi.fn(), stepPayments: vi.fn() };
 vi.mock('@/lib/api/hackathons', () => ({
   hackathonApi: {
     exportFile: vi.fn(),
@@ -44,7 +44,7 @@ const compose = async () => {
   const payments = await part('payments', api.payments, (value) => (value.stage === 'NONE' ? null : value));
   const finder = await part('finder', api.finder, (value) => (value.enabled ? value : null));
   const withdrawals = await part('withdrawals', api.withdrawals, (value) => ({ pending: value.pending.length }));
-  return { stats, analytics, ideas, payments, finder, withdrawals, hidden, errors };
+  return { stats, analytics, ideas, payments, finder, withdrawals, step_payments: api.stepPayments(), hidden, errors };
 };
 
 beforeEach(() => {
@@ -83,6 +83,22 @@ describe('HackathonOverviewTab', () => {
     expect(onNavigate).toHaveBeenCalledWith('payments');
     fireEvent.click(within(strip).getByText('idea is waiting for a review').closest('button')!);
     expect(onNavigate).toHaveBeenCalledWith('ideas');
+  });
+
+  it('counts payment-step payments waiting for a check, naming the step, and opens the Payments tab', async () => {
+    api.stepPayments.mockReturnValue({ pending: 3, steps: [{ id: 1, name: 'Phase 2 fee', pending: 3 }, { id: 2, name: 'Finals fee', pending: 0 }] });
+    const { onNavigate } = show();
+    const strip = await screen.findByRole('region', { name: 'Needs attention' });
+    const item = within(strip).getByText('payments are waiting for a check for Phase 2 fee');
+    fireEvent.click(item.closest('button')!);
+    expect(onNavigate).toHaveBeenCalledWith('payments');
+  });
+
+  it('says how many steps the waiting payments are spread over', async () => {
+    api.stepPayments.mockReturnValue({ pending: 2, steps: [{ id: 1, name: 'Phase 2 fee', pending: 1 }, { id: 2, name: 'Finals fee', pending: 1 }] });
+    show();
+    const strip = await screen.findByRole('region', { name: 'Needs attention' });
+    expect(within(strip).getByText('payments are waiting for a check across 2 payment steps')).toBeTruthy();
   });
 
   it('adds the finder to the strip: stuck join requests, and people waiting while teams have room', async () => {

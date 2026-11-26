@@ -43,11 +43,11 @@ export async function fetchApi<T>(
   // Server reads are anonymous and must stay cacheable for Amplify/CloudFront ISR.
   // Only the browser BFF proxy needs cookies.
   const credentials = isClient ? 'include' : 'omit';
-  // Public server GETs default to a 60s Data Cache entry unless the caller opts out.
+  // Public server GETs default to a one-hour Data Cache entry unless the caller opts out.
   const hasNext = Boolean((options as { next?: unknown }).next);
   const serverPublicGet =
     !isClient && method === 'GET' && defaultCache !== 'no-store' && !hasNext
-      ? { next: { revalidate: 600 as const } }
+      ? { next: { revalidate: 3600 as const } }
       : {};
 
   try {

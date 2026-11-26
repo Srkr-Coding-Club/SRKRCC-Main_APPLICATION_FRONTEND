@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { BadgeCheck, ShieldX } from 'lucide-react';
 import { lookupCertificate } from '@/lib/certificateVerify';
 
-export const revalidate = 600;
+export const revalidate = 3600;
 
 type VerifyParams = { params: Promise<{ code: string }> };
 

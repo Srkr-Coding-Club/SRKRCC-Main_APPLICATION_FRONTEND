@@ -67,7 +67,8 @@ const nextConfig: NextConfig = {
       "base-uri 'self'",
       "form-action 'self'",
       "object-src 'none'",
-      `frame-src 'self' blob:${uploadOrigins}`,
+      // Idea decks in PowerPoint open in Microsoft's Office viewer (src/lib/filePreview.ts OFFICE_VIEWER_ORIGIN).
+      `frame-src 'self' blob: https://view.officeapps.live.com${uploadOrigins}`,
     ].join('; ');
 
     return [

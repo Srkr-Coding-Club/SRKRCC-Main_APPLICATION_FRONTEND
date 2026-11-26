@@ -72,7 +72,7 @@ describe('CelebrationHost', () => {
     await mount();
     expect(api.seen).toHaveBeenCalledTimes(1);
     expect(api.seen).toHaveBeenCalledWith([1]);
-    await act(async () => { await vi.advanceTimersByTimeAsync(7000); });        // it closed by itself
+    await act(async () => { await vi.advanceTimersByTimeAsync(12_000); });      // it closed by itself (a big card stays 11 s)
     await act(async () => { requestCelebrationCheck(); await vi.advanceTimersByTimeAsync(10); }); // a later check still lists it
     expect(api.pending.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(api.seen).toHaveBeenCalledTimes(1);
@@ -160,16 +160,24 @@ describe('CelebrationHost', () => {
     expect(region?.className).toContain('pointer-events-none');             // the page behind stays usable
   });
 
-  it('looks again right away when asked', async () => {
-    await mount();
+  it('looks again right away when asked, while a burst of page changes costs one look', async () => {
+    const view = render(<CelebrationHost />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(900); });
     const calls = () => api.pending.mock.calls.length;
     const before = calls();
     await act(async () => { requestCelebrationCheck(); await vi.advanceTimersByTimeAsync(10); });
     expect(calls()).toBe(before + 1);
     await act(async () => { requestCelebrationCheck(); await vi.advanceTimersByTimeAsync(10); });
-    expect(calls()).toBe(before + 1);                                       // too soon after the last look: skipped
-    await act(async () => { await vi.advanceTimersByTimeAsync(5000); requestCelebrationCheck(); await vi.advanceTimersByTimeAsync(10); });
-    expect(calls()).toBe(before + 2);
+    expect(calls()).toBe(before + 2);                                       // asked: always looks
+    route.path = '/events';
+    view.rerender(<CelebrationHost />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+    expect(calls()).toBe(before + 2);                                       // a page change right after a look: skipped
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    route.path = '/blogs';
+    view.rerender(<CelebrationHost />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+    expect(calls()).toBe(before + 3);
   });
 
   it('does not look while the tab is hidden', async () => {

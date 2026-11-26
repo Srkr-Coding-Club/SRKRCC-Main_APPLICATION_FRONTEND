@@ -72,7 +72,10 @@ describe('UserDirectory', () => {
     nav.query = 'q=sita&email=overdue&page=2';
     show();
     await screen.findAllByText('Sita Rao');
-    const [filters, scope] = api.list.mock.calls[0];
+    // College suggestions also page the directory (with page_size); the table request does not.
+    const pageRequest = api.list.mock.calls.find(([, , extra]) => !extra?.page_size);
+    expect(pageRequest).toBeTruthy();
+    const [filters, scope] = pageRequest!;
     expect(scope).toBe('users');
     expect(filters).toMatchObject({ q: 'sita', email: 'overdue', page: 2 });
   });
