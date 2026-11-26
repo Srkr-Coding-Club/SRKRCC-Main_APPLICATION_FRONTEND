@@ -185,6 +185,8 @@ export interface Hackathon {
   waitlist_enabled?: boolean;
   waitlisted_team_count?: number;
   is_full?: boolean;
+  /** An active payment step exists: the team dashboard only asks for its payments then. */
+  has_payment_steps?: boolean;
   eligibility?: HackathonEligibility;
   rules?: string;
   require_rules_acceptance?: boolean;

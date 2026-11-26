@@ -518,7 +518,7 @@ export default function HackathonDashboardPage() {
               </section>
             )}
             {team && !unpaid && hackathon.features?.ideas && team.status === 'REGISTERED' && !team.is_waitlisted && <IdeaPanel hackathon={hackathon} />}
-            {team && !unpaid && team.status === 'REGISTERED' && !team.is_waitlisted && <StepPayments hackathon={hackathon} />}
+            {team && !unpaid && team.status === 'REGISTERED' && !team.is_waitlisted && hackathon.has_payment_steps !== false && <StepPayments hackathon={hackathon} />}
             {team && !unpaid && hackathon.features?.submissions && team.status === 'REGISTERED' && !team.is_waitlisted && <SubmissionPanel hackathon={hackathon} />}
 
             {team && !unpaid && (
